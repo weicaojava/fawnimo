@@ -24,6 +24,7 @@ import { executeAsyncTaskCreate, executeTaskCancel } from '../../../components/t
 import { TASK_COPY } from '../../../components/taskCopy'
 import { useTaskPageContext } from '../../../components/taskPageContext'
 import { useTaskUiStore } from '../../../components/taskUiStore'
+import { ScriptPreparationPanel } from './ScriptPreparationPanel'
 import {
   createRelationTaskState,
   upsertRelationTaskStateInMap,
@@ -564,6 +565,8 @@ export function ChaptersTab() {
   }
 
   return (
+    <>
+    <ScriptPreparationPanel key={`script-${projectId}`} projectId={projectId ?? ''} chapters={chapters} />
     <Card
       title="章节列表"
       extra={
@@ -629,5 +632,6 @@ export function ChaptersTab() {
         </div>
       </Modal>
     </Card>
+    </>
   )
 }

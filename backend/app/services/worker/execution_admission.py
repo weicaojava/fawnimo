@@ -15,6 +15,7 @@ from app.core.contracts.execution_capabilities import Capability, preflight
 from app.core.contracts.execution_binding import binding_fingerprint
 from app.core.contracts.task_safety import validate_task_payload
 from app.models.execution import ExecutionJob
+from app.models.script_preparation import ScriptDraft
 from app.models.execution_binding import ExecutionBinding
 from app.models.execution_budget import ExecutionBudget, ExecutionBudgetEntry
 from app.models.task import GenerationTask
@@ -92,6 +93,8 @@ async def admit(factory, project_id: str, request_key: str, snapshot: dict, poli
                 if existing is not None:
                     if existing.request_hash!=request_hash: raise HTTPException(409,'请求标识已被其他版本使用')
                     return existing.id
+                if (await db.execute(select(ScriptDraft.id).where(ScriptDraft.project_id==project_id).limit(1))).first():
+                    raise HTTPException(409,'本工程已启用结构化剧本，请使用绑定剧本版本的镜头计划；该生成通道尚未接通')
                 # Replay above is purely recovery: new runtime policy must never
                 # rebind an existing job, even if its old duration is now retired.
                 try:

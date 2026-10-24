@@ -72,6 +72,8 @@ class Base(DeclarativeBase):
 
 async def init_db() -> None:
     """创建所有表（开发/迁移用）。"""
+    from app.core.sqlite_runtime import prepare_sqlite
+    await prepare_sqlite(engine)
     # 确保 ORM 模型已导入，从而注册到 Base.metadata
     import app.models.llm  # noqa: F401  # pylint: disable=unused-import
     import app.models.studio  # noqa: F401
@@ -83,8 +85,13 @@ async def init_db() -> None:
     import app.models.execution_binding  # noqa: F401
     import app.models.reverse  # noqa: F401
     import app.models.benchmark  # noqa: F401
+    import app.models.script_preparation  # noqa: F401
 
     async with engine.begin() as conn:
+        if engine.dialect.name=='sqlite':
+            from sqlalchemy import text
+            if (await conn.execute(text("SELECT 1 FROM sqlite_master WHERE type='table' AND name='chapters'"))).first():
+                await conn.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS chapter_id_project_scope ON chapters(id,project_id)'))
         await conn.run_sync(Base.metadata.create_all)
     if engine.dialect.name == "sqlite":
         from app.services.studio.production_schema import migrate_production
@@ -95,6 +102,8 @@ async def init_db() -> None:
         await migrate_reverse(engine)
         from app.services.benchmark.schema import migrate_benchmark
         await migrate_benchmark(engine)
+        from app.services.script_preparation.schema import migrate_script_preparation
+        await migrate_script_preparation(engine)
 
 
 async def close_db() -> None:

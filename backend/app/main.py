@@ -60,6 +60,8 @@ async def lifespan(app: FastAPI):
     # 启动时：供应商注册 + 任务执行器注册（幂等）
     from sqlalchemy import text
     from app.core.db import engine
+    from app.core.sqlite_runtime import prepare_sqlite
+    await prepare_sqlite(engine)
     if engine.dialect.name == 'sqlite':
         async with engine.connect() as conn:
             version=(await conn.execute(text('SELECT version FROM production_schema'))).scalars().all()
