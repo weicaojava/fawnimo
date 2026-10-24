@@ -78,12 +78,16 @@ async def init_db() -> None:
     import app.models.task  # noqa: F401
     import app.models.task_links  # noqa: F401
     import app.models.production  # noqa: F401
+    import app.models.execution  # noqa: F401
+    import app.models.execution_budget  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     if engine.dialect.name == "sqlite":
         from app.services.studio.production_schema import migrate_production
         await migrate_production()
+        from app.services.worker.execution_schema import migrate_execution
+        await migrate_execution(engine)
 
 
 async def close_db() -> None:

@@ -6,6 +6,7 @@ from typing import Any, Mapping, Optional
 from app.core.task_manager.stores import TaskStore
 from app.core.task_manager.strategies import DeliveryStrategy
 from app.core.task_manager.types import BaseTask, DeliveryMode, TaskRecord, TaskStatusView
+from app.core.contracts.task_safety import validate_task_payload
 
 
 class TaskManager:
@@ -50,6 +51,7 @@ class TaskManager:
             "task_kind": task_kind or task.__class__.__name__,
             "run_args": run_args or {},
         }
+        validate_task_payload(payload)
         return await self.store.create(
             payload=payload,
             mode=mode,

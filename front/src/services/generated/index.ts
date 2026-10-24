@@ -16,11 +16,13 @@ export type { ApiResponse_dict_ } from './models/ApiResponse_dict_';
 export type { ApiResponse_dict_str__Any__ } from './models/ApiResponse_dict_str__Any__';
 export type { ApiResponse_EntityMergeResult_ } from './models/ApiResponse_EntityMergeResult_';
 export type { ApiResponse_EntityNameExistenceCheckResponse_ } from './models/ApiResponse_EntityNameExistenceCheckResponse_';
+export type { ApiResponse_ExecutionRead_ } from './models/ApiResponse_ExecutionRead_';
 export type { ApiResponse_FileDetailRead_ } from './models/ApiResponse_FileDetailRead_';
 export type { ApiResponse_FileRead_ } from './models/ApiResponse_FileRead_';
 export type { ApiResponse_GenerationTaskLinkRead_ } from './models/ApiResponse_GenerationTaskLinkRead_';
 export type { ApiResponse_ImageGenerationOptionsRead_ } from './models/ApiResponse_ImageGenerationOptionsRead_';
 export type { ApiResponse_list_dict__ } from './models/ApiResponse_list_dict__';
+export type { ApiResponse_list_ExecutionRead__ } from './models/ApiResponse_list_ExecutionRead__';
 export type { ApiResponse_list_PromptCategoryOptionRead__ } from './models/ApiResponse_list_PromptCategoryOptionRead__';
 export type { ApiResponse_list_ProviderSupportedRead__ } from './models/ApiResponse_list_ProviderSupportedRead__';
 export type { ApiResponse_list_ShotCharacterLinkRead__ } from './models/ApiResponse_list_ShotCharacterLinkRead__';
@@ -109,6 +111,7 @@ export type { EntityNameExistenceCheckResponse } from './models/EntityNameExiste
 export type { EntityNameExistenceItem } from './models/EntityNameExistenceItem';
 export type { EntityVariant } from './models/EntityVariant';
 export type { EvidenceSpan } from './models/EvidenceSpan';
+export type { ExecutionRead } from './models/ExecutionRead';
 export type { FileDetailRead } from './models/FileDetailRead';
 export type { FileRead } from './models/FileRead';
 export type { FileTypeEnum } from './models/FileTypeEnum';
@@ -256,6 +259,7 @@ export type { VideoGenerationTaskRequest } from './models/VideoGenerationTaskReq
 export type { VideoPromptPreviewResponse } from './models/VideoPromptPreviewResponse';
 
 export { DefaultService } from './services/DefaultService';
+export { ExecutionService } from './services/ExecutionService';
 export { FilmService } from './services/FilmService';
 export { HealthService } from './services/HealthService';
 export { LlmService } from './services/LlmService';

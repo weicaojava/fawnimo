@@ -3,6 +3,7 @@ import { Alert, Button, Card, Empty, Form, Input, List, Modal, Popconfirm, Selec
 import { useParams } from 'react-router-dom'
 import { OpenAPI, ProductionService as P, StudioChaptersService, StudioShotsService } from '../../../../../services/generated'
 import type { AssetWrite, TakeWrite, VersionWrite } from '../../../../../services/generated'
+import { ExecutionJobsPanel } from './ExecutionJobsPanel'
 
 type Version = { id: string; revision: number; payload: { description: string; media_ids: string[] }; content_hash: string }
 type Asset = { asset: { id: string; name: string; kind: string; archived: boolean; entity_id: string | null }; versions: Version[]; affected_shot_ids: string[] }
@@ -71,6 +72,7 @@ export function ProductionTab() {
 
   const mediaOptions = media.map(m => ({ value: m.id, label: m.name }))
   return <div className="space-y-4 pb-6">
+    <ExecutionJobsPanel key={projectId} projectId={projectId} />
     <Alert type="info" showIcon message="工程资产与版本" description="修订会新增版本，已采用片段保留原版本。这里导入的文件属于用户素材，不计作模型生成或成片验收。" />
     {loadError && <Alert type="error" message={loadError} action={<Button onClick={() => void load()}>重试</Button>} />}
     <Card title="资产库" loading={loading} extra={<Button type="primary" onClick={() => { form.resetFields(); setMode('create') }}>新建版本资产</Button>}>

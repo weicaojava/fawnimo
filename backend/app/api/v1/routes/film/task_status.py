@@ -11,6 +11,7 @@ from app.core.task_manager import SqlAlchemyTaskStore
 from app.core.task_manager.types import TaskStatus
 from app.dependencies import get_db
 from app.models.task_links import GenerationTaskLink
+from app.models.task import GenerationTask
 from app.schemas.common import ApiResponse, PaginatedData, created_response, empty_response, paginated_response, success_response
 from app.services.common import entity_not_found
 from app.tasks.execute_task import revoke_task_execution
@@ -191,6 +192,11 @@ async def cancel_task(
     body: TaskCancelRequest,
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[TaskCancelRead]:
+    # Durable execution owns cancellation truth; the legacy store must not mark
+    # its pending projection cancelled while a remote task can still be running.
+    task = await db.get(GenerationTask, task_id)
+    if task is not None and task.task_kind == 'durable_execution':
+        raise HTTPException(409, '此任务请在所属工程的执行任务面板请求取消，需保留远端确认状态')
     store = SqlAlchemyTaskStore(db)
     rec = await store.request_cancel(task_id, body.reason)
     if rec is None:

@@ -15,6 +15,7 @@ from app.models.studio import ActorImage, CharacterImage, CostumeImage, PropImag
 from app.models.task_links import GenerationTaskLink
 from app.models.task import GenerationDeliveryMode, GenerationTask, GenerationTaskStatus
 from app.core.task_manager.types import DeliveryMode, TaskListItemView, TaskRecord, TaskStatus, TaskStatusView
+from app.core.contracts.task_safety import validate_task_payload
 
 
 def _now_ts() -> float:
@@ -384,6 +385,7 @@ class SqlAlchemyTaskStore(TaskStore):
         self.db = db
 
     async def create(self, payload: dict[str, Any], mode: DeliveryMode, task_kind: str) -> TaskRecord:
+        validate_task_payload(payload)
         task_id = _new_id()
         row = GenerationTask(
             id=task_id,

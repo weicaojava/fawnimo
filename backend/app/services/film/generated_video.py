@@ -152,47 +152,9 @@ async def build_run_args(
     images: list[str],
     ratio: str | None,
 ) -> dict:
-    model = await resolve_default_video_model(db)
-    provider_cfg = await load_provider_config_by_model(db, model)
-    shot_detail = await validate_shot_and_duration(db, shot_id)
-    resolved_ratio = await resolve_effective_video_options(requested_ratio=ratio)
-    base = build_video_base_draft(shot_id=shot_id, prompt=prompt)
-    context = await build_video_context(
-        db,
-        shot_id=shot_id,
-        reference_mode=reference_mode,
-        images=images,
-    )
-    submission = await build_video_submission_payload(db, base=base, context=context)
-    validate_images_count(reference_mode, submission.images)
-
-    final_prompt = submission.prompt.strip()
-    if not final_prompt:
-        raise HTTPException(status_code=400, detail="prompt is required")
-
-    required_frames = tuple(ShotFrameType(item) for item in REQUIRED_FRAMES_BY_MODE[reference_mode])
-    frame_data_urls = [await file_id_to_data_url(db, file_id=file_id) for file_id in submission.images]
-    frame_map = {ft: frame_data_urls[i] for i, ft in enumerate(required_frames)}
-
-    run_args = {
-        "shot_id": shot_id,
-        "provider": provider_cfg.provider,
-        "api_key": provider_cfg.api_key,
-        "base_url": provider_cfg.base_url,
-        "input": {
-            "prompt": final_prompt,
-            "first_frame_base64": frame_map.get(ShotFrameType.first),
-            "last_frame_base64": frame_map.get(ShotFrameType.last),
-            "key_frame_base64": frame_map.get(ShotFrameType.key),
-            "model": model.name,
-            "ratio": resolved_ratio,
-            "seconds": shot_detail.duration,
-        },
-    }
-    prompt_preview_payload = submission.extra.get("prompt_preview")
-    if isinstance(prompt_preview_payload, dict):
-        run_args["prompt_preview"] = prompt_preview_payload
-    return run_args
+    """Reject the retired submission path until the durable chain is qualified."""
+    from app.core.contracts.task_safety import reject_legacy_video_submission
+    reject_legacy_video_submission()
 
 
 async def persist_generated_video_to_shot(
@@ -254,75 +216,6 @@ async def run_video_generation_task(
     task_id: str,
     run_args: dict,
 ) -> None:
-    async with async_session_maker() as session:
-        try:
-            store = SqlAlchemyTaskStore(session)
-            await store.set_status(task_id, TaskStatus.running)
-            await store.set_progress(task_id, 10)
-            await session.commit()
-            log_task_event("video_generation", task_id, "running")
-            if await cancel_if_requested_async(store=store, task_id=task_id, session=session):
-                log_task_event("video_generation", task_id, "cancelled", stage="before_execute")
-                return
-
-            provider = str(run_args.get("provider") or "")
-            api_key = str(run_args.get("api_key") or "")
-            base_url = run_args.get("base_url")
-            input_dict = dict(run_args.get("input") or {})
-
-            task = VideoGenerationTask(
-                provider_config=ProviderConfig(
-                    provider=provider,  # type: ignore[arg-type]
-                    api_key=api_key,
-                    base_url=base_url,
-                ),
-                input_=VideoGenerationInput.model_validate(input_dict),
-            )
-            await task.run()
-            result = await task.get_result()
-            if result is None:
-                status_dict = await task.status()
-                detailed_error = ""
-                if isinstance(status_dict, dict):
-                    detailed_error = str(status_dict.get("error") or "")
-                msg = detailed_error or "Video generation task returned no result"
-                raise RuntimeError(msg)
-            if await cancel_if_requested_async(store=store, task_id=task_id, session=session):
-                log_task_event("video_generation", task_id, "cancelled", stage="after_execute")
-                return
-
-            shot_id = str(run_args.get("shot_id") or "")
-            if not shot_id:
-                raise RuntimeError("run_args missing shot_id for video persistence")
-
-            file_obj = await persist_generated_video_to_shot(
-                session,
-                task_id=task_id,
-                shot_id=shot_id,
-                result=result,
-                provider=provider,
-                api_key=api_key,
-            )
-
-            result_payload = result.model_dump()
-            result_payload["file_id"] = file_obj.id
-            await store.set_result(task_id, result_payload)
-            if await cancel_if_requested_async(store=store, task_id=task_id, session=session):
-                log_task_event("video_generation", task_id, "cancelled", stage="after_persist")
-                return
-            await store.set_progress(task_id, 100)
-            await store.set_status(task_id, TaskStatus.succeeded)
-            await recompute_shot_status(session, shot_id=shot_id)
-            await session.commit()
-            log_task_event("video_generation", task_id, "succeeded")
-        except Exception as exc:  # noqa: BLE001
-            await session.rollback()
-            async with async_session_maker() as s2:
-                store = SqlAlchemyTaskStore(s2)
-                await store.set_error(task_id, str(exc))
-                await store.set_status(task_id, TaskStatus.failed)
-                shot_id = str(run_args.get("shot_id") or "")
-                if shot_id:
-                    await recompute_shot_status(s2, shot_id=shot_id)
-                await s2.commit()
-            log_task_failure("video_generation", task_id, str(exc))
+    """Reject the retired submission path until the durable chain is qualified."""
+    from app.core.contracts.task_safety import reject_legacy_video_submission
+    reject_legacy_video_submission()

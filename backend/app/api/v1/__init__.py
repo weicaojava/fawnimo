@@ -1,10 +1,12 @@
 """API v1 路由聚合。"""
 
 from fastapi import APIRouter
+from app.api import execution
 
 from app.api.v1.routes import film, health, llm, studio, script_processing
 
 router = APIRouter()
+router.include_router(execution.router)
 
 router.include_router(health.router, tags=["health"])
 router.include_router(film.router, prefix="/film", tags=["film"])
