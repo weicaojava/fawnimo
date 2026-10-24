@@ -68,9 +68,24 @@ async def lifespan(app: FastAPI):
     bootstrap_all_registries()
     runtime=getattr(app.state,'execution_runtime',None)
     if runtime is not None:await runtime.start()
+    reverse_scanner=None
+    from pathlib import Path
+    if settings.reverse_analysis_enabled and Path(settings.production_probe_executable).is_file():
+        if engine.dialect.name=='sqlite':
+            async with engine.connect() as connection:
+                try:reverse_version=(await connection.execute(text('SELECT version FROM reverse_schema'))).scalars().all()
+                except Exception:raise RuntimeError('Run the supported reverse-analysis migration before enabling video analysis') from None
+                if reverse_version!=[1]:raise RuntimeError('Unsupported reverse-analysis schema version')
+        from app.services.reverse.runtime import ReverseScanner
+        from app.core.db import async_session_maker
+        reverse_scanner=ReverseScanner(async_session_maker,settings.production_probe_executable)
+        await reverse_scanner.start()
+    app.state.reverse_scanner=reverse_scanner
     try:
         yield
     finally:
+        if reverse_scanner is not None:await reverse_scanner.stop()
+        app.state.reverse_scanner=None
         if runtime is not None:await runtime.stop()
 
 

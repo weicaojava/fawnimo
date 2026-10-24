@@ -65,6 +65,8 @@ class Settings(BaseSettings):
     production_media_root: str = str(BACKEND_ROOT / "local-media")
     production_upload_limit: int = 64 * 1024 * 1024
     production_probe_executable: str = ""
+    reverse_analysis_enabled: bool = True
+    reverse_media_allowed_hosts: str = ""
 
     def model_post_init(self, __context: object) -> None:
         if not self.celery_broker_url or not str(self.celery_broker_url).strip():

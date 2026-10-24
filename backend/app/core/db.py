@@ -81,6 +81,7 @@ async def init_db() -> None:
     import app.models.execution  # noqa: F401
     import app.models.execution_budget  # noqa: F401
     import app.models.execution_binding  # noqa: F401
+    import app.models.reverse  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -89,6 +90,8 @@ async def init_db() -> None:
         await migrate_production()
         from app.services.worker.execution_schema import migrate_execution
         await migrate_execution(engine)
+        from app.services.reverse.schema import migrate_reverse
+        await migrate_reverse(engine)
 
 
 async def close_db() -> None:
