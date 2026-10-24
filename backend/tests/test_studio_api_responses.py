@@ -72,6 +72,10 @@ class _FakeStudioDB:
 
     async def execute(self, _stmt):  # noqa: ANN001
         class _EmptyResult:
+            def scalars(self):
+                """Represent an empty optional adoption query, not a real database check."""
+                return self
+
             def all(self) -> list[tuple]:
                 return []
 

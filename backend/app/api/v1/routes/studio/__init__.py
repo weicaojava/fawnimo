@@ -12,9 +12,11 @@ from app.api.v1.routes.studio import (
     shots,
     timeline,
     shot_character_links,
+    production,
 )
 
 router = APIRouter()
+router.include_router(production.router)
 
 router.include_router(projects.router, prefix="/projects", tags=["studio/projects"])
 router.include_router(chapters.router, prefix="/chapters", tags=["studio/chapters"])

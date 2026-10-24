@@ -10,6 +10,7 @@ import {
 import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { TAB_CONFIG, type TabKey, isTabKey, DEFAULT_TAB } from './constants'
 import { DashboardTab } from './tabs/DashboardTab'
+import { ProductionTab } from './tabs/ProductionTab'
 import { ChaptersTab } from './tabs/ChaptersTab'
 import { ActorsTab } from './tabs/ActorsTab'
 import { RolesTab } from './tabs/RolesTab'
@@ -229,6 +230,7 @@ const ProjectWorkbench: React.FC = () => {
         style={{ animation: 'fadeIn 0.25s ease-out' }}
       >
         {activeTab === 'dashboard' && <DashboardTab onSelectTab={setTabInUrl} />}
+        {activeTab === 'production' && <ProductionTab />}
 
         {activeTab === 'chapters' && <ChaptersTab />}
 

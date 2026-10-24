@@ -13,6 +13,7 @@ import type { Chapter } from '../../../../mocks/data'
 
 export type TabKey =
   | 'dashboard'
+  | 'production'
   | 'chapters'
   | 'actors'
   | 'roles'
@@ -25,6 +26,7 @@ export type TabKey =
 
 const TAB_KEYS: TabKey[] = [
   'dashboard',
+  'production',
   'chapters',
   'actors',
   'roles',
@@ -44,6 +46,7 @@ export const DEFAULT_TAB: TabKey = 'dashboard'
 
 export const TAB_CONFIG: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'dashboard', label: '仪表盘', icon: <HomeOutlined /> },
+  { key: 'production', label: '资产版本', icon: <FileImageOutlined /> },
   { key: 'chapters', label: '章节', icon: <UnorderedListOutlined /> },
   { key: 'actors', label: '演员', icon: <UserOutlined /> },
   { key: 'roles', label: '角色', icon: <UserOutlined /> },

@@ -9,16 +9,27 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import event
 
 from app.config import settings
 
 
 def _build_engine() -> AsyncEngine:
-    return create_async_engine(
+    """Create an engine with referential integrity enabled on every SQLite connection."""
+    result = create_async_engine(
         settings.database_url,
         echo=settings.debug,
         future=True,
     )
+    if result.dialect.name == "sqlite":
+        @event.listens_for(result.sync_engine, "connect")
+        def configure_sqlite(connection, _record) -> None:
+            """Prevent orphan rows and bound contention waits in local mode."""
+            cursor = connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.execute("PRAGMA busy_timeout=5000")
+            cursor.close()
+    return result
 
 
 def _build_session_maker(bind_engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
@@ -66,9 +77,13 @@ async def init_db() -> None:
     import app.models.studio  # noqa: F401
     import app.models.task  # noqa: F401
     import app.models.task_links  # noqa: F401
+    import app.models.production  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    if engine.dialect.name == "sqlite":
+        from app.services.studio.production_schema import migrate_production
+        await migrate_production()
 
 
 async def close_db() -> None:

@@ -137,6 +137,7 @@ class FileType(str, Enum):
 
     image = "image"
     video = "video"
+    audio = "audio"
 
 
 class FileUsageKind(str, Enum):

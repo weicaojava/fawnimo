@@ -87,6 +87,19 @@ class _FakeShotSubresourceDB:
     async def flush(self) -> None:
         return None
 
+    async def execute(self, _statement):
+        """No extracted dialogue candidate is seeded in these response-envelope tests."""
+        class EmptyResult:
+            """Minimal empty scalar result for the delete candidate lookup."""
+            def scalars(self):
+                """Return this result's scalar view."""
+                return self
+
+            def first(self):
+                """No linked extraction candidate exists in this fixture."""
+                return None
+        return EmptyResult()
+
     async def refresh(self, obj: object) -> None:
         now = datetime.now(UTC)
         if getattr(obj, "created_at", None) is None:

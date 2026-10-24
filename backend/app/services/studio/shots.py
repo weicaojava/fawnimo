@@ -113,6 +113,7 @@ def _build_shot_read(
     shot: Shot,
     *,
     extraction_counts: dict[str, int] | None = None,
+    selected_take: dict | None = None,
 ) -> ShotRead:
     counts = extraction_counts or {}
     asset_candidate_total = int(counts.get("asset_candidate_total", 0))
@@ -120,6 +121,7 @@ def _build_shot_read(
     pending_asset_count = int(counts.get("pending_asset_count", 0))
     pending_dialogue_count = int(counts.get("pending_dialogue_count", 0))
     return ShotRead(
+        selected_take=selected_take,
         id=shot.id,
         chapter_id=shot.chapter_id,
         index=shot.index,
@@ -154,7 +156,16 @@ async def build_shot_read(
     shot: Shot,
 ) -> ShotRead:
     counts_map = await _fetch_extraction_counts_map(db, shot_ids=[shot.id])
-    return _build_shot_read(shot, extraction_counts=counts_map.get(shot.id))
+    adoptions = await _fetch_adoptions(db, [shot.id])
+    return _build_shot_read(shot, extraction_counts=counts_map.get(shot.id), selected_take=adoptions.get(shot.id))
+
+
+async def _fetch_adoptions(db: AsyncSession, shot_ids: list[str]) -> dict[str, dict]:
+    """Load frozen current adoptions for both original workbench and production UI."""
+    from app.models.production import ShotSelection
+    from app.services.studio.production import read_take
+    selections=(await db.execute(select(ShotSelection).where(ShotSelection.shot_id.in_(shot_ids)))).scalars().all()
+    return {s.shot_id:await read_take(db,s.project_id,s.take_id) for s in selections}
 
 
 async def build_shot_reads(
@@ -163,7 +174,8 @@ async def build_shot_reads(
     shots: list[Shot],
 ) -> list[ShotRead]:
     counts_map = await _fetch_extraction_counts_map(db, shot_ids=[shot.id for shot in shots])
-    return [_build_shot_read(shot, extraction_counts=counts_map.get(shot.id)) for shot in shots]
+    adoptions=await _fetch_adoptions(db,[shot.id for shot in shots])
+    return [_build_shot_read(shot, extraction_counts=counts_map.get(shot.id), selected_take=adoptions.get(shot.id)) for shot in shots]
 
 
 async def list_paginated(

@@ -69,6 +69,7 @@ class ShotUpdate(BaseModel):
 
 
 class ShotRead(ShotBase):
+    selected_take: dict[str, object] | None = Field(None, description="当前采用及其不可变版本快照；user_import不是模型生成")
     last_extracted_at: datetime | None = Field(None, description="最近一次完成信息提取的时间")
     extraction: ShotExtractionSummaryRead = Field(..., description="镜头提取状态摘要")
     model_config = ConfigDict(from_attributes=True)

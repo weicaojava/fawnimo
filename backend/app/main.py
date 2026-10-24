@@ -6,6 +6,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
+from pydantic import ValidationError
 
 from app.api.v1 import router as api_v1_router
 from app.bootstrap import bootstrap_all_registries
@@ -56,6 +58,13 @@ async def validation_exception_handler(request: Request, exc: Exception) -> JSON
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时初始化，关闭时清理。"""
     # 启动时：供应商注册 + 任务执行器注册（幂等）
+    from sqlalchemy import text
+    from app.core.db import engine
+    if engine.dialect.name == 'sqlite':
+        async with engine.connect() as conn:
+            version=(await conn.execute(text('SELECT version FROM production_schema'))).scalars().all()
+            if version != [1]:
+                raise RuntimeError('Run the supported production migration before starting')
     bootstrap_all_registries()
     yield
     # 关闭时：清理资源
@@ -74,6 +83,18 @@ app = FastAPI(
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(Exception, http_exception_handler)
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_exception_handler(request: Request, exc: IntegrityError) -> JSONResponse:
+    """Report rejected references without exposing SQL, parameters, or private data."""
+    return JSONResponse(status_code=409, content={"code":409,"message":"数据引用冲突：请检查工程归属、版本或重复记录","data":None})
+
+
+@app.exception_handler(ValidationError)
+async def domain_validation_exception_handler(request: Request, exc: ValidationError) -> JSONResponse:
+    """Treat legacy dictionary-body validation as input failure without echoing payloads."""
+    return JSONResponse(status_code=422, content={"code":422,"message":"输入字段不符合要求","data":None})
 
 app.add_middleware(
     CORSMiddleware,

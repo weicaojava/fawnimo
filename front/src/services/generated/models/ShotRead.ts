@@ -42,6 +42,10 @@ export type ShotRead = {
      */
     generated_video_file_id?: (string | null);
     /**
+     * 当前采用及其不可变版本快照；user_import不是模型生成
+     */
+    selected_take?: (Record<string, any> | null);
+    /**
      * 最近一次完成信息提取的时间
      */
     last_extracted_at?: (string | null);

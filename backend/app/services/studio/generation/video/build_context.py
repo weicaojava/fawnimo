@@ -90,6 +90,11 @@ async def build_video_context(
     images: list[str] | None,
     template_id: str | None = None,
 ) -> VideoGenerationContext:
+    # The legacy compiler reads mutable drafts. Until the version-aware M3/M6
+    # compiler is qualified, explicitly block it for an adopted frozen snapshot.
+    from app.models.production import ShotSelection
+    if await db.get(ShotSelection, shot_id) is not None:
+        raise HTTPException(409, '此镜头已锁定采用版本；版本化生成链尚未验收，不能使用旧草稿生成接口')
     resolved_images = await resolve_video_reference_images(
         db,
         shot_id=shot_id,

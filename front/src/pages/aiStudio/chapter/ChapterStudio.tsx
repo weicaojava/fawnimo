@@ -909,8 +909,12 @@ const ChapterStudio: React.FC = () => {
     () => shots.filter((shot) => selectedShotIds.includes(shot.id)),
     [selectedShotIds, shots],
   )
-  const currentPreviewVideoFileId = previewVideoFileId || selectedShot?.generated_video_file_id || null
-  const currentPreviewVideoUrl = currentPreviewVideoFileId ? buildFileDownloadUrl(currentPreviewVideoFileId) ?? '' : ''
+  const adoptedTake = selectedShot?.selected_take
+  const adoptedMediaId = typeof adoptedTake?.media_id === 'string' ? adoptedTake.media_id : null
+  const currentPreviewVideoFileId = previewVideoFileId || adoptedMediaId || selectedShot?.generated_video_file_id || null
+  const currentPreviewVideoUrl = !previewVideoFileId && adoptedMediaId && projectId
+    ? resolveAssetUrl(`/api/v1/studio/production/projects/${encodeURIComponent(projectId)}/media/${encodeURIComponent(adoptedMediaId)}/content`) ?? ''
+    : currentPreviewVideoFileId ? buildFileDownloadUrl(currentPreviewVideoFileId) ?? '' : ''
 
   useEffect(() => {
     // 切换分镜时：主预览区视频跟随分镜（清空手动选择的预览视频）
@@ -2493,7 +2497,7 @@ const ChapterStudio: React.FC = () => {
               <div className="relative">
                 <div className="cs-player-shell">
                   <div className="aspect-video bg-black rounded overflow-hidden flex items-center justify-center">
-                  {/* Mock：没有真实视频源时仍可展示播放器结构 */}
+                  {!previewVideoFileId && adoptedTake?.provenance === 'user_import' && <Tag className="absolute top-2 left-2 z-10" color="blue">当前采用 · 用户导入片段</Tag>}
                   <video
                     ref={videoRef}
                     className="w-full h-full object-contain"

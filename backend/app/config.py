@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     s3_base_path: str = ""
     # 可选：对外访问基址（CDN 或自定义域名），为空则使用 S3 自带 URL 或预签名 URL
     s3_public_base_url: str | None = None
+    # Dedicated project media root. Client filenames are never used as disk paths.
+    production_media_root: str = str(BACKEND_ROOT / "local-media")
+    production_upload_limit: int = 64 * 1024 * 1024
+    production_probe_executable: str = ""
 
     def model_post_init(self, __context: object) -> None:
         if not self.celery_broker_url or not str(self.celery_broker_url).strip():

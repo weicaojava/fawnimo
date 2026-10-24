@@ -146,9 +146,12 @@ async def upload_file(
 
     file_type = _detect_file_type(file.filename)
     display_name = _build_display_name(file.filename, name)
-    content = await file.read()
-
-    key = f"files/{file.filename}"
+    from app.services.studio.production_media import inspect_media, read_bounded, probe_media
+    import asyncio
+    content = await read_bounded(file)
+    inspect_media(file.filename, content)
+    await asyncio.to_thread(probe_media, file.filename, content)
+    key = f"files/{uuid.uuid4()}{Path(file.filename).suffix.lower()}"
     info = await storage.upload_file(
         key=key,
         data=content,
