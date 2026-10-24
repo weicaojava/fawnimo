@@ -15,6 +15,7 @@ from app.models.execution import ExecutionJob, ExecutionSlot, SubmissionAttempt
 from app.models.task import GenerationTask
 from app.services.worker.execution_artifacts import DownloadedArtifact, publish_artifact
 from app.models.execution_budget import ExecutionBudgetEntry
+from app.models.execution_binding import ExecutionBinding
 
 TERMINAL={'ready','failed','cancelled'}
 
@@ -48,13 +49,15 @@ class DurableExecution:
     Adapter qualification, network trust and real-provider capability validation
     remain separate requirements; a passing state-machine test is not live access.
     """
-    def __init__(self, transport: ExecutionTransport, *, factory=async_session_maker, clock=time.time, lease_seconds=90, poll_seconds=5, wait_seconds=1800, retry_limit=3, publisher=publish_artifact, budget_required=True):
+    def __init__(self, transport: ExecutionTransport, *, factory=async_session_maker, clock=time.time, lease_seconds=90, poll_seconds=5, wait_seconds=1800, retry_limit=3, publisher=publish_artifact, budget_required=True, enforce_binding=True):
         if lease_seconds<90:raise ValueError('Lease must outlive the 60-second hard transport deadline with margin')
         self.transport=transport;self.factory=factory;self.clock=clock
         self.lease_seconds=lease_seconds;self.poll_seconds=max(5,poll_seconds)
         self.wait_seconds=wait_seconds;self.retry_limit=retry_limit
         self.publisher=publisher
         self.budget_required=budget_required
+        self.enforce_binding=enforce_binding
+        self.allowed_bindings=frozenset()
 
     async def create(self, project_id: str, request_key: str, snapshot: dict) -> str:
         """Deduplicate logical requests and refuse reusing an identity with different inputs."""
@@ -163,6 +166,13 @@ class DurableExecution:
                 job=await db.get(ExecutionJob,job_id)
                 hold=await db.get(ExecutionBudgetEntry,job_id)
                 if job is None:return
+                if self.enforce_binding:
+                    binding=await db.get(ExecutionBinding,job_id)
+                    if binding is None or binding.binding_hash not in self.allowed_bindings:
+                        # A changed service/account/policy cannot take over an
+                        # old request. Restoring its trusted binding can resume it.
+                        await db.execute(update(ExecutionJob).where(ExecutionJob.id==job_id,ExecutionJob.state.not_in(TERMINAL)).values(reason='runtime_binding_unavailable'))
+                        await db.commit();return
                 if job.state=='queued' and (hold is None or hold.project_id!=job.project_id or hold.state!='reserved'):
                     # An absent quote/reservation is never permission to send.
                     return
@@ -202,6 +212,10 @@ class DurableExecution:
             if job.state in {'submitting','submission_unknown'}:
                 async with self.factory() as db:
                     attempt=(await db.execute(select(SubmissionAttempt).where(SubmissionAttempt.job_id==job.id))).scalars().one()
+                if attempt.state=='rejected':
+                    # The rejection journal may commit just before a process dies.
+                    # Recover its terminal state without calling submit/reconcile.
+                    await self._update(job.id,token,state='failed',reason='provider_rejected');return
                 try:remote_id=attempt.remote_id or await self._external(job.id,token,lambda:self.transport.reconcile(attempt.id))
                 except Exception:remote_id=None
                 if remote_id:await self._update(job.id,token,state='running',remote_id=remote_id,next_due=self.clock()+self.poll_seconds,reason='')

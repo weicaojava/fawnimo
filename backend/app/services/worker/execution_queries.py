@@ -14,6 +14,9 @@ STATE_LABELS = {'queued':'等待执行', 'submitting':'正在提交', 'submissio
 REASONS = {'provider_rejected':'服务明确拒绝了请求', 'submission_acceptance_unknown':'尚不能确认服务是否已接受请求，请勿重复提交', 'manual_reconciliation_required':'需要核实原请求的接收结果', 'unknown_acceptance_requires_manual_resolution':'接收结果仍不确定，已暂停核实', 'wait_limit_reached':'达到等待时限，可继续查询原任务', 'query_retry_limit':'查询重试达到上限，可恢复查询', 'download_retry_limit':'结果接收重试达到上限，可恢复接收', 'provider_failed':'服务报告执行失败', 'user_paused':'已按要求暂停，可恢复原任务', 'cancelled_before_submission':'提交前已取消'}
 
 
+REASONS['runtime_binding_unavailable']='原服务配置已改变，请恢复原配置后继续处理；未重新提交'
+
+
 def safe_view(job: ExecutionJob) -> dict:
     """Allowlist fields; never echo provider IDs, arbitrary reasons, URLs or snapshots."""
     return {'id':job.id, 'project_id':job.project_id, 'state':job.state if job.state in STATE_LABELS else 'unknown', 'state_label':STATE_LABELS.get(job.state,'状态待核实'), 'reason':REASONS.get(job.reason, '任务信息已更新，请检查执行状态' if job.reason else ''), 'cancel_requested':job.cancel_requested, 'query_retries':job.query_retries, 'download_retries':job.download_retries, 'can_resume':job.state=='paused', 'can_cancel':job.state not in TERMINAL, 'can_pause':job.state in RESUMABLE and job.lease_until<=time.time()}

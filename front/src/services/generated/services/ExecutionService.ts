@@ -2,8 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ApiResponse_AdmissionRead_ } from '../models/ApiResponse_AdmissionRead_';
 import type { ApiResponse_ExecutionRead_ } from '../models/ApiResponse_ExecutionRead_';
 import type { ApiResponse_list_ExecutionRead__ } from '../models/ApiResponse_list_ExecutionRead__';
+import type { ApiResponse_RuntimeRead_ } from '../models/ApiResponse_RuntimeRead_';
+import type { SubmissionInput } from '../models/SubmissionInput';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -133,6 +136,44 @@ export class ExecutionService {
                 'project_id': projectId,
                 'job_id': jobId,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Execution Availability
+     * Unconfigured installation is usable for project work without model accounts.
+     * @returns ApiResponse_RuntimeRead_ Successful Response
+     * @throws ApiError
+     */
+    public static executionAvailabilityApiV1ExecutionAvailabilityGet(): CancelablePromise<ApiResponse_RuntimeRead_> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/execution/availability',
+        });
+    }
+    /**
+     * Submit Execution
+     * Commit admission and budget before the durable scanner can discover this work.
+     * @returns ApiResponse_AdmissionRead_ Successful Response
+     * @throws ApiError
+     */
+    public static submitExecutionApiV1ExecutionProjectsProjectIdSubmissionsPost({
+        projectId,
+        requestBody,
+    }: {
+        projectId: string,
+        requestBody: SubmissionInput,
+    }): CancelablePromise<ApiResponse_AdmissionRead_> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/execution/projects/{project_id}/submissions',
+            path: {
+                'project_id': projectId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

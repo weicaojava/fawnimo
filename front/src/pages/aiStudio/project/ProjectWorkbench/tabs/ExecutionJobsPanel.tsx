@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Alert, Button, Card, Empty, Popconfirm, Space, Table, Tag, message } from 'antd'
 import { ExecutionService as E } from '../../../../../services/generated'
-import type { ExecutionRead } from '../../../../../services/generated'
+import type { ExecutionRead, RuntimeRead } from '../../../../../services/generated'
 
 /** Inspect existing durable jobs without offering submission or worker controls. */
 export function ExecutionJobsPanel({ projectId }: { projectId: string }) {
   const [jobs, setJobs] = useState<ExecutionRead[]>([])
+  const [availability, setAvailability] = useState<RuntimeRead | null>(null)
   const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -13,8 +14,12 @@ export function ExecutionJobsPanel({ projectId }: { projectId: string }) {
   const load = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const response = await E.getExecutionJobsApiV1ExecutionProjectsProjectIdJobsGet({ projectId, offset, limit: 50 })
+      const [response, runtime] = await Promise.all([
+        E.getExecutionJobsApiV1ExecutionProjectsProjectIdJobsGet({ projectId, offset, limit: 50 }),
+        E.executionAvailabilityApiV1ExecutionAvailabilityGet(),
+      ])
       setJobs(response.data ?? [])
+      setAvailability(runtime.data ?? null)
     } catch { setError('读取执行任务失败，请重试。') }
     finally { setLoading(false) }
   }, [projectId, offset])
@@ -36,7 +41,7 @@ export function ExecutionJobsPanel({ projectId }: { projectId: string }) {
   }
 
   return <Card title="执行任务" extra={<Button loading={loading} disabled={busy} onClick={() => void load()}>刷新任务</Button>}>
-    <Alert className="mb-3" type="info" showIcon message="此处仅管理已有任务" description="当前阶段尚未开放模型生成提交；真实模型账号接通并验收后再开放。恢复只继续原任务的查询或接收，取消请求需等服务确认。" />
+    <Alert className="mb-3" type="info" showIcon message="此处仅管理已有任务" description={`${availability?.message ?? '正在检查生成服务状态'}。恢复只继续原任务的查询或接收，取消请求需等服务确认。`} />
     {error && <Alert className="mb-3" type="error" message={error} />}
     <Table<ExecutionRead> rowKey="id" loading={loading} dataSource={jobs} pagination={false} scroll={{ x: 600 }} locale={{ emptyText: <Empty description="本工程暂无执行任务" /> }} columns={[
       { title: '任务', render: (_, job) => <span title={job.id}>{job.id.slice(0, 8)}</span> },

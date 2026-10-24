@@ -102,7 +102,7 @@ async def test_default_worker_requires_reserved_budget_and_keeps_unknown_hold(tm
     from app.services.worker.execution_budget import configure,reserve,release,BudgetError
     from app.models.execution_budget import ExecutionBudgetEntry
     engine,factory,adapter,clock,_,_=await setup(tmp_path)
-    worker=DurableExecution(adapter,factory=factory,clock=clock,publisher=fixture_publisher)
+    worker=DurableExecution(adapter,factory=factory,clock=clock,publisher=fixture_publisher,enforce_binding=False)
     try:
         job_id=await worker.create('p','budget-enforced',{'prompt_revision':1})
         await worker.step(job_id)

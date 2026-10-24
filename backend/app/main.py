@@ -66,9 +66,12 @@ async def lifespan(app: FastAPI):
             if version != [1]:
                 raise RuntimeError('Run the supported production migration before starting')
     bootstrap_all_registries()
-    yield
-    # 关闭时：清理资源
-    pass
+    runtime=getattr(app.state,'execution_runtime',None)
+    if runtime is not None:await runtime.start()
+    try:
+        yield
+    finally:
+        if runtime is not None:await runtime.stop()
 
 
 app = FastAPI(

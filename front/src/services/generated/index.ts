@@ -8,6 +8,8 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { ActionBeatPhaseRead } from './models/ActionBeatPhaseRead';
+export type { AdmissionRead } from './models/AdmissionRead';
+export type { ApiResponse_AdmissionRead_ } from './models/ApiResponse_AdmissionRead_';
 export type { ApiResponse_AsyncTaskCreateRead_ } from './models/ApiResponse_AsyncTaskCreateRead_';
 export type { ApiResponse_ChapterRead_ } from './models/ApiResponse_ChapterRead_';
 export type { ApiResponse_CharacterPortraitAnalysisResult_ } from './models/ApiResponse_CharacterPortraitAnalysisResult_';
@@ -58,6 +60,7 @@ export type { ApiResponse_PropInfoAnalysisResult_ } from './models/ApiResponse_P
 export type { ApiResponse_ProviderRead_ } from './models/ApiResponse_ProviderRead_';
 export type { ApiResponse_RenderedPromptResponse_ } from './models/ApiResponse_RenderedPromptResponse_';
 export type { ApiResponse_RenderedShotFramePromptRead_ } from './models/ApiResponse_RenderedShotFramePromptRead_';
+export type { ApiResponse_RuntimeRead_ } from './models/ApiResponse_RuntimeRead_';
 export type { ApiResponse_SceneInfoAnalysisResult_ } from './models/ApiResponse_SceneInfoAnalysisResult_';
 export type { ApiResponse_ScriptConsistencyCheckResult_ } from './models/ApiResponse_ScriptConsistencyCheckResult_';
 export type { ApiResponse_ScriptDivisionResult_ } from './models/ApiResponse_ScriptDivisionResult_';
@@ -170,8 +173,10 @@ export type { ProviderRead } from './models/ProviderRead';
 export type { ProviderStatus } from './models/ProviderStatus';
 export type { ProviderSupportedRead } from './models/ProviderSupportedRead';
 export type { ProviderUpdate } from './models/ProviderUpdate';
+export type { ReferenceInput } from './models/ReferenceInput';
 export type { RenderedPromptResponse } from './models/RenderedPromptResponse';
 export type { RenderedShotFramePromptRead } from './models/RenderedShotFramePromptRead';
+export type { RuntimeRead } from './models/RuntimeRead';
 export type { SceneInfoAnalysisRequest } from './models/SceneInfoAnalysisRequest';
 export type { SceneInfoAnalysisResult } from './models/SceneInfoAnalysisResult';
 export type { ScriptConsistencyCheckRequest } from './models/ScriptConsistencyCheckRequest';
@@ -238,6 +243,7 @@ export type { StudioScriptExtractionDraft } from './models/StudioScriptExtractio
 export type { StudioShotDraft } from './models/StudioShotDraft';
 export type { StudioShotDraftDialogueLine } from './models/StudioShotDraftDialogueLine';
 export type { StyleOption } from './models/StyleOption';
+export type { SubmissionInput } from './models/SubmissionInput';
 export type { TakeWrite } from './models/TakeWrite';
 export type { TaskCancelRead } from './models/TaskCancelRead';
 export type { TaskCancelRequest } from './models/TaskCancelRequest';

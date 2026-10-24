@@ -34,17 +34,25 @@ async def test_real_http_to_validated_artifact_with_restart(tmp_path,monkeypatch
     try:
         with server(Fixture) as fixture:
             config=PollingConfiguration(f'http://127.0.0.1:{fixture.server_port}',frozenset({'127.0.0.1'}),'127.0.0.1',frozenset({fixture.server_port}))
-            worker=DurableExecution(PollingTransport(config),factory=factory,clock=clock)
+            worker=DurableExecution(PollingTransport(config),factory=factory,clock=clock,enforce_binding=False)
             job_id=await worker.create('p','http-fixture',{'prompt_revision':1})
             async with factory() as db:await configure(db,'p','TEST',100)
             async with factory() as db:await reserve(db,'p',job_id,10,'TEST')
             await worker.step(job_id)
             assert (await read(factory,job_id)).state=='running'
-            replacement=DurableExecution(PollingTransport(config),factory=factory,clock=clock)
+            replacement=DurableExecution(PollingTransport(config),factory=factory,clock=clock,enforce_binding=False)
             clock.advance();await replacement.step(job_id);await replacement.step(job_id)
             job=await read(factory,job_id)
             assert job.state=='ready' and len(accepted)==1
             async with factory() as db:
                 media=await db.get(ProductionMedia,job.media_id)
                 assert media.project_id=='p' and media.size==len(png())
+            from httpx import ASGITransport,AsyncClient
+            from app.main import app
+            async with AsyncClient(transport=ASGITransport(app=app),base_url='http://test',trust_env=False) as client:
+                for _ in range(2):
+                    response=await client.post('/api/v1/execution/callbacks',json={'job_id':job_id,'status':'failed','artifact_url':'https://injected.invalid/override'})
+                    assert response.status_code==403
+            await replacement.step(job_id)
+            assert (await read(factory,job_id)).state=='ready' and len(accepted)==1
     finally:await engine.dispose()

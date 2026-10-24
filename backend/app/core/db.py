@@ -80,6 +80,7 @@ async def init_db() -> None:
     import app.models.production  # noqa: F401
     import app.models.execution  # noqa: F401
     import app.models.execution_budget  # noqa: F401
+    import app.models.execution_binding  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
