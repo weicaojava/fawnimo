@@ -82,6 +82,7 @@ async def init_db() -> None:
     import app.models.execution_budget  # noqa: F401
     import app.models.execution_binding  # noqa: F401
     import app.models.reverse  # noqa: F401
+    import app.models.benchmark  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -92,6 +93,8 @@ async def init_db() -> None:
         await migrate_execution(engine)
         from app.services.reverse.schema import migrate_reverse
         await migrate_reverse(engine)
+        from app.services.benchmark.schema import migrate_benchmark
+        await migrate_benchmark(engine)
 
 
 async def close_db() -> None:
