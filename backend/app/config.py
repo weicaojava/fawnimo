@@ -66,6 +66,7 @@ class Settings(BaseSettings):
     production_upload_limit: int = 64 * 1024 * 1024
     production_probe_executable: str = ""
     reverse_analysis_enabled: bool = True
+    editing_export_enabled: bool = True
     reverse_media_allowed_hosts: str = ""
 
     def model_post_init(self, __context: object) -> None:

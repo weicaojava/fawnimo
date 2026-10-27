@@ -74,7 +74,8 @@ async def asset_history(db: AsyncSession, project_id: str, asset_id: str) -> dic
 
 
 async def adopt_take(db: AsyncSession, project_id: str, body: TakeWrite) -> dict:
-    """Persist an imported candidate pinned to exact project-owned revisions."""
+    """Persist an imported candidate only in legacy unregistered projects."""
+    await _assert_legacy_selection_allowed(db,project_id)
     shot=await db.get(Shot,body.shot_id)
     chapter=await db.get(Chapter,shot.chapter_id) if shot else None
     if chapter is None or chapter.project_id!=project_id:raise HTTPException(400,'镜头不属于本工程')
@@ -97,7 +98,8 @@ async def adopt_take(db: AsyncSession, project_id: str, body: TakeWrite) -> dict
 
 
 async def select_take(db: AsyncSession, project_id: str, take_id: str) -> dict:
-    """Switch current adoption after verifying all referenced media, retaining history."""
+    """Switch current adoption in legacy projects without bypassing editing CAS."""
+    await _assert_legacy_selection_allowed(db,project_id)
     take=await db.get(ProductionTake,take_id)
     if take is None or take.project_id!=project_id:raise HTTPException(404,'本工程采用记录不存在')
     await scoped_media(db,project_id,take.media_id)
@@ -118,3 +120,9 @@ async def read_take(db: AsyncSession, project_id: str, take_id: str) -> dict:
     versions=(await db.execute(select(AssetVersion).join(TakeVersion,TakeVersion.version_id==AssetVersion.id).where(TakeVersion.take_id==take_id))).scalars().all()
     selected=await db.get(ShotSelection,take.shot_id)
     return {**serialize(take),'selected':bool(selected and selected.take_id==take.id),'versions':[serialize(v) for v in versions]}
+
+
+async def _assert_legacy_selection_allowed(db,project_id):
+    """Require registered story projects to use explicit CAS selection and provenance."""
+    from app.models.script_preparation import ScriptDraft
+    if (await db.execute(select(ScriptDraft.id).where(ScriptDraft.project_id==project_id).limit(1))).first():raise HTTPException(409,'本工程已登记剧本，请在视频编辑中使用有来源且受修订保护的采用操作')

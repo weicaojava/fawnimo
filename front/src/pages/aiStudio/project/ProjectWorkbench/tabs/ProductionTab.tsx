@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Alert, Button, Card, Empty, Form, Input, List, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { OpenAPI, ProductionService as P, StudioChaptersService, StudioShotsService } from '../../../../../services/generated'
 import type { AssetWrite, TakeWrite, VersionWrite } from '../../../../../services/generated'
 import { ExecutionJobsPanel } from './ExecutionJobsPanel'
@@ -19,7 +19,7 @@ export function ProductionTab() {
   const [assets, setAssets] = useState<Asset[]>([])
   const [media, setMedia] = useState<Media[]>([])
   const [takes, setTakes] = useState<Take[]>([])
-  const [shots, setShots] = useState<{ value: string; label: string }[]>([])
+  const [shots, setShots] = useState<{ value: string; label: string; chapterId: string }[]>([])
   const [selected, setSelected] = useState<Asset | null>(null)
   const [mode, setMode] = useState<'create' | 'revise' | 'take' | null>(null)
   const [busy, setBusy] = useState(false)
@@ -42,7 +42,7 @@ export function ProductionTab() {
       setAssets(next); setMedia((m.data ?? []) as Media[]); setTakes((t.data ?? []) as Take[])
       setSelected(old => next.find(item => item.asset.id === old?.asset.id) ?? next[0] ?? null)
       const lists = await Promise.all((c.data?.items ?? []).map(ch => StudioShotsService.listShotsApiV1StudioShotsGet({ chapterId: ch.id, pageSize: 100 })))
-      setShots(lists.flatMap(list => (list.data?.items ?? []).map(s => ({ value: s.id, label: s.title }))))
+      setShots(lists.flatMap((list, index) => (list.data?.items ?? []).map(s => ({ value: s.id, label: s.title, chapterId: c.data!.items[index].id }))))
     } catch { setLoadError('读取工程资产失败，请重试。历史记录未被修改。') }
     finally { setLoading(false) }
   }, [projectId])
@@ -103,8 +103,9 @@ export function ProductionTab() {
       <p className="text-gray-500 mb-3">媒体包只导入清单内的素材。文件上限 64 MB；不接受脚本、链接或未经声明的归档内容。</p>
       <List dataSource={media} locale={{ emptyText: '暂无媒体' }} renderItem={m => <List.Item><a href={`${OpenAPI.BASE}/api/v1/studio/production/projects/${encodeURIComponent(projectId)}/media/${encodeURIComponent(m.id)}/content`} target="_blank" rel="noreferrer">{m.name}</a><span>{Math.ceil(m.size / 1024)} KB · 用户导入</span></List.Item>} />
     </Card>
+    <Alert className="mb-3" type="info" message="已登记制作剧本的工程，请在剪辑页明确采用或切回" description="下方原采用入口保留给未登记剧本的工程；已登记工程会拒绝此旧入口，请使用片段旁的剪辑页链接。历史记录与用户素材仍可查看。" />
     <Card title="采用记录" extra={<Button disabled={!shots.length || !media.some(m => m.mime.startsWith('video/')) || !assets.length} onClick={() => { form.resetFields(); setMode('take') }}>采用导入片段</Button>}>
-      <List dataSource={takes} locale={{ emptyText: '暂无采用记录' }} renderItem={t => <List.Item><div>{shots.find(s => s.value === t.shot_id)?.label ?? t.shot_id}<p><a href={`${OpenAPI.BASE}/api/v1/studio/production/projects/${encodeURIComponent(projectId)}/media/${encodeURIComponent(t.media_id)}/content`} target="_blank" rel="noreferrer">{media.find(m => m.id === t.media_id)?.name ?? '媒体待核验'} · 查看片段</a></p><p className="text-gray-500">用户导入 · {t.versions.map(v => `v${v.revision}`).join(' / ')} · 历史版本已固定</p></div>{t.selected ? <Tag color="green">当前采用</Tag> : <Button disabled={busy} onClick={() => void mutate(() => P.postSelectionApiV1StudioProductionProjectsProjectIdTakesTakeIdSelectPost({ projectId, takeId: t.id }))}>切换采用</Button>}</List.Item>} />
+      <List dataSource={takes} locale={{ emptyText: '暂无采用记录' }} renderItem={t => <List.Item><div>{shots.find(s => s.value === t.shot_id)?.label ?? t.shot_id}<p><a href={`${OpenAPI.BASE}/api/v1/studio/production/projects/${encodeURIComponent(projectId)}/media/${encodeURIComponent(t.media_id)}/content`} target="_blank" rel="noreferrer">{media.find(m => m.id === t.media_id)?.name ?? '媒体待核验'} · 查看片段</a></p><p>{shots.find(s => s.value === t.shot_id)?.chapterId && <Link to={`/projects/${projectId}/editor?chapter=${encodeURIComponent(shots.find(s => s.value === t.shot_id)!.chapterId)}`}>去剪辑页确认采用或切回</Link>}</p><p className="text-gray-500">{t.provenance === "execution_candidate_unqualified" ? "执行候选（未获质量资格）" : t.provenance === "user_import" ? "用户导入" : "历史素材（来源未核定）"} · {t.versions.map(v => `v${v.revision}`).join(' / ')} · 历史版本已固定</p></div>{t.selected ? <Tag color="green">当前采用</Tag> : <Button disabled={busy} onClick={() => void mutate(() => P.postSelectionApiV1StudioProductionProjectsProjectIdTakesTakeIdSelectPost({ projectId, takeId: t.id }))}>切换采用</Button>}</List.Item>} />
     </Card>
     <Modal title={mode === 'create' ? '新建版本资产' : mode === 'revise' ? '发布新版本' : '采用导入片段'} open={mode !== null} onCancel={() => setMode(null)} footer={null} destroyOnClose>
       <Form form={form} layout="vertical" onFinish={submit} initialValues={{ kind: 'scene', description: '', media_ids: [] }} preserve={false}>

@@ -197,6 +197,20 @@ async def cancel_task(
     task = await db.get(GenerationTask, task_id)
     if task is not None and task.task_kind == 'durable_execution':
         raise HTTPException(409, '此任务请在所属工程的执行任务面板请求取消，需保留远端确认状态')
+    if task is not None and task.task_kind == 'local_export':
+        # Local export owns the process and fence; never Celery-revoke its UI row.
+        from sqlalchemy.ext.asyncio import async_sessionmaker
+        from app.models.editing_export import EditExportJob
+        from app.services.editing.exports import cancel_export
+        job=(await db.execute(select(EditExportJob).where(EditExportJob.task_id==task_id))).scalar_one_or_none()
+        if job is None:raise HTTPException(409,'本地导出任务来源不完整，拒绝旧任务取消旁路')
+        identifier,project_id=job.id,job.project_id
+        factory=async_sessionmaker(db.bind,expire_on_commit=False)
+        await db.rollback()
+        outcome=await cancel_export(factory,project_id,identifier)
+        db.expire_all()
+        task=await db.get(GenerationTask,task_id)
+        return success_response(TaskCancelRead(task_id=task_id,status=task.status,cancel_requested=task.cancel_requested,cancel_requested_at_ts=task.cancel_requested_at.timestamp() if task.cancel_requested_at else None,effective_immediately=outcome['state']=='cancelled'))
     store = SqlAlchemyTaskStore(db)
     rec = await store.request_cancel(task_id, body.reason)
     if rec is None:

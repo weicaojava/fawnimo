@@ -69,7 +69,6 @@ async def lifespan(app: FastAPI):
                 raise RuntimeError('Run the supported production migration before starting')
     bootstrap_all_registries()
     runtime=getattr(app.state,'execution_runtime',None)
-    if runtime is not None:await runtime.start()
     reverse_scanner=None
     from pathlib import Path
     if settings.reverse_analysis_enabled and Path(settings.production_probe_executable).is_file():
@@ -81,11 +80,29 @@ async def lifespan(app: FastAPI):
         from app.services.reverse.runtime import ReverseScanner
         from app.core.db import async_session_maker
         reverse_scanner=ReverseScanner(async_session_maker,settings.production_probe_executable)
-        await reverse_scanner.start()
     app.state.reverse_scanner=reverse_scanner
+    local_export_worker=None
+    from app.services.editing.exports import LocalExportWorker, enabled
+    if enabled(settings.production_probe_executable):
+        async with engine.connect() as connection:
+            try:
+                editing_versions=(await connection.execute(text('SELECT version FROM editing_schema'))).scalars().all()
+                export_versions=(await connection.execute(text('SELECT version FROM edit_export_schema'))).scalars().all()
+            except Exception:
+                raise RuntimeError('Run the supported editing migration before enabling local export') from None
+            if editing_versions!=[1] or export_versions!=[1]:
+                raise RuntimeError('Unsupported editing/export schema version')
+        from app.core.db import async_session_maker
+        local_export_worker=LocalExportWorker(async_session_maker,settings.production_probe_executable)
+    app.state.local_export_worker=local_export_worker
     try:
+        if runtime is not None:await runtime.start()
+        if reverse_scanner is not None:await reverse_scanner.start()
+        if local_export_worker is not None:await local_export_worker.start()
         yield
     finally:
+        if local_export_worker is not None:await local_export_worker.stop()
+        app.state.local_export_worker=None
         if reverse_scanner is not None:await reverse_scanner.stop()
         app.state.reverse_scanner=None
         if runtime is not None:await runtime.stop()

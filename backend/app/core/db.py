@@ -87,6 +87,8 @@ async def init_db() -> None:
     import app.models.benchmark  # noqa: F401
     import app.models.script_preparation  # noqa: F401
     import app.models.shot_plan  # noqa: F401
+    import app.models.editing  # noqa: F401
+    import app.models.editing_export  # noqa: F401
 
     async with engine.begin() as conn:
         if engine.dialect.name=='sqlite':
@@ -107,6 +109,10 @@ async def init_db() -> None:
         await migrate_script_preparation(engine)
         from app.services.shot_plan.schema import migrate_shot_plan
         await migrate_shot_plan(engine)
+        from app.services.editing.schema import migrate_editing
+        await migrate_editing(engine)
+        from app.services.editing.export_schema import migrate_editing_export
+        await migrate_editing_export(engine)
 
 
 async def close_db() -> None:

@@ -1,0 +1,13 @@
+---
+title: 编辑采用与时间线快照
+---
+
+ProductionTake和TakeVersion继续作为不可变采用记录，ShotSelection保存当前指针。新增TakeOrigin固定服务端推导的计划entry、job与完整媒体事实；SelectionCursor和SelectionEvent实现短SQLite事务内CAS、幂等与审计。登记ScriptDraft工程的旧adopt/select入口被阻断，未登记工程保留M2语义。
+
+EditDraft是章级CAS文档，EditPublication冻结完整计划分母、Take来源、资产版本、裁剪、原剧情对白标记、媒体时钟与声轨覆盖。全部整数时间使用源首视频PTS归零后的毫秒半开区间；字幕全章时间为clip累计起点加原标记起点减source_in。媒体hash和完整解码在写锁外执行，短事务复验元数据/stat后冻结。数据库不可变触发器与复合scope约束防止历史被更新或跨工程关联。
+
+公开publication payload移除源relative_path/stat。content_hash绑定内部完整快照，因此公共portable JSON只是脱敏视图，不能视为同一canonical对象或可导入资格。导出服务调用owned_publication获取校验后的内部ORM，不使用脱敏视图渲染。
+
+视频源要求实际单调PTS、正timebase与可证明的末帧结束。音频以实际PTS及样本数定义覆盖区间，不按最小最大时间填缺口。100毫秒裁剪须处于完整实际视频覆盖，必需对白须同时处于实际原声覆盖。晚来的模型配置、可变角色事实或新的ShotSelection不能改变历史片段身份；源缺失或损坏则失败关闭。
+
+本地导出由独立ExportJob负责，不创建模型SubmissionAttempt或预算预留。实际渲染、隔离子进程、完整成品解码、原子fence发布与恢复由独立导出模块实现；编辑快照就绪不等于成片就绪。软件fixture来源保持unqualified，禁止升级真实模型、语义、配音或口型资格。

@@ -169,6 +169,7 @@ export const TASK_KIND_TITLE_MAP: Record<string, string> = {
   image_generation: '图片生成',
   video_generation: '视频生成',
   durable_execution: '镜头计划执行',
+  local_export: '本地剪辑导出',
   shot_frame_prompt: '分镜提示词生成',
 }
 

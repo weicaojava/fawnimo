@@ -41,10 +41,10 @@ const SHOT_RELATION_TYPES = new Set([
 
 function metaKeyForTask(task: TaskUiItem): string | null {
   if (task.navigateRelationType && task.navigateRelationEntityId) {
-    return `${task.navigateRelationType}:${task.navigateRelationEntityId}`
+    return `${task.resourceType ?? ""}:${task.navigateRelationType}:${task.navigateRelationEntityId}`
   }
   if (task.relationType && task.relationEntityId) {
-    return `${task.relationType}:${task.relationEntityId}`
+    return `${task.resourceType ?? ""}:${task.relationType}:${task.relationEntityId}`
   }
   return null
 }
@@ -52,6 +52,13 @@ function metaKeyForTask(task: TaskUiItem): string | null {
 async function resolveTaskMeta(task: TaskUiItem): Promise<ResolvedTaskMeta | null> {
   const relationType = task.navigateRelationType ?? task.relationType
   const relationEntityId = task.navigateRelationEntityId ?? task.relationEntityId
+
+  // A local export belongs to an actual chapter; restore its editor link after refresh.
+  if (task.resourceType === 'local_export' && relationType === 'chapter' && relationEntityId) {
+    const result = await StudioChaptersService.getChapterApiV1StudioChaptersChapterIdGet({ chapterId: relationEntityId })
+    const chapter = result.data
+    return chapter ? { sourceLabel: `剪辑：${chapter.title}`, navigateTo: `/projects/${chapter.project_id}/editor?chapter=${encodeURIComponent(chapter.id)}` } : null
+  }
 
   if (relationType && relationEntityId && CHAPTER_RELATION_TYPES.has(relationType)) {
     const res = await StudioChaptersService.getChapterApiV1StudioChaptersChapterIdGet({
