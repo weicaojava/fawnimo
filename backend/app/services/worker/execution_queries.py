@@ -15,6 +15,7 @@ REASONS = {'provider_rejected':'服务明确拒绝了请求', 'submission_accept
 
 
 REASONS['runtime_binding_unavailable']='原服务配置已改变，请恢复原配置后继续处理；未重新提交'
+REASONS['plan_stale_unsent']='镜头计划或准备资料已失配，已在提交前取消；未发起新的模型请求'
 
 
 def safe_view(job: ExecutionJob) -> dict:

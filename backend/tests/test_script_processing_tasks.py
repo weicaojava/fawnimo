@@ -724,6 +724,14 @@ async def test_run_extract_task_marks_cancelled_at_stage_boundary(monkeypatch, t
     )
 
     async with SessionLocal() as db:
+        # The real guarded worker must resolve persisted scope before its mocked
+        # extractor runs. Keep the original cancellation assertions, adding the
+        # actual unregistered parent entities instead of disabling the guard.
+        from app.models.studio import Project,Chapter
+        db.add(Project(id='project-1',name='Unregistered cancellation fixture',style='真人古装',visual_style='现实'))
+        await db.flush()
+        db.add(Chapter(id='chapter-1',project_id='project-1',index=1,title='Stage-boundary fixture'))
+        await db.flush()
         created = await create_extract_task(
             db,
             project_id="project-1",

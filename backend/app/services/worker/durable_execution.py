@@ -6,7 +6,7 @@ import time
 import uuid
 from typing import Protocol
 from fastapi import HTTPException
-from sqlalchemy import or_, select, update
+from sqlalchemy import or_, select, update,text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from app.core.contracts.task_safety import validate_task_payload
@@ -16,6 +16,7 @@ from app.models.task import GenerationTask
 from app.services.worker.execution_artifacts import DownloadedArtifact, publish_artifact
 from app.models.execution_budget import ExecutionBudgetEntry
 from app.models.execution_binding import ExecutionBinding
+from app.models.shot_plan import PlanJobLink  # Register optional linkage before test/production metadata creation.
 
 TERMINAL={'ready','failed','cancelled'}
 
@@ -159,6 +160,16 @@ class DurableExecution:
         """Limits are resumable pauses, not assertions that a model cannot succeed."""
         await self._update(job.id,token,state='paused',pause_from=job.state,reason=reason)
 
+    async def _cancel_stale_plan(self,job_id,token):
+        """Cancel only an unsent stale plan; ledger release independently proves no attempt."""
+        changed=await self._update(job_id,token,state='cancelled',reason='plan_stale_unsent')
+        if changed and self.budget_required:
+            from app.services.worker.execution_accounting import release_unaccepted
+            from app.services.worker.execution_budget import BudgetError
+            async with self.factory() as db:job=await db.get(ExecutionJob,job_id)
+            try:await release_unaccepted(job.project_id,job_id,factory=self.factory)
+            except BudgetError:pass  # Recovery rechecks the journal; never release unknown acceptance.
+
     async def step(self, job_id: str) -> None:
         """Execute at most one external operation, with a durable state transition first."""
         if self.budget_required:
@@ -183,7 +194,15 @@ class DurableExecution:
             if job.state=='queued':
                 if job.cancel_requested:
                     await self._update(job.id,token,state='cancelled');return
+                from app.services.shot_plan.admission import prepare_send_evidence,validate_send_locked
+                try:proof=await prepare_send_evidence(self.factory,job.id)
+                except HTTPException:
+                    await self._cancel_stale_plan(job.id,token);return
                 async with self.factory() as db:
+                    await db.execute(text('BEGIN IMMEDIATE'))
+                    try:await validate_send_locked(db,job.id,proof)
+                    except HTTPException:
+                        await db.rollback();await self._cancel_stale_plan(job.id,token);return
                     # An attempt exists before the first byte is sent. A unique job
                     # constraint also protects against accidental future retry code.
                     if self.budget_required:

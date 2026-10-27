@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import select
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import async_session_maker
@@ -36,6 +37,7 @@ from app.services.studio.image_tasks import load_provider_config, resolve_image_
 from app.services.worker.async_task_support import cancel_if_requested_async
 from app.services.worker.task_logging import log_task_event, log_task_failure
 from app.utils.files import create_file_from_url_or_b64
+from app.services.shot_plan.legacy_guard import assert_legacy_allowed
 
 
 class _CreateOnlyTask:
@@ -252,6 +254,7 @@ async def create_image_task_and_link(
     render_context: dict | None = None,
 ) -> str:
     """创建图片生成任务，并建立任务关联。"""
+    await assert_legacy_allowed(db,relation_type,str(relation_entity_id))
     store = SqlAlchemyTaskStore(db)
     tm = TaskManager(store=store, strategies={})
 
@@ -315,6 +318,16 @@ async def run_image_generation_task(
     relation_entity_id = str(run_args.get("relation_entity_id") or "")
 
     async with async_session_maker() as session:
+        try:
+            await assert_legacy_allowed(session,relation_type,relation_entity_id)
+        except HTTPException as error:
+            # Never recompute shot/frame state or erase an old result when
+            # refusing another unplanned call after registration or restart.
+            store=SqlAlchemyTaskStore(session)
+            await store.set_error(task_id,str(error.detail))
+            await store.set_status(task_id,TaskStatus.failed)
+            await session.commit()
+            return
         try:
             store = SqlAlchemyTaskStore(session)
             await store.set_status(task_id, TaskStatus.running)

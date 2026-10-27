@@ -13,6 +13,7 @@ from app.services.film.shot_frame_prompt_tasks import (
 )
 from app.services.studio.shot_status import mark_shot_generating
 from app.tasks.execute_task import enqueue_task_execution
+from app.services.shot_plan.legacy_guard import assert_legacy_allowed
 
 from .common import (
     ShotFramePromptRequest,
@@ -32,6 +33,7 @@ async def create_shot_frame_prompt_task(
     body: ShotFramePromptRequest,
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[TaskCreated]:
+    await assert_legacy_allowed(db,'shot',body.shot_id)
     frame_type = normalize_frame_type(body.frame_type)
     relation_type = relation_type_for_frame(frame_type)
 

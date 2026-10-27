@@ -48,6 +48,7 @@ from app.services.worker.task_executor import (
 
 
 logger = logging.getLogger(__name__)
+from app.services.shot_plan.legacy_guard import assert_script_task_allowed_sync
 
 
 class DivideResultGenerator(AbstractLLMResultGenerator):
@@ -155,6 +156,7 @@ class DivideTaskExecutor(AbstractWorkerTaskExecutor):
         self._generator = DivideResultGenerator()
 
     def execute(self, ctx: WorkerTaskContext, run_args: dict[str, Any]) -> ScriptDivisionResult:
+        assert_script_task_allowed_sync(ctx.db,ctx.task_id,run_args)
         return self._generator.generate(ctx.db, run_args)
 
     def should_apply(self, ctx: WorkerTaskContext, run_args: dict[str, Any], result: ScriptDivisionResult) -> bool:  # noqa: ARG002
@@ -176,6 +178,7 @@ class ExtractTaskExecutor(AbstractWorkerTaskExecutor):
         self._generator = ExtractResultGenerator()
 
     def execute(self, ctx: WorkerTaskContext, run_args: dict[str, Any]) -> tuple[Any, bool]:
+        assert_script_task_allowed_sync(ctx.db,ctx.task_id,run_args)
         return self._generator.generate(ctx.db, run_args)
 
     def serialize_result(self, result: tuple[Any, bool]) -> dict[str, Any]:
@@ -217,6 +220,7 @@ class _SimpleLLMTaskExecutor(AbstractWorkerTaskExecutor):
         self._generator = self.generator_class()
 
     def execute(self, ctx: WorkerTaskContext, run_args: dict[str, Any]) -> Any:
+        assert_script_task_allowed_sync(ctx.db,ctx.task_id,run_args)
         return self._generator.generate(ctx.db, run_args)
 
 

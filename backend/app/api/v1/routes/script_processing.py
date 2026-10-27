@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from langchain_core.language_models.chat_models import BaseChatModel
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -83,7 +83,19 @@ from app.api.v1.routes.film.common import AsyncTaskCreateRead
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/script-processing", tags=["script-processing"])
+async def guard_legacy_processing(request: Request, db: AsyncSession=Depends(get_db)):
+    """Guard supplied actual scopes before dependency resolution constructs an LLM.
+
+    All routes in this module are model operations, not local template previews.
+    Text-only requests without an identity retain their existing tool semantics.
+    """
+    from app.services.shot_plan.legacy_guard import assert_script_request_allowed
+    try: values=await request.json()
+    except ValueError:return  # The normal body validator reports malformed JSON.
+    if isinstance(values,dict):await assert_script_request_allowed(db,values)
+
+
+router = APIRouter(prefix="/script-processing", tags=["script-processing"],dependencies=[Depends(guard_legacy_processing)])
 
 
 # ============================================================================

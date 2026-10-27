@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+import pytest
 
 from app.api.v1.routes import script_processing as script_processing_route
 from app.dependencies import get_db
@@ -20,6 +21,19 @@ from app.services.script_processing_tasks import (
     VARIANT_ANALYSIS_RELATION_TYPE,
 )
 from app.core.task_manager.types import TaskStatus
+
+
+@pytest.fixture(autouse=True)
+def isolate_guard_for_response_envelope_units(monkeypatch):
+    """These mocked-routing units have no real entities; guard behavior is proven
+    independently in test_shot_plan_guard_acceptance with actual SQLite/API rows.
+    Preserve every response/task-routing assertion rather than fake a DB protocol.
+    """
+    from app.services.shot_plan import legacy_guard
+    async def known_allowed_fixture(*_args,**_kwargs):
+        """Model the already-authorized routing boundary, without product changes."""
+        return None
+    monkeypatch.setattr(legacy_guard,'assert_script_request_allowed',known_allowed_fixture)
 
 
 def _override_db():

@@ -45,6 +45,7 @@ from app.services.studio.generation.frame.derive_preview import (
     to_rendered_shot_frame_prompt_read as _to_rendered_shot_frame_prompt_read_service,
 )
 from app.services.studio.image_task_runner import create_image_task_and_link as _create_image_task_and_link_service
+from app.services.shot_plan.legacy_guard import assert_legacy_allowed
 
 
 router = APIRouter()
@@ -187,6 +188,7 @@ async def create_actor_image_generation_task(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="prompt is required for actor generation",
         )
+    await assert_legacy_allowed(db,'actor',actor_id)
     submission = await _build_actor_image_submission_payload_service(
         db,
         actor_id=actor_id,
@@ -251,6 +253,7 @@ async def create_asset_image_generation_task(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="prompt is required for asset image generation",
         )
+    await assert_legacy_allowed(db,asset_type,asset_id)
     submission = await _build_asset_image_submission_payload_service(
         db,
         asset_type=asset_type,
@@ -317,6 +320,7 @@ async def create_character_image_generation_task(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="prompt is required for character image generation",
         )
+    await assert_legacy_allowed(db,'character',character_id)
     submission = await _build_character_image_submission_payload_service(
         db,
         character_id=character_id,
@@ -375,6 +379,7 @@ async def create_shot_frame_image_generation_task(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="prompt is required for shot frame generation",
         )
+    await assert_legacy_allowed(db,'shot',shot_id)
     shot_detail = await db.get(ShotDetail, shot_id)
     if shot_detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ShotDetail not found")

@@ -20,6 +20,7 @@ from app.dependencies import get_llm
 from app.models.task import GenerationTask, GenerationTaskStatus
 from app.models.task_links import GenerationTaskLink
 from app.chains.agents import EntityMergerAgent, VariantAnalyzerAgent
+from app.services.shot_plan.legacy_guard import assert_script_task_allowed
 
 
 logger = logging.getLogger(__name__)
@@ -663,6 +664,7 @@ async def run_merge_task(task_id: str) -> None:
             if await _cancel_if_requested(store, task_id, db):
                 return
 
+            await assert_script_task_allowed(db,task_id,run_args)
             llm = await get_llm(db)
             agent = EntityMergerAgent(llm)
             result: EntityMergeResult = agent.extract(
@@ -717,6 +719,7 @@ async def run_variant_task(task_id: str) -> None:
             if await _cancel_if_requested(store, task_id, db):
                 return
 
+            await assert_script_task_allowed(db,task_id,run_args)
             llm = await get_llm(db)
             agent = VariantAnalyzerAgent(llm)
             result: VariantAnalysisResult = agent.extract(

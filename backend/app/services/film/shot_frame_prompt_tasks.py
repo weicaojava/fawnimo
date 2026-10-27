@@ -34,6 +34,7 @@ from app.services.studio.action_beats import infer_action_beat_sequence, pick_ac
 from app.services.studio.shot_status import recompute_shot_status
 from app.services.worker.async_task_support import cancel_if_requested_async
 from app.services.worker.task_logging import log_task_event, log_task_failure
+from app.services.shot_plan.legacy_guard import assert_legacy_allowed
 
 
 def normalize_frame_type(frame_type: str) -> str:
@@ -778,6 +779,14 @@ async def run_shot_frame_prompt_task(
     run_args: dict,
 ) -> None:
     async with async_session_maker() as session:
+        try:
+            await assert_legacy_allowed(session,'shot',str(run_args.get('shot_id') or ''))
+        except HTTPException as error:
+            store=SqlAlchemyTaskStore(session)
+            await store.set_error(task_id,str(error.detail))
+            await store.set_status(task_id,TaskStatus.failed)
+            await session.commit()
+            return
         try:
             store = SqlAlchemyTaskStore(session)
             await store.set_status(task_id, TaskStatus.running)

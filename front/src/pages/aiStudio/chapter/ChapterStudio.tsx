@@ -106,6 +106,7 @@ import { executeTaskCancel } from '../components/taskActionHelpers'
 import { useRelationTaskNotification } from '../components/taskNotificationHelpers'
 import { TASK_COPY } from '../components/taskCopy'
 import { ChapterStudioBatchToolbar } from './components/ChapterStudioBatchToolbar'
+import { ShotPlanPanel } from './components/ShotPlanPanel'
 import { ChapterStudioMaintenancePanel } from './components/ChapterStudioMaintenancePanel'
 import { ChapterStudioReadinessDiagnosisPanel } from './components/ChapterStudioReadinessDiagnosisPanel'
 import { ChapterStudioVideoReadinessPanel } from './components/ChapterStudioVideoReadinessPanel'
@@ -490,6 +491,8 @@ const ChapterStudio: React.FC = () => {
     chapterId?: string
   }>()
   const location = useLocation()
+  const [shotPlanOpen, setShotPlanOpen] = useState(new URLSearchParams(location.search).has('plan'))
+  useEffect(() => { if (new URLSearchParams(location.search).has('plan')) setShotPlanOpen(true) }, [location.key, location.search])
   const [chapter, setChapter] = useState<Chapter | null>(null)
   const [projectVisualStyle, setProjectVisualStyle] = useState<'现实' | '动漫'>('现实')
   const [projectStyle, setProjectStyle] = useState<string>('真人都市')
@@ -2127,6 +2130,7 @@ const ChapterStudio: React.FC = () => {
         <div className="flex-1 min-w-0" />
 
         <div className="flex items-center gap-2 shrink-0">
+          {projectId && chapterId && <Button type="primary" onClick={() => setShotPlanOpen(true)}>镜头执行计划</Button>}
           <Dropdown menu={{ items: toolbarSettingsItems }} trigger={['click']}>
             <Tooltip title="工作台设置">
               <Button size="small" icon={<SettingOutlined />} />
@@ -2142,6 +2146,7 @@ const ChapterStudio: React.FC = () => {
         </div>
       </div>
 
+      {projectId && chapterId && <ShotPlanPanel key={`${projectId}:${chapterId}`} projectId={projectId} chapterId={chapterId} requestedPlanId={new URLSearchParams(location.search).get('plan') ?? undefined} open={shotPlanOpen} onClose={() => setShotPlanOpen(false)} />}
       {/* 三栏动态布局 */}
       <Layout
         className="flex-1 min-h-0"

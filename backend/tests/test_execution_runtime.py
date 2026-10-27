@@ -60,6 +60,10 @@ async def test_lifespan_admission_scan_shutdown_and_restart(tmp_path,monkeypatch
     """Accepted admission is durable across runtime restart without a queue message."""
     from app.main import app,lifespan
     import app.core.db as core_db
+    from app.config import settings
+    # This fixture owns only execution/production schemas. A valid FFmpeg path
+    # inherited from the environment must not start an unrelated reverse scanner.
+    monkeypatch.setattr(settings,'reverse_analysis_enabled',False)
     engine,factory,adapter,clock,_,_=await setup(tmp_path)
     previous=getattr(app.state,'execution_runtime',None)
     monkeypatch.setattr(core_db,'engine',engine)

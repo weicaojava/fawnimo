@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Alert, Button, Card, Checkbox, Collapse, Empty, Form, Input, InputNumber, List, Modal, Select, Space, Tag, message } from 'antd'
 import { ScriptPreparationService as S, StudioShotsService } from '../../../../../services/generated'
 import type { ScriptDocument, ScriptRead, ScriptSnapshot, ScriptCatalog } from '../../../../../services/generated'
@@ -198,7 +199,8 @@ export function ScriptPreparationPanel({ projectId, chapters }: { projectId: str
   const changes = displayed?.readiness.requirement_changes ?? []
   return <Card title="制作剧本与分镜覆盖" className="mb-4" data-testid="script-preparation-panel">
     <Collapse items={[{ key: 'editor', label: '编辑制作剧本，检查每段剧情和对白是否都有镜头', children: <>
-      <Alert className="mb-3" type="info" showIcon message="无需账号的剧本准备" description="制作剧本与小说原文分别保存。覆盖检查只核对人工绑定，不代表模型已经生成或剧情已在成片中表达。登记后，本工程普通无镜头生成入口将暂停，后续需接入绑定剧本版本的镜头计划。已有任务可继续查询恢复。" />
+      <Alert className="mb-3" type="info" showIcon message="无需账号的剧本准备" description="制作剧本与小说原文分别保存。覆盖检查只核对人工绑定，不代表模型已经生成或剧情已在成片中表达。登记后，请在分镜工作室的镜头执行计划中选择已锁定版本，再逐镜提交。已有任务可继续查询恢复。" />
+      {chapterId && <p><Link to={`/projects/${projectId}/chapters/${chapterId}/studio?plan`}>前往镜头执行计划</Link></p>}
       {error && <Alert type="error" className="mb-3" showIcon message={error} />}
       <Space wrap className="mb-3"><Select aria-label="制作剧本章节" style={{ minWidth: 220 }} placeholder="先创建章节" value={chapterId || undefined} disabled={busy || loading || publishOpen} onChange={chooseChapter} options={chapters.map(item => ({ value: item.id, label: `${item.index}. ${item.title}` }))} /><Button disabled={busy || loading || dirty || !chapterId} onClick={() => void refresh()}>刷新资料与覆盖</Button>{!displayed && <Button disabled={busy || loading || !chapterId} onClick={() => showConfirmation({ title: '为本章登记结构化剧本？', content: '登记后本工程的新生成请求必须绑定剧本版本，当前普通无镜头提交入口将暂停。原章节和已有任务保持可读。', onOk: () => create(emptyScript(chapters.find(item => item.id === chapterId)?.title)) })}>新建制作剧本草稿</Button>}</Space>
       <Space wrap className="mb-4"><label>导入制作剧本JSON <input aria-label="导入制作剧本JSON" type="file" accept=".json,application/json" disabled={busy || loading || dirty || !chapterId} onChange={e => { void importFile(e.target.files?.[0]); e.target.value = '' }} /></label><Checkbox checked={clearImportedBindings} disabled={busy || dirty} onChange={e => setClearImportedBindings(e.target.checked)}>导入时清空旧章镜头绑定</Checkbox>{displayed && <Button disabled={busy || dirty || loading} onClick={() => exportJson({ format: 'script-preparation-draft-v1', document: displayed.document }, `script-draft-${displayed.id}.json`)}>导出已保存制作剧本</Button>}</Space>

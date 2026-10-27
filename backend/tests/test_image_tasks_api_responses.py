@@ -203,6 +203,12 @@ def test_render_shot_frame_prompt_requires_prompt(client: TestClient) -> None:
 
 
 def test_create_shot_frame_image_task_renders_prompt_before_submit(client: TestClient, monkeypatch) -> None:
+    async def known_allowed_render_fixture(*_args,**_kwargs):
+        """This response/render unit uses a dummy DB; actual scope rejection has
+        independent real SQLite/API coverage in test_shot_plan_guard_acceptance.
+        """
+        return None
+    monkeypatch.setattr(route,'assert_legacy_allowed',known_allowed_render_fixture)
     class _ShotDetailDB(_DummyDB):
         async def get(self, model, ident):
             if getattr(model, "__name__", "") == "ShotDetail" and ident == "shot-1":
@@ -270,6 +276,13 @@ def test_create_shot_frame_image_task_renders_prompt_before_submit(client: TestC
 
 def test_run_image_generation_task_persists_render_context(monkeypatch) -> None:
     from app.services.studio import image_task_runner as runner
+    async def known_allowed_context_fixture(*_args,**_kwargs):
+        """Isolate render-context persistence from real scope resolution: this
+        worker unit substitutes its entire session/store/provider. Independent
+        guard acceptance proves actual registered workers never reach providers.
+        """
+        return None
+    monkeypatch.setattr(runner,'assert_legacy_allowed',known_allowed_context_fixture)
 
     calls: dict[str, object] = {}
 
