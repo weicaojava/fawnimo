@@ -89,6 +89,7 @@ async def init_db() -> None:
     import app.models.shot_plan  # noqa: F401
     import app.models.editing  # noqa: F401
     import app.models.editing_export  # noqa: F401
+    import app.models.video_dna  # noqa: F401
 
     async with engine.begin() as conn:
         if engine.dialect.name=='sqlite':
@@ -113,6 +114,8 @@ async def init_db() -> None:
         await migrate_editing(engine)
         from app.services.editing.export_schema import migrate_editing_export
         await migrate_editing_export(engine)
+        from app.services.video_dna.schema import migrate_video_dna
+        await migrate_video_dna(engine)
 
 
 async def close_db() -> None:

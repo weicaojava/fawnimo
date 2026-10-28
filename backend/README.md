@@ -136,7 +136,10 @@ cp .env.example .env
 ### 5. 启动服务
 
 ```bash
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uv run python migrate_video_dna.py
+uv run python run_local.py
+# 开发热更新：保留明确HTTP关闭时限
+# uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 --timeout-graceful-shutdown 5
 ```
 
 - API 文档：http://localhost:8000/docs  
@@ -161,7 +164,8 @@ uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | `uv sync` | 安装/同步依赖 |
 | `uv sync --group dev` | 同步依赖并包含开发组（pytest、pylint 等） |
 | `uv add <pkg>` | 添加依赖 |
-| `uv run uvicorn app.main:app --reload` | 开发运行 |
+| `uv run python run_local.py` | 本地运行，仅回环地址，HTTP关闭等待上限5秒 |
+| `uv run uvicorn app.main:app --reload --timeout-graceful-shutdown 5` | 开发热更新，保留关闭等待时限 |
 | `uv run pytest` | 运行测试 |
 | `uv run pytest tests/... -q` | 运行定向测试 |
 | `uv run pylint app` | 对 `app` 包运行 Pylint（需已 `uv sync --group dev`） |

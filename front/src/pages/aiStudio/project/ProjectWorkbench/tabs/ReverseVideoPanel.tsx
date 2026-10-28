@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Input, InputNumber, Select, Space, Table, Tag, message } from 'antd'
 import { OpenAPI, ProductionService as P, ReverseService as R } from '../../../../../services/generated'
 import type { AnalysisRead } from '../../../../../services/generated'
+import { DnaPanel } from './DnaPanel'
 
 type Frame = { index: number; pts: number; time_base_num: number; time_base_den: number; relative_us: number }
 type Manifest = { video: { width: number; height: number; frames: Frame[] }; cuts: { frame_index: number; relative_us: number }[]; keyframes: { frame_index: number }[]; audio: { present: boolean; tracks: { origin_relative_us?: number }[] }; proxy: { warnings?: string[]; degraded?: boolean; frame_mapping: { relative_us: number; source_index: number }[] }; candidate_algorithm?: string }
@@ -18,6 +19,7 @@ export function ReverseVideoPanel({ projectId }: { projectId: string }) {
   const alive = useRef(true)
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
   const [busy, setBusy] = useState(false)
+  const [dnaLocked, setDnaLocked] = useState(false)
   const [error, setError] = useState('')
   const [refresh, setRefresh] = useState(0)
   const [cuts, setCuts] = useState('0')
@@ -27,10 +29,7 @@ export function ReverseVideoPanel({ projectId }: { projectId: string }) {
   const manifest = analysis?.manifest as Manifest | null | undefined
   const boundaries = analysis?.confirmed_cuts?.map(cut => cut.frame_index) ?? [0, ...(manifest?.cuts ?? []).map(cut => cut.frame_index)]
   const frames = manifest?.video.frames ?? []
-  const last = frames[frames.length - 1]
-  const previous = frames[Math.max(0, frames.length - 2)]
-  const endUs = last ? last.relative_us + Math.max(1, last.relative_us - previous.relative_us) : 0
-  const timeline = boundaries.map((index, number) => ({ index, number: number + 1, start: frames[index]?.relative_us ?? 0, end: frames[boundaries[number + 1]]?.relative_us ?? endUs }))
+  const timeline = boundaries.map((index, number) => ({ index, number: number + 1, start: frames[index]?.relative_us ?? 0, end: frames[boundaries[number + 1]]?.relative_us ?? null }))
   const base = `${OpenAPI.BASE}/api/v1/reverse/projects/${encodeURIComponent(projectId)}/analyses/${encodeURIComponent(analysis?.id ?? selected)}`
 
   /** Re-fetch identities without treating any detector output as confirmed shots. */
@@ -117,10 +116,10 @@ export function ReverseVideoPanel({ projectId }: { projectId: string }) {
     if (nearest && player.current) player.current.currentTime = nearest.relative_us / 1e6
   }
 
-  return <Card title="视频逆向 · 技术解析" extra={<Button disabled={busy} onClick={() => setRefresh(value => value + 1)}>刷新分析</Button>}>
-    <Alert className="mb-3" type="info" showIcon message="先检查原片，再确认镜头边界" description="本步骤提取帧、音轨和候选切点，不调用生成模型。自动候选需要复核，人物识别、台词转写和视频还原尚未完成。当前支持单视频轨MP4，最长120秒、64 MB、1920×1920，最多7200个原始帧、256个边界。" />
-    <Space wrap className="mb-3"><label>导入并分析视频 <input aria-label="导入并分析视频" type="file" accept=".mp4" disabled={busy} onChange={event => { void upload(event.target.files?.[0]); event.target.value = '' }} /></label>
-      <Select aria-label="选择视频分析" disabled={busy} className="min-w-64" value={selected || undefined} onChange={value => { setSelected(value); setAnalysis(null) }} placeholder="选择已保存的分析" options={items.map(item => ({ value: item.id, label: `${item.id.slice(0, 8)} · ${labels[item.state] ?? item.state}` }))} />
+  return <Card title="视频逆向 · 技术解析" extra={<Button disabled={busy || dnaLocked} onClick={() => setRefresh(value => value + 1)}>刷新分析</Button>}>
+    <Alert className="mb-3" type="info" showIcon message="先检查原片，再确认镜头边界" description="本步骤提取帧、音轨和候选切点，不调用生成模型。自动候选需要复核，下方DNA只记录人工声明，自动人物识别、台词转写和真实视频还原尚未完成。当前支持单视频轨MP4，最长120秒、64 MB、1920×1920，最多7200个原始帧、256个边界。" />
+    <Space wrap className="mb-3"><label>导入并分析视频 <input aria-label="导入并分析视频" type="file" accept=".mp4" disabled={busy || dnaLocked} onChange={event => { void upload(event.target.files?.[0]); event.target.value = '' }} /></label>
+      <Select aria-label="选择视频分析" disabled={busy || dnaLocked} className="min-w-64" value={selected || undefined} onChange={value => { setSelected(value); setAnalysis(null) }} placeholder="选择已保存的分析" options={items.map(item => ({ value: item.id, label: `${item.id.slice(0, 8)} · ${labels[item.state] ?? item.state}` }))} />
     </Space>
     {error && <Alert type="error" message={error} className="mb-3" />}
     {analysis && <><Space wrap className="mb-3"><Tag>{labels[analysis.state] ?? analysis.state}</Tag><span>修订 {analysis.revision}</span><span>原片校验 {analysis.source_hash.slice(0, 12)}</span></Space>{analysis.reason && <p>{analysis.reason}</p>}</>}
@@ -134,13 +133,14 @@ export function ReverseVideoPanel({ projectId }: { projectId: string }) {
       <Table size="small" rowKey="index" pagination={false} dataSource={timeline} columns={[
         { title: '镜头', dataIndex: 'number' },
         { title: '起始原始帧', dataIndex: 'index' },
-        { title: '归一化时间', render: (_, row) => `${(row.start / 1e6).toFixed(3)} – ${(row.end / 1e6).toFixed(3)} 秒` },
+        { title: '归一化时间', render: (_, row) => `${(row.start / 1e6).toFixed(3)} – ${row.end === null ? "末端未知（原帧N哨兵）" : `${(row.end / 1e6).toFixed(3)} 秒`}` },
         { title: '检查', render: (_, row) => <Button onClick={() => inspectFrame(row.index)}>查看起点</Button> },
       ]} />
       <Space wrap><label>查看原始帧 <InputNumber aria-label="原始帧序号" min={0} max={manifest.video.frames.length - 1} precision={0} value={frameInput} onChange={value => setFrameInput(Number(value ?? 0))} /></label><Button onClick={() => inspectFrame(frameInput)}>检查该帧</Button></Space>
       {previewFrame !== null && <div className="my-3"><p>原始帧 {previewFrame} · 归一化时间 {((manifest.video.frames[previewFrame]?.relative_us ?? 0) / 1e6).toFixed(6)}秒 · PTS {manifest.video.frames[previewFrame]?.pts}</p><img src={`${base}/frames/${previewFrame}`} alt={`检查原始帧 ${previewFrame}`} style={{ maxHeight: 320, maxWidth: '100%' }} /></div>}
-      <label className="block my-3">人工确认切点（原始帧序号，必须包含0，用逗号分隔）<Input aria-label="人工确认切点" disabled={busy} value={cuts} onChange={event => setCuts(event.target.value)} /></label>
-      <Button type="primary" loading={busy} onClick={() => void saveCuts()}>保存人工切点</Button>
+      <label className="block my-3">人工确认切点（原始帧序号，必须包含0，用逗号分隔）<Input aria-label="人工确认切点" disabled={busy || dnaLocked} value={cuts} onChange={event => setCuts(event.target.value)} /></label>
+      <Button type="primary" loading={busy} disabled={dnaLocked} onClick={() => void saveCuts()}>保存人工切点</Button>
+      {analysis.confirmed_cuts?.length ? <DnaPanel key={`${projectId}:${analysis.id}`} projectId={projectId} analysisId={analysis.id} analysisRevision={analysis.revision} onInspectFrame={inspectFrame} onLockChange={setDnaLocked} /> : <Alert className="mt-3" type="info" message="保存人工确认切点后，可建立人工Video DNA准备工作区" />}
     </>}
   </Card>
 }

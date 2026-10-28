@@ -230,7 +230,10 @@ docker compose --env-file deploy/compose/.env -f deploy/compose/docker-compose.y
 cd backend
 cp .env.example .env
 uv sync
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uv run python migrate_video_dna.py
+uv run python run_local.py
+# Hot reload for development (finite HTTP draining before application cleanup):
+# uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 --timeout-graceful-shutdown 5
 ```
 
 ### Frontend
