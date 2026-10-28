@@ -349,16 +349,15 @@ export default function ModelsTab() {
               }}
             />
           </Tooltip>
-          <Tooltip title="测试生成">
-            <Button
+          <Tooltip title="模型测试尚未接入，生成资格尚未验证">
+            <span><Button
               type="text"
               size="small"
+              disabled
+              aria-label="模型生成资格尚未验证"
               className={TABLE_ACTION_BTN_TEST_CLASS}
               icon={<ThunderboltOutlined />}
-              onClick={(e) => {
-                e.stopPropagation()
-              }}
-            />
+            /></span>
           </Tooltip>
           <Dropdown
             menu={{
@@ -403,6 +402,8 @@ export default function ModelsTab() {
 
   return (
     <>
+      {/* Model records and defaults must not imply a successful provider test. */}
+      <Alert type="info" showIcon message="模型生成资格尚未验证" description="本页仅维护模型配置，测试生成尚未接入。保存模型、选择默认模型或读取任务列表成功都不能证明真实生成资格。" className="flex-shrink-0" />
       <div className="flex-shrink-0 px-4 py-2 border-b border-gray-100 bg-white flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="text-gray-600 text-sm">共 {models.length} 个模型</span>
@@ -543,8 +544,8 @@ export default function ModelsTab() {
                     >
                       编辑
                     </Button>,
-                    <Button key="test" type="text" size="small" icon={<ThunderboltOutlined />}>
-                      测试生成
+                    <Button key="test" type="text" size="small" disabled icon={<ThunderboltOutlined />} title="模型测试尚未接入，生成资格尚未验证">
+                      未验证
                     </Button>,
                     <Dropdown
                       key="more"
@@ -641,7 +642,7 @@ export default function ModelsTab() {
                 >
                   编辑
                 </Button>
-                <Button icon={<ThunderboltOutlined />}>快速测试</Button>
+                <Button disabled icon={<ThunderboltOutlined />} title="模型测试尚未接入，生成资格尚未验证">生成资格未验证</Button>
               </Space>
             </div>
           </div>
@@ -674,7 +675,7 @@ export default function ModelsTab() {
                 >
                   编辑
                 </Button>
-                <Button icon={<ThunderboltOutlined />}>快速测试</Button>
+                <Button disabled icon={<ThunderboltOutlined />} title="模型测试尚未接入，生成资格尚未验证">生成资格未验证</Button>
               </Space>
             </div>
           </Drawer>

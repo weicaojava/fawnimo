@@ -10,6 +10,8 @@ import type { ApiResponse_PlanCatalog_ } from '../models/ApiResponse_PlanCatalog
 import type { ApiResponse_PlannedSubmissionRead_ } from '../models/ApiResponse_PlannedSubmissionRead_';
 import type { ApiResponse_PlanPreflight_ } from '../models/ApiResponse_PlanPreflight_';
 import type { ApiResponse_PlanRead_ } from '../models/ApiResponse_PlanRead_';
+import type { ApiResponse_Seedance25PlanPreview_ } from '../models/ApiResponse_Seedance25PlanPreview_';
+import type { ApiResponse_Seedance25ProfileRead_ } from '../models/ApiResponse_Seedance25ProfileRead_';
 import type { AssetRegistration } from '../models/AssetRegistration';
 import type { PlanCompile } from '../models/PlanCompile';
 import type { PlanCreate } from '../models/PlanCreate';
@@ -19,6 +21,53 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class ShotPlansService {
+    /**
+     * Get Seedance25 Profile
+     * Expose only this slice's non-executing preparation profile for an actual project.
+     * @returns ApiResponse_Seedance25ProfileRead_ Successful Response
+     * @throws ApiError
+     */
+    public static getSeedance25Profile({
+        projectId,
+    }: {
+        projectId: string,
+    }): CancelablePromise<ApiResponse_Seedance25ProfileRead_> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/shot-plans/projects/{project_id}/seedance25-profile',
+            path: {
+                'project_id': projectId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Preview Seedance25 Plan
+     * Inspect fixed wire bodies without making provider requests, jobs or budget holds.
+     * @returns ApiResponse_Seedance25PlanPreview_ Successful Response
+     * @throws ApiError
+     */
+    public static previewSeedance25Plan({
+        projectId,
+        planId,
+    }: {
+        projectId: string,
+        planId: string,
+    }): CancelablePromise<ApiResponse_Seedance25PlanPreview_> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/shot-plans/projects/{project_id}/plans/{plan_id}/seedance25-preview',
+            path: {
+                'project_id': projectId,
+                'plan_id': planId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
     /**
      * Get Shot Plan Catalog
      * List complete bounded actual chapter choices and public trusted policy metadata.

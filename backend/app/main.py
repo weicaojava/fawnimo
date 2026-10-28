@@ -68,7 +68,6 @@ async def lifespan(app: FastAPI):
             if version != [1]:
                 raise RuntimeError('Run the supported production migration before starting')
     bootstrap_all_registries()
-    runtime=getattr(app.state,'execution_runtime',None)
     reverse_scanner=None
     from pathlib import Path
     if settings.reverse_analysis_enabled and Path(settings.production_probe_executable).is_file():
@@ -95,6 +94,14 @@ async def lifespan(app: FastAPI):
         from app.core.db import async_session_maker
         local_export_worker=LocalExportWorker(async_session_maker,settings.production_probe_executable)
     app.state.local_export_worker=local_export_worker
+    # Add the inert catalog only after migration checks succeed. Respect even an
+    # explicitly injected None, and remove only the runtime this lifespan owns.
+    owns_preparation_runtime=not hasattr(app.state,'execution_runtime')
+    if owns_preparation_runtime:
+        from app.core.db import async_session_maker
+        from app.services.worker.seedance25_runtime import build_preparation_runtime
+        app.state.execution_runtime=build_preparation_runtime(async_session_maker)
+    runtime=getattr(app.state,'execution_runtime',None)
     try:
         if runtime is not None:await runtime.start()
         if reverse_scanner is not None:await reverse_scanner.start()
@@ -106,6 +113,8 @@ async def lifespan(app: FastAPI):
         if reverse_scanner is not None:await reverse_scanner.stop()
         app.state.reverse_scanner=None
         if runtime is not None:await runtime.stop()
+        if owns_preparation_runtime:
+            delattr(app.state,'execution_runtime')
 
 
 app = FastAPI(

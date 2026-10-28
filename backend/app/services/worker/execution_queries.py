@@ -1,7 +1,7 @@
 """Project-scoped, safe execution views and intent-only user controls."""
 import time
 from fastapi import HTTPException
-from sqlalchemy import select, update, exists
+from sqlalchemy import select, update, exists, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.execution import ExecutionJob, ExecutionSlot, SubmissionAttempt
 from app.models.execution_budget import ExecutionBudget, ExecutionBudgetEntry
@@ -16,11 +16,13 @@ REASONS = {'provider_rejected':'服务明确拒绝了请求', 'submission_accept
 
 REASONS['runtime_binding_unavailable']='原服务配置已改变，请恢复原配置后继续处理；未重新提交'
 REASONS['plan_stale_unsent']='镜头计划或准备资料已失配，已在提交前取消；未发起新的模型请求'
+REASONS['provider_query_backoff']='服务要求延后查询，已暂停；等待结束后可显式恢复原任务，未重新生成'
 
 
 def safe_view(job: ExecutionJob) -> dict:
     """Allowlist fields; never echo provider IDs, arbitrary reasons, URLs or snapshots."""
-    return {'id':job.id, 'project_id':job.project_id, 'state':job.state if job.state in STATE_LABELS else 'unknown', 'state_label':STATE_LABELS.get(job.state,'状态待核实'), 'reason':REASONS.get(job.reason, '任务信息已更新，请检查执行状态' if job.reason else ''), 'cancel_requested':job.cancel_requested, 'query_retries':job.query_retries, 'download_retries':job.download_retries, 'can_resume':job.state=='paused', 'can_cancel':job.state not in TERMINAL, 'can_pause':job.state in RESUMABLE and job.lease_until<=time.time()}
+    backoff_active=job.reason=='provider_query_backoff' and job.next_due>time.time()
+    return {'id':job.id, 'project_id':job.project_id, 'state':job.state if job.state in STATE_LABELS else 'unknown', 'state_label':STATE_LABELS.get(job.state,'状态待核实'), 'reason':REASONS.get(job.reason, '任务信息已更新，请检查执行状态' if job.reason else ''), 'cancel_requested':job.cancel_requested, 'query_retries':job.query_retries, 'download_retries':job.download_retries, 'can_resume':job.state=='paused' and not backoff_active, 'can_cancel':job.state not in TERMINAL, 'can_pause':job.state in RESUMABLE and job.lease_until<=time.time()}
 
 
 async def scoped_job(db: AsyncSession, project_id: str, job_id: str) -> ExecutionJob:
@@ -49,10 +51,12 @@ async def control_job(db: AsyncSession, project_id: str, job_id: str, action: st
         if not changed.rowcount: raise HTTPException(409,'任务正在处理或状态已改变，请稍后重试暂停')
     elif action=='resume':
         if job.state!='paused': raise HTTPException(409,'仅已暂停的任务可以恢复')
+        if job.reason=='provider_query_backoff' and job.next_due>now:
+            raise HTTPException(409,'服务要求的查询等待时间尚未结束，请稍后恢复原任务')
         target=job.pause_from or ('running' if job.remote_id else 'submission_unknown')
         if target not in RESUMABLE or (target in {'running','downloading'} and not job.remote_id):
             raise HTTPException(409,'原任务恢复状态需要核实，不能重新提交')
-        changed=await db.execute(update(ExecutionJob).where(*scope,ExecutionJob.state=='paused',ExecutionJob.lease_until<=now).values(state=target,query_retries=0,download_retries=0,started_at=now,next_due=0,reason='',pause_from=None))
+        changed=await db.execute(update(ExecutionJob).where(*scope,ExecutionJob.state=='paused',ExecutionJob.lease_until<=now,ExecutionJob.reason==job.reason,ExecutionJob.next_due==job.next_due,ExecutionJob.pause_from.is_(job.pause_from) if job.pause_from is None else ExecutionJob.pause_from==job.pause_from,or_(ExecutionJob.reason!='provider_query_backoff',ExecutionJob.next_due<=now)).values(state=target,query_retries=0,download_retries=0,started_at=now,next_due=0,reason='',pause_from=None))
         if not changed.rowcount: raise HTTPException(409,'任务正在处理或状态已改变，请稍后重试恢复')
     elif action=='cancel':
         # A queued job with no journaled submission can safely finish locally.

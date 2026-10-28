@@ -100,6 +100,8 @@ export type { ApiResponse_ScriptPreflight_ } from './models/ApiResponse_ScriptPr
 export type { ApiResponse_ScriptRead_ } from './models/ApiResponse_ScriptRead_';
 export type { ApiResponse_ScriptSimplificationResult_ } from './models/ApiResponse_ScriptSimplificationResult_';
 export type { ApiResponse_ScriptSnapshot_ } from './models/ApiResponse_ScriptSnapshot_';
+export type { ApiResponse_Seedance25PlanPreview_ } from './models/ApiResponse_Seedance25PlanPreview_';
+export type { ApiResponse_Seedance25ProfileRead_ } from './models/ApiResponse_Seedance25ProfileRead_';
 export type { ApiResponse_SelectionHistoryRead_ } from './models/ApiResponse_SelectionHistoryRead_';
 export type { ApiResponse_SelectionRead_ } from './models/ApiResponse_SelectionRead_';
 export type { ApiResponse_ShotAssetsOverviewRead_ } from './models/ApiResponse_ShotAssetsOverviewRead_';
@@ -344,6 +346,9 @@ export type { ScriptSimplificationResult } from './models/ScriptSimplificationRe
 export type { ScriptSimplifyRequest } from './models/ScriptSimplifyRequest';
 export type { ScriptSnapshot } from './models/ScriptSnapshot';
 export type { ScriptSnapshotSummary } from './models/ScriptSnapshotSummary';
+export type { Seedance25PlanPreview } from './models/Seedance25PlanPreview';
+export type { Seedance25PreviewEntry } from './models/Seedance25PreviewEntry';
+export type { Seedance25ProfileRead } from './models/Seedance25ProfileRead';
 export type { SelectionHistoryRead } from './models/SelectionHistoryRead';
 export type { SelectionRead } from './models/SelectionRead';
 export type { SelectionWrite } from './models/SelectionWrite';

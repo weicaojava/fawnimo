@@ -10,6 +10,7 @@ from sqlalchemy import or_, select, update,text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from app.core.contracts.task_safety import validate_task_payload
+from app.core.contracts.execution_control import QueryBackoff, RejectedSubmission, query_backoff_deadline
 from app.core.db import async_session_maker
 from app.models.execution import ExecutionJob, ExecutionSlot, SubmissionAttempt
 from app.models.task import GenerationTask
@@ -19,10 +20,6 @@ from app.models.execution_binding import ExecutionBinding
 from app.models.shot_plan import PlanJobLink  # Register optional linkage before test/production metadata creation.
 
 TERMINAL={'ready','failed','cancelled'}
-
-
-class RejectedSubmission(Exception):
-    """Only a contractually definite non-acceptance may be classified as rejected."""
 
 
 class LeaseLost(Exception):
@@ -152,8 +149,18 @@ class DurableExecution:
         async with self.factory() as db:
             job=await db.get(ExecutionJob,job_id)
             if job is None or job.state!='paused':raise HTTPException(409,'任务不处于可恢复暂停状态')
-            job.state=job.pause_from or ('running' if job.remote_id else 'submission_unknown')
-            job.query_retries=0;job.download_retries=0;job.started_at=self.clock();job.next_due=0
+            now=self.clock()
+            if job.reason=='provider_query_backoff' and job.next_due>now:
+                raise HTTPException(409,'服务要求的查询等待时间尚未结束，请稍后恢复原任务')
+            target=job.pause_from or ('running' if job.remote_id else 'submission_unknown')
+            if target not in {'running','downloading','submission_unknown'} or (target in {'running','downloading'} and not job.remote_id):
+                raise HTTPException(409,'原任务恢复状态需要核实，不能重新提交')
+            # The deadline and original pause context are predicates of the write,
+            # so a stale resume cannot clear a newer concurrent provider pause.
+            changed=await db.execute(update(ExecutionJob).where(ExecutionJob.id==job_id,ExecutionJob.state=='paused',ExecutionJob.lease_until<=now,ExecutionJob.reason==job.reason,ExecutionJob.next_due==job.next_due,ExecutionJob.pause_from.is_(job.pause_from) if job.pause_from is None else ExecutionJob.pause_from==job.pause_from,or_(ExecutionJob.reason!='provider_query_backoff',ExecutionJob.next_due<=now)).values(state=target,query_retries=0,download_retries=0,started_at=now,next_due=0,reason='' if job.reason=='provider_query_backoff' else job.reason,pause_from=None if job.reason=='provider_query_backoff' else job.pause_from))
+            if not changed.rowcount:
+                await db.rollback()
+                raise HTTPException(409,'任务已改变或要求继续等待，请刷新原任务')
             await db.commit()
 
     async def _pause(self, job: ExecutionJob, token: str, reason: str) -> None:
@@ -252,6 +259,7 @@ class DurableExecution:
                 # False is an unconfirmed request; keep the remote task identity.
             if job.state=='running':
                 try:result=await self._external(job.id,token,lambda:self.transport.query(job.remote_id or ''))
+                except QueryBackoff:raise
                 except Exception:
                     retries=job.query_retries+1
                     await self._update(job.id,token,query_retries=retries,next_due=self.clock()+self.poll_seconds)
@@ -268,12 +276,18 @@ class DurableExecution:
                 try:
                     artifact=await self._external(job.id,token,lambda:self.transport.download(job.result or {},job.media_id or '',job.project_id))
                     media_id=await self.publisher(self.factory,self.clock,job.id,token,artifact)
+                except QueryBackoff:raise
                 except Exception:
                     retries=job.download_retries+1
                     await self._update(job.id,token,download_retries=retries,next_due=self.clock()+self.poll_seconds)
                     if retries>=self.retry_limit:await self._pause(job,token,'download_retry_limit')
                     return
                 await self._update(job.id,token,state='ready',media_id=media_id,reason='')
+        except QueryBackoff as control:
+            # This also covers the cancellation status query. Do not let a long
+            # Retry-After disappear into generic retries or defer an active job
+            # past its automatic wait budget. Explicit resume honors next_due.
+            await self._update(job.id,token,state='paused',pause_from=job.state,reason='provider_query_backoff',next_due=query_backoff_deadline(self.clock(),control.retry_after_seconds))
         finally:
             await self._update(job.id,token,lease_until=0)
             async with self.factory() as db:

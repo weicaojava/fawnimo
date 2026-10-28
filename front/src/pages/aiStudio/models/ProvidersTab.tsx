@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import {
+  Alert,
   Layout,
   Input,
   Button,
@@ -56,7 +57,6 @@ export default function ProvidersTab() {
   const [treeCollapsed, setTreeCollapsed] = useState(false)
   const [providerModalOpen, setProviderModalOpen] = useState(false)
   const [providerEditing, setProviderEditing] = useState<ProviderRead | null>(null)
-  const [testConnecting, setTestConnecting] = useState(false)
   const [form] = Form.useForm()
   const { lg } = Grid.useBreakpoint()
   const isLargeScreen = lg ?? false
@@ -136,20 +136,6 @@ export default function ProvidersTab() {
     if (sortBy === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name))
     return list
   }, [providers, sortBy])
-
-  const handleTestConnection = async (provider?: ProviderRead) => {
-    const p = provider ?? selectedProvider
-    if (!p) return
-    setTestConnecting(true)
-    try {
-      await new Promise((r) => setTimeout(r, 800))
-      message.success('连接成功')
-    } catch {
-      message.error('连接失败，请检查 Base URL 与 AK/SK')
-    } finally {
-      setTestConnecting(false)
-    }
-  }
 
   const handleSaveProvider = async () => {
     try {
@@ -309,17 +295,15 @@ export default function ProvidersTab() {
               }}
             />
           </Tooltip>
-          <Tooltip title="测试连接">
-            <Button
+          <Tooltip title="连接测试尚未接入，此配置尚未验证">
+            <span><Button
               type="text"
               size="small"
+              disabled
+              aria-label="供应商连接尚未验证"
               className={TABLE_ACTION_BTN_TEST_CLASS}
               icon={<ThunderboltOutlined />}
-              onClick={(e) => {
-                e.stopPropagation()
-                void handleTestConnection(record)
-              }}
-            />
+            /></span>
           </Tooltip>
           <Dropdown
             menu={{
@@ -358,6 +342,8 @@ export default function ProvidersTab() {
 
   return (
     <>
+      {/* Stored configuration is not evidence of authentication or model qualification. */}
+      <Alert type="info" showIcon message="供应商连接尚未验证" description="本页仅维护配置，连接测试尚未接入。保存配置或修改状态不代表认证成功，也不代表模型具备生成资格。" className="flex-shrink-0" />
       <div className="flex-shrink-0 px-4 py-2 border-b border-gray-100 bg-white flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="text-gray-600 text-sm">共 {providers.length} 个供应商</span>
@@ -495,13 +481,11 @@ export default function ProvidersTab() {
                       key="test"
                       type="text"
                       size="small"
+                      disabled
                       icon={<ThunderboltOutlined />}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleTestConnection(p)
-                      }}
+                      title="连接测试尚未接入，此配置尚未验证"
                     >
-                      测试
+                      未验证
                     </Button>,
                     <Dropdown
                       key="more"
@@ -592,10 +576,10 @@ export default function ProvidersTab() {
                 </Button>
                 <Button
                   icon={<ThunderboltOutlined />}
-                  loading={testConnecting}
-                  onClick={() => handleTestConnection()}
+                  disabled
+                  title="连接测试尚未接入，此配置尚未验证"
                 >
-                  测试连接
+                  连接尚未验证
                 </Button>
               </Space>
             </div>
@@ -637,9 +621,10 @@ export default function ProvidersTab() {
                 </Button>
                 <Button
                   icon={<ThunderboltOutlined />}
-                  onClick={() => handleTestConnection()}
+                  disabled
+                  title="连接测试尚未接入，此配置尚未验证"
                 >
-                  测试连接
+                  连接尚未验证
                 </Button>
               </Space>
             </div>

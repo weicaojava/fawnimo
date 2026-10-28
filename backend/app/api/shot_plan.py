@@ -7,6 +7,9 @@ from app.models.shot_plan import ShotPlanDraft
 from app.schemas.common import ApiResponse,success_response
 from app.services.shot_plan.service import catalog,create_draft,patch_draft,compile_draft,draft_view,plan_view,preflight_plan,register_asset,list_jobs,admit_planned_shot
 from app.services.script_preparation.service import chapter_owned
+from app.core.contracts.seedance25_preparation import Seedance25ProfileRead, Seedance25PlanPreview
+from app.services.shot_plan.seedance25_preparation import profile_view, preview_plan
+from app.services.studio.production import project_exists
 
 router=APIRouter(prefix='/shot-plans/projects/{project_id}',tags=['shot-plans'])
 
@@ -14,6 +17,21 @@ router=APIRouter(prefix='/shot-plans/projects/{project_id}',tags=['shot-plans'])
 def get_shot_plan_factory():
     """Keep the plan and worker database application-owned and test-isolatable."""
     return async_session_maker
+
+
+@router.get('/seedance25-profile', response_model=ApiResponse[Seedance25ProfileRead], operation_id='get_seedance25_profile')
+async def get_seedance25_profile(project_id: str, factory=Depends(get_shot_plan_factory)):
+    """Expose only this slice's non-executing preparation profile for an actual project."""
+    async with factory() as db:
+        await project_exists(db, project_id)
+        return success_response(profile_view())
+
+
+@router.get('/plans/{plan_id}/seedance25-preview', response_model=ApiResponse[Seedance25PlanPreview], operation_id='preview_seedance25_plan')
+async def preview_seedance25_plan(project_id: str, plan_id: str, factory=Depends(get_shot_plan_factory)):
+    """Inspect fixed wire bodies without making provider requests, jobs or budget holds."""
+    async with factory() as db:
+        return success_response(await preview_plan(db, project_id, plan_id))
 
 
 @router.get('/catalog',response_model=ApiResponse[PlanCatalog])
