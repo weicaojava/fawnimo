@@ -8,10 +8,14 @@ from email.parser import BytesParser
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import os
 from pathlib import Path
+import shutil
 import subprocess
 import threading
 import time
+import uuid
+from urllib.parse import urlsplit
 import httpx
 import pytest
 from fastapi import FastAPI, HTTPException
@@ -21,13 +25,21 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.api.video_understanding import router, get_understanding_factory
 from app.config import settings
 from app.core.db import Base
-from app.core.contracts.video_understanding import UnderstandingConnectionWrite, UnderstandingCreate
+from app.core.contracts.video_understanding import UnderstandingConnectionWrite, UnderstandingCreate, UnderstandingRetry
+from app.core.contracts.model_accounting import ModelPriceEnvelope, ModelPriceConfiguration
 from app.core.contracts.video_dna import DnaDocument, DnaPatch
 from app.models.production import ProductionMedia
 from app.models.reverse import ReverseAnalysis
 from app.models.studio import Project
 from app.models.video_dna import DnaDraft, DnaSnapshot
 from app.models.video_understanding import UnderstandingAttempt, UnderstandingConfig, UnderstandingJob
+from app.models.llm import Model, Provider
+from app.services.llm.connection_versions import migrate_connection_versions
+from app.services.video_understanding.charge_schema import migrate_understanding_charges
+from app.services.worker.model_charge_schema import migrate_model_charges
+from app.services.worker.model_billing_schema import migrate_model_billing
+from app.services.worker.model_prices import ModelPriceRegistry
+from app.services.worker.execution_budget import configure as configure_budget
 from app.services.reverse.ingestion import create_analysis, edit_cuts, run_analysis
 from app.services.studio.production_media import store_batch
 from app.services.video_dna import service as dna
@@ -40,7 +52,7 @@ from app.services.video_understanding.source import prepare_inputs, sample_indic
 from app.services.video_understanding.transport import normalize_candidate, transcripts_from_response
 
 ROOT = Path(__file__).resolve().parents[5]
-FFMPEG = ROOT / 'work/ffmpeg.exe'
+FFMPEG = Path(os.environ.get('FAWNIMO_TEST_FFMPEG') or shutil.which('ffmpeg') or ROOT / 'work/ffmpeg.exe')
 
 
 def fixture_candidate(context):
@@ -68,6 +80,9 @@ class ModelFixture:
         self.audio_mode, self.vision_mode = 'timed', 'valid'
         self.vision_received, self.release_vision = threading.Event(), threading.Event()
         self.delay_vision = False
+        self.audio_received, self.release_audio = threading.Event(), threading.Event()
+        self.delay_audio = False
+        self.request_id_mode = 'valid'
 
     @contextmanager
     def server(self):
@@ -85,7 +100,14 @@ class ModelFixture:
                 owner.calls.append({'path': self.path, 'body': body, 'content_type': self.headers.get('Content-Type'), 'authorization': self.headers.get('Authorization')})
                 status = 200
                 if self.path.endswith('/audio/transcriptions'):
+                    owner.audio_received.set()
+                    if owner.delay_audio:
+                        owner.release_audio.wait(10)
                     result = {'text': '未带时标，不得粘贴到各镜'} if owner.audio_mode == 'untimed' else {'text': '受控转写候选', 'segments': [{'start': 0.2, 'end': 0.8, 'text': '受控转写候选'}]}
+                    if owner.audio_mode == 'http_error':
+                        status, result = 429, {'error': 'private fixture-only-token must never be reflected'}
+                    elif owner.audio_mode == 'echo_secret':
+                        result['segments'][0]['text'] = 'reflected fixture-only-token'
                 elif self.path.endswith('/chat/completions'):
                     payload = json.loads(body)
                     context = json.loads(payload['messages'][1]['content'][0]['text'])
@@ -94,6 +116,8 @@ class ModelFixture:
                     if owner.delay_vision:
                         owner.release_vision.wait(10)
                     document = fixture_candidate(context)
+                    if owner.vision_mode == 'echo_secret':
+                        document['title'] = 'reflected fixture-only-token'
                     if owner.vision_mode == 'unsent_frame':
                         document['shots'][0]['action']['evidence'] = [{'start_frame': 1, 'end_frame': 2}]
                     result = {'choices': [{'message': {'content': json.dumps(document, ensure_ascii=False)}}]}
@@ -102,7 +126,14 @@ class ModelFixture:
                 else:
                     status, result = 404, {'error': 'unknown fixture endpoint'}
                 encoded = json.dumps(result, ensure_ascii=False).encode()
+                if self.path.endswith('/audio/transcriptions') and owner.audio_mode == 'malformed_json':
+                    encoded = b'{invalid fixture-only-token'
+                if self.path.endswith('/audio/transcriptions') and owner.audio_mode == 'duplicate_json':
+                    encoded = b'{"segments":[],"segments":[]}'
                 self.send_response(status); self.send_header('Content-Type', 'application/json'); self.send_header('Content-Length', str(len(encoded)))
+                if owner.request_id_mode != 'missing':
+                    request_id = f'authored-understanding-{len(owner.calls)}' if owner.request_id_mode == 'valid' else 'fixture-only-token'
+                    self.send_header('x-request-id', request_id)
                 if status == 302:
                     self.send_header('Location', '/redirect-must-not-receive-credentials')
                 self.end_headers()
@@ -120,10 +151,10 @@ class ModelFixture:
         try:
             yield f'http://127.0.0.1:{server.server_port}/v1'
         finally:
-            owner.release_vision.set(); server.shutdown(); server.server_close(); thread.join(2)
+            owner.release_vision.set(); owner.release_audio.set(); server.shutdown(); server.server_close(); thread.join(2)
 
 
-async def fixture(tmp_path, monkeypatch):
+async def fixture(tmp_path, monkeypatch, *, audio=True):
     """Build an independent audio-bearing offset-PTS video and analyze its real bytes through FFmpeg."""
     monkeypatch.setattr(settings, 'production_media_root', str(tmp_path / 'media'))
     monkeypatch.setattr(settings, 'production_probe_executable', str(FFMPEG))
@@ -136,11 +167,19 @@ async def fixture(tmp_path, monkeypatch):
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync: Base.metadata.create_all(sync, tables=tables))
     await migrate_video_understanding(engine)
+    await migrate_connection_versions(engine)
+    await migrate_model_charges(engine)
+    await migrate_model_billing(engine)
+    await migrate_understanding_charges(engine)
     factory = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
     async with factory() as db:
         db.add_all([Project(id='p', name='Understanding fixture', style='真人古装', visual_style='现实'), Project(id='other', name='Other fixture', style='真人古装', visual_style='现实')]); await db.commit()
     original = tmp_path / 'filename-must-never-be-a-character-name.mp4'
-    subprocess.run([str(FFMPEG), '-nostdin', '-v', 'error', '-f', 'lavfi', '-i', 'testsrc=size=96x64:rate=12:duration=2', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=16000:duration=2', '-c:v', 'libx264', '-threads', '1', '-bf', '0', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', '-output_ts_offset', '2', str(original)], check=True, timeout=20)
+    inputs = ['-f','lavfi','-i','testsrc=size=96x64:rate=12:duration=2']
+    if audio:
+        inputs += ['-f','lavfi','-i','sine=frequency=440:sample_rate=16000:duration=2']
+    subprocess.run([str(FFMPEG),'-nostdin','-v','error',*inputs,'-c:v','libx264','-threads','1','-bf','0','-pix_fmt','yuv420p',
+        *(['-c:a','aac','-shortest'] if audio else []),'-output_ts_offset','2',str(original)],check=True,timeout=20)
     async with factory() as db:
         media = (await store_batch(db, 'p', [(original.name, original.read_bytes())]))[0].id
     analysis = await create_analysis(factory, 'p', media, 'real-decoded-fixture')
@@ -148,14 +187,46 @@ async def fixture(tmp_path, monkeypatch):
     return engine, factory, analysis
 
 
+async def managed_models(factory, base):
+    """Explicitly create authored managed protocols, independent project budgets and trusted integer quotes."""
+    async with factory() as db:
+        db.add(Provider(id='fixture-understanding-provider', name='openai', base_url=base, api_key='fixture-only-token', status='testing'))
+        await db.flush()
+        db.add_all([Model(id='fixture-vision',name='fixture-vision',category='text',provider_id='fixture-understanding-provider',params={'understanding_vision_protocol':'openai_chat_image_v1'}),
+                    Model(id='fixture-asr',name='fixture-asr',category='audio',provider_id='fixture-understanding-provider',params={'understanding_asr_protocol':'openai_verbose_segments_v1'})])
+        await db.commit()
+    for project in ('p','other'):
+        async with factory() as db:
+            await configure_budget(db,project,'CNY',10000)
+    quotes = [(kind, ModelPriceEnvelope(model_id=model,model_name=model,provider_id='fixture-understanding-provider',provider_connection_version=1,
+        account_version='authored-understanding',max_call_minor=amount,source_note='Authored test quote, not a supplier price'))
+        for kind, model, amount in [('video_vision','fixture-vision',11),('video_asr','fixture-asr',7)]]
+    return ModelPriceRegistry(ModelPriceConfiguration(enabled=True,rules=[{'kinds':[kind],'quote':quote} for kind,quote in quotes]))
+
+
 async def configured(factory, analysis, base, *, transcribe=True):
-    """Choose only a fresh fixture authorization reference; no legacy key/table is accessed."""
-    worker = UnderstandingWorker(factory, str(FFMPEG), environment={'DNA_UNDERSTANDING_TEST_TOKEN': 'fixture-only-token'})
-    body = UnderstandingConnectionWrite(expected_revision=0, enabled=True, base_url=base, vision_model='fixture-vision', transcribe_audio=transcribe, audio_model='fixture-asr', credential_env='DNA_UNDERSTANDING_TEST_TOKEN')
+    """Explicitly select managed fixture input models and original-project pricing before any actual HTTP."""
+    registry = await managed_models(factory,base)
+    worker = UnderstandingWorker(factory,str(FFMPEG),price_registry=registry,
+        trusted_local_host='127.0.0.1',trusted_local_ports={urlsplit(base).port})
+    body = UnderstandingConnectionWrite(expected_revision=0,enabled=True,vision_model_id='fixture-vision',transcribe_audio=transcribe,audio_model_id='fixture-asr')
     await service.save_connection(factory, 'p', body, worker)
-    intent = UnderstandingCreate(analysis_id=analysis, expected_analysis_revision=1, expected_connection_revision=1, request_key='fixture-understanding')
+    async with factory() as db:
+        availability = await service.connection_view(db,'p',worker,analysis)
+    intent = UnderstandingCreate(analysis_id=analysis,expected_analysis_revision=1,expected_connection_revision=1,request_key='fixture-understanding',
+        confirm_model_call=True,expected_price_fingerprints=availability['price_fingerprints'])
     identifier = await service.create_job(factory, 'p', intent, worker)
     return worker, identifier, intent
+
+
+async def explicit_retry(factory, worker, identifier, attempt, request_key=None):
+    """Confirm each new full attempt separately; tests may reuse the exact returned body for response recovery."""
+    async with factory() as db:
+        view = await service.retry_view(db,'p',identifier,worker)
+    body = UnderstandingRetry(expected_attempt=attempt,request_key=request_key or str(uuid.uuid4()),acknowledge_duplicate_charge=True,
+        expected_price_fingerprints=view['price_fingerprints'])
+    await service.retry_job(factory,'p',identifier,body,worker)
+    return body
 
 
 @pytest.mark.asyncio
@@ -221,7 +292,7 @@ async def test_untimed_asr_fails_without_vision_or_draft_and_explicit_retry_reta
             await worker.tick()
             assert len(provider.calls) == 1
             provider.audio_mode = 'timed'
-            await service.retry_job(factory, 'p', identifier, 1, worker)
+            await explicit_retry(factory, worker, identifier, 1)
             await worker.run_job(identifier)
             async with factory() as db:
                 view = await service.job_view(db, 'p', identifier)
@@ -270,7 +341,7 @@ async def test_queued_and_inflight_cancellation_and_interrupted_attempt_are_not_
             worker, identifier, _intent = await configured(factory, analysis, base, transcribe=False)
             await service.cancel_job(factory, 'p', identifier, 1)
             assert not await worker.run_job(identifier) and provider.calls == []
-            await service.retry_job(factory, 'p', identifier, 1, worker)
+            await explicit_retry(factory, worker, identifier, 1)
             running = asyncio.create_task(worker.run_job(identifier))
             assert await asyncio.to_thread(provider.vision_received.wait, 10)
             await service.cancel_job(factory, 'p', identifier, 2)
@@ -280,7 +351,7 @@ async def test_queued_and_inflight_cancellation_and_interrupted_attempt_are_not_
                 view = await service.job_view(db, 'p', identifier)
                 assert view['state'] == 'cancelled' and view['document'] is None
                 assert await db.scalar(select(func.count()).select_from(DnaDraft)) == 0
-            await service.retry_job(factory, 'p', identifier, 2, worker)
+            await explicit_retry(factory, worker, identifier, 2)
             assert await claim_job(factory, identifier) is not None
             async with factory() as db:
                 await db.execute(update(UnderstandingJob).where(UnderstandingJob.id == identifier).values(lease_until=0)); await db.commit()
@@ -297,7 +368,8 @@ async def test_queued_and_inflight_cancellation_and_interrupted_attempt_are_not_
 async def test_actual_api_setup_cas_availability_and_cross_project_access(tmp_path, monkeypatch):
     """Use actual route contracts while a missing connection remains honestly unavailable."""
     engine, factory, analysis = await fixture(tmp_path, monkeypatch)
-    worker = UnderstandingWorker(factory, str(FFMPEG), enabled=False, environment={})
+    worker = UnderstandingWorker(factory, str(FFMPEG), enabled=False)
+    await managed_models(factory,'http://127.0.0.1:9999/v1')
     app = FastAPI(); app.include_router(router); app.state.understanding_worker = worker
     app.dependency_overrides[get_understanding_factory] = lambda: factory
     try:
@@ -305,11 +377,12 @@ async def test_actual_api_setup_cas_availability_and_cross_project_access(tmp_pa
             base = '/video-understanding/projects/p'
             response = await client.get(base + '/connection')
             assert response.status_code == 200 and response.json()['data']['available'] is False
-            value = {'expected_revision': 0, 'enabled': True, 'base_url': 'http://127.0.0.1:9999/v1', 'vision_model': 'local-vision', 'transcribe_audio': False}
+            value = {'expected_revision': 0, 'enabled': True, 'vision_model_id': 'fixture-vision', 'transcribe_audio': False}
             saved = await client.put(base + '/connection', json=value)
             assert saved.status_code == 200 and saved.json()['data']['revision'] == 1 and saved.json()['data']['available'] is False
             assert (await client.put(base + '/connection', json={**value, 'vision_model': 'stale-overwrite'})).status_code == 409
-            assert (await client.post(base + '/jobs', json={'analysis_id': analysis, 'expected_analysis_revision': 1, 'expected_connection_revision': 1, 'request_key': 'disabled'})).status_code == 503
+            assert (await client.post(base + '/jobs', json={'analysis_id': analysis, 'expected_analysis_revision': 1, 'expected_connection_revision': 1, 'request_key': 'disabled',
+                'confirm_model_call':True,'expected_price_fingerprints':{'video_vision':'a'*64}})).status_code == 503
             invalid = await client.put(base + '/connection', json={**value, 'expected_revision': 1, 'credential_env': 'EXISTING_PROVIDER_API_KEY'})
             assert invalid.status_code == 422
     finally:
@@ -346,7 +419,7 @@ async def test_redirect_is_not_followed_and_slow_stream_has_absolute_deadline(tm
                 source, connection = view['source'], view['connection']
             await prepare_inputs(factory, 'p', source, connection, str(FFMPEG))
             provider.vision_mode = 'slow'
-            await service.retry_job(factory, 'p', identifier, 1, worker)
+            await explicit_retry(factory, worker, identifier, 1)
             worker.deadline_seconds = 1
             started = time.monotonic()
             await worker.run_job(identifier)

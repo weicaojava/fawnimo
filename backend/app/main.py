@@ -123,7 +123,9 @@ async def lifespan(app: FastAPI):
     app.state.asset_image_generation_runtime = asset_image_generation_runtime
     from app.services.video_understanding.runtime import UnderstandingWorker
     understanding_worker = UnderstandingWorker(async_session_maker, settings.production_probe_executable,
-        enabled=settings.video_understanding_enabled, allow_remote=settings.video_understanding_allow_remote)
+        enabled=settings.video_understanding_enabled, allow_remote=settings.video_understanding_allow_remote,
+        price_registry=model_prices, trusted_local_host=settings.video_understanding_local_host,
+        trusted_local_ports=settings.video_understanding_local_ports)
     app.state.understanding_worker = understanding_worker
     try:
         # Imported historical queues retain their original records without

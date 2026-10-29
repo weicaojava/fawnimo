@@ -35,11 +35,12 @@ class ProviderStatus(str, Enum):
 
 
 class ModelCategoryKey(str, Enum):
-    """模型类别：文本/图片/视频。"""
+    """模型类别分开保存；语音模型不能落入视频或文本默认执行路径。"""
 
     text = "text"
     image = "image"
     video = "video"
+    audio = "audio"
 
 
 class LogLevel(str, Enum):

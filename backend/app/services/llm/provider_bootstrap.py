@@ -15,6 +15,7 @@ def bootstrap_builtin_providers() -> None:
                     ModelCategoryKey.text,
                     ModelCategoryKey.image,
                     ModelCategoryKey.video,
+                    ModelCategoryKey.audio,
                 ),
                 default_base_url="https://api.openai.com/v1",
             ),

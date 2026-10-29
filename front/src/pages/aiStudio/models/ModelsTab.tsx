@@ -216,6 +216,10 @@ export default function ModelsTab() {
         }
         params.asset_image_protocol = 'openai_b64_v1'
       } else delete params.asset_image_protocol
+      if (values.category === 'text' && values.local_vision_understanding) params.understanding_vision_protocol = 'openai_chat_image_v1'
+      else delete params.understanding_vision_protocol
+      if (values.category === 'audio' && values.local_audio_transcription) params.understanding_asr_protocol = 'openai_verbose_segments_v1'
+      else delete params.understanding_asr_protocol
       if (modelEditing) {
         await LlmService.updateModelApiV1LlmModelsModelIdPatch({
           modelId: modelEditing.id,
@@ -284,6 +288,8 @@ export default function ModelsTab() {
         description: m.description,
         params: JSON.stringify(m.params ?? {}, null, 2),
         local_image_generation: m.params?.asset_image_protocol === 'openai_b64_v1',
+        local_vision_understanding: m.params?.understanding_vision_protocol === 'openai_chat_image_v1',
+        local_audio_transcription: m.params?.understanding_asr_protocol === 'openai_verbose_segments_v1',
       })
     } else {
       form.resetFields()
@@ -303,6 +309,8 @@ export default function ModelsTab() {
       description: source.description ?? '',
       params: JSON.stringify(source.params ?? {}, null, 2),
       local_image_generation: source.params?.asset_image_protocol === 'openai_b64_v1',
+      local_vision_understanding: source.params?.understanding_vision_protocol === 'openai_chat_image_v1',
+      local_audio_transcription: source.params?.understanding_asr_protocol === 'openai_verbose_segments_v1',
     })
     setModelModalOpen(true)
   }
@@ -796,6 +804,8 @@ export default function ModelsTab() {
             />
           )}
           {selectedFormCategory === 'image' && <><Form.Item name="local_image_generation" label="用于本机单张图片生成" valuePropName="checked"><Switch aria-label="用于本机单张图片生成" /></Form.Item><Alert className="mb-4" type="info" showIcon message="单张文本生图，返回图片内容" description="仅兼容支持此协议的 OpenAI-compatible 图片供应商。不接受只返回图片网址的响应，不发送人物参考图；打开开关与保存配置不会测试或调用模型。" /></>}
+          {selectedFormCategory === 'text' && <><Form.Item name="local_vision_understanding" label="用于原片画面理解" valuePropName="checked"><Switch aria-label="用于原片画面理解" /></Form.Item><Alert className="mb-4" type="info" showIcon message="读取原帧图片，形成拆解候选" description="需要模型接受图片输入并返回结构化内容。保存配置不会调用模型；实际识别能力与候选内容仍需核对。" /></>}
+          {selectedFormCategory === 'audio' && <><Form.Item name="local_audio_transcription" label="用于原片语音转写" valuePropName="checked"><Switch aria-label="用于原片语音转写" /></Form.Item><Alert className="mb-4" type="info" showIcon message="语音转写，需要逐段时间" description="只用于返回带逐段时标的语音转写候选。保存不会调用模型；转写结果须人工核对，声音生成另行配置。" /></>}
           <Form.Item name="params" label="参数（JSON）">
             <Input.TextArea rows={3} placeholder='{"max_tokens": 4096, "temperature": 0.7}' />
           </Form.Item>

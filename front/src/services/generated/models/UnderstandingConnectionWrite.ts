@@ -14,6 +14,8 @@ export type UnderstandingConnectionWrite = {
     audio_base_url?: string;
     credential_env?: string;
     audio_credential_env?: string;
+    vision_model_id?: string;
+    audio_model_id?: string;
     max_frames?: number;
     timeout_seconds?: number;
     max_output_tokens?: number;

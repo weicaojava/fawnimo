@@ -46,13 +46,15 @@ def resolve_target(url: str, allowed_hosts: set[str], *, trusted_local_host: str
     return parsed,addresses[0],port
 
 
-def request_bounded(url: str, *, allowed_hosts: set[str], trusted_local_host: str | None=None, trusted_local_ports: set[int] | None=None, method='GET', data: bytes | None=None, headers: dict[str,str] | None=None, timeout=60, max_bytes=64*1024*1024, max_redirects=3) -> HttpResult:
+def request_bounded(url: str, *, allowed_hosts: set[str], trusted_local_host: str | None=None, trusted_local_ports: set[int] | None=None, method='GET', data: bytes | None=None, headers: dict[str,str] | None=None, timeout=60, deadline_limit=60, max_bytes=64*1024*1024, max_redirects=3) -> HttpResult:
     """Make a DNS-pinned request and validate every redirect before connecting.
 
     TLS still validates the original hostname. Provider authorization is never
     forwarded across origins; media callers supply no credential headers.
     """
-    if timeout<=0 or timeout>60 or max_bytes<1:raise ValueError('Invalid transport limits')
+    # Only trusted understanding code opts into its established 300-second
+    # request policy. Existing callers retain their original 60-second ceiling.
+    if type(deadline_limit) is not int or deadline_limit not in {60,300} or timeout<=0 or timeout>deadline_limit or max_bytes<1:raise ValueError('Invalid transport limits')
     if any(key.lower() in {'host','proxy-authorization','connection','transfer-encoding','content-length'} for key in (headers or {})):raise UnsafeTarget('Caller-controlled routing headers are forbidden')
     current=url;outgoing=dict(headers or {});deadline=time.monotonic()+timeout
     for redirect in range(max_redirects+1):
@@ -108,7 +110,8 @@ def request_isolated(url: str, **kwargs) -> HttpResult:
     import sys
     from pathlib import Path
     timeout=kwargs.get('timeout',60)
-    if timeout<=0 or timeout>60:raise ValueError('Invalid request deadline')
+    limit=kwargs.get('deadline_limit',60)
+    if type(limit) is not int or limit not in {60,300} or timeout<=0 or timeout>limit:raise ValueError('Invalid request deadline')
     parameters={'url':url,**kwargs}
     for key in ['allowed_hosts','trusted_local_ports']:
         if key in parameters:parameters[key]=list(parameters[key] or [])
@@ -131,7 +134,8 @@ async def request_isolated_async(url: str, **kwargs) -> HttpResult:
     import sys
     from pathlib import Path
     timeout=kwargs.get('timeout',60)
-    if timeout<=0 or timeout>60:raise ValueError('Invalid request deadline')
+    limit=kwargs.get('deadline_limit',60)
+    if type(limit) is not int or limit not in {60,300} or timeout<=0 or timeout>limit:raise ValueError('Invalid request deadline')
     parameters={'url':url,**kwargs}
     for key in ['allowed_hosts','trusted_local_ports']:
         if key in parameters:parameters[key]=list(parameters[key] or [])
@@ -153,7 +157,9 @@ if __name__=='__main__':
     import threading
     options=json.loads(sys.stdin.buffer.read())
     # Hard exit also terminates sockets when a parent worker dies mid-request.
-    timer=threading.Timer(min(60,float(options.get('timeout',60))),lambda:os._exit(124));timer.daemon=True;timer.start()
+    limit=options.get('deadline_limit',60)
+    if type(limit) is not int or limit not in {60,300}:sys.exit(2)
+    timer=threading.Timer(min(limit,float(options.get('timeout',60))),lambda:os._exit(124));timer.daemon=True;timer.start()
     try:
         blob=options.pop('data_b64',None)
         options['data']=base64.b64decode(blob) if blob is not None else None

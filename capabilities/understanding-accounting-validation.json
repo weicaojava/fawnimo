@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-30",
+  "features": [
+    "F-001.04",
+    "F-005.03",
+    "F-009.01",
+    "F-009.03"
+  ],
+  "scope": "Standalone SQLite original-project vision/ASR complete-attempt accounting, explicit managed input models, pinned transport and original request recovery",
+  "base_published_commit": "2fd0d7c53fbed4b85ff4cc2d3478be032b58c6dc",
+  "selected_source_tree": "286fc9b416c6c4147fdba23a82e14d3f452eb037",
+  "full_selected_regressions_passed": 527,
+  "related_tests_passed": 104,
+  "core_understanding_tests_included": 61,
+  "browser_checks_passed": 25,
+  "independent_runs": {
+    "related_final": {
+      "file": "independent-related-v3.xml",
+      "sha256": "72f24ec293e0932d58653252d056de8e0186baa3f0218470c2147d1d45ce5f5e",
+      "tests": 104,
+      "passed": 104,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "private_final": {
+      "file": "independent-private-v3.xml",
+      "sha256": "d90e30e9dc71d1ba9726318713e22907067849d27ed2cc073693bbebb5934018",
+      "tests": 10,
+      "passed": 10,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "count_note": "104 related cases (including61 core understanding cases) are included in527. Independent104 rerun and10 private controls are separate and not added to primary totals. Repeated40-cycle stress is one private test, not40 test cases.",
+  "primary_evidence": {
+    "full": {
+      "file": "backend-full.xml",
+      "sha256": "228ee65a7e23bad02de881259f16afa8ad40113bf7acfb43341ae44297de0168"
+    },
+    "related": {
+      "file": "backend-related-final.xml",
+      "sha256": "98764731c6e2108c1a67171430b53f86468263ae45db47a42fbb53acf0a08733"
+    },
+    "browser": {
+      "file": "browser.json",
+      "sha256": "eb7ea69a878f27a787639eaa669b4bbc0a312b79bc8fcc0ce045eb3675bce5fb"
+    }
+  },
+  "independent_review_status": "passed_for_bounded_understanding_project_accounting",
+  "independent_review_sha256": "543930a9bd53d73d535ac14679d2728d01e15d11c19b8bf05bd62f429f2878eb",
+  "independent_review_evidence": "private_external:stage-b-understanding/independent-review.json",
+  "metadata_review_evidence": "private_external:stage-b-understanding/independent-metadata-review.json",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "faa39464013d8c5f9583c39ef88d30d9901bc03c3d3f2252e8c5895e232b0bba",
+    "backend/app/api/v1/routes/llm.py": "7a00e201fd5e515910290bff6c574db78b5c29800763014adef9391e22f97167",
+    "backend/app/api/video_understanding.py": "2279bc3f01993b5e5aacb4caf69edfc65464a929cb83ef794f1221e2e1dc0d39",
+    "backend/app/config.py": "18d92c5904a2adbde01cc8b2aba448817f53a03f18b5daa8741ba2280c592b3d",
+    "backend/app/core/contracts/video_understanding.py": "1bf8a7198fdeb926701b39b43364b37f5133485e4789bc9184023800045a4476",
+    "backend/app/core/db.py": "c39f8045b1bee8b2f02fa311a18834a2695bbecbf838c3b85cf768cb116cfb42",
+    "backend/app/core/integrations/trusted_http.py": "38acb8f0cd26168ebb4fbe86ab9fc1b15634e94197b8ae483e2b3af0ff426bac",
+    "backend/app/main.py": "b3879102f555d1e0bb8c9412e7e5ee5fb058cbcccf974163caccd7dd8b0ffdcc",
+    "backend/app/models/llm.py": "a9929af6356c3df58d6f92f25150ebdd50df771864b059fafafea6ae3da91391",
+    "backend/app/models/understanding_charge.py": "d89a51f3a825dcfbff554f5918c3e65c672b9041e2ad118a4cc9134bdad831f2",
+    "backend/app/schemas/llm.py": "a59545840172cbec2c23b194a220706ad99fb3c7b541a2cdcfd8220273f41a52",
+    "backend/app/services/llm/provider_bootstrap.py": "60262ea34991a5e1d54e4004a4487bf1748e4e2eb1e5a2f3e1c57cb8a3615463",
+    "backend/app/services/llm/resolver.py": "1bb0384110616c8ade91f1763102321c303ce44a7fc657d4ad5af364860c0a4e",
+    "backend/app/services/llm/runtime.py": "205acc4cf7858db5839b770747dbeb437660295e65d2442d49f3c203fbd92685",
+    "backend/app/services/video_understanding/admission.py": "8445c9f8fd7b6508545cd3396634a4e08000f12d1a706a32a5f3ea9c56230e97",
+    "backend/app/services/video_understanding/charge_schema.py": "ebea49113edcac5cc91e3bd610613d15f6d3526de2eaa08d9fca81b947934d9b",
+    "backend/app/services/video_understanding/charges.py": "e40b7b9b406fe1361aa484aa4e62446f38b763c0b346a25e4d23d77e4577c140",
+    "backend/app/services/video_understanding/connection.py": "98fd08fd44d10e28b6edf696f8614342d07d3dddbc9a3569c3eb4061bd392d55",
+    "backend/app/services/video_understanding/model_connections.py": "acc499770b5994e44efe1cead5682380cff6f631ce10d66de2485c599b73c6d8",
+    "backend/app/services/video_understanding/runtime.py": "58f95d5e43a0263e2b732e49b5e37fad01ea3fc439e4f2c06dd6b32592fe0147",
+    "backend/app/services/video_understanding/service.py": "99ed637744bff2aeaefd0ff02e738a5ccefcb77e82a330def47c1542f2f41d13",
+    "backend/app/services/video_understanding/transport.py": "8f414898d7b0c0face687f583ef57ae1510b754330e1f25d8615f3194c2dbae8",
+    "backend/tests/test_trusted_http.py": "8f803772556f34f3b9382f7634e93e19ce555596ce3dfb6ae54755cff26e4258",
+    "backend/tests/test_understanding_charges.py": "7f5362ef350045bf6d8fda3bc3843502f05c73ddcd7d94caaef118036d23281a",
+    "backend/tests/test_understanding_model_connections.py": "877020798fbf18cf8499b1afbb38a62286846fc76a3989a08d046c9909fbf85d",
+    "backend/tests/test_understanding_runtime_charges.py": "af6d7ff4a4a0917709166830584f8f3cace30129ebd41bd60c869d5ec1b42182",
+    "backend/tests/test_video_understanding.py": "185dfbf6d5018d38f517b9700b9c8adb066107b9ab3aa944b1a27a3e56125859",
+    "front/openapi.json": "3f85529cefa612ddd924081368c84b830a1f430753273a0e5bb2a33a381f868c",
+    "front/src/pages/aiStudio/models/ModelsTab.tsx": "8e505715123250a8ef94d6e30b9b081e2f381e657beb9db8b8e901023f13d7d4",
+    "front/src/pages/aiStudio/models/constants.ts": "5852ab5aaa910e5a69b655ff89d051536846ba215b07ecc0350b0fb8075ef426",
+    "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx": "abe52c933764d17a63d5e75518d90ed3577481fe45e08739695bb6d48fba08ee",
+    "front/src/services/generated/index.ts": "51a2123ce9282a880c3e1f05628fd576667e9e3b77aed6567e2765eeb808ab6b",
+    "front/src/services/generated/models/ModelCategoryKey.ts": "85de12f93cfda8cce481863693b51810be4831f612f2501f606086d133a93994",
+    "front/src/services/generated/models/ModelCreate.ts": "03246c0dde1fb5a344eed2abbf601765da132c7c23740955d2da16960bd40aa3",
+    "front/src/services/generated/models/ModelRead.ts": "cbfc051ac847ad0209074a0a11edbbca47000d4e72983d8460b0d46ae0fecb4d",
+    "front/src/services/generated/models/UnderstandingConnection.ts": "7a7cd71a79ae2a96cb6893e05e941a38617e4779ef9b08ed4bb3fad2d93e05d1",
+    "front/src/services/generated/models/UnderstandingConnectionRead.ts": "8f62739d3740abf27c612db7967e9c38af7b6951428cd00001f4012eb75356fb",
+    "front/src/services/generated/models/UnderstandingConnectionWrite.ts": "47758449c96bdce340cd18361fb4e378d5b8d304b756891b0b62c27603b18f35",
+    "front/src/services/generated/models/UnderstandingCreate.ts": "ca1c1d10922b861f76dd52cec692cc65fe07a77db0237d16ed2b6d21433f23d6",
+    "front/src/services/generated/models/UnderstandingModelChoice.ts": "77157a91553f986f9226a5bff115d3e330c3583e899ec3a635f3aef075d90682",
+    "front/src/services/generated/models/UnderstandingRetry.ts": "aa54a2b12bdea7854475c9a42889e35bfc6861b9a175c09f15f8b7225fd8f44f",
+    "front/src/services/generated/services/LlmService.ts": "90a9cf6b94094f655d465ce9c3fbd9ebad2259b69a68a564f92a02110a5cf524",
+    "front/src/services/generated/services/VideoUnderstandingService.ts": "d10de9023a6e3e49867ed238f10182d925eeddd7017fda3c522f5469ae46d8aa"
+  },
+  "closed_findings": [
+    {
+      "id": "UNDERSTANDING-ALL-UNIT-BILLING-001",
+      "severity": "P1",
+      "after": "checked_plan admission_review_block covers every original unit, including already settled earlier protocol/account; independently tested with distinct vision account and a positive new vision-only plan."
+    },
+    {
+      "id": "UNDERSTANDING-SCANNER-CANCEL-001",
+      "severity": "P1",
+      "after": "Joined short DB operations and joined child/terminal cleanup; final v3 private40-cycle run has no lock,0 vision, all40 sibling writes/fresh writers and clean shutdown."
+    },
+    {
+      "id": "UNDERSTANDING-CLAIM-CANCEL-002",
+      "severity": "P2",
+      "after": "A private committed-claim receipt is exposed only after commit/session-close; cancelled caller uses joined terminal/release cleanup. Final private test observes immediate failed/cleared lease/zero hold/0HTTP."
+    }
+  ],
+  "historical_failures_retained": {
+    "before_product_findings": [
+      "Funded ASR quote breach allowed later vision",
+      "Persistent cancellation could strand SQLite writer",
+      "Cancelled committed claim waited for lease expiry"
+    ],
+    "source_review_preserves_before_evidence": true,
+    "superseded_primary_runs": "v1 full524 preceded scanner defect discovery; v2 incomplete runs were superseded by claim fix. Neither counts as final527.",
+    "driver_failures": "Initial root SQL-test conditional error and browser timing/unload/collapsed-form failures remain private; first independent v3 stress41-request counting failure was corrected by joining each fixture timer, not by changing product code."
+  },
+  "coverage": [
+    "Explicit text/image-input vision flag and audio/transcription flag; no audio default-video fallback or key reads in availability",
+    "Whole source-aware ASR+vision attempt or vision-only batch reserved with actual job/attempt, actor, named quotes and original project",
+    "Full immutable plan, original connection and every unit invoice gate rechecked before any protocol sends",
+    "Unknown hold committed before DNS-pinned killable HTTP; sanitized private response request evidence does not settle a bill",
+    "Cancel/failure/timeout/restart release only untouched original units; late old evidence never moves to a newer attempt",
+    "Joined short DB/child cleanup survives repeated cancellation; cancelled committed claims close immediately without HTTP",
+    "Initial and retry exact recovery works after accepted response loss, full budget, changed form and same-project reload",
+    "Two independent projects in one standalone operator fixture and separate authored loopback vision/ASR suppliers; no A/B identity qualification"
+  ],
+  "frontend": {
+    "openapi_semantic_match": true,
+    "typescript_passed": true,
+    "production_build_passed": true,
+    "modules_transformed": 3212,
+    "browser_checks_passed": 25,
+    "authored_asr_requests": 4,
+    "authored_vision_requests": 3
+  },
+  "connected_protocols": [
+    "agent_text",
+    "model_connection_test",
+    "asset_image",
+    "video_vision",
+    "video_asr"
+  ],
+  "all_model_runtime_admission_connected": false,
+  "paid_gateway_enabled": false,
+  "provider_bill_verified": false,
+  "full_execution_isolation_qualified": false,
+  "model_quality_qualified": false,
+  "complete_film_qualified": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "original_workspace_writes": 0,
+  "limitations": [
+    "All media, prices, invoices and HTTP model outputs are self-authored software fixtures.",
+    "Late old response is independently forced at the transport seam; it is not claimed as a real late supplier HTTP result.",
+    "Native-video common bills, full paid workspace isolation, real supplier bill authentication, model quality, full film and public hosting remain incomplete.",
+    "No purchased server or this-run real-model spending ceiling is available; the existing Ark profile was not decrypted or used."
+  ]
+}

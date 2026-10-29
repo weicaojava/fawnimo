@@ -7,12 +7,16 @@ from app.core.contracts.video_dna import DnaCreate
 from app.core.contracts.video_understanding import UnderstandingConnection
 from app.models.video_understanding import UnderstandingAttempt, UnderstandingConfig, UnderstandingJob
 from app.models.video_dna import DnaDraft
+from app.models.understanding_charge import UnderstandingAttemptCharge
 from app.services.script_preparation.service import content_hash
 from app.services.studio.production import project_exists
 from app.services.video_dna import service as dna
 from app.services.video_dna.source import owned_analysis, source_from_analysis
 from app.services.worker.execution_budget import transaction
-from app.services.video_understanding.connection import endpoint_base, setup_state
+from app.services.video_understanding.admission import complete_plan, setup_view
+from app.services.video_understanding.charges import attempt_charge, bind_attempt, release_unsent
+from app.services.video_understanding.model_connections import safe_binding
+from app.services.worker.model_charges import actor
 from app.services.video_understanding.errors import UnderstandingFailure
 from app.services.video_understanding.source import checked_source, sample_indices, source_snapshot
 
@@ -25,27 +29,31 @@ async def owned_job(db, project_id: str, job_id: str):
     return row
 
 
-async def connection_view(db, project_id: str, worker) -> dict:
+async def connection_view(db, project_id: str, worker, analysis_id=None) -> dict:
     """Show incomplete setup as actionable state, without any provider/network probe."""
     await project_exists(db, project_id)
     row = await db.get(UnderstandingConfig, project_id)
-    return setup_state(project_id, row.revision if row else 0, row.connection if row else UnderstandingConnection().model_dump(), worker)
+    source = source_snapshot(await owned_analysis(db, project_id, analysis_id)) if analysis_id else None
+    return await setup_view(db, project_id, row.revision if row else 0, row.connection if row else UnderstandingConnection().model_dump(), worker, source)
 
 
 async def save_connection(factory, project_id: str, body, worker) -> dict:
-    """CAS a dedicated project setup; saving does not test a model or read legacy provider keys."""
+    """CAS explicit managed model IDs; saving neither probes a supplier nor loads a credential."""
     value = body.model_dump(exclude={'expected_revision'})
-    if value['base_url'].strip() or value['audio_base_url'].strip():
-        try:
-            for field in ('base_url', 'audio_base_url'):
-                if value[field].strip():
-                    value[field] = endpoint_base(value[field], allow_remote=True)
-        except UnderstandingFailure as error:
-            raise HTTPException(422, error.message) from None
-    value['vision_model'], value['audio_model'] = value['vision_model'].strip(), value['audio_model'].strip()
+    for field in ('vision_model_id', 'audio_model_id'):
+        value[field] = value[field].strip()
+    if value['enabled'] and (not value['vision_model_id'] or (value['transcribe_audio'] and not value['audio_model_id'])):
+        raise HTTPException(422, '启用前请选择模型管理中的画面理解和语音转写模型')
+    # Historical endpoint/environment fields remain readable on old journals,
+    # but no new configuration can carry a parallel unpriced execution path.
+    for field in ('base_url', 'vision_model', 'audio_model', 'audio_base_url', 'credential_env', 'audio_credential_env'):
+        value[field] = ''
     async with factory() as db:
         async with transaction(db):
             await project_exists(db, project_id)
+            for field, kind in (('vision_model_id', 'video_vision'), ('audio_model_id', 'video_asr')):
+                if value[field]:
+                    await safe_binding(db, value[field], kind)
             row = await db.get(UnderstandingConfig, project_id)
             revision = row.revision if row else 0
             if body.expected_revision != revision:
@@ -73,31 +81,25 @@ async def list_jobs(db, project_id: str, limit: int = 30) -> list[dict]:
     return [await job_view(db, project_id, identifier) for identifier in ids]
 
 
-async def create_job(factory, project_id: str, body, worker) -> str:
-    """Persist one exact source/config intent before any decoding or HTTP execution begins."""
+async def retry_view(db, project_id, job_id, worker):
+    """Preview only the original attempt's connections and current complete quote before explicit retry confirmation."""
+    job = await owned_job(db, project_id, job_id)
+    view = await setup_view(db, project_id, 1, job.connection, worker, job.source)
+    try:
+        link = await attempt_charge(db, job_id, job.attempt, project_id, required=True)
+        await complete_plan(db, job.connection, job.source, worker, original_bindings=link.bindings)
+    except HTTPException as error:
+        view.update(available=False, message=str(error.detail), next_steps=[str(error.detail)],
+                    price_fingerprints={}, max_reservation_minor=None)
+    return view
+
+
+async def create_job(factory, project_id: str, body, worker, *, submitted_by='local_operator') -> str:
+    """Atomically bind the actual source, complete quote plan, actor and original project before media leaves."""
     if not body.request_key.strip():
         raise HTTPException(422, '理解请求标识不能为空')
-    digest = content_hash({'domain': 'video-understanding-v1', **body.model_dump()})
-    async with factory() as db:
-        old = await db.scalar(select(UnderstandingJob).where(UnderstandingJob.project_id == project_id, UnderstandingJob.request_key == body.request_key))
-        if old:
-            if old.request_hash != digest:
-                raise HTTPException(409, '本请求标识已绑定其他原片或配置，请为新任务使用新标识')
-            return old.id
-        config = await db.get(UnderstandingConfig, project_id)
-        if config is None or config.revision != body.expected_connection_revision:
-            raise HTTPException(409, '理解服务配置已变化，请刷新配置后重新开始')
-        status = await connection_view(db, project_id, worker)
-        if not status['available']:
-            raise HTTPException(409, status['message'])
-        try:
-            analysis, source = await checked_source(db, project_id, body.analysis_id)
-            if analysis.revision != body.expected_analysis_revision:
-                raise HTTPException(409, '视频解析修订已变化，请刷新后再建立理解任务')
-            sample_indices(source, config.connection['max_frames'])
-        except UnderstandingFailure as error:
-            raise HTTPException(409, error.message) from None
-        connection = dict(config.connection)
+    actor(submitted_by)
+    digest = content_hash({'domain': 'video-understanding-priced-v2', 'submitted_by': submitted_by, **body.model_dump()})
     now, identifier = time.time(), str(uuid.uuid4())
     async with factory() as db:
         async with transaction(db):
@@ -105,17 +107,32 @@ async def create_job(factory, project_id: str, body, worker) -> str:
             if old:
                 if old.request_hash != digest:
                     raise HTTPException(409, '理解请求标识冲突')
+                link = await attempt_charge(db, old.id, 1, project_id, required=True)
+                if link.submitted_by != submitted_by or link.request_hash != digest:
+                    raise HTTPException(409, '原理解请求已由其他身份或内容绑定')
                 return old.id
             config = await db.get(UnderstandingConfig, project_id)
-            analysis = await owned_analysis(db, project_id, body.analysis_id)
-            if config is None or config.revision != body.expected_connection_revision or source_snapshot(analysis) != source:
-                raise HTTPException(409, '原片、切点或理解配置已变化，请刷新后重新开始')
-            db.add(UnderstandingJob(id=identifier, project_id=project_id, analysis_id=body.analysis_id,
+            if config is None or config.revision != body.expected_connection_revision:
+                raise HTTPException(409, '理解服务配置已变化，请刷新后重新开始')
+            try:
+                analysis, source = await checked_source(db, project_id, body.analysis_id)
+                if analysis.revision != body.expected_analysis_revision:
+                    raise HTTPException(409, '视频解析修订已变化，请刷新后再建立理解任务')
+                sample_indices(source, config.connection['max_frames'])
+            except UnderstandingFailure as error:
+                raise HTTPException(409, error.message) from None
+            connection = dict(config.connection)
+            bindings, quotes = await complete_plan(db, connection, source, worker, expected=body.expected_price_fingerprints)
+            job = UnderstandingJob(id=identifier, project_id=project_id, analysis_id=body.analysis_id,
                 request_key=body.request_key, request_hash=digest, source=source, connection=connection,
-                state='queued', phase='queued', attempt=1, progress=0, created_at=now, updated_at=now))
+                state='queued', phase='queued', attempt=1, progress=0, created_at=now, updated_at=now)
+            db.add(job)
             # These journal models deliberately have no ORM cascade relationship; establish the FK parent first.
             await db.flush()
             db.add(UnderstandingAttempt(id=str(uuid.uuid4()), job_id=identifier, project_id=project_id, attempt=1, state='queued', phase='queued'))
+            await db.flush()
+            await bind_attempt(db, job, submitted_by=submitted_by, request_key=body.request_key,
+                               request_hash=digest, bindings=bindings, quotes=quotes)
     return identifier
 
 
@@ -134,23 +151,43 @@ async def cancel_job(factory, project_id: str, job_id: str, expected_attempt: in
             row.reason = '用户取消，本次未提交模型请求' if row.state == 'queued' else '已取消本地结果采用；已发出的模型请求可能仍在服务侧执行或计费，请核对服务状态。本次不生成草稿。'
             row.state, row.phase = 'cancelled', 'cancelled'
             await db.execute(update(UnderstandingAttempt).where(UnderstandingAttempt.job_id == job_id, UnderstandingAttempt.attempt == row.attempt).values(state='cancelled', phase='cancelled', finished_at=row.updated_at, reason=row.reason))
+            await release_unsent(db, row.id, row.attempt, project_id)
 
 
-async def retry_job(factory, project_id: str, job_id: str, expected_attempt: int, worker) -> None:
-    """Only an explicit user action retries the frozen original connection; never retry on timeouts automatically."""
+async def retry_job(factory, project_id: str, job_id: str, body, worker, *, submitted_by='local_operator') -> None:
+    """Confirm a separately priced complete attempt, replaying its original recovery key before balance/state checks."""
+    actor(submitted_by)
+    digest = content_hash({'domain': 'video-understanding-retry-v2', 'job_id': job_id,
+                           'submitted_by': submitted_by, **body.model_dump()})
     async with factory() as db:
         async with transaction(db):
             row = await owned_job(db, project_id, job_id)
-            if row.attempt != expected_attempt:
+            old = await db.scalar(select(UnderstandingAttemptCharge).where(UnderstandingAttemptCharge.job_id==job_id,
+                UnderstandingAttemptCharge.request_key==body.request_key, UnderstandingAttemptCharge.project_id==project_id))
+            if old:
+                if old.submitted_by != submitted_by or old.request_hash != digest:
+                    raise HTTPException(409, '本次重试标识已绑定其他内容或身份，未重复提交')
+                await attempt_charge(db, job_id, old.attempt, project_id, required=True)
+                return
+            if row.attempt != body.expected_attempt:
                 raise HTTPException(409, '任务已有新的尝试，请刷新，未重复提交')
             if row.state not in {'failed', 'cancelled'}:
                 raise HTTPException(409, '仅失败或已取消的任务可以按原配置重试')
-            if not setup_state(project_id, 1, row.connection, worker)['available']:
-                raise HTTPException(409, setup_state(project_id, 1, row.connection, worker)['message'])
+            original = await attempt_charge(db, job_id, row.attempt, project_id, required=True)
+            bindings, quotes = await complete_plan(db, row.connection, row.source, worker,
+                expected=body.expected_price_fingerprints, original_bindings=original.bindings)
+            # Decode only the same source identity; a retry never switches to
+            # a new config, analysis or another project's connection.
+            _analysis, current = await checked_source(db, project_id, row.analysis_id)
+            if any(current[field] != row.source[field] for field in ('sha256','media_id','manifest_hash','frame_clock_hash')):
+                raise HTTPException(409, '原片证据已变化，请新建理解任务；未重新发送')
             row.attempt += 1
             row.state, row.phase, row.progress, row.cancel_requested, row.reason = 'queued', 'queued', 0, False, ''
             row.lease_token, row.lease_until, row.updated_at = None, 0, time.time()
             db.add(UnderstandingAttempt(id=str(uuid.uuid4()), job_id=row.id, project_id=project_id, attempt=row.attempt, state='queued', phase='queued'))
+            await db.flush()
+            await bind_attempt(db, row, submitted_by=submitted_by, request_key=body.request_key,
+                               request_hash=digest, bindings=bindings, quotes=quotes)
 
 
 async def create_candidate_draft(factory, project_id: str, job_id: str, expected_analysis_revision: int) -> str:

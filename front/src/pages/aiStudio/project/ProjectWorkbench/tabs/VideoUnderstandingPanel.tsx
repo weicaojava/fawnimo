@@ -1,9 +1,15 @@
 import { workspaceStorage } from '../../../../../services/workspaceContext'
 import { useEffect, useRef, useState } from 'react'
-import { Alert, Button, Collapse, Empty, Form, Input, InputNumber, List, Modal, Progress, Select, Space, Switch, Table, Tag, message } from 'antd'
+import { Alert, Button, Collapse, Descriptions, Empty, Form, InputNumber, List, Modal, Progress, Select, Space, Switch, Table, Tag, message } from 'antd'
+import { Link } from 'react-router-dom'
 import { ProjectSection } from '../../ProjectSection'
+import { chargeMoney, readProjectCharge, type ProjectChargeApproval } from '../../ProjectChargePicker'
 import { VideoUnderstandingService as V } from '../../../../../services/generated'
-import type { AnalysisRead, DnaClaim, UnderstandingConnection, UnderstandingConnectionRead, UnderstandingCreate, UnderstandingJobRead } from '../../../../../services/generated'
+import type { AnalysisRead, DnaClaim, UnderstandingConnection, UnderstandingConnectionRead, UnderstandingCreate, UnderstandingJobRead, UnderstandingRetry } from '../../../../../services/generated'
+
+type UnderstandingIntent = { projectId: string; analysisId: string; projectName: string; upperMinor: number } & (
+  { kind: 'create'; body: UnderstandingCreate } | { kind: 'retry'; jobId: string; body: UnderstandingRetry }
+)
 
 const stateLabels: Record<string, string> = { queued: '等待执行', running: '执行中', succeeded: '候选已保存，待审核', failed: '执行失败', cancelled: '已取消' }
 const phaseLabels: Record<string, string> = { queued: '等待执行', preparing: '读取原帧和音轨', prepared: '证据已校验', transcribing: '逐段语音转写', understanding: '画面与提示词理解', validating: '检查来源与结构', succeeded: '候选已保存', failed: '执行失败', cancelled: '已取消' }
@@ -40,7 +46,11 @@ export function VideoUnderstandingPanel({ projectId, analysis, requestedJobId, o
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [pending, setPending] = useState<UnderstandingCreate | null>(null)
+  const [pending, setPending] = useState<UnderstandingIntent | null>(null)
+  const [approval, setApproval] = useState<ProjectChargeApproval | null>(null)
+  const [budgetRefresh, setBudgetRefresh] = useState(0)
+  const [confirming, setConfirming] = useState(false)
+  const confirmation = useRef<ReturnType<typeof Modal.confirm> | null>(null)
   const alive = useRef(true)
   const dirtyNow = useRef(false)
   const operation = useRef(false)
@@ -48,7 +58,7 @@ export function VideoUnderstandingPanel({ projectId, analysis, requestedJobId, o
   const requestedJobNow = useRef(requestedJobId)
   const appliedRequestedJob = useRef<string>()
   requestedJobNow.current = requestedJobId
-  const intentKey = `jellyfish:understanding-intent:${projectId}:${analysis.id}`
+  const intentKey = `fawnimo:understanding-priced-intent:v2:${projectId}:${analysis.id}`
   const job = jobs.find(item => item.id === selected && item.analysis_id === analysis.id)
   const sourceCuts: number[] = job && Array.isArray(job.source.cut_indices) ? job.source.cut_indices : []
   const cutsMatch = JSON.stringify(sourceCuts) === JSON.stringify(analysis.confirmed_cuts?.map(item => item.frame_index))
@@ -65,7 +75,7 @@ export function VideoUnderstandingPanel({ projectId, analysis, requestedJobId, o
     const response = await V.listVideoUnderstandingJobs({ projectId })
     if (!alive.current) return
     let rows = response.data ?? []
-    const requested = requestedJobNow.current
+    const requested = requestedJobNow.current || selectedNow.current
     if (requested && !rows.some(item => item.id === requested)) {
       const target = (await V.getVideoUnderstandingJob({ projectId, jobId: requested })).data
       if (!alive.current) return
@@ -81,7 +91,7 @@ export function VideoUnderstandingPanel({ projectId, analysis, requestedJobId, o
 
   /** Read availability without probing a model; never upgrade the revision underlying dirty local form fields. */
   async function loadConnection() {
-    const response = await V.getVideoUnderstandingConnection({ projectId })
+    const response = await V.getVideoUnderstandingConnection({ projectId, analysisId: analysis.id })
     if (!alive.current || !response.data) return
     setConnection(response.data)
     if (!dirtyNow.current) { form.setFieldsValue(response.data.connection); setFormRevision(response.data.revision) }
@@ -91,21 +101,37 @@ export function VideoUnderstandingPanel({ projectId, analysis, requestedJobId, o
     alive.current = true
     let inFlight = false
     void Promise.all([loadConnection(), loadJobs()]).catch(reason => { if (alive.current) setError(explain(reason)) }).finally(() => { if (alive.current) setLoading(false) })
-    try { const saved = workspaceStorage.getItem(intentKey); if (saved) setPending(JSON.parse(saved) as UnderstandingCreate) } catch { setError('无法读取上次理解提交记录；请先在任务列表核查是否已经建立任务。') }
+    try {
+      const saved = workspaceStorage.getItem(intentKey)
+      if (saved) {
+        const value = JSON.parse(saved) as UnderstandingIntent
+        if (value.projectId !== projectId || value.analysisId !== analysis.id || !['create', 'retry'].includes(value.kind) || !value.body?.request_key) throw new Error('Invalid original scope')
+        setPending(value)
+      } else if (workspaceStorage.getItem(`jellyfish:understanding-intent:${projectId}:${analysis.id}`)) {
+        setError('有旧版理解提交记录，请先在任务历史核对。旧提交没有项目费用授权，本页不会自动重新发送。')
+      }
+    } catch { setError('无法读取上次理解提交记录；请先在任务列表核查是否已经建立任务。') }
     const timer = setInterval(() => {
       if (inFlight || !alive.current) return
       inFlight = true
       void loadJobs().catch(reason => { if (alive.current) setError(explain(reason)) }).finally(() => { inFlight = false })
     }, 2000)
-    return () => { alive.current = false; clearInterval(timer) }
+    return () => { alive.current = false; clearInterval(timer); confirmation.current?.destroy(); confirmation.current = null }
   }, [])
+  useEffect(() => {
+    let active = true
+    setApproval(null)
+    void readProjectCharge(projectId, connection?.max_reservation_minor ?? undefined).then(value => { if (active) setApproval(value) })
+      .catch(reason => { if (active) setError(explain(reason)) })
+    return () => { active = false }
+  }, [projectId, connection?.max_reservation_minor, budgetRefresh])
   useEffect(() => {
     if (requestedJobId) void loadJobs().catch(reason => { if (alive.current) setError(explain(reason)) })
   }, [requestedJobId])
   useEffect(() => {
     if (requestedJobId && selected === requestedJobId) document.getElementById('video-understanding')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [requestedJobId, selected])
-  useEffect(() => { onLockChange(dirty || busy); return () => onLockChange(false) }, [dirty, busy, onLockChange])
+  useEffect(() => { onLockChange(dirty || busy || confirming); return () => onLockChange(false) }, [dirty, busy, confirming, onLockChange])
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => { if (dirtyNow.current) { event.preventDefault(); event.returnValue = '' } }
     window.addEventListener('beforeunload', warn)
@@ -120,21 +146,23 @@ export function VideoUnderstandingPanel({ projectId, analysis, requestedJobId, o
       if (!alive.current || !response.data) return
       setConnection(response.data); form.setFieldsValue(response.data.connection); setFormRevision(response.data.revision)
       dirtyNow.current = false; setDirty(false); message.success('理解连接已保存，尚未调用模型')
+      await loadConnection()
     } catch (reason) { if (alive.current) setError(explain(reason)) } finally { finish() }
   }
 
   /** Persist the original submission identity before HTTP, so a lost response cannot cause a second model task. */
-  async function submitJob() {
-    if (!connection || !start()) return
-    const intent = pending ?? { analysis_id: analysis.id, expected_analysis_revision: analysis.revision, expected_connection_revision: connection.revision, request_key: crypto.randomUUID() }
+  async function submitIntent(intent: UnderstandingIntent) {
+    if (!start()) return
     try {
       workspaceStorage.setItem(intentKey, JSON.stringify(intent)); setPending(intent)
-      const response = await V.createVideoUnderstandingJob({ projectId, requestBody: intent })
+      const response = intent.kind === 'create'
+        ? await V.createVideoUnderstandingJob({ projectId: intent.projectId, requestBody: intent.body })
+        : await V.retryVideoUnderstandingJob({ projectId: intent.projectId, jobId: intent.jobId, requestBody: intent.body })
       if (!alive.current || !response.data) return
       try { workspaceStorage.removeItem(intentKey); setPending(null) } catch { setError('任务已保存，但本地提交记录未能清除；再次核对会回到同一个任务。') }
       selectedNow.current = response.data.id; setSelected(response.data.id)
       onJobSelected(response.data.id)
-      await loadJobs(); message.success('真实理解任务已保存，可在这里查看进度与取消')
+      await loadJobs(); setBudgetRefresh(value => value + 1); message.success('理解尝试及本项目完整费用预留已保存，可查看进度与取消')
     } catch (reason) {
       if (alive.current) {
         const status = (reason as { status?: number }).status
@@ -144,14 +172,42 @@ export function VideoUnderstandingPanel({ projectId, analysis, requestedJobId, o
     } finally { finish() }
   }
 
-  /** Request an attempt-scoped cancellation or explicitly authorize replaying the saved original connection. */
-  async function control(kind: 'cancel' | 'retry') {
+  /** Read a fresh complete quote and the fixed project's balance, then freeze exactly the action being confirmed. */
+  async function confirmSubmission(kind: 'create' | 'retry') {
+    if (pending || confirmation.current || !connection || (kind === 'retry' && !job) || !start()) return
+    const originalJob = job
+    try {
+      const view = kind === 'create'
+        ? (await V.getVideoUnderstandingConnection({ projectId, analysisId: analysis.id })).data
+        : (await V.getVideoUnderstandingRetryAvailability({ projectId, jobId: originalJob!.id })).data
+      if (!alive.current || (kind === 'retry' && selectedNow.current !== originalJob!.id)) return
+      if (!view?.available) throw new Error(view?.message || '原理解模型及费用计划暂不可用')
+      const checked = await readProjectCharge(projectId, view.max_reservation_minor ?? undefined)
+      if (!alive.current) return
+      setApproval(checked)
+      if (!checked.ready || checked.upperMinor === undefined) { setError(checked.reason || '项目预算暂不可用'); return }
+      const common = { projectId, analysisId: analysis.id, projectName: checked.projectName, upperMinor: checked.upperMinor }
+      const intent: UnderstandingIntent = kind === 'create'
+        ? { ...common, kind, body: { analysis_id: analysis.id, expected_analysis_revision: analysis.revision, expected_connection_revision: view.revision,
+          request_key: crypto.randomUUID(), confirm_model_call: true, expected_price_fingerprints: view.price_fingerprints ?? {} } }
+        : { ...common, kind, jobId: originalJob!.id, body: { expected_attempt: originalJob!.attempt, request_key: crypto.randomUUID(),
+          acknowledge_duplicate_charge: true, expected_price_fingerprints: view.price_fingerprints ?? {} } }
+      const units = view.planned_calls?.includes('video_asr') ? '一次画面理解和一次逐段语音转写' : '一次画面理解'
+      setConfirming(true)
+      confirmation.current = Modal.confirm({ title: kind === 'create' ? '确认本项目的原片理解费用？' : '确认原项目的完整重试费用？',
+        content: `「${checked.projectName}」将为${units}完整预留 ${chargeMoney(checked.upperMinor)}。${kind === 'retry' ? '上次已发送请求的未知费用继续保留；本次使用原任务的模型连接。' : '发送列明的抽样原帧及已启用的原片音轨。'}候选仍需人工核对。`,
+        okText: kind === 'create' ? '确认预留并开始理解' : '确认新预留并重试', cancelText: '取消', onOk: () => submitIntent(intent),
+        afterClose: () => { confirmation.current = null; if (alive.current) setConfirming(false) } })
+    } catch (reason) { if (alive.current) setError(reason instanceof Error ? reason.message : explain(reason)) } finally { finish() }
+  }
+
+  /** Fence only this concrete attempt and release only its as-yet unsent units. */
+  async function cancelAttempt() {
     if (!job || !start()) return
     try {
       const params = { projectId, jobId: job.id, requestBody: { expected_attempt: job.attempt } }
-      if (kind === 'cancel') await V.cancelVideoUnderstandingJob(params)
-      else await V.retryVideoUnderstandingJob(params)
-      if (alive.current) { await loadJobs(); message.success(kind === 'cancel' ? '取消请求已保存；本次候选不会入库' : '已按原配置建立新的执行尝试') }
+      await V.cancelVideoUnderstandingJob(params)
+      if (alive.current) { await loadJobs(); setBudgetRefresh(value => value + 1); message.success('取消请求已保存；已发送请求的未知费用继续保留') }
     } catch (reason) { if (alive.current) setError(explain(reason)) } finally { finish() }
   }
 
@@ -178,19 +234,16 @@ export function VideoUnderstandingPanel({ projectId, analysis, requestedJobId, o
   return <div id="video-understanding"><ProjectSection headingLevel={3} title="新视频自动拆解" loading={loading} data-testid="video-understanding">
     <Alert className="mb-3" type="info" showIcon message="由真实原帧和逐段音轨生成可审核候选" description="人物、服装、场景、道具、动作和提示词来自你选择的模型服务。先配置连接，再开始理解；结果保持待人工确认。没有音轨、没有时标或没有证据的内容会保留为未知。" />
     {error && <Alert className="mb-3" type="error" showIcon message={error} />}
-    {connection && <Alert className="mb-3" type="info" showIcon message={connection.message} description={connection.next_steps.length ? <List size="small" dataSource={connection.next_steps} renderItem={item => <List.Item>{item}</List.Item>} /> : '本页不会自动使用此前保存的生成模型账号。'} action={<Button disabled={busy} onClick={() => void loadConnection().catch(reason => setError(explain(reason)))}>刷新连接状态</Button>} />}
+    {connection && <Alert className="mb-3" type="info" showIcon message={connection.message} description={connection.next_steps.length ? <List size="small" dataSource={connection.next_steps} renderItem={item => <List.Item>{item}</List.Item>} /> : '仅使用本项目明确选中的模型与已登记费用；保存配置和查看历史不会调用模型。'} action={<Button disabled={busy} onClick={() => { setBudgetRefresh(value => value + 1); void loadConnection().catch(reason => setError(explain(reason))) }}>刷新模型与项目额度</Button>} />}
     <Collapse className="mb-4" defaultActiveKey={connection?.configured ? [] : ['connection']} items={[{ key: 'connection', label: '1. 配置本项目的理解服务', children: <Form form={form} name={`understanding-${analysis.id}`} layout="vertical" onFinish={saveConnection} disabled={busy} onValuesChange={() => { dirtyNow.current = true; setDirty(true) }}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Form.Item name="base_url" label="模型服务API地址" help="本机服务可直接填写；远程服务需要在服务器运行配置中单独启用。" rules={[{ required: true, message: '请填写服务API地址' }]}><Input aria-label="理解服务API地址" placeholder="http://127.0.0.1:端口/v1" maxLength={1024} /></Form.Item>
-        <Form.Item name="vision_model" label="视觉模型名称" rules={[{ required: true, message: '请填写能接收图片并输出JSON的模型名称' }]}><Input aria-label="理解视觉模型" placeholder="填写服务提供方给出的模型名称" maxLength={255} /></Form.Item>
+        <Form.Item name="vision_model_id" label="画面理解模型" help="请先在模型管理中选择能接收图片的文本模型，并打开“用于原片画面理解”。" rules={[{ required: true, message: '请选择画面理解模型' }]}><Select aria-label="理解视觉模型" placeholder="明确选择本项目的画面理解模型" options={(connection?.models ?? []).filter(model => model.kind === 'video_vision').map(model => ({ value: model.id, label: `${model.name} · ${model.provider_name}${!model.configured ? ' · 连接待配置' : !model.priced ? ' · 费用待登记' : ''}`, disabled: !model.configured }))} /></Form.Item>
         <Form.Item name="transcribe_audio" label="生成逐段对白候选" valuePropName="checked"><Switch aria-label="启用音轨转写" /></Form.Item>
-        {transcribe && <Form.Item name="audio_model" label="语音转写模型名称" help="需要支持verbose_json和逐段时间；仅返回整段文字的服务不会被贴到镜头。" rules={[{ required: true, message: '请填写支持逐段时间的语音转写模型' }]}><Input aria-label="理解转写模型" maxLength={255} /></Form.Item>}
-        {transcribe && <Form.Item name="audio_base_url" label="语音服务API地址（可选）" help="语音与视觉使用不同服务时填写；留空沿用视觉服务地址。"><Input aria-label="理解语音服务API地址" placeholder="与视觉服务相同可留空" maxLength={1024} /></Form.Item>}
+        {transcribe && <Form.Item name="audio_model_id" label="语音转写模型" help="请选择模型管理中已打开“用于原片语音转写”的语音模型；原片没有音轨时不预留转写费用。" rules={[{ required: true, message: '请选择支持逐段时间的语音转写模型' }]}><Select aria-label="理解转写模型" placeholder="明确选择本项目的语音转写模型" options={(connection?.models ?? []).filter(model => model.kind === 'video_asr').map(model => ({ value: model.id, label: `${model.name} · ${model.provider_name}${!model.configured ? ' · 连接待配置' : !model.priced ? ' · 费用待登记' : ''}`, disabled: !model.configured }))} /></Form.Item>}
         <Form.Item name="enabled" label="启用此连接" valuePropName="checked"><Switch aria-label="启用理解连接" /></Form.Item>
       </div>
-      <Collapse className="mb-3" items={[{ key: 'advanced', label: '授权与执行上限', children: <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Form.Item name="credential_env" label="新服务的授权引用（本机无授权时可留空）" help="不在此处填写密钥。需要授权时，在本地服务启动配置中新增以DNA_UNDERSTANDING_开头的专用项，再将项名填在这里。" rules={[{ pattern: /^(DNA_UNDERSTANDING_[A-Z0-9_]{1,64})?$/, message: '请输入新的DNA_UNDERSTANDING_专用授权项名' }]}><Input aria-label="理解专用授权引用" placeholder="DNA_UNDERSTANDING_LOCAL_SERVICE" maxLength={96} autoComplete="off" /></Form.Item>
-        {transcribe && <Form.Item name="audio_credential_env" label="语音服务授权引用（可选）" help="与视觉服务共用授权时留空；不同服务可以填写另一项新的专用授权引用。" rules={[{ pattern: /^(DNA_UNDERSTANDING_[A-Z0-9_]{1,64})?$/, message: '请输入新的DNA_UNDERSTANDING_专用授权项名' }]}><Input aria-label="理解语音授权引用" maxLength={96} autoComplete="off" /></Form.Item>}
+      <p className="mb-3"><Link to="/models" target="_blank" rel="noreferrer">管理模型与供应商连接</Link> · 更改模型后请保存并重新核对本项目费用。</p>
+      <Collapse className="mb-3" items={[{ key: 'advanced', label: '执行上限', children: <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Form.Item name="max_frames" label="单次证据帧上限" help="每镜取镜内起点、中间、末帧；超过上限会明确停止，不跳过镜头。" rules={[{ required: true }]}><InputNumber aria-label="理解证据帧上限" min={3} max={96} precision={0} /></Form.Item>
         <Form.Item name="timeout_seconds" label="单个模型请求超时（秒）" rules={[{ required: true }]}><InputNumber aria-label="理解请求超时" min={5} max={300} precision={0} /></Form.Item>
         <Form.Item name="max_output_tokens" label="模型输出长度上限" rules={[{ required: true }]}><InputNumber aria-label="理解输出长度" min={256} max={32768} precision={0} /></Form.Item>
@@ -198,8 +251,14 @@ export function VideoUnderstandingPanel({ projectId, analysis, requestedJobId, o
       {dirty && <Alert className="mb-3" type="warning" message="连接信息有未保存修改，请先保存后再开始理解。" />}
       <Button type="primary" htmlType="submit" loading={busy}>保存理解连接</Button>
     </Form> }]} />
-    {pending && <Alert className="mb-3" type="warning" message="上次提交结果尚未核对" description="继续核对会使用原请求标识，不会新建第二个任务。请先核查这一笔，再提交新任务。" action={<Button disabled={busy} onClick={() => void submitJob()}>核对上次理解提交</Button>} />}
-    <Space wrap className="mb-3"><Button type="primary" disabled={busy || dirty || !!pending || !connection?.available || jobRunning} onClick={() => Modal.confirm({ title: '开始理解这段视频？', content: `将向 ${connection?.connection.base_url} 发送列明的抽样原帧${connection?.connection.transcribe_audio ? '和原片音轨' : ''}，模型为 ${connection?.connection.vision_model}。服务可能按调用计费，候选仍需人工核对。`, okText: '开始理解', cancelText: '取消', onOk: submitJob })}>开始理解原视频</Button>
+    {approval && <div className="mb-3" data-testid="understanding-project-cost"><Descriptions size="small" column={2} items={[
+      { key: 'project', label: '费用归属项目', children: approval.projectName },
+      { key: 'full', label: '本次完整预留', children: approval.upperMinor === undefined ? '等待模型费用配置' : chargeMoney(approval.upperMinor) },
+      { key: 'held', label: '项目已有预留', children: chargeMoney(approval.budget.reserved_minor) },
+      { key: 'balance', label: '计入待核对账单后的余额', children: chargeMoney(approval.budget.available_after_bills_minor ?? approval.budget.available_minor) },
+    ]} />{approval.reason && <Alert type="warning" message={approval.reason} />}<Link to={`/projects/${encodeURIComponent(projectId)}?tab=settings`} target="_blank" rel="noreferrer">查看本项目预算</Link></div>}
+    {pending && <Alert className="mb-3" type="warning" message="上次提交结果尚未核对" description={`继续核对「${pending.projectName}」原来确认的 ${chargeMoney(pending.upperMinor)} 完整预留，使用原请求与原模型。已接收时返回原记录；未接收时重新核对原授权。`} action={<Button disabled={busy} onClick={() => void submitIntent(pending)}>核对上次理解提交</Button>} />}
+    <Space wrap className="mb-3"><Button type="primary" disabled={busy || dirty || !!pending || !connection?.available || !approval?.ready || jobRunning} onClick={() => void confirmSubmission('create')}>开始理解原视频</Button>
       <Button disabled={busy} onClick={() => void loadJobs().catch(reason => setError(explain(reason)))}>刷新理解任务</Button>
       <Select aria-label="选择理解任务" className="min-w-64" value={selected || undefined} placeholder="尚无已保存任务" options={jobs.filter(item => item.analysis_id === analysis.id).map(item => ({ value: item.id, label: `${new Date(item.created_at * 1000).toLocaleString()} · ${stateLabels[item.state]}` }))} onChange={value => { selectedNow.current = value; setSelected(value); onJobSelected(value) }} />
     </Space>
@@ -208,8 +267,8 @@ export function VideoUnderstandingPanel({ projectId, analysis, requestedJobId, o
       <Space wrap><Tag color={job.state === 'failed' ? 'red' : job.state === 'succeeded' ? 'blue' : 'default'}>{stateLabels[job.state]}</Tag><span>第{job.attempt}次尝试 · {phaseLabels[job.phase] ?? '执行状态已更新'}</span><span>来源 {String(job.source.sha256).slice(0, 12)}</span></Space>
       <Progress percent={job.progress} status={job.state === 'failed' ? 'exception' : job.state === 'running' ? 'active' : 'normal'} />
       {job.reason && <Alert type={job.state === 'failed' ? 'error' : 'info'} showIcon message={job.reason} />}
-      <Space wrap>{['queued', 'running'].includes(job.state) && <Button danger disabled={busy || job.cancel_requested} onClick={() => void control('cancel')}>{job.cancel_requested ? '取消中' : '取消本次理解'}</Button>}
-        {['failed', 'cancelled'].includes(job.state) && <Button disabled={busy || dirty || !connection?.worker_enabled} onClick={() => Modal.confirm({ title: '按原配置重新提交？', content: '上一笔可能已在服务侧产生调用或费用，请先核对。重试会使用任务原来保存的服务和模型；如果已修改连接，请建立新任务。', okText: '确认按原配置重试', cancelText: '取消', onOk: () => control('retry') })}>按原配置重试</Button>}
+      <Space wrap>{['queued', 'running'].includes(job.state) && <Button danger disabled={busy || !!pending || job.cancel_requested} onClick={() => void cancelAttempt()}>{job.cancel_requested ? '取消中' : '取消本次理解'}</Button>}
+        {['failed', 'cancelled'].includes(job.state) && <Button disabled={busy || !!pending || !connection?.worker_enabled} onClick={() => void confirmSubmission('retry')}>按原配置重试</Button>}
         {job.state === 'succeeded' && <><Button onClick={downloadCandidate}>下载本次候选</Button><Button type="primary" disabled={busy || dnaLocked || (!job.draft_id && !cutsMatch)} onClick={() => void openDraft()}>{job.draft_id ? '打开已建DNA草稿' : '建立可编辑DNA草稿'}</Button></>}
       </Space>
       {job.state === 'succeeded' && !job.draft_id && !cutsMatch && <Alert type="warning" message="请先在本页确认与候选一致的原始帧切点，再建立DNA草稿。" description={`本次候选切点：${sourceCuts.join(', ')}。你可以先检查证据；其他切点不会被候选覆盖。`} />}

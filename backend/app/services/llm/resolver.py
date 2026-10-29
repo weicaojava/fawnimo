@@ -19,7 +19,7 @@ def _settings_model_id(settings_row: ModelSettings | None, category: ModelCatego
         return settings_row.default_text_model_id
     if category == ModelCategoryKey.image:
         return settings_row.default_image_model_id
-    return settings_row.default_video_model_id
+    return settings_row.default_video_model_id if category == ModelCategoryKey.video else None
 
 
 async def get_provider_by_id_or_obj(db: AsyncSession, provider_or_id: Provider | str) -> Provider:

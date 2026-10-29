@@ -98,7 +98,7 @@ export class LlmService {
         category,
     }: {
         /**
-         * 按模型类别过滤：text/image/video
+         * 按模型类别过滤：text/image/video/audio
          */
         category?: (ModelCategoryKey | null),
     }): CancelablePromise<ApiResponse_list_ProviderSupportedRead__> {

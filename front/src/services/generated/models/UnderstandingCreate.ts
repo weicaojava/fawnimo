@@ -10,5 +10,7 @@ export type UnderstandingCreate = {
     expected_analysis_revision: number;
     expected_connection_revision: number;
     request_key: string;
+    confirm_model_call: boolean;
+    expected_price_fingerprints: Record<string, string>;
 };
 

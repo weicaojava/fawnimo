@@ -10,7 +10,7 @@ class UnderstandingDTO(BaseModel):
 
 
 class UnderstandingConnection(UnderstandingDTO):
-    """A dedicated multimodal connection; credentials refer only to new server environment entries."""
+    """Select managed input models; old endpoint fields remain readable for historical journals only."""
     enabled: StrictBool = False
     base_url: str = Field(default='', max_length=1024)
     vision_model: str = Field(default='', max_length=255)
@@ -19,6 +19,8 @@ class UnderstandingConnection(UnderstandingDTO):
     audio_base_url: str = Field(default='', max_length=1024)
     credential_env: str = Field(default='', max_length=96, pattern=r'^(?:DNA_UNDERSTANDING_[A-Z0-9_]{1,64})?$')
     audio_credential_env: str = Field(default='', max_length=96, pattern=r'^(?:DNA_UNDERSTANDING_[A-Z0-9_]{1,64})?$')
+    vision_model_id: str = Field(default='',max_length=64)
+    audio_model_id: str = Field(default='',max_length=64)
     max_frames: StrictInt = Field(default=24, ge=3, le=96)
     timeout_seconds: StrictInt = Field(default=120, ge=5, le=300)
     max_output_tokens: StrictInt = Field(default=12000, ge=256, le=32768)
@@ -26,9 +28,22 @@ class UnderstandingConnection(UnderstandingDTO):
     @model_validator(mode='after')
     def complete_enabled(self):
         """Saving a disabled partial setup is safe; enabling requires explicit model names."""
-        if self.enabled and (not self.base_url.strip() or not self.vision_model.strip() or (self.transcribe_audio and not self.audio_model.strip())):
+        managed=bool(self.vision_model_id.strip() and (not self.transcribe_audio or self.audio_model_id.strip()))
+        if self.enabled and not managed and (not self.base_url.strip() or not self.vision_model.strip() or (self.transcribe_audio and not self.audio_model.strip())):
             raise ValueError('启用前请填写服务地址、视觉模型及启用转写时的音频模型')
         return self
+
+
+class UnderstandingModelChoice(UnderstandingDTO):
+    """Show explicit input-protocol capability and non-secret server pricing without loading a saved key."""
+    id: str
+    name: str
+    provider_name: str
+    kind: Literal['video_vision','video_asr']
+    configured: bool
+    priced: bool = False
+    max_call_minor: int | None = None
+    price_fingerprint: str | None = None
 
 
 class UnderstandingConnectionWrite(UnderstandingConnection):
@@ -48,6 +63,10 @@ class UnderstandingConnectionRead(UnderstandingDTO):
     remote_allowed: bool
     message: str
     next_steps: list[str]
+    models: list[UnderstandingModelChoice] = Field(default_factory=list)
+    planned_calls: list[Literal['video_vision','video_asr']] = Field(default_factory=list)
+    price_fingerprints: dict[Literal['video_vision','video_asr'],str] = Field(default_factory=dict)
+    max_reservation_minor: int | None = None
 
 
 class UnderstandingCreate(UnderstandingDTO):
@@ -56,11 +75,20 @@ class UnderstandingCreate(UnderstandingDTO):
     expected_analysis_revision: StrictInt = Field(ge=1)
     expected_connection_revision: StrictInt = Field(ge=1)
     request_key: str = Field(min_length=1, max_length=128)
+    confirm_model_call: Literal[True]
+    expected_price_fingerprints: dict[Literal['video_vision','video_asr'],str] = Field(min_length=1,max_length=2)
 
 
 class UnderstandingAttemptControl(UnderstandingDTO):
     """An old window cannot cancel or retry a different, newer network attempt."""
     expected_attempt: StrictInt = Field(ge=1)
+
+
+class UnderstandingRetry(UnderstandingAttemptControl):
+    """A separately confirmed complete attempt retains its own exact recovery key and original project."""
+    request_key: str = Field(min_length=1,max_length=128)
+    acknowledge_duplicate_charge: Literal[True]
+    expected_price_fingerprints: dict[Literal['video_vision','video_asr'],str] = Field(min_length=1,max_length=2)
 
 
 class UnderstandingDraftCreate(UnderstandingDTO):

@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-10-30.3`，更新日期：2026-10-30。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-10-30.4`，更新日期：2026-10-30。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-资源隔离、项目预算及离线迁移副本演练保留；文本工作流/连接测试/单张图片已接项目费用。理解/ASR/原生视频统一账单、社区研发、完整成片与公网仍待完成。
+资源隔离、项目预算及离线迁移副本演练保留；文本/连接测试/单张图片/原片视觉与ASR已接单独运行器的项目费用。原生视频统一账单、全部收费隔离、社区研发、完整成片与公网仍待完成。
 
-441项选定回归含145相关、46浏览器；隔离快照独立145重跑和12反例另记。模型名称报价及发送时账单门禁修复，真实账单、全部收费隔离、模型/成片/公网资格不提升。
+527项最终选定回归含104相关、25浏览器；独立104重跑与10补测分记。视觉/ASR费用、取消锁库及认领中断修复；真实账单、全部收费隔离、模型/成片/公网资格不提升。
 
 ## F-001 身份与工作空间
 
@@ -78,11 +78,11 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 需求：R-002, R-010；验收阶段：B；范围：本阶段交付；实现版本：`working-tree-2026-10-30`；发布版本：`未发布`。
 
-代码：[`backend/app/controlplane/gateway.py`](../../../../backend/app/controlplane/gateway.py)、[`backend/app/controlplane/workers.py`](../../../../backend/app/controlplane/workers.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`front/src/services/workspaceContext.ts`](../../../../front/src/services/workspaceContext.ts)、[`backend/app/services/worker/project_budget_schema.py`](../../../../backend/app/services/worker/project_budget_schema.py)、[`backend/app/services/llm/connection_versions.py`](../../../../backend/app/services/llm/connection_versions.py)、[`backend/app/services/worker/model_charges.py`](../../../../backend/app/services/worker/model_charges.py)、[`backend/app/services/worker/model_prices.py`](../../../../backend/app/services/worker/model_prices.py)、[`backend/app/models/model_job_charge.py`](../../../../backend/app/models/model_job_charge.py)、[`backend/app/services/worker/model_job_charges.py`](../../../../backend/app/services/worker/model_job_charges.py)、[`backend/app/services/worker/model_job_charge_schema.py`](../../../../backend/app/services/worker/model_job_charge_schema.py)、[`front/src/pages/aiStudio/project/ProjectChargePicker.tsx`](../../../../front/src/pages/aiStudio/project/ProjectChargePicker.tsx)。
+代码：[`backend/app/controlplane/gateway.py`](../../../../backend/app/controlplane/gateway.py)、[`backend/app/controlplane/workers.py`](../../../../backend/app/controlplane/workers.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`front/src/services/workspaceContext.ts`](../../../../front/src/services/workspaceContext.ts)、[`backend/app/services/worker/project_budget_schema.py`](../../../../backend/app/services/worker/project_budget_schema.py)、[`backend/app/services/llm/connection_versions.py`](../../../../backend/app/services/llm/connection_versions.py)、[`backend/app/services/worker/model_charges.py`](../../../../backend/app/services/worker/model_charges.py)、[`backend/app/services/worker/model_prices.py`](../../../../backend/app/services/worker/model_prices.py)、[`backend/app/models/model_job_charge.py`](../../../../backend/app/models/model_job_charge.py)、[`backend/app/services/worker/model_job_charges.py`](../../../../backend/app/services/worker/model_job_charges.py)、[`backend/app/services/worker/model_job_charge_schema.py`](../../../../backend/app/services/worker/model_job_charge_schema.py)、[`front/src/pages/aiStudio/project/ProjectChargePicker.tsx`](../../../../front/src/pages/aiStudio/project/ProjectChargePicker.tsx)、[`backend/app/models/understanding_charge.py`](../../../../backend/app/models/understanding_charge.py)、[`backend/app/services/video_understanding/charges.py`](../../../../backend/app/services/video_understanding/charges.py)、[`backend/app/services/video_understanding/charge_schema.py`](../../../../backend/app/services/video_understanding/charge_schema.py)、[`backend/app/services/video_understanding/model_connections.py`](../../../../backend/app/services/video_understanding/model_connections.py)、[`backend/app/services/video_understanding/admission.py`](../../../../backend/app/services/video_understanding/admission.py)、[`backend/app/services/video_understanding/runtime.py`](../../../../backend/app/services/video_understanding/runtime.py)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx)。
 
-限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；资源及历史读取隔离证据保留。；单独SQLite的文本工作流、连接测试、单张图片已绑定提交人/原项目/连接版本/报价，原子预留、发送准备、取消/重试与采用已本机验证。；固定身份网关收费仍503，可用性明确关闭；该门禁不授予全部收费执行隔离资格。；视频理解、ASR及原生视频统一账单接线、A/B收费执行联合验收和真实供应商账单仍未完成。；新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。。
+限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；资源及历史读取隔离证据保留。；单独SQLite的文本工作流、连接测试、单张图片及原片视觉/ASR尝试已绑定提交人/原项目/连接版本/报价，原子预留、发送准备、取消/重试与采用已本机验证。；固定身份网关收费仍503，可用性明确关闭；该门禁不授予全部收费执行隔离资格。；原生视频统一账单接线、A/B收费执行联合验收和真实供应商账单仍未完成。；新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。。
 
-验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-IDENTITY-BROWSER`、`EV-PROJECT-BUDGET`、`EV-RESOURCE-ISOLATION`、`EV-MODEL-ACCOUNTING`、`EV-MODEL-RUNTIME`、`EV-QUOTE-IDENTITY`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-IDENTITY-BROWSER`、`EV-PROJECT-BUDGET`、`EV-RESOURCE-ISOLATION`、`EV-MODEL-ACCOUNTING`、`EV-MODEL-RUNTIME`、`EV-QUOTE-IDENTITY`、`EV-UNDERSTANDING-ACCOUNTING`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -323,7 +323,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | --- | --- | --- | --- | --- | --- |
 | [F-005.01 原片上传、技术解析、原PTS时钟与帧预览](#f-005-01) | 已实现 | 未验收 | 不适用 | 仅本机 | /projects/:projectId?tab=production · 原片技术拆解 |
 | [F-005.02 基准样本标注、必需事件与固定快照](#f-005-02) | 已实现 | 未验收 | 不适用 | 仅本机 | /projects/:projectId?tab=production · 验收样本准备 |
-| [F-005.03 视觉/ASR理解任务与带证据候选](#f-005-03) | 已实现 | 历史软件基线通过 | 未验收 | 仅本机 | /projects/:projectId?tab=production · 视频理解候选 |
+| [F-005.03 视觉/ASR理解任务与带证据候选](#f-005-03) | 已实现 | 本阶段已验证 | 未验收 | 仅本机 | /projects/:projectId?tab=production · 视频理解候选 |
 | [F-005.04 Video DNA编辑、七层提示词编译与快照比较](#f-005-04) | 已实现 | 未验收 | 未验收 | 仅本机 | /projects/:projectId?tab=production · Video DNA草稿与准备 |
 | [F-005.05 DNA明确导入制作与不可变来源收据](#f-005-05) | 已实现 | 历史软件基线通过 | 不适用 | 仅本机 | /projects/:projectId?tab=production · DNA导入预览与入库 |
 
@@ -359,13 +359,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-005.03 视觉/ASR理解任务与带证据候选
 
-需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-30`；发布版本：`未发布`。
 
-代码：[`backend/app/services/video_understanding`](../../../../backend/app/services/video_understanding)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx)。
+代码：[`backend/app/services/video_understanding`](../../../../backend/app/services/video_understanding)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx)、[`backend/app/models/understanding_charge.py`](../../../../backend/app/models/understanding_charge.py)、[`backend/app/services/video_understanding/charges.py`](../../../../backend/app/services/video_understanding/charges.py)、[`backend/app/services/video_understanding/charge_schema.py`](../../../../backend/app/services/video_understanding/charge_schema.py)、[`backend/app/services/video_understanding/model_connections.py`](../../../../backend/app/services/video_understanding/model_connections.py)、[`backend/app/services/video_understanding/admission.py`](../../../../backend/app/services/video_understanding/admission.py)、[`backend/app/services/video_understanding/runtime.py`](../../../../backend/app/services/video_understanding/runtime.py)。
 
-限制：远程调用默认关闭；语义、口型及ASR准确性尚未验收。
+限制：远程调用默认关闭；语义、口型及ASR准确性尚未验收；显式选择理解/转写协议并按原项目完整预留；旧URL任务只读，身份网关收费仍关闭。。
 
-验证依据：`EV-LOCAL-20261029`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-20261029`、`EV-UNDERSTANDING-ACCOUNTING`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -482,7 +482,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`backend/app/api/video_runtime_setup.py`](../../../../backend/app/api/video_runtime_setup.py)、[`backend/app/services/worker`](../../../../backend/app/services/worker)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx)。
 
-限制：预算按项目独立管理，项目之间不占用额度；旧工作空间总上限已移除，历史控制和修改收据只读归档。；当前费用覆盖持久视频，其他模型费用和实际供应商账单仍未接入；预留或spent=0不能当成实际账单。。
+限制：预算按项目独立管理，项目之间不占用额度；旧工作空间总上限已移除，历史控制和修改收据只读归档。；本项EV-PROJECT-BUDGET的早期验收覆盖持久视频独立预算；后续文本、图片及原片视觉/ASR费用接线见F-009.03。真实供应商账单认证仍未验收，预留或spent=0不能当成实际账单。。
 
 验证依据：`EV-LOCAL-20261029`、`EV-PROJECT-BUDGET`。测试文件是待运行目标，文件存在不代表测试通过。
 
@@ -619,13 +619,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-009.01 模型、供应商与分类默认模型配置
 
-需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-30`；发布版本：`未发布`。
 
-代码：[`backend/app/api/v1/routes/llm.py`](../../../../backend/app/api/v1/routes/llm.py)、[`backend/app/services/llm`](../../../../backend/app/services/llm)、[`front/src/pages/aiStudio/models/ModelManagement.tsx`](../../../../front/src/pages/aiStudio/models/ModelManagement.tsx)。
+代码：[`backend/app/api/v1/routes/llm.py`](../../../../backend/app/api/v1/routes/llm.py)、[`backend/app/services/llm`](../../../../backend/app/services/llm)、[`front/src/pages/aiStudio/models/ModelManagement.tsx`](../../../../front/src/pages/aiStudio/models/ModelManagement.tsx)、[`front/src/pages/aiStudio/models/ModelsTab.tsx`](../../../../front/src/pages/aiStudio/models/ModelsTab.tsx)。
 
-限制：新18000模型/连接存私有空间且不继承旧凭据；配置CRUD不代表收费生成已开放；供应商支持范围和真实账号质量须分协议核验。
+限制：新18000模型/连接存私有空间且不继承旧凭据；配置CRUD不代表收费生成已开放；供应商支持范围和真实账号质量须分协议核验；音频类别当前供明确逐段转写选择；不回退到视频默认模型，不因此取得声音生成或真实模型资格。。
 
-验证依据：`EV-LOCAL-20261029`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-20261029`、`EV-UNDERSTANDING-ACCOUNTING`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -649,11 +649,11 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 需求：R-002, R-010；验收阶段：B；范围：本阶段交付；实现版本：`working-tree-2026-10-30`；发布版本：`未发布`。
 
-代码：[`backend/app/models/project_budget.py`](../../../../backend/app/models/project_budget.py)、[`backend/app/services/worker/project_budget.py`](../../../../backend/app/services/worker/project_budget.py)、[`backend/app/services/worker/project_budget_schema.py`](../../../../backend/app/services/worker/project_budget_schema.py)、[`backend/app/api/video_runtime_setup.py`](../../../../backend/app/api/video_runtime_setup.py)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx)、[`backend/app/models/model_charge.py`](../../../../backend/app/models/model_charge.py)、[`backend/app/models/model_billing.py`](../../../../backend/app/models/model_billing.py)、[`backend/app/services/worker/model_charges.py`](../../../../backend/app/services/worker/model_charges.py)、[`backend/app/services/worker/model_billing.py`](../../../../backend/app/services/worker/model_billing.py)、[`backend/reconcile_model_billing.py`](../../../../backend/reconcile_model_billing.py)、[`backend/app/models/model_job_charge.py`](../../../../backend/app/models/model_job_charge.py)、[`backend/app/services/worker/model_job_charges.py`](../../../../backend/app/services/worker/model_job_charges.py)、[`backend/app/services/worker/model_job_charge_schema.py`](../../../../backend/app/services/worker/model_job_charge_schema.py)、[`front/src/pages/aiStudio/project/ProjectChargePicker.tsx`](../../../../front/src/pages/aiStudio/project/ProjectChargePicker.tsx)。
+代码：[`backend/app/models/project_budget.py`](../../../../backend/app/models/project_budget.py)、[`backend/app/services/worker/project_budget.py`](../../../../backend/app/services/worker/project_budget.py)、[`backend/app/services/worker/project_budget_schema.py`](../../../../backend/app/services/worker/project_budget_schema.py)、[`backend/app/api/video_runtime_setup.py`](../../../../backend/app/api/video_runtime_setup.py)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx)、[`backend/app/models/model_charge.py`](../../../../backend/app/models/model_charge.py)、[`backend/app/models/model_billing.py`](../../../../backend/app/models/model_billing.py)、[`backend/app/services/worker/model_charges.py`](../../../../backend/app/services/worker/model_charges.py)、[`backend/app/services/worker/model_billing.py`](../../../../backend/app/services/worker/model_billing.py)、[`backend/reconcile_model_billing.py`](../../../../backend/reconcile_model_billing.py)、[`backend/app/models/model_job_charge.py`](../../../../backend/app/models/model_job_charge.py)、[`backend/app/services/worker/model_job_charges.py`](../../../../backend/app/services/worker/model_job_charges.py)、[`backend/app/services/worker/model_job_charge_schema.py`](../../../../backend/app/services/worker/model_job_charge_schema.py)、[`front/src/pages/aiStudio/project/ProjectChargePicker.tsx`](../../../../front/src/pages/aiStudio/project/ProjectChargePicker.tsx)、[`backend/app/models/understanding_charge.py`](../../../../backend/app/models/understanding_charge.py)、[`backend/app/services/video_understanding/charges.py`](../../../../backend/app/services/video_understanding/charges.py)、[`backend/app/services/video_understanding/charge_schema.py`](../../../../backend/app/services/video_understanding/charge_schema.py)、[`backend/app/services/video_understanding/model_connections.py`](../../../../backend/app/services/video_understanding/model_connections.py)、[`backend/app/services/video_understanding/admission.py`](../../../../backend/app/services/video_understanding/admission.py)、[`backend/app/services/video_understanding/runtime.py`](../../../../backend/app/services/video_understanding/runtime.py)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx)。
 
-限制：项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。；文本工作流/连接测试/单张图片实际执行已接受信协议上界、原项目预留、私有请求证据和人工规范化账单；采用不再次预留。；视觉理解、ASR及原生视频统一账单接线未完成；更正、退款和多义请求仍未决。CSV或哈希不认证真实供应商，provider_bill_verified=false。；身份网关收费仍关闭；本轮付费上限未获确认，旧样片预算不能沿用。；新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。。
+限制：项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。；文本工作流/连接测试/单张图片/原片视觉与ASR实际执行已接受信协议上界、原项目预留、私有请求证据和人工规范化账单；采用不再次预留。；原生视频统一账单接线未完成；更正、退款和多义请求仍未决。CSV或哈希不认证真实供应商，provider_bill_verified=false。；身份网关收费仍关闭；本轮付费上限未获确认，旧样片预算不能沿用。；新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。。
 
-验证依据：`EV-PROJECT-BUDGET`、`EV-MODEL-ACCOUNTING`、`EV-MODEL-RUNTIME`、`EV-QUOTE-IDENTITY`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-PROJECT-BUDGET`、`EV-MODEL-ACCOUNTING`、`EV-MODEL-RUNTIME`、`EV-QUOTE-IDENTITY`、`EV-UNDERSTANDING-ACCOUNTING`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -957,7 +957,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`README.md`](../../../../README.md)、[`UPSTREAM.md`](../../../../UPSTREAM.md)、[`.gitignore`](../../../../.gitignore)、[`.github/workflows/verify-fawnimo.yml`](../../../../.github/workflows/verify-fawnimo.yml)、[`capabilities/published-ci.json`](../../../../capabilities/published-ci.json)。
 
-限制：GitHub源码已公开，保留Jellyfish许可证和Git历史；私人素材与本机证据不在公开源码中；本功能只验证源码发布；应用公网部署仍为not_deployed，其他模型费用、数据迁移和社区研发仍按各自门槛验收。
+限制：GitHub源码已公开，保留Jellyfish许可证和Git历史；私人素材与本机证据不在公开源码中；本功能只验证源码发布；应用公网部署仍为not_deployed，原生视频通用账单、正式迁移切换和社区研发仍按各自门槛验收。
 
 验证依据：`EV-FAWNIMO-PUBLICATION`。测试文件是待运行目标，文件存在不代表测试通过。
 
@@ -1076,6 +1076,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-MODEL-ACCOUNTING | software | repository · `capabilities/model-accounting-validation.json` | SQLite连接版本、通用项目预留与人工规范化账单基础：109项相关测试含于405项回归、22项浏览器；独立109重跑和16补测分别记录。运行时全接线、真实账单及收费执行资格不提升。 |
 | EV-MODEL-RUNTIME | software | repository · `capabilities/model-runtime-validation.json` | 单独SQLite的文本工作流/连接测试/单张图片已接项目费用；139相关含于435选定测试，42浏览器；独立首跑/受影响重跑/补测及worker分记。真实模型、全部收费隔离和公网不提升。 |
 | EV-QUOTE-IDENTITY | software | repository · `capabilities/quote-identity-validation.json` | 隔离快照修复模型改名沿用旧价：441项含145相关、46浏览器，独立145重跑/12补测分记；旧缺名称报价仅历史兼容。ASR开发、真实收费和公网资格不提升。 |
+| EV-UNDERSTANDING-ACCOUNTING | software | repository · `capabilities/understanding-accounting-validation.json` | 单独SQLite视觉/ASR按原项目完整预留与原请求恢复：527项含104相关，25浏览器；独立104重跑/10补测分别记录。关闭取消锁库与认领中断，原生视频、全部收费隔离、真实模型/账单/成片/公网资格不提升。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

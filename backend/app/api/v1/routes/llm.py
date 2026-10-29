@@ -81,7 +81,7 @@ async def list_providers(
     summary="列出系统支持的供应商能力",
 )
 async def list_supported_providers(
-    category: ModelCategoryKey | None = Query(None, description="按模型类别过滤：text/image/video"),
+    category: ModelCategoryKey | None = Query(None, description="按模型类别过滤：text/image/video/audio"),
 ) -> ApiResponse[list[ProviderSupportedRead]]:
     items = list_supported_providers_service(category=category)
     return success_response(items)

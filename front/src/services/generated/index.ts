@@ -521,6 +521,8 @@ export type { UnderstandingCreate } from './models/UnderstandingCreate';
 export type { UnderstandingDraftCreate } from './models/UnderstandingDraftCreate';
 export type { UnderstandingDraftRead } from './models/UnderstandingDraftRead';
 export type { UnderstandingJobRead } from './models/UnderstandingJobRead';
+export type { UnderstandingModelChoice } from './models/UnderstandingModelChoice';
+export type { UnderstandingRetry } from './models/UnderstandingRetry';
 export type { UnderstandingTranscript } from './models/UnderstandingTranscript';
 export type { UrlImport } from './models/UrlImport';
 export type { ValidationError } from './models/ValidationError';

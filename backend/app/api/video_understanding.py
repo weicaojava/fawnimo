@@ -3,8 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.core.db import async_session_maker
 from app.core.contracts.video_understanding import (
     UnderstandingAttemptControl, UnderstandingConnectionRead, UnderstandingConnectionWrite,
-    UnderstandingCreate, UnderstandingDraftCreate, UnderstandingDraftRead, UnderstandingJobRead,
+    UnderstandingCreate, UnderstandingDraftCreate, UnderstandingDraftRead, UnderstandingJobRead, UnderstandingRetry,
 )
+from app.api.workspace_actor import model_submitted_by
 from app.schemas.common import ApiResponse, success_response
 from app.services.video_understanding import service
 
@@ -30,10 +31,10 @@ def active_worker(request: Request):
 
 
 @router.get('/connection', response_model=ApiResponse[UnderstandingConnectionRead], operation_id='getVideoUnderstandingConnection')
-async def get_connection(project_id: str, request: Request, factory=Depends(get_understanding_factory)):
+async def get_connection(project_id: str, request: Request, analysis_id: str | None = Query(None, min_length=1, max_length=64), factory=Depends(get_understanding_factory)):
     """Explain model setup and dedicated authorization state without making network requests."""
     async with factory() as db:
-        return success_response(await service.connection_view(db, project_id, worker_for(request)))
+        return success_response(await service.connection_view(db, project_id, worker_for(request), analysis_id))
 
 
 @router.put('/connection', response_model=ApiResponse[UnderstandingConnectionRead], operation_id='saveVideoUnderstandingConnection')
@@ -52,7 +53,7 @@ async def get_jobs(project_id: str, limit: int = Query(30, ge=1, le=50), factory
 @router.post('/jobs', response_model=ApiResponse[UnderstandingJobRead], status_code=201, operation_id='createVideoUnderstandingJob')
 async def post_job(project_id: str, body: UnderstandingCreate, request: Request, factory=Depends(get_understanding_factory)):
     """Store source/config intent before the worker samples or sends any media."""
-    identifier = await service.create_job(factory, project_id, body, active_worker(request))
+    identifier = await service.create_job(factory, project_id, body, active_worker(request), submitted_by=model_submitted_by(request))
     async with factory() as db:
         return success_response(await service.job_view(db, project_id, identifier))
 
@@ -73,11 +74,18 @@ async def post_cancel(project_id: str, job_id: str, body: UnderstandingAttemptCo
 
 
 @router.post('/jobs/{job_id}/retry', response_model=ApiResponse[UnderstandingJobRead], operation_id='retryVideoUnderstandingJob')
-async def post_retry(project_id: str, job_id: str, body: UnderstandingAttemptControl, request: Request, factory=Depends(get_understanding_factory)):
+async def post_retry(project_id: str, job_id: str, body: UnderstandingRetry, request: Request, factory=Depends(get_understanding_factory)):
     """A human explicitly retries the original saved connection; old attempts remain visible."""
-    await service.retry_job(factory, project_id, job_id, body.expected_attempt, active_worker(request))
+    await service.retry_job(factory, project_id, job_id, body, active_worker(request), submitted_by=model_submitted_by(request))
     async with factory() as db:
         return success_response(await service.job_view(db, project_id, job_id))
+
+
+@router.get('/jobs/{job_id}/retry-availability', response_model=ApiResponse[UnderstandingConnectionRead], operation_id='getVideoUnderstandingRetryAvailability')
+async def get_retry_availability(project_id: str, job_id: str, request: Request, factory=Depends(get_understanding_factory)):
+    """Show a complete original-project retry plan without reading keys or sending any source media."""
+    async with factory() as db:
+        return success_response(await service.retry_view(db, project_id, job_id, worker_for(request)))
 
 
 @router.post('/jobs/{job_id}/draft', response_model=ApiResponse[UnderstandingDraftRead], status_code=201, operation_id='createVideoUnderstandingDraft')

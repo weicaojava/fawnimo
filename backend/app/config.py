@@ -88,6 +88,8 @@ class Settings(BaseSettings):
     # Understanding jobs are explicit and local by default; remote calls need server opt-in.
     video_understanding_enabled: bool = True
     video_understanding_allow_remote: bool = False
+    video_understanding_local_host: Literal['localhost', '127.0.0.1', '::1'] | None = None
+    video_understanding_local_ports: set[int] = Field(default_factory=set)
 
     def model_post_init(self, __context: object) -> None:
         if not self.celery_broker_url or not str(self.celery_broker_url).strip():

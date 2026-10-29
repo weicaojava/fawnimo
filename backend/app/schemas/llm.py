@@ -100,7 +100,7 @@ class ModelBase(BaseModel):
     """模型通用字段。"""
 
     name: str = Field(..., description="模型名称")
-    category: ModelCategoryKey = Field(..., description="模型类别：text/image/video")
+    category: ModelCategoryKey = Field(..., description="模型类别：text/image/video/audio")
     provider_id: str = Field(..., description="所属供应商 ID")
     params: dict[str, Any] = Field(default_factory=dict, description="模型参数（JSON）")
     description: str = Field("", description="说明")

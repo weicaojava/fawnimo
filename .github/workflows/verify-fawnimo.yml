@@ -60,6 +60,10 @@ jobs:
           tests/test_image_project_accounting.py tests/test_cross_model_project_budget.py
           tests/test_model_price_workspace.py tests/test_gateway_pricing_status.py
           tests/test_quote_model_identity.py
+          tests/test_understanding_model_connections.py tests/test_understanding_charges.py
+          tests/test_video_understanding.py tests/test_understanding_runtime_charges.py
+          tests/test_trusted_http.py tests/test_llm_manage.py
+          tests/test_llm_resolver.py tests/test_llm_api_responses.py
 
   frontend:
     if: github.repository == 'weicaojava/fawnimo'

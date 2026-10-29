@@ -10,6 +10,7 @@ import type { UnderstandingAttemptControl } from '../models/UnderstandingAttempt
 import type { UnderstandingConnectionWrite } from '../models/UnderstandingConnectionWrite';
 import type { UnderstandingCreate } from '../models/UnderstandingCreate';
 import type { UnderstandingDraftCreate } from '../models/UnderstandingDraftCreate';
+import type { UnderstandingRetry } from '../models/UnderstandingRetry';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -22,14 +23,19 @@ export class VideoUnderstandingService {
      */
     public static getVideoUnderstandingConnection({
         projectId,
+        analysisId,
     }: {
         projectId: string,
+        analysisId?: (string | null),
     }): CancelablePromise<ApiResponse_UnderstandingConnectionRead_> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/video-understanding/projects/{project_id}/connection',
             path: {
                 'project_id': projectId,
+            },
+            query: {
+                'analysis_id': analysisId,
             },
             errors: {
                 422: `Validation Error`,
@@ -182,7 +188,7 @@ export class VideoUnderstandingService {
     }: {
         projectId: string,
         jobId: string,
-        requestBody: UnderstandingAttemptControl,
+        requestBody: UnderstandingRetry,
     }): CancelablePromise<ApiResponse_UnderstandingJobRead_> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -193,6 +199,31 @@ export class VideoUnderstandingService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Retry Availability
+     * Show a complete original-project retry plan without reading keys or sending any source media.
+     * @returns ApiResponse_UnderstandingConnectionRead_ Successful Response
+     * @throws ApiError
+     */
+    public static getVideoUnderstandingRetryAvailability({
+        projectId,
+        jobId,
+    }: {
+        projectId: string,
+        jobId: string,
+    }): CancelablePromise<ApiResponse_UnderstandingConnectionRead_> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/video-understanding/projects/{project_id}/jobs/{job_id}/retry-availability',
+            path: {
+                'project_id': projectId,
+                'job_id': jobId,
+            },
             errors: {
                 422: `Validation Error`,
             },

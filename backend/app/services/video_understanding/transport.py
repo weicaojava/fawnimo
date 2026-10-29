@@ -2,13 +2,15 @@
 import base64
 import hashlib
 import json
+import re
+from urllib.parse import urlsplit
 from bisect import bisect_left, bisect_right
 from decimal import Decimal, InvalidOperation
 import httpx
 from app.core.contracts.video_dna import DnaDocument
 from app.services.script_preparation.service import canonical, content_hash
 from app.services.video_dna.document import claims, validate_document
-from app.services.video_understanding.connection import credential, endpoint_base
+from app.core.integrations.trusted_http import UnsafeTarget, request_isolated_async
 from app.services.video_understanding.errors import UnderstandingFailure
 
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
@@ -30,31 +32,51 @@ def strict_json(value: str):
     return json.loads(value, object_pairs_hook=pairs, parse_constant=constant)
 
 
-async def post_json(client, url: str, headers: dict, **kwargs) -> tuple:
-    """Read an actual HTTP response with fixed size/error bounds and no secret-bearing diagnostics."""
+def redact(value, secret):
+    """Drop reflected credential strings before provider content can enter another request or a public candidate."""
+    if isinstance(value, str):
+        return value.replace(secret, '[redacted]') if secret else value
+    if isinstance(value, list):
+        return [redact(item, secret) for item in value]
+    if isinstance(value, dict):
+        return {redact(key, secret): redact(item, secret) for key, item in value.items()}
+    return value
+
+
+async def post_json(descriptor, path, *, timeout, trusted_local_host=None, trusted_local_ports=None, on_response, **kwargs):
+    """Use a DNS-pinned killable child and retain private request evidence before interpreting any HTTP/JSON result."""
+    secret = descriptor['secret']
+    url = descriptor['base_url'] + path
+    headers = {'Authorization': 'Bearer ' + secret, 'Accept': 'application/json'}
+    # httpx only encodes JSON/multipart here. It does not resolve, connect or
+    # control routing; the trusted child owns Host/length and all actual I/O.
+    encoded = httpx.Request('POST', url, **kwargs)
+    content = encoded.read()
+    if 'content-type' in encoded.headers:
+        headers['Content-Type'] = encoded.headers['content-type']
     try:
-        async with client.stream('POST', url, headers=headers, **kwargs) as response:
-            if not 200 <= response.status_code < 300:
-                if 300 <= response.status_code < 400:
-                    raise UnderstandingFailure('provider_redirect_rejected', '理解服务返回重定向；没有跟随新地址或发送授权，请填写最终API服务地址后手动重试')
-                if response.status_code in {401, 403}:
-                    raise UnderstandingFailure('authorization_rejected', '理解服务拒绝授权；请检查本项目专用授权及模型访问权限，没有生成DNA候选')
-                if response.status_code == 429:
-                    raise UnderstandingFailure('provider_limited', '理解服务达到限流或额度限制，本次未自动重试；请检查后手动重试')
-                raise UnderstandingFailure('provider_http_error', f'理解服务返回HTTP {response.status_code}，请核对服务地址、模型名称和模型能力后手动重试')
-            body = bytearray()
-            async for chunk in response.aiter_bytes():
-                body.extend(chunk)
-                if len(body) > MAX_RESPONSE_BYTES:
-                    raise UnderstandingFailure('response_too_large', '理解服务返回内容超过2MiB上限，本次结果未采用')
-            try:
-                return strict_json(body.decode('utf-8')), hashlib.sha256(body).hexdigest()
-            except (ValueError, UnicodeDecodeError):
-                raise UnderstandingFailure('response_json_invalid', '理解服务未返回有效JSON，本次结果未采用；请使用支持结构化结果的模型') from None
-    except httpx.TimeoutException:
+        response = await request_isolated_async(url, method='POST', data=content, headers=headers,
+            allowed_hosts={urlsplit(url).hostname}, trusted_local_host=trusted_local_host,
+            trusted_local_ports=trusted_local_ports, timeout=timeout, deadline_limit=300,
+            max_bytes=MAX_RESPONSE_BYTES, max_redirects=0)
+    except TimeoutError:
         raise UnderstandingFailure('provider_timeout', '理解服务响应超时，本次没有自动重复请求；请核对服务任务与费用后手动重试') from None
-    except httpx.HTTPError:
-        raise UnderstandingFailure('provider_unreachable', '无法连接理解服务；请检查地址与本机服务是否启动，再手动重试') from None
+    except (UnsafeTarget, OSError):
+        raise UnderstandingFailure('provider_unreachable', '理解服务连接被拒绝、超时、返回重定向或超出响应限制；未跟随新地址，未自动重试，请核对服务状态与费用') from None
+    request_id = response.headers.get('x-request-id')
+    if not isinstance(request_id, str) or not re.fullmatch(r'[A-Za-z0-9_.:-]{1,128}', request_id) or secret in request_id:
+        request_id = None
+    await on_response(descriptor['charge_id'], request_id)
+    if not 200 <= response.status < 300:
+        if response.status in {401, 403}:
+            raise UnderstandingFailure('authorization_rejected', '理解服务拒绝授权，请检查所选模型的供应商连接；未知费用仍保留，没有生成DNA候选')
+        if response.status == 429:
+            raise UnderstandingFailure('provider_limited', '理解服务达到限流或额度限制，本次未自动重试，请核对服务状态与费用')
+        raise UnderstandingFailure('provider_http_error', f'理解服务返回HTTP {response.status}，请核对模型与服务状态；未自动重试')
+    try:
+        return redact(strict_json(response.body.decode('utf-8')), secret), hashlib.sha256(response.body).hexdigest()
+    except (ValueError, UnicodeDecodeError):
+        raise UnderstandingFailure('response_json_invalid', '理解服务未返回有效JSON，本次结果未采用；请使用支持结构化结果的模型') from None
 
 
 def microseconds(value) -> int:
@@ -181,37 +203,37 @@ def normalize_candidate(result, source: dict, inputs: dict, transcripts: list[di
         raise UnderstandingFailure('candidate_invalid', '模型候选不满足原帧、固定镜头、已发送证据或逐段对白约束，本次未创建DNA草稿；请检查模型输出后手动重试') from None
 
 
-async def execute(connection: dict, source: dict, inputs: dict, *, allow_remote: bool, environment=None, on_phase=None) -> dict:
-    """Make at most one ASR and one vision request; HTTP failures are never automatically retried."""
-    base = endpoint_base(connection['base_url'], allow_remote=allow_remote)
-    secret = credential(connection, environment)
-    headers = {'Authorization': 'Bearer ' + secret} if secret else {}
+async def execute(connection: dict, source: dict, inputs: dict, *, before_request, on_response,
+                  trusted_local_host=None, trusted_local_ports=None, on_phase=None) -> dict:
+    """Send each source-specific unit once, only after the worker commits its original project's unknown hold."""
     transcripts, hashes = [], {}
     receipt = dict(inputs['receipt'])
-    async with httpx.AsyncClient(timeout=httpx.Timeout(connection['timeout_seconds'], connect=min(10, connection['timeout_seconds'])), follow_redirects=False, trust_env=False) as client:
-        if inputs['audio'] is not None:
-            audio_base = endpoint_base(connection.get('audio_base_url') or connection['base_url'], allow_remote=allow_remote)
-            audio_secret = credential(connection, environment, audio=True)
-            audio_headers = {'Authorization': 'Bearer ' + audio_secret} if audio_secret else {}
-            receipt['audio_model'] = connection['audio_model']
-            receipt['audio_credential_used'] = bool(audio_secret)
-            receipt['audio_request_parameters_hash'] = content_hash({'model': connection['audio_model'], 'response_format': 'verbose_json', 'timestamp_granularities': ['segment'], 'wav_sha256': receipt['audio']['sha256']})
-            if on_phase is not None:
-                await on_phase('transcribing', 45, receipt)
-            result, digest = await post_json(client, audio_base + '/audio/transcriptions', audio_headers,
-                data={'model': connection['audio_model'], 'response_format': 'verbose_json', 'timestamp_granularities[]': 'segment'},
+    if inputs['audio'] is not None:
+        receipt['audio_model'] = connection['audio_model']
+        receipt['audio_credential_used'] = True
+        receipt['audio_request_parameters_hash'] = content_hash({'model': connection['audio_model'], 'response_format': 'verbose_json', 'timestamp_granularities': ['segment'], 'wav_sha256': receipt['audio']['sha256']})
+        descriptor = await before_request('video_asr', 'transcribing', 45, receipt)
+        try:
+            result, digest = await post_json(descriptor, '/audio/transcriptions', timeout=connection['timeout_seconds'],
+                trusted_local_host=trusted_local_host, trusted_local_ports=trusted_local_ports, on_response=on_response,
+                data={'model': descriptor['model_name'], 'response_format': 'verbose_json', 'timestamp_granularities[]': 'segment'},
                 files={'file': ('source.wav', inputs['audio'], 'audio/wav')})
-            hashes['audio_response_sha256'] = digest
-            transcripts = transcripts_from_response(result, source, receipt['audio'])
-        payload = vision_payload(connection, source, inputs, transcripts)
-        receipt['vision_request_sha256'] = content_hash(payload)
-        receipt['vision_model'] = connection['vision_model']
-        receipt['audio_model'] = connection['audio_model'] if inputs['audio'] is not None else None
-        receipt['credential_used'] = bool(secret)
-        if on_phase is not None:
-            await on_phase('understanding', 65, receipt)
-        result, digest = await post_json(client, base + '/chat/completions', headers, json=payload)
-        hashes['vision_response_sha256'] = digest
+        finally:
+            descriptor['secret'] = ''
+        hashes['audio_response_sha256'] = digest
+        transcripts = transcripts_from_response(result, source, receipt['audio'])
+    payload = vision_payload(connection, source, inputs, transcripts)
+    receipt['vision_request_sha256'] = content_hash(payload)
+    receipt['vision_model'] = connection['vision_model']
+    receipt['audio_model'] = connection['audio_model'] if inputs['audio'] is not None else None
+    receipt['credential_used'] = True
+    descriptor = await before_request('video_vision', 'understanding', 65, receipt)
+    try:
+        result, digest = await post_json(descriptor, '/chat/completions', timeout=connection['timeout_seconds'],
+            trusted_local_host=trusted_local_host, trusted_local_ports=trusted_local_ports, on_response=on_response, json=payload)
+    finally:
+        descriptor['secret'] = ''
+    hashes['vision_response_sha256'] = digest
     if on_phase is not None:
         await on_phase('validating', 90, receipt)
     document, warnings = normalize_candidate(result, source, inputs, transcripts)

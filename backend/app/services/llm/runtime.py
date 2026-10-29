@@ -19,7 +19,7 @@ def _default_model_id(settings_row: ModelSettings | None, category: ModelCategor
         return settings_row.default_text_model_id
     if category == ModelCategoryKey.image:
         return settings_row.default_image_model_id
-    return settings_row.default_video_model_id
+    return settings_row.default_video_model_id if category == ModelCategoryKey.video else None
 
 
 def _require_provider_and_model_sync(

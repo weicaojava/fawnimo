@@ -123,3 +123,19 @@ def test_isolated_network_child_returns_bounded_fixture():
     with server(Handler) as fixture:
         result=request_isolated(f'http://127.0.0.1:{fixture.server_port}/',allowed_hosts={'127.0.0.1'},trusted_local_host='127.0.0.1',trusted_local_ports={fixture.server_port},max_bytes=100,timeout=5)
         assert result.status==200 and len(result.body)==100
+
+
+@pytest.mark.asyncio
+async def test_long_understanding_deadline_is_explicit_and_keeps_the_network_boundary():
+    """A server-selected longer ceiling reaches the real fixture once; default and excessive limits still reject before HTTP."""
+    from app.core.integrations.trusted_http import request_isolated_async
+    with server(Handler) as fixture:
+        url=f'http://127.0.0.1:{fixture.server_port}/'
+        common={'allowed_hosts':{'127.0.0.1'},'trusted_local_host':'127.0.0.1','trusted_local_ports':{fixture.server_port},'max_bytes':100}
+        with pytest.raises(ValueError):await request_isolated_async(url,**common,timeout=65)
+        with pytest.raises(ValueError):await request_isolated_async(url,**common,timeout=65,deadline_limit=301)
+        with pytest.raises(ValueError):await request_isolated_async(url,**common,timeout=301,deadline_limit=300)
+        result=await request_isolated_async(url,**common,timeout=65,deadline_limit=300)
+        assert result.status==200 and len(result.body)==100
+        with pytest.raises(UnsafeTarget):
+            await request_isolated_async(url,allowed_hosts={'127.0.0.1'},timeout=65,deadline_limit=300)
