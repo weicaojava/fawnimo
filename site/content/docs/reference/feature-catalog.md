@@ -7,7 +7,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-10-29.3`，更新日期：2026-10-29。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-10-29.4`，更新日期：2026-10-29。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
@@ -943,19 +943,21 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 | 编号 / 子功能 | 实现 | 软件验证 | 真实模型 | 部署 | 实际入口 |
 | --- | --- | --- | --- | --- | --- |
-| [F-014.01 用户目标仓库与来源合规发布包](#f-014-01) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
+| [F-014.01 GitHub源码发布与来源说明](#f-014-01) | 已实现 | 本阶段已验证 | 不适用 | 未部署 | https://github.com/weicaojava/fawnimo · GitHub：Fawnimo源码、功能目录、路线图与CI |
 | [F-014.02 稳定/预览部署与数据/执行环境分离](#f-014-02) | 部分实现 | 未验收 | 不适用 | 未部署 | CLI deploy/workspace/compose.yaml · 稳定/预览单节点容器准备文件，未运行部署 |
 | [F-014.03 公网实机、交付账号与关键制作链验收](#f-014-03) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
 
 <a id="f-014-01"></a>
 
-### F-014.01 用户目标仓库与来源合规发布包
+### F-014.01 GitHub源码发布与来源说明
 
-需求：R-004, R-006, R-007；验收阶段：F；范围：本阶段交付；实现版本：`未实现`；发布版本：`未发布`。
+需求：R-004, R-006, R-007；验收阶段：F；范围：本阶段交付；实现版本：`6f7a860daed733877537a60459b6804a64a509f8`；发布版本：`未发布`。
 
-限制：项目名Fawnimo 鹿帧、仓库名fawnimo已确认；GitHub仓库已创建，首批代码发布待核验，origin来源不构成推送授权。
+代码：[`README.md`](../../../../README.md)、[`UPSTREAM.md`](../../../../UPSTREAM.md)、[`.gitignore`](../../../../.gitignore)、[`.github/workflows/verify-fawnimo.yml`](../../../../.github/workflows/verify-fawnimo.yml)、[`capabilities/published-ci.json`](../../../../capabilities/published-ci.json)。
 
-验证依据：尚无通过证据。测试文件是待运行目标，文件存在不代表测试通过。
+限制：GitHub源码已公开，保留Jellyfish许可证和Git历史；私人素材与本机证据不在公开源码中；本功能只验证源码发布；应用公网部署仍为not_deployed，空间预算、数据迁移和社区研发仍按各自门槛验收。
+
+验证依据：`EV-FAWNIMO-PUBLICATION`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1064,6 +1066,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-DEMO-LOCAL | software | private_external · `stage-b-identity/backend-final.xml` | 本阶段示例10项测试通过，包含实际A/B worker、HTTP/SQLite、原key恢复、编辑保护与创建次数；它们属于43项测试的子集。没有模型或完整成片通过声明。 |
 | EV-DEPLOY-CONFIG | software | repository · `deploy/workspace/validation.json` | 14项静态Compose与配置检查通过；Docker engine不可用，image_built/container_runtime_verified/public_deployment_verified均false。 |
 | EV-IDENTITY-BROWSER | software | private_external · `stage-b-identity/browser.json` | 32项实际双账号/文件/示例浏览器检查，另profile-browser.json14项资料/旧标签/媒体/退出检查，共46；本机软件验证，不是完整隔离或公网证明。 |
+| EV-FAWNIMO-PUBLICATION | software | repository · `capabilities/published-ci.json` | GitHub公开源码与精确提交的只读CI：59项后端测试、23项登记检查、前端类型及构建通过；旧发布job实际跳过，不授予应用公网部署资格。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

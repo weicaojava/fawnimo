@@ -642,14 +642,16 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 ## F-014 开源发布与公网平台
 
-### F-014.01 用户目标仓库与来源合规发布包
+### F-014.01 GitHub源码发布与来源说明
 
-入口：`尚无入口`，尚无可验收入口。当前：待实现 / 未验收 / 未部署。
+入口：`https://github.com/weicaojava/fawnimo`，GitHub：Fawnimo源码、功能目录、路线图与CI。当前：已实现 / 本阶段已验证 / 未部署。
 
 1. 用户指定自有仓库后，将可审阅变更、许可证、来源和脱敏证据发布到正确目标
 2. 核对私有原片/资料/凭据排除；镜像、Actions、Pages和链接使用自有目标
 
-验收限制：项目名Fawnimo 鹿帧、仓库名fawnimo已确认；GitHub仓库已创建，首批代码发布待核验，origin来源不构成推送授权。
+软件回归目标：`scripts/features_check.py`、`backend/tests/test_identity_controlplane.py`、`backend/tests/test_workspace_demo.py`。
+
+验收限制：GitHub源码已公开，保留Jellyfish许可证和Git历史；私人素材与本机证据不在公开源码中；本功能只验证源码发布；应用公网部署仍为not_deployed，空间预算、数据迁移和社区研发仍按各自门槛验收。
 
 ### F-014.02 稳定/预览部署与数据/执行环境分离
 

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/weicaojava/fawnimo",
+  "commit": "6f7a860daed733877537a60459b6804a64a509f8",
+  "run_id": 40852680032,
+  "run_url": "https://github.com/weicaojava/fawnimo/actions/runs/40852680032",
+  "status": "completed",
+  "conclusion": "success",
+  "event": "push",
+  "jobs": {
+    "frontend": "success",
+    "register-and-backend": "success"
+  },
+  "backend_tests_passed": 59,
+  "register_checks_passed": 23,
+  "frontend_typecheck": true,
+  "frontend_build": true,
+  "legacy_image_publish": "skipped_by_repository_guard",
+  "legacy_pages_deploy": "skipped_by_repository_guard",
+  "scope": "Public source publication and remote software checks only; not a hosted studio, model quality or complete film qualification."
+}

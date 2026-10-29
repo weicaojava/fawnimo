@@ -11,7 +11,7 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 <!-- features:begin -->
 ## 当前开发与验收状态
 
-本分支继续开发开源AI短视频制作工具，登记15个功能区、64项子功能：41项已实现、8项部分实现、15项待实现。实现、软件验证、真实模型验证和部署分别记录，数量不表示全部验收通过。
+本分支继续开发开源AI短视频制作工具，登记15个功能区、64项子功能：42项已实现、8项部分实现、14项待实现。实现、软件验证、真实模型验证和部署分别记录，数量不表示全部验收通过。
 
 - [功能总表与代码/入口/验证矩阵](site/content/docs/reference/feature-catalog.md)
 - [逐项验收指南](site/content/docs/guide/feature-acceptance.md)
@@ -72,7 +72,7 @@ python scripts/features_check.py
 
 ## 社区与来源
 
-仓库发布后，需求通过本仓库Issues提交。社区需求评估、排期、隔离开发、独立审核、预览和策略发布的服务仍在规划中；现有顺序文本Agent不等同于研发Agent。
+功能需求可通过[本仓库Issues](https://github.com/weicaojava/fawnimo/issues)提交。社区需求评估、排期、隔离开发、独立审核、预览和策略发布的服务仍在规划中；现有顺序文本Agent不等同于研发Agent。
 
 - [公开路线图](site/content/docs/plans/public-roadmap.md)
 - [来源与发布边界](UPSTREAM.md)

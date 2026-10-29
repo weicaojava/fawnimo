@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-10-29.3",
+  "register_version": "2026-10-29.4",
   "updated_at": "2026-10-29",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -252,6 +252,16 @@
         "F-001.06",
         "F-012.01",
         "F-012.02"
+      ]
+    },
+    {
+      "id": "EV-FAWNIMO-PUBLICATION",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/published-ci.json",
+      "scope": "GitHub公开源码与精确提交的只读CI：59项后端测试、23项登记检查、前端类型及构建通过；旧发布job实际跳过，不授予应用公网部署资格。",
+      "features": [
+        "F-014.01"
       ]
     }
   ],
@@ -2991,43 +3001,56 @@
     {
       "id": "F-014.01",
       "group": "F-014",
-      "title": "用户目标仓库与来源合规发布包",
+      "title": "GitHub源码发布与来源说明",
       "milestone": "F",
       "requirements": [
         "R-004",
         "R-006",
         "R-007"
       ],
-      "implementation": "planned",
+      "implementation": "implemented",
       "validation": {
-        "software": "not_verified",
+        "software": "verified",
         "model": "not_required",
-        "evidence": []
+        "evidence": [
+          "EV-FAWNIMO-PUBLICATION"
+        ]
       },
       "deployment": {
         "status": "not_deployed",
         "url": null
       },
       "version": {
-        "implementation": null,
+        "implementation": "6f7a860daed733877537a60459b6804a64a509f8",
         "release": null
       },
       "entry": {
-        "route": "",
-        "label": "尚无可验收入口"
+        "route": "https://github.com/weicaojava/fawnimo",
+        "label": "GitHub：Fawnimo源码、功能目录、路线图与CI"
       },
-      "code": [],
-      "tests": [],
+      "code": [
+        "README.md",
+        "UPSTREAM.md",
+        ".gitignore",
+        ".github/workflows/verify-fawnimo.yml",
+        "capabilities/published-ci.json"
+      ],
+      "tests": [
+        "scripts/features_check.py",
+        "backend/tests/test_identity_controlplane.py",
+        "backend/tests/test_workspace_demo.py"
+      ],
       "acceptance": [
         "用户指定自有仓库后，将可审阅变更、许可证、来源和脱敏证据发布到正确目标",
         "核对私有原片/资料/凭据排除；镜像、Actions、Pages和链接使用自有目标"
       ],
       "limits": [
-        "项目名Fawnimo 鹿帧、仓库名fawnimo已确认；GitHub仓库已创建，首批代码发布待核验，origin来源不构成推送授权"
+        "GitHub源码已公开，保留Jellyfish许可证和Git历史；私人素材与本机证据不在公开源码中",
+        "本功能只验证源码发布；应用公网部署仍为not_deployed，空间预算、数据迁移和社区研发仍按各自门槛验收"
       ],
       "depends_on": [
         "F-015.01",
-        "F-001.05"
+        "F-015.02"
       ],
       "issues": [],
       "prs": [],
@@ -3448,7 +3471,7 @@
         "公网浏览器与隔离/恢复报告",
         "功能最终状态清单"
       ],
-      "progress": "已准备稳定/预览单节点Docker文件并通过14项静态配置检查；engine不可用，镜像未构建、容器未运行验证，公网仍not_deployed。仓库名fawnimo已确认，创建和代码发布待核验；部署资源与域名仍待明确。"
+      "progress": "Fawnimo公开源码已推送，精确提交的GitHub CI通过59项后端、23项登记检查与前端构建；旧上游镜像/Pages工作流实际跳过。应用稳定/预览公网部署尚未完成，部署资源与域名仍待明确。"
     }
   ],
   "external_inputs": [
@@ -3504,6 +3527,9 @@
     "intended_owner": "weicaojava",
     "repository_status": "created",
     "confirmed_date": "2026-10-29",
-    "repository_url": "https://github.com/weicaojava/fawnimo"
+    "repository_url": "https://github.com/weicaojava/fawnimo",
+    "code_published": true,
+    "verified_publication_commit": "6f7a860daed733877537a60459b6804a64a509f8",
+    "ci_url": "https://github.com/weicaojava/fawnimo/actions/runs/40852680032"
   }
 }
