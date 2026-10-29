@@ -12,5 +12,6 @@ export type AgentExecutionAvailability = {
     default_model_id?: (string | null);
     models?: Array<ExecutionModelChoice>;
     max_llm_nodes?: number;
+    call_kind?: 'agent_text' | 'model_connection_test';
 };
 

@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     reverse_media_allowed_hosts: str = ""
     # Explicit server-owned video execution configuration; omitted means preparation only.
     video_runtime_config: str | None = None
+    # Only an operator-selected server file supplies model price envelopes.
+    model_price_config: str | None = None
     # Understanding jobs are explicit and local by default; remote calls need server opt-in.
     video_understanding_enabled: bool = True
     video_understanding_allow_remote: bool = False

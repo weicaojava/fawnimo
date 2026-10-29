@@ -7,6 +7,8 @@
  */
 export type AgentRunCreate = {
     request_key: string;
+    project_id: string;
+    expected_price_fingerprint: string;
     input_text: string;
     model_id?: (string | null);
     expected_version: number;

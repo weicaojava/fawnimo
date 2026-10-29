@@ -1,5 +1,7 @@
 import { Alert, Button, Collapse, Descriptions, Empty, Space, Tag, Typography } from 'antd'
 import type { AgentRunRead } from '../../../services/generated'
+import { Link } from 'react-router-dom'
+import { chargeMoney } from '../project/ProjectChargePicker'
 
 const LABELS: Record<string, string> = { queued: '排队中', running: '执行中', succeeded: '已完成', failed: '失败', cancelled: '已取消', pending: '待执行', skipped: '未执行' }
 
@@ -16,6 +18,9 @@ export default function AgentRunDetails({ run, busy, onCancel, onRetry }: { run:
     </Space>
     {run.error && <Alert type={run.status === 'cancelled' ? 'warning' : 'error'} showIcon message={run.error} />}
     <Descriptions size="small" column={2} items={[{ key: 'version', label: '配置版本', children: run.agent_version }, { key: 'limit', label: '每个模型节点输出上限', children: `${run.max_tokens} tokens` }]} />
+    {run.project_id && <Space wrap><Link to={`/projects/${encodeURIComponent(run.project_id)}?tab=settings`}>查看原项目预算</Link>
+      {run.authorized_max_minor && <span>本次授权预留：{chargeMoney(run.authorized_max_minor)}；实际费用另行核对。</span>}
+    </Space>}
     <Typography.Paragraph className="library-muted">顺序执行：前一个节点的输出作为下一个节点输入；文本连接成功不代表图片、视频或模型质量验收通过。</Typography.Paragraph>
     <Collapse items={(run.nodes ?? []).map(node => ({ key: node.node_id, label: `${node.position + 1}. ${node.label} / ${runStatus(node.status)}`, children: <Space direction="vertical" className="w-full">
       <div><strong>输入</strong><pre className="library-prompt-code" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{node.input_text || '尚未接收输入'}</pre></div>

@@ -11,5 +11,8 @@ export type ExecutionModelChoice = {
     provider_name: string;
     configured: boolean;
     message: string;
+    priced?: boolean;
+    max_call_minor?: (number | null);
+    price_fingerprint?: (string | null);
 };
 

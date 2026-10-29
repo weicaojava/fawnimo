@@ -23,8 +23,27 @@ from app.services.llm.connection_versions import migrate_connection_versions
 from app.services.agent_execution import AgentExecutionRuntime, clock
 from app.services.agent_execution import create_run
 from app.core.contracts.agent_execution import AgentRunCreate
+from app.core.contracts.model_accounting import ModelPriceConfiguration,ModelPriceEnvelope,ModelPriceRule
+from app.core.db import Base
+from app.models.studio import Project
+from app.services.worker.model_prices import ModelPriceRegistry
+from app.services.worker.model_charge_schema import migrate_model_charges
+from app.services.worker.model_billing_schema import migrate_model_billing
+from app.services.worker.model_job_charge_schema import migrate_model_job_charges
+from app.services.worker.execution_budget import configure as configure_budget
 
 FIXTURE_KEY = 'local-fixture-not-a-secret'
+
+
+def fixture_price():
+    """Author a synthetic ten-minor upper bound; it is not an actual supplier price or spend authorization."""
+    return ModelPriceEnvelope(model_id='fixture-model',provider_id='fixture-provider',provider_connection_version=1,
+        account_version='synthetic-text-account',max_call_minor=10,source_note='Synthetic local transport/accounting fixture only')
+
+
+def fee_fields():
+    """Select the fixture project and confirm exactly the server fixture envelope."""
+    return {'project_id':'fixture-project','expected_price_fingerprint':fixture_price().fingerprint}
 
 
 @contextmanager
@@ -51,7 +70,9 @@ def local_model():
                 result = {'unexpected': FIXTURE_KEY}
             data = json.dumps(result).encode()
             try:
-                self.send_response(status); self.send_header('Content-Type', 'application/json'); self.send_header('Content-Length', str(len(data))); self.end_headers(); self.wfile.write(data)
+                self.send_response(status); self.send_header('Content-Type', 'application/json'); self.send_header('Content-Length', str(len(data)))
+                self.send_header('X-Request-Id','fixture-chat-'+str(len(state['calls'])))
+                self.end_headers(); self.wfile.write(data)
             except (ConnectionError, OSError):
                 pass
 
@@ -75,13 +96,15 @@ async def isolated_client(tmp_path, fixture, *, workers=1, configured=True):
         """Match supported local foreign-key and contention behavior."""
         connection.execute('PRAGMA foreign_keys=ON'); connection.execute('PRAGMA busy_timeout=5000')
 
-    tables = [Provider.__table__, Model.__table__, ModelSettings.__table__, AgentConfig.__table__, AgentConfigRevision.__table__, AgentRun.__table__, AgentNodeRun.__table__]
     async with engine.begin() as connection:
-        for table in tables:
-            await connection.run_sync(table.create)
+        await connection.run_sync(Base.metadata.create_all)
     await migrate_connection_versions(engine)
+    await migrate_model_charges(engine)
+    await migrate_model_billing(engine)
+    await migrate_model_job_charges(engine)
     sessions = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
     async with sessions() as db:
+        db.add_all([Project(id=identity,name='Synthetic '+identity,style='真人都市') for identity in ('fixture-project','other-project')])
         if configured:
             db.add(Provider(id='fixture-provider', name='openai', base_url=f"http://127.0.0.1:{fixture['port']}/v1", api_key=FIXTURE_KEY, api_secret='', status='testing', created_by='fixture'))
             await db.flush()
@@ -89,6 +112,9 @@ async def isolated_client(tmp_path, fixture, *, workers=1, configured=True):
             await db.flush()
             db.add(ModelSettings(id=1, default_text_model_id='fixture-model', api_timeout=3))
         await db.commit()
+    for project in ('fixture-project','other-project'):
+        async with sessions() as db:
+            await configure_budget(db,project,'CNY',1000)
 
     async def database():
         """Commit successful requests before workers observe admission and rollback errors."""
@@ -100,7 +126,8 @@ async def isolated_client(tmp_path, fixture, *, workers=1, configured=True):
                 await db.rollback()
                 raise
 
-    runtimes = [AgentExecutionRuntime(sessions, poll_interval=.02, trusted_local_host='127.0.0.1', trusted_local_ports=frozenset({fixture['port']})) for _ in range(workers)]
+    prices=ModelPriceRegistry(ModelPriceConfiguration(enabled=True,rules=[ModelPriceRule(quote=fixture_price(),kinds=['agent_text','model_connection_test'])]))
+    runtimes = [AgentExecutionRuntime(sessions, poll_interval=.02, trusted_local_host='127.0.0.1', trusted_local_ports=frozenset({fixture['port']}),price_registry=prices) for _ in range(workers)]
     app = FastAPI(); app.include_router(config_router, prefix='/api/v1'); app.include_router(router, prefix='/api/v1'); app.dependency_overrides[get_db] = database
     app.state.agent_execution_runtime = runtimes[0]
     for runtime in runtimes:
@@ -124,7 +151,7 @@ async def agent(client, *, nodes=2):
 
 async def submit(client, row, key='request-1'):
     """Authorize one bounded workflow through its real public route."""
-    return await client.post(f"/api/v1/agent-execution/agents/{row['id']}/runs", json={'request_key': key, 'input_text': 'Visible red coat', 'expected_version': row['version'], 'max_tokens': 24, 'confirm_model_call': True})
+    return await client.post(f"/api/v1/agent-execution/agents/{row['id']}/runs", json={'request_key': key, 'input_text': 'Visible red coat', 'expected_version': row['version'], 'max_tokens': 24, 'confirm_model_call': True,**fee_fields()})
 
 
 async def terminal(client, run_id):
@@ -161,7 +188,7 @@ async def test_real_http_node_dependencies_parameters_idempotency_and_multiworke
             assert [node['status'] for node in result['nodes']] == ['succeeded'] * 4
             assert result['nodes'][2]['input_text'] == result['nodes'][1]['output_text']
             assert FIXTURE_KEY not in json.dumps(result)
-            changed = await client.post(f"/api/v1/agent-execution/agents/{config['id']}/runs", json={'request_key': 'request-1', 'input_text': 'changed', 'expected_version': 1, 'confirm_model_call': True})
+            changed = await client.post(f"/api/v1/agent-execution/agents/{config['id']}/runs", json={'request_key': 'request-1', 'input_text': 'changed', 'expected_version': 1, 'confirm_model_call': True,**fee_fields()})
             assert changed.status_code == 409
             async with sessions() as db:
                 persisted = await db.get(AgentRun, run_id)
@@ -185,7 +212,7 @@ async def test_provider_failure_is_sanitized_and_retry_is_explicit_new_attempt(t
             assert len(fixture['calls']) == 1
             assert (await client.post(f"/api/v1/agent-execution/runs/{original['id']}/retry", json={'request_key': 'retry-1'})).status_code == 422
             fixture['mode'] = 'ok'
-            retry = await client.post(f"/api/v1/agent-execution/runs/{original['id']}/retry", json={'request_key': 'retry-1', 'acknowledge_duplicate_charge': True})
+            retry = await client.post(f"/api/v1/agent-execution/runs/{original['id']}/retry", json={'request_key': 'retry-1', 'acknowledge_duplicate_charge': True,'expected_price_fingerprint':fixture_price().fingerprint})
             assert retry.status_code == 201, retry.text
             retried = await terminal(client, retry.json()['data']['id'])
             assert retried['status'] == 'succeeded' and retried['attempt'] == 2 and retried['retry_of'] == original['id']
@@ -239,7 +266,7 @@ async def test_missing_configuration_and_one_request_connection_probe(tmp_path):
             assert fixture['calls'] == []
     with local_model() as fixture:
         async with isolated_client(tmp_path / 'probe', fixture) as (client, _, _):
-            body = {'request_key': 'probe-1', 'confirm_model_call': True}
+            body = {'request_key': 'probe-1', 'confirm_model_call': True,**fee_fields()}
             response = await client.post('/api/v1/agent-execution/models/fixture-model/connection-tests', json=body)
             assert response.status_code == 201, response.text
             result = await terminal(client, response.json()['data']['id'])
@@ -257,7 +284,7 @@ async def test_expired_owner_cannot_commit_late_success_and_admission_rollback_i
         async with isolated_client(tmp_path, fixture) as (client, sessions, runtimes):
             config = await agent(client, nodes=1)
             async with sessions() as db:
-                uncommitted = await create_run(db, runtimes[0], config['id'], AgentRunCreate(request_key='rollback', input_text='never send', expected_version=1, confirm_model_call=True))
+                uncommitted = await create_run(db, runtimes[0], config['id'], AgentRunCreate(request_key='rollback', input_text='never send', expected_version=1, confirm_model_call=True,**fee_fields()))
                 uncommitted_id = uncommitted.id
                 await asyncio.sleep(.1)
                 assert fixture['calls'] == []

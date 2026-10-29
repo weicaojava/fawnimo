@@ -11,6 +11,8 @@ description: "聚焦怎么开发、怎么协作、怎么接入前后端能力的
 - [OpenAPI](/docs/guide/openapi/)
 - [AI 工作流](/docs/guide/ai-workflow/)
 - [LLM 供应商注册与扩展](/docs/guide/llm-provider-registration/)
+- [模型调用的项目费用配置](/docs/guide/model-project-costs/)
+- [人工核对模型账单](/docs/guide/model-billing/)
 
 相关文档已拆分到独立栏目：
 

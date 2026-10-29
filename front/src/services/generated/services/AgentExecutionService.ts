@@ -20,14 +20,17 @@ export class AgentExecutionService {
      */
     public static getAgentExecutionAvailability({
         modelId,
+        callKind = 'agent_text',
     }: {
         modelId?: (string | null),
+        callKind?: 'agent_text' | 'model_connection_test',
     }): CancelablePromise<ApiResponse_AgentExecutionAvailability_> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/agent-execution/availability',
             query: {
                 'model_id': modelId,
+                'call_kind': callKind,
             },
             errors: {
                 422: `Validation Error`,

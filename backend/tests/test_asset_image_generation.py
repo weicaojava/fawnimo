@@ -25,14 +25,31 @@ from app.core.db import Base
 from app.dependencies import get_db
 from app.models.asset_image_generation import AssetImageJob
 from app.models.llm import Model, ModelSettings, Provider
-from app.models.studio import Actor, ActorImage, Costume, CostumeImage, FileItem, Prop, PropImage, Scene, SceneImage
+from app.models.studio import Actor, ActorImage, Costume, CostumeImage, FileItem, Prop, PropImage, Scene, SceneImage,Project
 from app.services.asset_image_generation import AssetImageGenerationRuntime, migrate_asset_image_generation, verified_bytes
 from app.services.agent_execution import clock
 from app.services.llm.connection_versions import migrate_connection_versions
 from app.services.studio.files import build_download_response, delete_file, get_storage_info, read_file_bytes
+from app.core.contracts.model_accounting import ModelPriceConfiguration,ModelPriceEnvelope,ModelPriceRule
+from app.services.worker.model_prices import ModelPriceRegistry
+from app.services.worker.model_charge_schema import migrate_model_charges
+from app.services.worker.model_billing_schema import migrate_model_billing
+from app.services.worker.model_job_charge_schema import migrate_model_job_charges
+from app.services.worker.execution_budget import configure as configure_budget
 
 KEY = 'image-fixture-only-key'
 KINDS = {'actor': (Actor, ActorImage, 'actor_id'), 'costume': (Costume, CostumeImage, 'costume_id'), 'scene': (Scene, SceneImage, 'scene_id'), 'prop': (Prop, PropImage, 'prop_id')}
+
+
+def image_fixture_price():
+    """Author a positive inert image quote for protocol tests, never an actual supplier tariff."""
+    return ModelPriceEnvelope(model_id='image-model',provider_id='image-provider',provider_connection_version=1,
+        account_version='synthetic-image-account',max_call_minor=15,source_note='Authored local image/accounting fixture; no real supplier')
+
+
+def image_fee_fields():
+    """Confirm only the server fixture policy and its explicitly selected project."""
+    return {'project_id':'image-project','expected_price_fingerprint':image_fixture_price().fingerprint}
 
 
 def authored_image(format='PNG'):
@@ -69,7 +86,9 @@ def model_server():
             if mode == 'fail': result = {'error': {'message': KEY}}
             data = json.dumps(result).encode()
             try:
-                self.send_response(status); self.send_header('Content-Type', 'application/json'); self.send_header('Content-Length', str(len(data))); self.end_headers(); self.wfile.write(data)
+                self.send_response(status); self.send_header('Content-Type', 'application/json'); self.send_header('Content-Length', str(len(data)))
+                self.send_header('X-Request-Id','fixture-image-'+str(len(state['calls'])))
+                self.end_headers(); self.wfile.write(data)
             except (ConnectionError, OSError):
                 pass
 
@@ -96,10 +115,14 @@ async def fixture_client(tmp_path, monkeypatch, state, workers=1):
         await connection.run_sync(Base.metadata.create_all)
     await migrate_asset_image_generation(engine)
     await migrate_connection_versions(engine)
+    await migrate_model_charges(engine)
+    await migrate_model_billing(engine)
+    await migrate_model_job_charges(engine)
     factory = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
     local_storage.upload('files/original.png', state['png'], 'image/png')
     slots = {}
     async with factory() as db:
+        db.add_all([Project(id=identity,name='Synthetic '+identity,style='真人都市') for identity in ('image-project','other-project')])
         db.add(Provider(id='image-provider', name='openai', base_url=f"http://127.0.0.1:{state['port']}/v1", api_key=KEY, api_secret='', status='testing'))
         db.add(FileItem(id='original', type='image', name='Original reference', thumbnail='original-reference', storage_key='files/original.png'))
         await db.flush()
@@ -111,6 +134,9 @@ async def fixture_client(tmp_path, monkeypatch, state, workers=1):
             image = image_model(**{owner_key: kind + '-asset', 'file_id': 'original', 'quality_level': 'LOW', 'view_angle': 'FRONT'})
             db.add(image); await db.flush(); slots[kind] = image.id
         await db.commit()
+    for project in ('image-project','other-project'):
+        async with factory() as db:
+            await configure_budget(db,project,'CNY',1000)
 
     async def database():
         """Only a successful request commit makes a model job visible to the scanner."""
@@ -120,7 +146,8 @@ async def fixture_client(tmp_path, monkeypatch, state, workers=1):
             except Exception:
                 await db.rollback(); raise
 
-    runtimes = [AssetImageGenerationRuntime(factory, poll_interval=.02, trusted_local_host='127.0.0.1', trusted_local_ports=frozenset({state['port']})) for _ in range(workers)]
+    prices=ModelPriceRegistry(ModelPriceConfiguration(enabled=True,rules=[ModelPriceRule(quote=image_fixture_price(),kinds=['asset_image'])]))
+    runtimes = [AssetImageGenerationRuntime(factory, poll_interval=.02, trusted_local_host='127.0.0.1', trusted_local_ports=frozenset({state['port']}),price_registry=prices) for _ in range(workers)]
     app = FastAPI(); app.include_router(router, prefix='/api/v1'); app.dependency_overrides[get_db] = database; app.dependency_overrides[get_asset_image_factory] = lambda: factory; app.state.asset_image_generation_runtime = runtimes[0]
     for runtime in runtimes: await runtime.start()
     try:
@@ -133,7 +160,7 @@ async def fixture_client(tmp_path, monkeypatch, state, workers=1):
 
 async def submit(client, kind, slot_id, key='image-1', **extra):
     """Authorize one actual image HTTP request through the production route."""
-    return await client.post(f'/api/v1/asset-image-generation/assets/{kind}/{kind}-asset/slots/{slot_id}/jobs', json={'request_key': key, 'model_id': 'image-model', 'prompt': 'Fixture red coat in snow', 'size': '256x256', 'confirm_model_call': True, **extra})
+    return await client.post(f'/api/v1/asset-image-generation/assets/{kind}/{kind}-asset/slots/{slot_id}/jobs', json={'request_key': key, 'model_id': 'image-model', 'prompt': 'Fixture red coat in snow', 'size': '256x256', 'confirm_model_call': True, **image_fee_fields(),**extra})
 
 
 async def terminal(client, job_id):
@@ -254,7 +281,7 @@ async def test_image_failure_explicit_retry_cancel_and_expired_owner(tmp_path, m
             assert failed['status'] == 'failed' and '503' in failed['error']
             await asyncio.sleep(.1); assert len(state['calls']) == 1
             state['mode'] = 'ok'
-            retry = await client.post('/api/v1/asset-image-generation/jobs/' + failed['id'] + '/retry', json={'request_key': 'retry', 'acknowledge_duplicate_charge': True})
+            retry = await client.post('/api/v1/asset-image-generation/jobs/' + failed['id'] + '/retry', json={'request_key': 'retry', 'acknowledge_duplicate_charge': True,'expected_price_fingerprint':image_fixture_price().fingerprint})
             candidate = await terminal(client, retry.json()['data']['id'])
             assert candidate['status'] == 'candidate' and candidate['attempt'] == 2 and candidate['retry_of'] == failed['id']
             for action in ('cancel', 'expire'):

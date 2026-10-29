@@ -25,5 +25,7 @@ export type AgentRunRead = {
     started_at: (string | null);
     finished_at: (string | null);
     nodes?: Array<AgentNodeRunRead>;
+    project_id?: (string | null);
+    authorized_max_minor?: (string | null);
 };
 

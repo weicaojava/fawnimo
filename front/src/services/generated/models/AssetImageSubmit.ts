@@ -7,6 +7,8 @@
  */
 export type AssetImageSubmit = {
     request_key: string;
+    project_id: string;
+    expected_price_fingerprint: string;
     model_id: string;
     prompt: string;
     size?: '256x256' | '512x512' | '1024x1024';

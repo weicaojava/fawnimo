@@ -112,11 +112,14 @@ async def lifespan(app: FastAPI):
         app.state.execution_runtime=configured_runtime or build_preparation_runtime(async_session_maker)
     runtime=getattr(app.state,'execution_runtime',None)
     from app.core.db import async_session_maker
+    from app.services.worker.model_prices import load_model_prices
+    model_prices=load_model_prices(settings.model_price_config)
+    app.state.model_prices=model_prices
     from app.services.agent_execution import AgentExecutionRuntime
-    agent_execution_runtime = AgentExecutionRuntime(async_session_maker)
+    agent_execution_runtime = AgentExecutionRuntime(async_session_maker,price_registry=model_prices)
     app.state.agent_execution_runtime = agent_execution_runtime
     from app.services.asset_image_generation import AssetImageGenerationRuntime
-    asset_image_generation_runtime = AssetImageGenerationRuntime(async_session_maker)
+    asset_image_generation_runtime = AssetImageGenerationRuntime(async_session_maker,price_registry=model_prices)
     app.state.asset_image_generation_runtime = asset_image_generation_runtime
     from app.services.video_understanding.runtime import UnderstandingWorker
     understanding_worker = UnderstandingWorker(async_session_maker, settings.production_probe_executable,

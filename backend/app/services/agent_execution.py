@@ -14,11 +14,19 @@ from app.core.contracts.agent_execution import AgentExecutionAvailability, Agent
 from app.core.integrations.agent_text import AgentModelError, invoke_agent_text
 from app.models.agent_execution import AgentNodeRun, AgentRun
 from app.models.llm import Model, ModelSettings, Provider
+from app.models.provider_connection_version import ProviderConnectionVersion
+from app.models.execution_budget import ExecutionBudgetEntry
+from app.models.model_charge import ModelCallCharge
 from app.schemas.agent_config import AgentConfigCreate
 from app.services.agent_config import draft_of, owned_agent
 from app.services.llm.provider_registry import get_provider_spec, resolve_provider_key_from_name
 from app.services.llm.provider_resolver import resolve_provider_config_from_provider
 from app.services.llm.connection_versions import model_connection_snapshot
+from app.services.worker.model_prices import ModelPriceRegistry
+from app.core.contracts.model_accounting import QuotedModelCall,ModelPriceEnvelope
+from app.services.worker.model_job_charges import begin_job_admission,bind_new_job,binding_digest,job_charge,charged_job_unit,release_job_unsent
+from app.services.worker.model_charges import prepare_call,record_accepted_call
+from app.services.worker.execution_budget import transaction
 
 TERMINAL = {'succeeded', 'failed', 'cancelled'}
 INTERRUPTED = '执行中断，模型请求结果可能未知；不会自动重发，显式重试将从头开始且可能重复计费'
@@ -56,10 +64,13 @@ def sampler(params: dict) -> dict:
     return result
 
 
-async def availability(db, runtime, model_id: str | None = None) -> AgentExecutionAvailability:
+async def availability(db, runtime, model_id: str | None = None, *, call_kind='agent_text') -> AgentExecutionAvailability:
     """Inspect key presence in SQL without loading existing credential values into the process."""
     bootstrap_all_registries()
-    rows = (await db.execute(select(Model.id, Model.name, Provider.name.label('provider_name'), Provider.status, (func.length(func.trim(Provider.api_key)) > 0).label('has_key')).join(Provider, Provider.id == Model.provider_id).where(Model.category == 'text').order_by(Model.name, Model.id).limit(1000))).all()
+    rows = (await db.execute(select(Model.id, Model.name, Provider.id.label('provider_id'),Provider.name.label('provider_name'), Provider.status,
+        (func.length(func.trim(Provider.api_key)) > 0).label('has_key'),func.coalesce(ProviderConnectionVersion.revision,0).label('revision'))
+        .join(Provider, Provider.id == Model.provider_id).outerjoin(ProviderConnectionVersion,ProviderConnectionVersion.provider_id==Provider.id)
+        .where(Model.category == 'text').order_by(Model.name, Model.id).limit(1000))).all()
     choices = []
     for row in rows:
         configured = bool(row.has_key) and row.status != 'disabled'
@@ -70,7 +81,17 @@ async def availability(db, runtime, model_id: str | None = None) -> AgentExecuti
                 configured, message = False, '此供应商未提供受支持的文本适配器'
         except HTTPException:
             configured, message = False, '此供应商未提供受支持的文本适配器'
-        choices.append(ExecutionModelChoice(id=row.id, name=row.name, provider_name=row.provider_name, configured=configured, message=message))
+        quote=None
+        if configured:
+            try:
+                quote=(runtime.price_registry if runtime else ModelPriceRegistry()).required(call_kind,row.id)
+                if quote.provider_id!=row.provider_id or quote.provider_connection_version!=row.revision:
+                    quote=None
+                    message='模型连接已改变，请先核对该连接的受信费用上界'
+            except HTTPException:
+                message='此模型尚未登记当前调用的费用上界'
+        choices.append(ExecutionModelChoice(id=row.id, name=row.name, provider_name=row.provider_name, configured=configured, message=message,
+            priced=quote is not None,max_call_minor=quote.max_call_minor if quote else None,price_fingerprint=quote.fingerprint if quote else None))
     setting = await db.get(ModelSettings, 1)
     default_id = setting.default_text_model_id if setting else None
     chosen = next((row for row in choices if row.id == (model_id or default_id)), None)
@@ -81,9 +102,12 @@ async def availability(db, runtime, model_id: str | None = None) -> AgentExecuti
         message = '请先选择已配置的文本模型；尚未发起模型请求'
     elif not chosen.configured:
         message = chosen.message + '；尚未发起模型请求'
+    elif not chosen.priced:
+        message = chosen.message + '；未创建收费任务'
     else:
         message = '可提交文本工作流；执行会真实调用所选模型，可能产生费用'
-    return AgentExecutionAvailability(available=running and chosen is not None and chosen.configured, message=message, default_model_id=default_id, models=choices)
+    return AgentExecutionAvailability(available=running and chosen is not None and chosen.configured and chosen.priced, message=message,
+        default_model_id=default_id, models=choices,call_kind=call_kind)
 
 
 async def text_connection_material(db, model_id: str) -> tuple[dict,str]:
@@ -115,7 +139,11 @@ async def get_run(db, run_id: str) -> AgentRun:
 async def run_read(db, row: AgentRun) -> AgentRunRead:
     """Attach ordered durable node state without leaking leases or connection credentials."""
     nodes = (await db.scalars(select(AgentNodeRun).where(AgentNodeRun.run_id == row.id).order_by(AgentNodeRun.position))).all()
-    return AgentRunRead.model_validate(row).model_copy(update={'nodes': [AgentNodeRunRead.model_validate(node) for node in nodes]})
+    binding=await job_charge(db,'agent',row.id)
+    total=await db.scalar(select(func.sum(ExecutionBudgetEntry.quote_minor)).join(ModelCallCharge,ModelCallCharge.id==ExecutionBudgetEntry.job_id)
+        .where(ModelCallCharge.batch_id==binding.batch_id,ModelCallCharge.project_id==binding.project_id,ExecutionBudgetEntry.project_id==binding.project_id)) if binding else None
+    return AgentRunRead.model_validate(row).model_copy(update={'nodes': [AgentNodeRunRead.model_validate(node) for node in nodes],
+        'project_id':binding.project_id if binding else None,'authorized_max_minor':str(total) if total is not None else None})
 
 
 async def existing_request(db, scope: str, request_key: str, request_hash: str):
@@ -126,7 +154,7 @@ async def existing_request(db, scope: str, request_key: str, request_hash: str):
     return row
 
 
-async def insert_run(db, *, scope: str, request_key: str, request_hash: str, kind: str, config: dict, agent_id: str | None, agent_name: str, agent_version: int, binding: dict, input_text: str, max_tokens: int, attempt: int = 1, retry_of: str | None = None):
+async def insert_run(db, *, scope: str, request_key: str, request_hash: str, kind: str, config: dict, agent_id: str | None, agent_name: str, agent_version: int, binding: dict, input_text: str, max_tokens: int, project_id: str,submitted_by: str,quote,attempt: int = 1, retry_of: str | None = None):
     """Commit-safe admission and node skeletons precede all potentially billable network work."""
     prior = await existing_request(db, scope, request_key, request_hash)
     if prior:
@@ -154,13 +182,17 @@ async def insert_run(db, *, scope: str, request_key: str, request_hash: str, kin
         db.add(AgentNodeRun(run_id=run_id, node_id=node['id'], position=position, label=node['label'], type=node['type'], status='pending', input_text='', output_text='', prompt='', parameters={}, usage={}, error=''))
     await db.flush()
     row = await db.get(AgentRun, run_id)
+    units=[QuotedModelCall(unit_key=node['id'],kind='model_connection_test' if kind=='connection_test' else 'agent_text',
+        binding_hash=binding_digest(binding),quote=quote) for node in config['workflow'] if node['type']=='llm']
+    await bind_new_job(db,kind='agent',job_id=run_id,project_id=project_id,submitted_by=submitted_by,request_hash=request_hash,calls=units)
     return row
 
 
-async def create_run(db, runtime, agent_id: str, body: AgentRunCreate):
+async def create_run(db, runtime, agent_id: str, body: AgentRunCreate, *, submitted_by='local_operator'):
     """Admit the exact saved Agent version as a bounded ordered text-only workflow."""
+    await begin_job_admission(db)
     scope = 'agent:' + agent_id
-    fingerprint = digest(body.model_dump())
+    fingerprint = digest({**body.model_dump(),'submitted_by':submitted_by})
     prior = await existing_request(db, scope, body.request_key, fingerprint)
     if prior:
         return prior
@@ -175,42 +207,52 @@ async def create_run(db, runtime, agent_id: str, body: AgentRunCreate):
     if not state.available:
         raise HTTPException(503, state.message)
     binding = await safe_binding(db, body.model_id or state.default_model_id)
-    return await insert_run(db, scope=scope, request_key=body.request_key, request_hash=fingerprint, kind='workflow', config=config, agent_id=agent_id, agent_name=agent.name, agent_version=agent.version, binding=binding, input_text=body.input_text, max_tokens=body.max_tokens)
+    quote=runtime.price_registry.confirmed('agent_text',binding['model_id'],body.expected_price_fingerprint)
+    return await insert_run(db, scope=scope, request_key=body.request_key, request_hash=fingerprint, kind='workflow', config=config, agent_id=agent_id, agent_name=agent.name, agent_version=agent.version, binding=binding, input_text=body.input_text, max_tokens=body.max_tokens,
+        project_id=body.project_id,submitted_by=submitted_by,quote=quote)
 
 
-async def create_connection_test(db, runtime, model_id: str, body: ModelConnectionTestCreate):
+async def create_connection_test(db, runtime, model_id: str, body: ModelConnectionTestCreate, *,submitted_by='local_operator'):
     """Use the same durable HTTP execution path for a fixed single eight-token request."""
+    await begin_job_admission(db)
     scope = 'model-test:' + model_id
-    fingerprint = digest({'model_id': model_id, **body.model_dump()})
+    fingerprint = digest({'model_id': model_id, **body.model_dump(),'submitted_by':submitted_by})
     prior = await existing_request(db, scope, body.request_key, fingerprint)
     if prior:
         return prior
-    state = await availability(db, runtime, model_id)
+    state = await availability(db, runtime, model_id,call_kind='model_connection_test')
     if not state.available:
         raise HTTPException(503, state.message)
     binding = await safe_binding(db, model_id)
     config = AgentConfigCreate(name='文本连接测试', type='other', prompt='Respond with OK only. This checks text HTTP connectivity, not model quality.').model_dump(mode='json')
     config['workflow'][1].update({'temperature': 0, 'top_p': 1, 'prompt': 'Respond with OK only.'})
-    return await insert_run(db, scope=scope, request_key=body.request_key, request_hash=fingerprint, kind='connection_test', config=config, agent_id=None, agent_name='文本连接测试', agent_version=1, binding=binding, input_text='ping', max_tokens=8)
+    quote=runtime.price_registry.confirmed('model_connection_test',model_id,body.expected_price_fingerprint)
+    return await insert_run(db, scope=scope, request_key=body.request_key, request_hash=fingerprint, kind='connection_test', config=config, agent_id=None, agent_name='文本连接测试', agent_version=1, binding=binding, input_text='ping', max_tokens=8,
+        project_id=body.project_id,submitted_by=submitted_by,quote=quote)
 
 
-async def retry_run(db, runtime, run_id: str, body: AgentRunRetry):
+async def retry_run(db, runtime, run_id: str, body: AgentRunRetry, *,submitted_by='local_operator'):
     """Start a new explicit full attempt from a frozen snapshot; never silently replay uncertain work."""
+    await begin_job_admission(db)
     original = await get_run(db, run_id)
     if original.status not in {'failed', 'cancelled'}:
         raise HTTPException(409, '只有失败或取消的任务可显式重试')
     scope = 'retry:' + run_id
-    fingerprint = digest(body.model_dump())
+    fingerprint = digest({**body.model_dump(),'submitted_by':submitted_by})
     prior = await existing_request(db, scope, body.request_key, fingerprint)
     if prior:
         return prior
-    state = await availability(db, runtime, original.model_id)
+    original_charge=await job_charge(db,'agent',run_id,required=True)
+    call_kind='model_connection_test' if original.kind=='connection_test' else 'agent_text'
+    state = await availability(db, runtime, original.model_id,call_kind=call_kind)
     if not state.available:
         raise HTTPException(503, state.message)
     binding = await safe_binding(db, original.model_id)
     if binding != original.model_binding:
         raise HTTPException(409, '模型配置已改变，请从 Agent 页面新建执行；旧任务不会按新配置重发')
-    return await insert_run(db, scope=scope, request_key=body.request_key, request_hash=fingerprint, kind=original.kind, config=original.config_snapshot, agent_id=original.agent_id, agent_name=original.agent_name, agent_version=original.agent_version, binding=binding, input_text=original.input_text, max_tokens=original.max_tokens, attempt=original.attempt + 1, retry_of=original.id)
+    quote=runtime.price_registry.confirmed(call_kind,original.model_id,body.expected_price_fingerprint)
+    return await insert_run(db, scope=scope, request_key=body.request_key, request_hash=fingerprint, kind=original.kind, config=original.config_snapshot, agent_id=original.agent_id, agent_name=original.agent_name, agent_version=original.agent_version, binding=binding, input_text=original.input_text, max_tokens=original.max_tokens, attempt=original.attempt + 1, retry_of=original.id,
+        project_id=original_charge.project_id,submitted_by=submitted_by,quote=quote)
 
 
 async def cancel_run(db, run_id: str):
@@ -221,15 +263,17 @@ async def cancel_run(db, run_id: str):
     await db.execute(update(AgentRun).execution_options(synchronize_session=False).where(AgentRun.id == run_id, AgentRun.status.in_(['queued', 'running'])).values(status='cancelled', error='已取消；已发出的模型请求仍可能计费，结果不再写入', finished_at=clock(), lease_token=None, lease_expires_at=None))
     await db.execute(update(AgentNodeRun).execution_options(synchronize_session=False).where(AgentNodeRun.run_id == run_id, AgentNodeRun.status == 'running').values(status='cancelled', error='执行已取消，未采用迟到结果', finished_at=clock()))
     await db.execute(update(AgentNodeRun).execution_options(synchronize_session=False).where(AgentNodeRun.run_id == run_id, AgentNodeRun.status == 'pending').values(status='skipped', error='任务已取消，未执行', finished_at=clock()))
+    await release_job_unsent(db,'agent',run_id)
     await db.refresh(row)
     return row
 
 
 class AgentExecutionRuntime:
     """Poll durable work using a CAS lease; abandoned in-flight calls fail instead of replaying."""
-    def __init__(self, factory, *, poll_interval: float = .25, trusted_local_host: str | None = None, trusted_local_ports: frozenset[int] = frozenset()):
+    def __init__(self, factory, *, poll_interval: float = .25, trusted_local_host: str | None = None, trusted_local_ports: frozenset[int] = frozenset(),price_registry=None):
         """Inject sessions and a fixture-only exact loopback trust exception independently of models."""
         self.factory, self.poll_interval = factory, poll_interval
+        self.price_registry=price_registry or ModelPriceRegistry()
         self.trusted_local_host, self.trusted_local_ports = trusted_local_host, trusted_local_ports
         self.running = False
         self.task = None
@@ -272,6 +316,7 @@ class AgentExecutionRuntime:
                 result = await db.execute(update(AgentRun).execution_options(synchronize_session=False).where(AgentRun.id == run_id, AgentRun.status == 'running', AgentRun.lease_expires_at < clock()).values(status='failed', error=INTERRUPTED, finished_at=clock(), lease_token=None, lease_expires_at=None))
                 if result.rowcount:
                     await db.execute(update(AgentNodeRun).execution_options(synchronize_session=False).where(AgentNodeRun.run_id == run_id, AgentNodeRun.status.in_(['pending', 'running'])).values(status='failed', error=INTERRUPTED, finished_at=clock()))
+                    await release_job_unsent(db,'agent',run_id)
             candidate = await db.scalar(select(AgentRun.id).where(AgentRun.status == 'queued').order_by(AgentRun.created_at, AgentRun.id).limit(1))
             token = uuid.uuid4().hex
             claimed = False
@@ -315,18 +360,34 @@ class AgentExecutionRuntime:
             if result.rowcount:
                 await db.execute(update(AgentNodeRun).execution_options(synchronize_session=False).where(AgentNodeRun.run_id == run_id, AgentNodeRun.status == 'running').values(status='failed', error=error, finished_at=clock()))
                 await db.execute(update(AgentNodeRun).execution_options(synchronize_session=False).where(AgentNodeRun.run_id == run_id, AgentNodeRun.status == 'pending').values(status='skipped', error='前序节点失败，未执行', finished_at=clock()))
+                await release_job_unsent(db,'agent',run_id)
             await db.commit()
+
+    async def _record_response(self,project_id,charge_id,provider_request_id):
+        """Retain late private response identity for the original fee even after business cancellation."""
+        if provider_request_id is not None:
+            async with self.factory() as db:
+                async with transaction(db):
+                    await record_accepted_call(db,project_id=project_id,charge_id=charge_id,provider_request_id=provider_request_id)
 
     async def _execute(self, run_id, token):
         """Execute ordered start/LLM/end nodes, committing dependency inputs before each request."""
+        current_charge,current_project=None,None
         try:
             async with self.factory() as db:
                 run = await self._owned(db, run_id, token)
                 if run is None:
                     return
+                financial=await job_charge(db,'agent',run_id,required=True)
+                if financial.request_hash!=run.request_hash:
+                    raise AgentModelError('原任务与项目费用授权不一致，未发起模型请求')
                 config, previous = run.config_snapshot, run.input_text
-                node_ids = (await db.scalars(select(AgentNodeRun.id).where(AgentNodeRun.run_id == run_id).order_by(AgentNodeRun.position))).all()
+                plan_nodes = (await db.scalars(select(AgentNodeRun).where(AgentNodeRun.run_id == run_id).order_by(AgentNodeRun.position))).all()
+                if [(node.position,node.node_id,node.type) for node in plan_nodes]!=[(index,node['id'],node['type']) for index,node in enumerate(config['workflow'])]:
+                    raise AgentModelError('原工作流节点与固定计划不一致，未发起模型请求')
+                node_ids=[node.id for node in plan_nodes]
             for node_id in node_ids:
+                current_charge,current_project=None,None
                 async with self.factory() as db:
                     run = await self._owned(db, run_id, token)
                     if run is None:
@@ -343,16 +404,30 @@ class AgentExecutionRuntime:
                     # Keep the concrete attempted node even if its queued model binding is now invalid.
                     await db.commit()
                     if node.type == 'llm':
-                        binding,secret = await text_connection_material(db, run.model_id)
-                        if binding != run.model_binding:
-                            raise AgentModelError('模型配置在排队后改变；未重定向请求，请新建执行')
-                        setting = await db.get(ModelSettings, 1)
-                        timeout = max(1, min(60, setting.api_timeout if setting else 30))
-                    await db.commit()
+                        async with transaction(db):
+                            if await self._owned(db,run_id,token) is None:
+                                return
+                            binding,secret = await text_connection_material(db, run.model_id)
+                            if binding != run.model_binding:
+                                raise AgentModelError('模型配置在排队后改变；未重定向请求，请新建执行')
+                            financial=await job_charge(db,'agent',run_id,required=True)
+                            charge=await charged_job_unit(db,financial,spec['id'])
+                            kind='model_connection_test' if run.kind=='connection_test' else 'agent_text'
+                            stored=ModelPriceEnvelope.model_validate(charge.price_snapshot)
+                            self.price_registry.confirmed(kind,run.model_id,stored.fingerprint)
+                            if charge.kind!=kind or node.node_id!=spec['id'] or node.type!=spec['type']:
+                                raise AgentModelError('原节点与费用调用清单不一致，未发起模型请求')
+                            await prepare_call(db,project_id=financial.project_id,charge_id=charge.id,binding_hash=binding_digest(binding))
+                            current_charge,current_project=charge.id,financial.project_id
+                            setting = await db.get(ModelSettings, 1)
+                            timeout = max(1, min(60, setting.api_timeout if setting else 30))
                 if spec['type'] == 'llm':
-                    response = await self._call(run_id, token, base_url=binding['base_url'], api_key=secret, model=binding['model_name'], system=system, input_text=previous, model_params=binding['params'], timeout=timeout, **parameters)
+                    try:
+                        response = await self._call(run_id, token, base_url=binding['base_url'], api_key=secret, model=binding['model_name'], system=system, input_text=previous, model_params=binding['params'], timeout=timeout, **parameters)
+                    finally:
+                        secret = ''
+                    await self._record_response(current_project,current_charge,response.provider_request_id)
                     output, usage = response.text, response.usage
-                    secret = ''
                 else:
                     output, usage = previous, {}
                 async with self.factory() as db:
@@ -370,6 +445,8 @@ class AgentExecutionRuntime:
             if not self.running:
                 raise
         except AgentModelError as failure:
+            if current_charge is not None:
+                await self._record_response(current_project,current_charge,failure.provider_request_id)
             await self._fail(run_id, token, str(failure))
         except HTTPException:
             await self._fail(run_id, token, '模型配置不可用；未采用任何模拟响应，请检查供应商与文本模型配置')

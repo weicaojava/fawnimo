@@ -7,6 +7,8 @@
  */
 export type ModelConnectionTestCreate = {
     request_key: string;
+    project_id: string;
+    expected_price_fingerprint: string;
     confirm_model_call: boolean;
 };
 

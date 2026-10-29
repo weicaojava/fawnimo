@@ -22,6 +22,13 @@ class ModelPriceRegistry:
             raise HTTPException(503,'此模型尚未登记本调用协议的受信费用上界，未创建收费任务')
         return quote
 
+    def confirmed(self,kind,model_id,expected_fingerprint):
+        """Require the exact displayed server envelope; a caller fingerprint never supplies an amount."""
+        quote=self.required(kind,model_id)
+        if quote.fingerprint!=expected_fingerprint:
+            raise HTTPException(409,'模型费用配置已变化，请刷新并重新确认本次完整预留')
+        return quote
+
 
 def load_model_prices(filename):
     """Load a bounded server file; no endpoint, executable or credential value is accepted."""
@@ -29,9 +36,10 @@ def load_model_prices(filename):
         return ModelPriceRegistry()
     try:
         path=Path(filename).expanduser()
-        if path.is_symlink() or not path.is_file() or path.stat().st_size>524288:
+        if path.is_symlink() or path.resolve()!=path.absolute() or not path.is_file() or path.stat().st_size>524288:
             raise ValueError()
-        content=path.read_bytes()
+        with path.open('rb') as stream:
+            content=stream.read(524289)
         if len(content)>524288:
             raise ValueError()
         configuration=ModelPriceConfiguration.model_validate_json(content)

@@ -29,5 +29,7 @@ export type AssetImageJobRead = {
     adopted_at: (string | null);
     content_url?: (string | null);
     provenance?: string;
+    project_id?: (string | null);
+    authorized_max_minor?: (string | null);
 };
 

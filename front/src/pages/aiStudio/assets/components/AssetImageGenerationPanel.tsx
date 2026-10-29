@@ -1,5 +1,8 @@
 import { workspaceMediaUrl } from '../../../../services/workspaceContext'
 import { useEffect, useRef, useState } from 'react'
+import ProjectChargePicker, { chargeMoney, readProjectCharge, type ProjectChargeApproval } from '../../project/ProjectChargePicker'
+import ModelSubmissionRecovery, { useModelSubmissionRecovery } from '../../project/ModelSubmissionRecovery'
+import { Link } from 'react-router-dom'
 import { useSearchParams } from 'react-router-dom'
 import { Alert, Button, Descriptions, Input, Modal, Pagination, Select, Space, Tag } from 'antd'
 import { AssetImageGenerationService as I, OpenAPI } from '../../../../services/generated'
@@ -17,6 +20,8 @@ export default function AssetImageGenerationPanel({ kind, assetId, initialPrompt
   const requestedJob = searchParams.get('imageJob')
   const [availability, setAvailability] = useState<AssetImageAvailability | null>(null)
   const [modelId, setModelId] = useState<string>()
+  const [projectId, setProjectId] = useState<string>()
+  const [charge, setCharge] = useState<ProjectChargeApproval | null>(null)
   const [slots, setSlots] = useState<AssetImageSlotRead[]>([])
   const [slotId, setSlotId] = useState<number>()
   const [prompt, setPrompt] = useState(initialPrompt)
@@ -28,9 +33,13 @@ export default function AssetImageGenerationPanel({ kind, assetId, initialPrompt
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [navigationError, setNavigationError] = useState('')
+  const recovery = useModelSubmissionRecovery(`image:${kind}:${assetId}`, setBusy, setError)
   const pending = useRef<{ fingerprint: string; key: string }>()
-  const retries = useRef<Record<string, string>>({})
+  const retries = useRef<Record<string, { fingerprint: string; key: string }>>({})
   const adoptions = useRef<Record<string, { fingerprint: string; key: string }>>({})
+  const price = availability?.models.find(model => model.id === (modelId || availability.default_model_id))
+  const upperMinor = price?.max_call_minor ?? undefined
+  const chargeReady = !!charge?.ready && charge.projectId === projectId && charge.upperMinor === upperMinor
 
   /** Read readiness, exact slots and durable history without contacting any model. */
   const load = async () => {
@@ -63,18 +72,31 @@ export default function AssetImageGenerationPanel({ kind, assetId, initialPrompt
   }, [selected?.id, selected?.status])
 
   /** Authorize one explicit model request; reuse uncertain admission identity after a network failure. */
-  const generate = () => Modal.confirm({ title: '生成一张文本图片候选？', content: '将真实调用所选图片模型，可能产生费用。只发送下方文本，不发送人物参考图；生成结果不会自动替换当前图片。', okText: '确认生成候选', cancelText: '取消', onOk: async () => {
-    if (!modelId || !slotId) return
+  const generate = () => {
+    if (!slotId || !chargeReady || !charge || !price?.price_fingerprint) return
+    const approval = charge, policy = price.price_fingerprint, chosenModel = price.id
+    Modal.confirm({ title: '生成一张文本图片候选？', content: `费用归属「${approval.projectName}」，预留 ${chargeMoney(approval.upperMinor!)}。只发送下方文本，不发送人物参考图；生成结果不会自动替换当前图片，结果未知时继续保留额度。`, okText: '确认预留并生成候选', cancelText: '取消', onOk: async () => {
     setBusy(true); setError('')
-    const fingerprint = JSON.stringify([kind, assetId, slotId, modelId, prompt, size])
+    const fingerprint = JSON.stringify([kind, assetId, slotId, chosenModel, prompt, size, approval.projectId, policy])
     if (pending.current?.fingerprint !== fingerprint) pending.current = { fingerprint, key: crypto.randomUUID() }
-    try {
-      const response = await I.createAssetImageJob({ kind, assetId, slotId, requestBody: { request_key: pending.current.key, model_id: modelId, prompt, size, confirm_model_call: true } })
+    const requestBody = { request_key: pending.current.key, model_id: chosenModel, prompt, size, confirm_model_call: true,
+      project_id: approval.projectId, expected_price_fingerprint: policy }
+    const perform = async () => {
+      const response = await I.createAssetImageJob({ kind, assetId, slotId, requestBody })
       if (!response.data) throw new Error()
-      setSelected(response.data); setJobs(previous => [response.data!, ...previous.filter(row => row.id !== response.data!.id)].slice(0, 10)); setTotal(previous => previous + 1); setPage(1); pending.current = undefined
-    } catch (failure) { setError(agentError(failure, '生成提交结果未确认；再次提交会复用原请求标识')) }
+      if (!recovery.isCurrent()) return
+      setSelected(response.data); setJobs(previous => [response.data!, ...previous.filter(row => row.id !== response.data!.id)].slice(0, 10)); setPage(1); void load()
+      if (pending.current?.key === requestBody.request_key) pending.current = undefined
+      recovery.forget(requestBody.request_key)
+    }
+    try { await perform() }
+    catch (failure) {
+      recovery.remember({ key: requestBody.request_key, label: '图片候选 / ' + chosenModel, projectName: approval.projectName, upperMinor: approval.upperMinor!, recover: perform })
+      setError(agentError(failure, '生成提交结果未确认，可恢复原提交'))
+    }
     finally { setBusy(false) }
-  } })
+    } })
+  }
   /** Cancel persistent work before any late model bytes can become a candidate. */
   const cancel = async () => {
     if (!selected) return
@@ -84,12 +106,41 @@ export default function AssetImageGenerationPanel({ kind, assetId, initialPrompt
     finally { setBusy(false) }
   }
   /** An unknown prior call is never replayed until the user accepts possible duplicate charges. */
-  const retry = () => selected && Modal.confirm({ title: '重新生成一个候选？', content: '先前请求可能已计费，这会创建新的尝试并可能重复费用。原任务与原图片均保留。', okText: '确认可能重复费用并重试', cancelText: '取消', onOk: async () => {
-    setBusy(true); retries.current[selected.id] ??= crypto.randomUUID()
-    try { const response = await I.retryAssetImageJob({ jobId: selected.id, requestBody: { request_key: retries.current[selected.id], acknowledge_duplicate_charge: true } }); if (response.data) { setSelected(response.data); setJobs(previous => [response.data!, ...previous].slice(0, 10)); setTotal(previous => previous + 1) } }
-    catch (failure) { setError(agentError(failure, '显式重试失败，请检查当前模型配置')) }
+  const retry = async () => {
+    if (recovery.atCapacity) { setError('请先恢复待确认的原提交，再创建其他尝试'); return }
+    const original = selected
+    if (!original?.project_id) { setError('这条历史记录没有项目费用授权，请选择项目后新建生成'); return }
+    setBusy(true); setError('')
+    try {
+      const ready = await I.getAssetImageAvailability({ modelId: original.model_id })
+      const quote = ready.data?.models.find(model => model.id === original.model_id)
+      if (!ready.data?.available || !quote?.price_fingerprint || !quote.max_call_minor) { setError(ready.data?.message || '原图片模型费用配置尚未就绪'); return }
+      const approval = await readProjectCharge(original.project_id, quote.max_call_minor)
+      if (!approval.ready) { setError(approval.reason || '原项目预算尚未就绪'); return }
+      const policy = quote.price_fingerprint
+      Modal.confirm({ title: '重新生成一个候选？', content: `仍归属原项目「${approval.projectName}」，再次预留 ${chargeMoney(approval.upperMinor!)}。先前请求可能已计费并继续保留额度；原任务与原图片均保留。`, okText: '确认再次预留并重试', cancelText: '取消', onOk: async () => {
+        setBusy(true)
+        const fingerprint = JSON.stringify([original.id, original.project_id, policy])
+        if (retries.current[original.id]?.fingerprint !== fingerprint) retries.current[original.id] = { fingerprint, key: crypto.randomUUID() }
+        const requestBody = { request_key: retries.current[original.id].key, acknowledge_duplicate_charge: true, expected_price_fingerprint: policy }
+        const perform = async () => {
+          const response = await I.retryAssetImageJob({ jobId: original.id, requestBody })
+          if (!response.data) throw new Error('重试结果尚未返回，请核对原请求')
+          if (!recovery.isCurrent()) return
+          setSelected(response.data); setJobs(previous => [response.data!, ...previous.filter(row => row.id !== response.data!.id)].slice(0, 10)); void load()
+          if (retries.current[original.id]?.key === requestBody.request_key) delete retries.current[original.id]
+          recovery.forget(requestBody.request_key)
+        }
+        try { await perform() }
+        catch (failure) {
+          recovery.remember({ key: requestBody.request_key, label: `图片候选 / 重试 ${original.attempt + 1}`, projectName: approval.projectName, upperMinor: approval.upperMinor!, recover: perform })
+          setError(agentError(failure, '显式重试结果未确认，可恢复原提交'))
+        }
+        finally { setBusy(false) }
+      } })
+    } catch (failure) { setError(agentError(failure, '无法核对原项目或图片模型费用，未提交重试')) }
     finally { setBusy(false) }
-  } })
+  }
   /** Inspect the current target immediately before confirmation, then use its exact CAS token. */
   const prepareAdoption = async () => {
     if (!selected) return
@@ -113,13 +164,16 @@ export default function AssetImageGenerationPanel({ kind, assetId, initialPrompt
     finally { setBusy(false) }
   }
 
-  const reason = !availability?.available ? availability?.message || '正在检查独立图片执行服务' : !slotId ? '请先创建并选择图片槽位' : !prompt.trim() ? '请填写图片提示词' : undefined
+  const reason = recovery.atCapacity ? '请先恢复待确认的原提交' : !availability?.available ? availability?.message || '正在检查独立图片执行服务' : !price?.price_fingerprint ? '图片模型费用尚未就绪'
+    : !chargeReady ? charge?.reason || '请选择费用归属项目并核对预留' : !slotId ? '请先创建并选择图片槽位' : !prompt.trim() ? '请填写图片提示词' : undefined
   return <section className="library-form-group mb-4" id="asset-image-generation"><h2 className="library-section-title">文本生成图片</h2><Space direction="vertical" size="middle" className="w-full">
     <Alert type="info" showIcon message="单张文本生图 → 候选 → 明确采用" description="仅支持兼容 OpenAI 接口、直接返回 PNG/JPEG 图片内容的单张文本生图。不会发送人物参考图，不支持只返回图片网址的服务；人物一致性与画面质量仍需人工确认。" />
     <Alert type={availability?.available ? 'info' : 'warning'} message={availability?.message || '正在读取图片执行配置'} />
     {error && <Alert type="error" showIcon message={error} />}
+    <ModelSubmissionRecovery items={recovery.items} busy={busy} onRecover={recovery.recover} />
     {navigationError && <Alert type="warning" showIcon message={navigationError} />}
-    <label htmlFor="asset-image-model">图片模型</label><Select id="asset-image-model" aria-label="图片候选模型" className="w-full" value={modelId} onChange={setModelId} placeholder="选择支持的图片模型" options={(availability?.models ?? []).map(model => ({ value: model.id, label: model.name + (model.configured ? '' : '（需配置）'), disabled: !model.configured }))} />
+    <label htmlFor="asset-image-model">图片模型</label><Select id="asset-image-model" aria-label="图片候选模型" className="w-full" value={modelId} onChange={setModelId} placeholder="选择支持的图片模型" options={(availability?.models ?? []).map(model => ({ value: model.id, label: model.name + (!model.configured ? '（需配置）' : !model.priced ? '（未登记费用）' : ''), disabled: !model.configured || !model.priced }))} />
+    <ProjectChargePicker value={projectId} onChange={setProjectId} upperMinor={upperMinor} onApproval={setCharge} disabled={busy} refreshToken={`${selected?.id}:${selected?.status}`} />
     <TypographyGuide />
     <Space wrap><Select aria-label="图片候选目标槽位" style={{ minWidth: 240 }} value={slotId} onChange={setSlotId} options={slots.map(row => ({ value: row.id, label: `${angles[row.view_angle] ?? row.view_angle} / ${qualities[row.quality_level] ?? row.quality_level} / ${row.file_id ? '已有图片' : '空槽位'}` }))} /><Select aria-label="图片生成尺寸" value={size} onChange={setSize} options={['256x256', '512x512', '1024x1024'].map(value => ({ value, label: value }))} /></Space>
     <label htmlFor="asset-image-prompt">图片提示词（仅发送此文本）</label><Input.TextArea id="asset-image-prompt" rows={4} maxLength={8000} value={prompt} onChange={event => setPrompt(event.target.value)} />
@@ -128,6 +182,9 @@ export default function AssetImageGenerationPanel({ kind, assetId, initialPrompt
     {total > 10 && <Pagination size="small" current={page} pageSize={10} total={total} onChange={setPage} showSizeChanger={false} />}
     {selected && <Space direction="vertical" className="w-full"><Space wrap><Tag color={selected.status === 'candidate' ? 'blue' : selected.status === 'adopted' ? 'green' : 'default'}>{labels[selected.status]}</Tag><span>{selected.model_name} / 尝试 {selected.attempt}</span>{['queued', 'running'].includes(selected.status) && <Button danger loading={busy} onClick={() => void cancel()}>取消图片生成</Button>}{['failed', 'cancelled'].includes(selected.status) && <Button loading={busy} onClick={retry}>重新生成</Button>}</Space>
       {selected.error && <Alert type="warning" message={selected.error} />}
+      {selected.project_id && <Space wrap><Link to={`/projects/${encodeURIComponent(selected.project_id)}?tab=settings`}>查看原项目预算</Link>
+        {selected.authorized_max_minor && <span>本次授权预留：{chargeMoney(selected.authorized_max_minor)}；实际费用另行核对，采用不再次预留。</span>}
+      </Space>}
       {selected.content_url && <><img alt="已校验的生成图片候选" src={workspaceMediaUrl(`${OpenAPI.BASE}${selected.content_url}`)} style={{ maxWidth: '100%', maxHeight: 360, objectFit: 'contain' }} /><Descriptions size="small" column={2} items={[{ key: 'dimensions', label: '实际尺寸', children: `${selected.width} × ${selected.height}` }, { key: 'bytes', label: '真实字节数', children: selected.byte_size }, { key: 'hash', label: 'SHA-256', children: <span style={{ overflowWrap: 'anywhere' }}>{selected.sha256}</span> }]} />{selected.status === 'candidate' && <Button type="primary" loading={busy} onClick={() => void prepareAdoption()}>查看当前图片并采用候选</Button>}{selected.status === 'adopted' && <Alert type="success" message="已明确采用到原定槽位，原文件仍保留" />}</>}
     </Space>}
   </Space></section>

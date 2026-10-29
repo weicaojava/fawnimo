@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-10-30.1`，更新日期：2026-10-30。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-10-30.2`，更新日期：2026-10-30。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-资源/嵌套/历史文件隔离、项目预算及离线迁移副本演练保留；连接版本、通用项目预留与人工规范化账单基础已验证。模型运行时全接线、真实账单、社区研发、完整成片及公网仍待完成。
+资源隔离、项目预算及离线迁移副本演练保留；文本工作流/连接测试/单张图片已接项目费用。理解/ASR/原生视频统一账单、社区研发、完整成片与公网仍待完成。
 
-本轮109相关测试含于405项回归、22项实际浏览器通过；独立109重跑及16补测分别记录，不累加覆盖。人工自作账单不认证真实供应商，运行时接线/模型/成片/公网资格不提升。
+139相关包含于435项选定测试、42项浏览器通过；独立首跑、修复后受影响重跑、补测及实际worker检查分开记录。真实账单、全部收费执行、模型/成片/公网资格不提升。
 
 ## F-001 身份与工作空间
 
@@ -78,11 +78,11 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 需求：R-002, R-010；验收阶段：B；范围：本阶段交付；实现版本：`working-tree-2026-10-30`；发布版本：`未发布`。
 
-代码：[`backend/app/controlplane/gateway.py`](../../../../backend/app/controlplane/gateway.py)、[`backend/app/controlplane/workers.py`](../../../../backend/app/controlplane/workers.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`front/src/services/workspaceContext.ts`](../../../../front/src/services/workspaceContext.ts)、[`backend/app/services/worker/project_budget_schema.py`](../../../../backend/app/services/worker/project_budget_schema.py)、[`backend/app/services/llm/connection_versions.py`](../../../../backend/app/services/llm/connection_versions.py)、[`backend/app/services/worker/model_charges.py`](../../../../backend/app/services/worker/model_charges.py)、[`backend/app/services/worker/model_prices.py`](../../../../backend/app/services/worker/model_prices.py)。
+代码：[`backend/app/controlplane/gateway.py`](../../../../backend/app/controlplane/gateway.py)、[`backend/app/controlplane/workers.py`](../../../../backend/app/controlplane/workers.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`front/src/services/workspaceContext.ts`](../../../../front/src/services/workspaceContext.ts)、[`backend/app/services/worker/project_budget_schema.py`](../../../../backend/app/services/worker/project_budget_schema.py)、[`backend/app/services/llm/connection_versions.py`](../../../../backend/app/services/llm/connection_versions.py)、[`backend/app/services/worker/model_charges.py`](../../../../backend/app/services/worker/model_charges.py)、[`backend/app/services/worker/model_prices.py`](../../../../backend/app/services/worker/model_prices.py)、[`backend/app/models/model_job_charge.py`](../../../../backend/app/models/model_job_charge.py)、[`backend/app/services/worker/model_job_charges.py`](../../../../backend/app/services/worker/model_job_charges.py)、[`backend/app/services/worker/model_job_charge_schema.py`](../../../../backend/app/services/worker/model_job_charge_schema.py)、[`front/src/pages/aiStudio/project/ProjectChargePicker.tsx`](../../../../front/src/pages/aiStudio/project/ProjectChargePicker.tsx)。
 
-限制：工作进程不继承旧主机模型/云凭据与共享Celery配置，历史任务及资源读取隔离证据保留。；连接版本及同快照凭据、通用项目预留/发送一次/未知额度基础已本机验证；收费503仍只证明门禁关闭。；所有模型运行时与费用、提交者/原项目/连接版本的实际准入、取消、重试、恢复和候选采用尚待联合接线验收。；无工作空间总上限；价格文件仅受信解析，真实供应商账单认证和全部收费执行隔离仍未验收。。
+限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；资源及历史读取隔离证据保留。；单独SQLite的文本工作流、连接测试、单张图片已绑定提交人/原项目/连接版本/报价，原子预留、发送准备、取消/重试与采用已本机验证。；固定身份网关收费仍503，可用性明确关闭；该门禁不授予全部收费执行隔离资格。；视频理解、ASR及原生视频统一账单接线、A/B收费执行联合验收和真实供应商账单仍未完成。。
 
-验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-IDENTITY-BROWSER`、`EV-PROJECT-BUDGET`、`EV-RESOURCE-ISOLATION`、`EV-MODEL-ACCOUNTING`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-IDENTITY-BROWSER`、`EV-PROJECT-BUDGET`、`EV-RESOURCE-ISOLATION`、`EV-MODEL-ACCOUNTING`、`EV-MODEL-RUNTIME`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -411,13 +411,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-006.01 单张文本生图协议与PNG/JPEG候选
 
-需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-30`；发布版本：`未发布`。
 
 代码：[`backend/app/services/asset_image_generation.py`](../../../../backend/app/services/asset_image_generation.py)、[`backend/app/core/integrations/asset_image.py`](../../../../backend/app/core/integrations/asset_image.py)。
 
-限制：仅单张方图文本生成；不发送参考图；不保证任意供应商兼容。
+限制：仅单张方图文本生成，不发送参考图，不保证任意供应商兼容；须显式选择费用项目和确认协议价格。；单独SQLite候选和采用已连接费用保护；新身份收费入口仍关闭，真实画面质量待验收。。
 
-验证依据：`EV-LOCAL-20261029`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-20261029`、`EV-MODEL-RUNTIME`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -569,13 +569,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-008.02 1至8顺序文本节点持久执行
 
-需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-30`；发布版本：`未发布`。
 
 代码：[`backend/app/services/agent_execution.py`](../../../../backend/app/services/agent_execution.py)、[`backend/app/core/integrations/agent_text.py`](../../../../backend/app/core/integrations/agent_text.py)、[`front/src/pages/aiStudio/agents/AgentRunsPanel.tsx`](../../../../front/src/pages/aiStudio/agents/AgentRunsPanel.tsx)。
 
-限制：无分支、并行、代码或任意工具执行；不是社区研发Agent工厂；新身份空间的Agent运行/重试在项目费用准入验收前返回503。
+限制：无分支、并行、代码或任意工具执行；社区研发Agent另行实现。；单独SQLite执行要求选择费用项目并确认完整节点报价；新身份网关仍503，全部收费隔离及真实模型未验收。。
 
-验证依据：`EV-LOCAL-20261029`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-20261029`、`EV-MODEL-RUNTIME`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -649,11 +649,11 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 需求：R-002, R-010；验收阶段：B；范围：本阶段交付；实现版本：`working-tree-2026-10-30`；发布版本：`未发布`。
 
-代码：[`backend/app/models/project_budget.py`](../../../../backend/app/models/project_budget.py)、[`backend/app/services/worker/project_budget.py`](../../../../backend/app/services/worker/project_budget.py)、[`backend/app/services/worker/project_budget_schema.py`](../../../../backend/app/services/worker/project_budget_schema.py)、[`backend/app/api/video_runtime_setup.py`](../../../../backend/app/api/video_runtime_setup.py)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx)、[`backend/app/models/model_charge.py`](../../../../backend/app/models/model_charge.py)、[`backend/app/models/model_billing.py`](../../../../backend/app/models/model_billing.py)、[`backend/app/services/worker/model_charges.py`](../../../../backend/app/services/worker/model_charges.py)、[`backend/app/services/worker/model_billing.py`](../../../../backend/app/services/worker/model_billing.py)、[`backend/reconcile_model_billing.py`](../../../../backend/reconcile_model_billing.py)。
+代码：[`backend/app/models/project_budget.py`](../../../../backend/app/models/project_budget.py)、[`backend/app/services/worker/project_budget.py`](../../../../backend/app/services/worker/project_budget.py)、[`backend/app/services/worker/project_budget_schema.py`](../../../../backend/app/services/worker/project_budget_schema.py)、[`backend/app/api/video_runtime_setup.py`](../../../../backend/app/api/video_runtime_setup.py)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx)、[`backend/app/models/model_charge.py`](../../../../backend/app/models/model_charge.py)、[`backend/app/models/model_billing.py`](../../../../backend/app/models/model_billing.py)、[`backend/app/services/worker/model_charges.py`](../../../../backend/app/services/worker/model_charges.py)、[`backend/app/services/worker/model_billing.py`](../../../../backend/app/services/worker/model_billing.py)、[`backend/reconcile_model_billing.py`](../../../../backend/reconcile_model_billing.py)、[`backend/app/models/model_job_charge.py`](../../../../backend/app/models/model_job_charge.py)、[`backend/app/services/worker/model_job_charges.py`](../../../../backend/app/services/worker/model_job_charges.py)、[`backend/app/services/worker/model_job_charge_schema.py`](../../../../backend/app/services/worker/model_job_charge_schema.py)、[`front/src/pages/aiStudio/project/ProjectChargePicker.tsx`](../../../../front/src/pages/aiStudio/project/ProjectChargePicker.tsx)。
 
-限制：项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。；通用预留及人工规范化账单基础、全额差额/争议、重复人工确认、精确金额与私有证据本机通过；不同金额更正、退款和多义请求仍未决。；全部模型实际运行时尚未接入费用基础，真实供应商账单不由CSV或哈希自动认证；provider_bill_verified=false，收费网关继续关闭。；已找到原模型配置；本轮费用上限未获确认，旧20元样片预算不能沿用。。
+限制：项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。；文本工作流/连接测试/单张图片实际执行已接受信协议上界、原项目预留、私有请求证据和人工规范化账单；采用不再次预留。；视觉理解、ASR及原生视频统一账单接线未完成；更正、退款和多义请求仍未决。CSV或哈希不认证真实供应商，provider_bill_verified=false。；身份网关收费仍关闭；本轮付费上限未获确认，旧样片预算不能沿用。。
 
-验证依据：`EV-PROJECT-BUDGET`、`EV-MODEL-ACCOUNTING`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-PROJECT-BUDGET`、`EV-MODEL-ACCOUNTING`、`EV-MODEL-RUNTIME`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1074,6 +1074,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-WORKSPACE-MIGRATION | software | repository · `capabilities/workspace-migration-validation.json` | 离线stage/明确owner claim/独立restore、原业务和文件保留、执行锁及进程中断恢复的软件证据；原9工程/29文件记录/95文件树副本演练和11浏览器检查通过，原库未改且正式账号未切换。独立检查重叠不累加，不授予模型/成片/公网资格。 |
 | EV-RESOURCE-ISOLATION | software | repository · `capabilities/resource-isolation-validation.json` | 161项本机根资源/嵌套引用/历史文件正反向检查及58项实际双会话浏览器通过；历史任务/导出夹具仅证明授权和实际字节，收费执行及完整成片不提升。 |
 | EV-MODEL-ACCOUNTING | software | repository · `capabilities/model-accounting-validation.json` | SQLite连接版本、通用项目预留与人工规范化账单基础：109项相关测试含于405项回归、22项浏览器；独立109重跑和16补测分别记录。运行时全接线、真实账单及收费执行资格不提升。 |
+| EV-MODEL-RUNTIME | software | repository · `capabilities/model-runtime-validation.json` | 单独SQLite的文本工作流/连接测试/单张图片已接项目费用；139相关含于435选定测试，42浏览器；独立首跑/受影响重跑/补测及worker分记。真实模型、全部收费隔离和公网不提升。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

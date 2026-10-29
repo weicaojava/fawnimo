@@ -15,6 +15,7 @@ description: "记录当前真实生效的系统结构、状态流转、页面边
 - [界面主题与工作台外观](/docs/architecture/appearance/)
 - [持久本地工作区与功能边界](/docs/architecture/local-workspace/)
 - [本机视频生成配置与工程预算](/docs/architecture/workspace-video-runtime/)
+- [模型费用与账单](/docs/architecture/model-accounting/)
 - [Agent工作流执行](/docs/architecture/agent-execution/)
 - [资产图片生成](/docs/architecture/asset-image-generation/)
 - [视频理解与DNA候选](/docs/architecture/video-understanding/)

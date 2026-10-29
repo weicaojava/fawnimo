@@ -5,6 +5,8 @@ import { AgentExecutionService } from '../../../services/generated'
 import type { AgentConfigRead, AgentExecutionAvailability, AgentRunRead } from '../../../services/generated'
 import AgentRunDetails, { runStatus } from './AgentRunDetails'
 import { agentError } from './agentConfigIO'
+import ProjectChargePicker, { chargeMoney, readProjectCharge, type ProjectChargeApproval } from '../project/ProjectChargePicker'
+import ModelSubmissionRecovery, { useModelSubmissionRecovery } from '../project/ModelSubmissionRecovery'
 
 /** Submit saved sequential workflows explicitly and keep their durable node history after refresh. */
 export default function AgentRunsPanel({ agent, dirty }: { agent: AgentConfigRead; dirty: boolean }) {
@@ -12,6 +14,8 @@ export default function AgentRunsPanel({ agent, dirty }: { agent: AgentConfigRea
   const requestedRun = searchParams.get('agentRun')
   const [availability, setAvailability] = useState<AgentExecutionAvailability | null>(null)
   const [modelId, setModelId] = useState<string>()
+  const [projectId, setProjectId] = useState<string>()
+  const [charge, setCharge] = useState<ProjectChargeApproval | null>(null)
   const [input, setInput] = useState('')
   const [maxTokens, setMaxTokens] = useState(512)
   const [runs, setRuns] = useState<AgentRunRead[]>([])
@@ -21,9 +25,13 @@ export default function AgentRunsPanel({ agent, dirty }: { agent: AgentConfigRea
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [navigationError, setNavigationError] = useState('')
+  const recovery = useModelSubmissionRecovery(`agent:${agent.id}`, setBusy, setError)
   const submission = useRef<{ fingerprint: string; key: string }>()
-  const retries = useRef<Record<string, string>>({})
+  const retries = useRef<Record<string, { fingerprint: string; key: string }>>({})
   const llmCount = (agent.workflow ?? []).filter(node => node.type === 'llm').length
+  const price = availability?.models?.find(model => model.id === (modelId || availability.default_model_id))
+  const upperMinor = price?.max_call_minor && llmCount >= 1 && llmCount <= 8 ? price.max_call_minor * llmCount : undefined
+  const chargeReady = !!charge?.ready && charge.projectId === projectId && charge.upperMinor === upperMinor
 
   /** Refresh readiness without contacting a model or reading a credential in the browser. */
   const refreshAvailability = async () => {
@@ -62,17 +70,31 @@ export default function AgentRunsPanel({ agent, dirty }: { agent: AgentConfigRea
   }, [selected?.id, selected?.status])
 
   /** Reuse an uncertain admission key so a lost response cannot duplicate the same billable work. */
-  const run = () => Modal.confirm({ title: '执行已保存的 Agent？', content: `将调用所选文本模型 ${llmCount} 次，每次最多输出 ${maxTokens} tokens，可能产生费用。使用已保存版本 ${agent.version}。`, okText: '确认执行', cancelText: '取消', onOk: async () => {
+  const run = () => {
+    if (!chargeReady || !charge || !price?.price_fingerprint) return
+    const approval = charge, policy = price.price_fingerprint, chosenModel = price.id
+    Modal.confirm({ title: '执行已保存的 Agent？', content: `费用归属「${approval.projectName}」，为完整 ${llmCount} 次文本调用预留 ${chargeMoney(approval.upperMinor!)}。每次最多输出 ${maxTokens} tokens，使用已保存版本 ${agent.version}；结果未知时继续保留额度。`, okText: '确认预留并执行', cancelText: '取消', onOk: async () => {
     setBusy(true); setError('')
-    const fingerprint = JSON.stringify([agent.id, agent.version, modelId, input, maxTokens])
+    const fingerprint = JSON.stringify([agent.id, agent.version, chosenModel, input, maxTokens, approval.projectId, policy])
     if (submission.current?.fingerprint !== fingerprint) submission.current = { fingerprint, key: crypto.randomUUID() }
-    try {
-      const response = await AgentExecutionService.createAgentRun({ agentId: agent.id, requestBody: { request_key: submission.current.key, input_text: input, model_id: modelId, expected_version: agent.version, max_tokens: maxTokens, confirm_model_call: true } })
+    const requestBody = { request_key: submission.current.key, input_text: input, model_id: chosenModel, expected_version: agent.version, max_tokens: maxTokens, confirm_model_call: true,
+      project_id: approval.projectId, expected_price_fingerprint: policy }
+    const perform = async () => {
+      const response = await AgentExecutionService.createAgentRun({ agentId: agent.id, requestBody })
       if (!response.data) throw new Error()
-      setSelected(response.data); setRuns(previous => [response.data!, ...previous.filter(row => row.id !== response.data!.id)].slice(0, 10)); setPage(1); setTotal(previous => previous + 1); submission.current = undefined
-    } catch (failure) { setError(agentError(failure, '提交结果未确认，再次提交将复用原请求标识以避免重复执行')) }
+      if (!recovery.isCurrent()) return
+      setSelected(response.data); setRuns(previous => [response.data!, ...previous.filter(row => row.id !== response.data!.id)].slice(0, 10)); setPage(1); void load()
+      if (submission.current?.key === requestBody.request_key) submission.current = undefined
+      recovery.forget(requestBody.request_key)
+    }
+    try { await perform() }
+    catch (failure) {
+      recovery.remember({ key: requestBody.request_key, label: `${agent.name} / 版本 ${agent.version}`, projectName: approval.projectName, upperMinor: approval.upperMinor!, recover: perform })
+      setError(agentError(failure, '提交结果未确认，可恢复原提交以避免重复执行'))
+    }
     finally { setBusy(false) }
-  } })
+    } })
+  }
 
   /** Cancel durable state first; an already dispatched provider request may still be charged. */
   const cancel = async () => {
@@ -83,21 +105,52 @@ export default function AgentRunsPanel({ agent, dirty }: { agent: AgentConfigRea
     finally { setBusy(false) }
   }
   /** A retry is a new full attempt and requires explicit acknowledgement of unknown prior effects. */
-  const retry = () => selected && Modal.confirm({ title: '从头重新执行？', content: '这会新建一次尝试，已成功节点也会再次调用。先前请求可能已计费，重新执行可能重复费用。', okText: '确认可能重复费用并重试', cancelText: '取消', onOk: async () => {
-    setBusy(true)
-    retries.current[selected.id] ??= crypto.randomUUID()
-    try { const response = await AgentExecutionService.retryAgentRun({ runId: selected.id, requestBody: { request_key: retries.current[selected.id], acknowledge_duplicate_charge: true } }); if (response.data) { setSelected(response.data); setRuns(previous => [response.data!, ...previous].slice(0, 10)); setTotal(previous => previous + 1) } }
-    catch (failure) { setError(agentError(failure, '重试提交失败，请检查执行服务和模型配置')) }
+  const retry = async () => {
+    if (recovery.atCapacity) { setError('请先恢复待确认的原提交，再创建其他尝试'); return }
+    const original = selected
+    if (!original?.project_id) { setError('这条历史记录没有项目费用授权，请选择项目后新建执行'); return }
+    setBusy(true); setError('')
+    try {
+      const ready = await AgentExecutionService.getAgentExecutionAvailability({ modelId: original.model_id, callKind: original.kind === 'connection_test' ? 'model_connection_test' : 'agent_text' })
+      const quote = ready.data?.models?.find(model => model.id === original.model_id)
+      if (!ready.data?.available || !quote?.price_fingerprint || !quote.max_call_minor) { setError(ready.data?.message || '原模型费用配置尚未就绪'); return }
+      const approval = await readProjectCharge(original.project_id, quote.max_call_minor * (original.nodes ?? []).filter(node => node.type === 'llm').length)
+      if (!approval.ready) { setError(approval.reason || '原项目预算尚未就绪'); return }
+      const policy = quote.price_fingerprint
+      Modal.confirm({ title: '从头重新执行？', content: `仍归属原项目「${approval.projectName}」，再次完整预留 ${chargeMoney(approval.upperMinor!)}。已经成功的节点也会重新调用；先前未知费用继续保留，原任务与记录不变。`, okText: '确认再次预留并重试', cancelText: '取消', onOk: async () => {
+        setBusy(true)
+        const fingerprint = JSON.stringify([original.id, original.project_id, policy])
+        if (retries.current[original.id]?.fingerprint !== fingerprint) retries.current[original.id] = { fingerprint, key: crypto.randomUUID() }
+        const requestBody = { request_key: retries.current[original.id].key, acknowledge_duplicate_charge: true, expected_price_fingerprint: policy }
+        const perform = async () => {
+          const response = await AgentExecutionService.retryAgentRun({ runId: original.id, requestBody })
+          if (!response.data) throw new Error('重试结果尚未返回，请核对原请求')
+          if (!recovery.isCurrent()) return
+          setSelected(response.data); setRuns(previous => [response.data!, ...previous.filter(row => row.id !== response.data!.id)].slice(0, 10)); void load()
+          if (retries.current[original.id]?.key === requestBody.request_key) delete retries.current[original.id]
+          recovery.forget(requestBody.request_key)
+        }
+        try { await perform() }
+        catch (failure) {
+          recovery.remember({ key: requestBody.request_key, label: `${original.agent_name} / 重试 ${original.attempt + 1}`, projectName: approval.projectName, upperMinor: approval.upperMinor!, recover: perform })
+          setError(agentError(failure, '重试提交结果未确认，可恢复原提交'))
+        }
+        finally { setBusy(false) }
+      } })
+    } catch (failure) { setError(agentError(failure, '无法核对原项目或模型费用，未提交重试')) }
     finally { setBusy(false) }
-  } })
+  }
 
-  const disabledReason = dirty ? '请先保存当前修改，再执行对应版本' : llmCount < 1 || llmCount > 8 ? '执行仅支持 1 至 8 个顺序 LLM 节点' : !availability?.available ? availability?.message || '正在检查文本执行服务' : !input.trim() ? '请填写测试输入' : undefined
+  const disabledReason = recovery.atCapacity ? '请先恢复待确认的原提交' : dirty ? '请先保存当前修改，再执行对应版本' : llmCount < 1 || llmCount > 8 ? '执行仅支持 1 至 8 个顺序 LLM 节点' : !availability?.available ? availability?.message || '正在检查文本执行服务'
+    : !price?.price_fingerprint ? '模型费用配置尚未就绪' : !chargeReady ? charge?.reason || '请选择费用归属项目并核对完整预留' : !input.trim() ? '请填写测试输入' : undefined
   return <section id="agent-execution" className="library-form-group"><h2 className="library-section-title">执行与节点记录</h2>
     <Space direction="vertical" className="w-full" size="middle">
       <Alert type={availability?.available ? 'info' : 'warning'} showIcon message={availability?.message || '正在检查文本执行服务；尚未调用模型'} description="仅执行顺序文本节点，不运行任意代码、工具、图片或视频。输入输出会保存在本地执行记录。" />
       {error && <Alert type="error" showIcon message={error} closable onClose={() => setError('')} />}
+      <ModelSubmissionRecovery items={recovery.items} busy={busy} onRecover={recovery.recover} />
       {navigationError && <Alert type="warning" showIcon message={navigationError} />}
-      <label htmlFor="agent-run-model">文本模型</label><Select id="agent-run-model" aria-label="Agent 执行文本模型" className="w-full" value={modelId} onChange={setModelId} placeholder="选择文本模型" options={(availability?.models ?? []).map(model => ({ value: model.id, label: `${model.name} / ${model.provider_name}${model.configured ? '' : '（未配置）'}`, disabled: !model.configured }))} />
+      <label htmlFor="agent-run-model">文本模型</label><Select id="agent-run-model" aria-label="Agent 执行文本模型" className="w-full" value={modelId} onChange={setModelId} placeholder="选择文本模型" options={(availability?.models ?? []).map(model => ({ value: model.id, label: `${model.name} / ${model.provider_name}${!model.configured ? '（未配置）' : !model.priced ? '（未登记费用）' : ''}`, disabled: !model.configured || !model.priced }))} />
+      <ProjectChargePicker value={projectId} onChange={setProjectId} upperMinor={upperMinor} onApproval={setCharge} disabled={busy} refreshToken={`${selected?.id}:${selected?.status}`} />
       <label htmlFor="agent-run-input">测试输入</label><Input.TextArea id="agent-run-input" aria-label="测试输入（剧本片段或 JSON）" value={input} onChange={event => setInput(event.target.value)} rows={4} maxLength={32000} placeholder="填写将传给第一个模型节点的文本" />
       <label>每个模型节点输出上限 <InputNumber aria-label="Agent 输出 tokens 上限" min={8} max={2048} value={maxTokens} onChange={value => value !== null && setMaxTokens(value)} /></label>
       <Space wrap><Button type="primary" loading={busy} disabled={!!disabledReason} title={disabledReason} onClick={run}>运行已保存版本</Button><Button onClick={() => { void refreshAvailability(); void load() }}>刷新执行状态</Button></Space>

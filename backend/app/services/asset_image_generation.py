@@ -17,10 +17,16 @@ from app.core.contracts.asset_image_generation import AssetImageAvailability, As
 from app.core.integrations.asset_image import AssetImageModelError, invoke_asset_image
 from app.models.asset_image_generation import AssetImageJob
 from app.models.llm import Model, ModelSettings, Provider
+from app.models.provider_connection_version import ProviderConnectionVersion
+from app.models.execution_budget import ExecutionBudgetEntry
 from app.models.studio import FileItem
 from app.services.agent_execution import clock, digest
 from app.services.studio.entity_specs import entity_spec
 from app.services.worker.execution_budget import transaction
+from app.core.contracts.model_accounting import QuotedModelCall,ModelPriceEnvelope
+from app.services.worker.model_job_charges import begin_job_admission,bind_new_job,binding_digest,job_charge,charged_job_unit,release_job_unsent
+from app.services.worker.model_charges import prepare_call,record_accepted_call
+from app.services.worker.model_prices import ModelPriceRegistry
 
 FINAL = {'candidate', 'adopted', 'failed', 'cancelled'}
 PROTOCOL = 'openai_b64_v1'
@@ -44,17 +50,29 @@ async def migrate_asset_image_generation(engine):
 
 async def availability(db, runtime, model_id=None):
     """Check protocol opt-in and credential presence without loading saved key values."""
-    rows = (await db.execute(select(Model.id, Model.name, Model.params['asset_image_protocol'].as_string().label('protocol'), Provider.name.label('provider_name'), Provider.status, (func.length(func.trim(Provider.api_key)) > 0).label('has_key')).join(Provider, Provider.id == Model.provider_id).where(Model.category == 'image').order_by(Model.name, Model.id).limit(1000))).all()
+    rows = (await db.execute(select(Model.id, Model.name, Model.params['asset_image_protocol'].as_string().label('protocol'), Provider.name.label('provider_name'), Provider.status,
+        Provider.id.label('provider_id'),func.coalesce(ProviderConnectionVersion.revision,0).label('revision'),(func.length(func.trim(Provider.api_key)) > 0).label('has_key'))
+        .join(Provider, Provider.id == Model.provider_id).outerjoin(ProviderConnectionVersion,ProviderConnectionVersion.provider_id==Provider.id)
+        .where(Model.category == 'image').order_by(Model.name, Model.id).limit(1000))).all()
     choices = []
     for row in rows:
         supported = row.provider_name.strip().lower() == 'openai' and row.protocol == PROTOCOL
         configured = supported and row.has_key and row.status != 'disabled'
         message = '单张文本生图已配置；尚未验证真实模型' if configured else '请在模型管理启用“用于本机单张图片生成”，并配置受支持的 OpenAI-compatible 供应商；不支持人物参考图或仅返回网址的响应'
-        choices.append(ImageModelChoice(id=row.id, name=row.name, configured=bool(configured), message=message))
+        quote=None
+        if configured:
+            try:
+                quote=(runtime.price_registry if runtime else ModelPriceRegistry()).required('asset_image',row.id)
+                if quote.provider_id!=row.provider_id or quote.provider_connection_version!=row.revision:
+                    quote=None;message='图片模型连接已改变，请核对原连接的受信费用上界'
+            except HTTPException:
+                message='此图片模型尚未登记单次调用的费用上界'
+        choices.append(ImageModelChoice(id=row.id, name=row.name, configured=bool(configured), message=message,priced=quote is not None,
+            max_call_minor=quote.max_call_minor if quote else None,price_fingerprint=quote.fingerprint if quote else None))
     setting = await db.get(ModelSettings, 1)
     default_id = setting.default_image_model_id if setting else None
     selected = next((row for row in choices if row.id == (model_id or default_id)), None)
-    available = bool(runtime and runtime.running and selected and selected.configured)
+    available = bool(runtime and runtime.running and selected and selected.configured and selected.priced)
     message = '可显式提交一张文本生图候选，可能产生费用；生成后需另外采用' if available else selected.message if selected else '请选择图片模型，并在模型管理启用“用于本机单张图片生成”'
     if not runtime or not runtime.running:
         message = '独立图片执行服务尚未启动；手工编辑与上传仍可使用'
@@ -111,22 +129,43 @@ async def get_job(db, job_id):
     return row
 
 
-def job_read(job):
+async def job_read(db,job):
     """Publish only a verified candidate content endpoint, never a provider URL or disk path."""
-    return AssetImageJobRead.model_validate(job).model_copy(update={'content_url': f'/api/v1/asset-image-generation/jobs/{job.id}/content' if job.status in {'candidate', 'adopted'} else None})
+    financial=await job_charge(db,'image',job.id)
+    charge=await charged_job_unit(db,financial,'candidate') if financial else None
+    entry=await db.get(ExecutionBudgetEntry,charge.id) if charge else None
+    return AssetImageJobRead.model_validate(job).model_copy(update={'content_url': f'/api/v1/asset-image-generation/jobs/{job.id}/content' if job.status in {'candidate', 'adopted'} else None,
+        'project_id':financial.project_id if financial else None,'authorized_max_minor':str(entry.quote_minor) if entry else None})
 
 
-async def admit(db, runtime, kind, asset_id, slot_id, body, original=None):
+async def admit(db, runtime, kind, asset_id, slot_id, body, *,submitted_by='local_operator'):
+    """Open the project's writer transaction before resolving a new image request."""
+    await begin_job_admission(db)
+    return await _admit_locked(db,runtime,kind,asset_id,slot_id,body,submitted_by=submitted_by)
+
+
+async def retry(db,runtime,job_id,body,*,submitted_by='local_operator'):
+    """Keep the original project and connection while reserving a distinct explicitly confirmed attempt."""
+    await begin_job_admission(db)
+    original=await get_job(db,job_id)
+    if original.status not in {'failed','cancelled'}:
+        raise HTTPException(409,'只有失败或取消的图片任务可显式重试')
+    return await _admit_locked(db,runtime,original.asset_kind,original.asset_id,original.slot_id,body,original,submitted_by=submitted_by)
+
+
+async def _admit_locked(db, runtime, kind, asset_id, slot_id, body, original=None, *,submitted_by):
     """Admit a single immutable attempt idempotently before any potentially billable HTTP."""
     if db.get_bind().dialect.name != 'sqlite':
         raise HTTPException(503, '本地图片执行当前支持带不可变触发器的 SQLite')
     scope = 'retry:' + original.id if original else f'{kind}:{asset_id}:{slot_id}'
-    fingerprint = digest(body.model_dump(mode='json'))
+    fingerprint = digest({**body.model_dump(mode='json'),'submitted_by':submitted_by})
     prior = await db.scalar(select(AssetImageJob).where(AssetImageJob.scope_key == scope, AssetImageJob.request_key == body.request_key))
     if prior:
         if prior.request_hash != fingerprint:
             raise HTTPException(409, '请求标识已用于不同图片参数')
         return prior
+    financial=await job_charge(db,'image',original.id,required=True) if original else None
+    project_id=financial.project_id if financial else body.project_id
     await slot(db, kind, asset_id, slot_id)
     model_id = original.model_id if original else body.model_id
     state = await availability(db, runtime, model_id)
@@ -135,6 +174,7 @@ async def admit(db, runtime, kind, asset_id, slot_id, body, original=None):
     resolved = await binding(db, model_id)
     if original and resolved != original.model_binding:
         raise HTTPException(409, '模型配置已改变，请新建生成；旧请求不会改用新连接重发')
+    quote=runtime.price_registry.confirmed('asset_image',model_id,body.expected_price_fingerprint)
     if await db.scalar(select(func.count()).select_from(AssetImageJob).where(AssetImageJob.status.in_(['queued', 'running']))) >= 20:
         raise HTTPException(409, '待处理图片任务过多，请先完成或取消')
     job_id = uuid.uuid4().hex
@@ -145,6 +185,8 @@ async def admit(db, runtime, kind, asset_id, slot_id, body, original=None):
         if prior and prior.request_hash == fingerprint:
             return prior
         raise HTTPException(409, '请求参数并发冲突，请使用原标识查询')
+    await bind_new_job(db,kind='image',job_id=job_id,project_id=project_id,submitted_by=submitted_by,request_hash=fingerprint,
+        calls=[QuotedModelCall(unit_key='candidate',kind='asset_image',binding_hash=binding_digest(resolved),quote=quote)])
     return await db.get(AssetImageJob, job_id)
 
 
@@ -152,6 +194,7 @@ async def cancel(db, job_id):
     """Durably reject any late result; an already sent provider request may still cost money."""
     job = await get_job(db, job_id)
     await db.execute(update(AssetImageJob).execution_options(synchronize_session=False).where(AssetImageJob.id == job_id, AssetImageJob.status.in_(['queued', 'running'])).values(status='cancelled', error='已取消，未采用迟到图片；已发出的请求仍可能计费', lease_token=None, lease_expires_at=None, finished_at=clock()))
+    await release_job_unsent(db,'image',job_id)
     await db.refresh(job)
     return job
 
@@ -193,7 +236,7 @@ async def adopt(factory, job_id, body):
             fingerprint = digest(body.model_dump(mode='json'))
             if job.status == 'adopted':
                 if job.adopt_request_key == body.request_key and job.adopt_request_hash == fingerprint:
-                    return job_read(job)
+                    return await job_read(db,job)
                 raise HTTPException(409, '此候选已采用；不会重复覆盖槽位')
             if job.status != 'candidate':
                 raise HTTPException(409, '只有已完成并校验的候选图片可以采用')
@@ -215,7 +258,7 @@ async def adopt(factory, job_id, body):
             job.status, job.file_id, job.adopted_at = 'adopted', file_id, clock()
             job.adopt_request_key, job.adopt_request_hash = body.request_key, fingerprint
             await db.flush()
-            return job_read(job)
+            return await job_read(db,job)
 
 
 def save_exclusive(key, content):
@@ -235,9 +278,10 @@ def save_exclusive(key, content):
 
 class AssetImageGenerationRuntime:
     """CAS-leased persistent image worker; unknown requests are never automatically replayed."""
-    def __init__(self, factory, *, poll_interval=.25, trusted_local_host=None, trusted_local_ports=frozenset()):
+    def __init__(self, factory, *, poll_interval=.25, trusted_local_host=None, trusted_local_ports=frozenset(),price_registry=None):
         """Inject exact fixture trust separately from any client model or asset data."""
         self.factory, self.poll_interval = factory, poll_interval
+        self.price_registry=price_registry or ModelPriceRegistry()
         self.trusted_local_host, self.trusted_local_ports = trusted_local_host, trusted_local_ports
         self.running, self.task = False, None
 
@@ -270,7 +314,10 @@ class AssetImageGenerationRuntime:
     async def tick(self):
         """Fail expired requests as unknown and atomically claim one queued job across workers."""
         async with self.factory() as db:
-            await db.execute(update(AssetImageJob).execution_options(synchronize_session=False).where(AssetImageJob.status == 'running', AssetImageJob.lease_expires_at < clock()).values(status='failed', error=UNKNOWN, finished_at=clock(), lease_token=None, lease_expires_at=None))
+            expired=(await db.scalars(update(AssetImageJob).execution_options(synchronize_session=False).where(AssetImageJob.status == 'running', AssetImageJob.lease_expires_at < clock())
+                .values(status='failed', error=UNKNOWN, finished_at=clock(), lease_token=None, lease_expires_at=None).returning(AssetImageJob.id))).all()
+            for expired_id in expired:
+                await release_job_unsent(db,'image',expired_id)
             job_id = await db.scalar(select(AssetImageJob.id).where(AssetImageJob.status == 'queued').order_by(AssetImageJob.created_at, AssetImageJob.id).limit(1))
             token = uuid.uuid4().hex
             claimed = False
@@ -284,23 +331,45 @@ class AssetImageGenerationRuntime:
     async def _fail(self, job_id, token, error):
         """Record only a still-owned failure, never modifying immutable candidate results."""
         async with self.factory() as db:
-            await db.execute(update(AssetImageJob).execution_options(synchronize_session=False).where(AssetImageJob.id == job_id, AssetImageJob.status == 'running', AssetImageJob.lease_token == token, AssetImageJob.lease_expires_at > clock()).values(status='failed', error=error, finished_at=clock(), lease_token=None, lease_expires_at=None))
+            result=await db.execute(update(AssetImageJob).execution_options(synchronize_session=False).where(AssetImageJob.id == job_id, AssetImageJob.status == 'running', AssetImageJob.lease_token == token, AssetImageJob.lease_expires_at > clock()).values(status='failed', error=error, finished_at=clock(), lease_token=None, lease_expires_at=None))
+            if result.rowcount:
+                await release_job_unsent(db,'image',job_id)
             await db.commit()
+
+    async def _record_response(self,project_id,charge_id,provider_request_id):
+        """Save late private response evidence against the original hold without publishing a cancelled candidate."""
+        if provider_request_id is not None:
+            async with self.factory() as db:
+                async with transaction(db):
+                    await record_accepted_call(db,project_id=project_id,charge_id=charge_id,provider_request_id=provider_request_id)
 
     async def _execute(self, job_id, token):
         """Make one real request, verify image bytes, fence publication, and leave adoption separate."""
         call, saved_key, published = None, None, False
+        current_charge,current_project,secret=None,None,''
         try:
             async with self.factory() as db:
-                job = await self._owned(db, job_id, token)
-                if job is None:
-                    return
-                await slot(db, job.asset_kind, job.asset_id, job.slot_id)
-                resolved,secret = await image_connection_material(db, job.model_id)
-                if resolved != job.model_binding:
-                    raise AssetImageModelError('图片模型配置已改变，请新建执行；未转向其他连接')
-                prompt, size = job.prompt, job.size
+                async with transaction(db):
+                    job = await self._owned(db, job_id, token)
+                    if job is None:
+                        return
+                    financial=await job_charge(db,'image',job_id,required=True)
+                    if financial.request_hash!=job.request_hash:
+                        raise AssetImageModelError('原图片任务与项目费用授权不一致，未发起模型请求')
+                    await slot(db, job.asset_kind, job.asset_id, job.slot_id)
+                    resolved,secret = await image_connection_material(db, job.model_id)
+                    if resolved != job.model_binding:
+                        raise AssetImageModelError('图片模型配置已改变，请新建执行；未转向其他连接')
+                    charge=await charged_job_unit(db,financial,'candidate')
+                    stored=ModelPriceEnvelope.model_validate(charge.price_snapshot)
+                    self.price_registry.confirmed('asset_image',job.model_id,stored.fingerprint)
+                    if charge.kind!='asset_image':
+                        raise AssetImageModelError('原图片调用费用类型无效，未发起模型请求')
+                    await prepare_call(db,project_id=financial.project_id,charge_id=charge.id,binding_hash=binding_digest(resolved))
+                    current_charge,current_project=charge.id,financial.project_id
+                    prompt, size = job.prompt, job.size
             call = asyncio.create_task(invoke_asset_image(base_url=resolved['base_url'], api_key=secret, model=resolved['model_name'], prompt=prompt, size=size, trusted_local_host=self.trusted_local_host, trusted_local_ports=self.trusted_local_ports))
+            secret=''
             while True:
                 done, _ = await asyncio.wait({call}, timeout=.1)
                 if done:
@@ -309,6 +378,7 @@ class AssetImageGenerationRuntime:
                 async with self.factory() as db:
                     if await self._owned(db, job_id, token) is None:
                         raise asyncio.CancelledError()
+            await self._record_response(current_project,current_charge,result.provider_request_id)
             async with self.factory() as db:
                 if await self._owned(db, job_id, token) is None:
                     return
@@ -325,12 +395,15 @@ class AssetImageGenerationRuntime:
             if not self.running:
                 raise
         except AssetImageModelError as failure:
+            if current_charge is not None:
+                await self._record_response(current_project,current_charge,failure.provider_request_id)
             await self._fail(job_id, token, str(failure))
         except HTTPException:
             await self._fail(job_id, token, '资产、槽位或图片模型配置不可用，未生成模拟图片')
         except Exception:
             await self._fail(job_id, token, '图片执行失败或结果未知；不会自动重发，重试可能重复计费')
         finally:
+            secret=''
             if call and not call.done():
                 call.cancel(); await asyncio.gather(call, return_exceptions=True)
             if saved_key and not published:

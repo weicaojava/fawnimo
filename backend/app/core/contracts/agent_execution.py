@@ -15,6 +15,9 @@ class ExecutionModelChoice(BaseModel):
     provider_name: str
     configured: bool
     message: str
+    priced: bool = False
+    max_call_minor: int | None = None
+    price_fingerprint: str | None = None
 
 
 class AgentExecutionAvailability(BaseModel):
@@ -24,12 +27,15 @@ class AgentExecutionAvailability(BaseModel):
     default_model_id: str | None = None
     models: list[ExecutionModelChoice] = Field(default_factory=list)
     max_llm_nodes: int = 8
+    call_kind: Literal['agent_text','model_connection_test'] = 'agent_text'
 
 
 class AgentRunCreate(BaseModel):
     """Require an explicit bounded model invocation using a saved Agent revision."""
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
     request_key: str = Field(min_length=1, max_length=128)
+    project_id: str = Field(min_length=1,max_length=64)
+    expected_price_fingerprint: str = Field(pattern=r'^[a-f0-9]{64}$')
     input_text: str = Field(min_length=1, max_length=32000)
     model_id: str | None = Field(default=None, min_length=1, max_length=64)
     expected_version: int = Field(ge=1)
@@ -41,6 +47,7 @@ class AgentRunRetry(BaseModel):
     """Create a new full attempt only after acknowledging uncertain prior provider effects."""
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
     request_key: str = Field(min_length=1, max_length=128)
+    expected_price_fingerprint: str = Field(pattern=r'^[a-f0-9]{64}$')
     acknowledge_duplicate_charge: Literal[True]
 
 
@@ -48,6 +55,8 @@ class ModelConnectionTestCreate(BaseModel):
     """Authorize exactly one fixed eight-token text request, never a hidden generation test."""
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
     request_key: str = Field(min_length=1, max_length=128)
+    project_id: str = Field(min_length=1,max_length=64)
+    expected_price_fingerprint: str = Field(pattern=r'^[a-f0-9]{64}$')
     confirm_model_call: Literal[True]
 
 
@@ -96,6 +105,8 @@ class AgentRunRead(BaseModel):
     started_at: datetime | None
     finished_at: datetime | None
     nodes: list[AgentNodeRunRead] = Field(default_factory=list)
+    project_id: str | None = None
+    authorized_max_minor: str | None = None
 
     @field_validator('created_at', 'started_at', 'finished_at')
     @classmethod

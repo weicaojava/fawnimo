@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 import re
@@ -25,6 +26,7 @@ BILLABLE = (
     r'/api/v1/execution/projects/[^/]+/submissions$',
     r'/api/v1/shot-plans/projects/[^/]+/plans/[^/]+/shots/[^/]+/submissions$',
 )
+CLOSED_AVAILABILITY_PATHS = frozenset({'/api/v1/agent-execution/availability','/api/v1/asset-image-generation/availability'})
 
 
 def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | None = None,
@@ -149,6 +151,25 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
             await upstream.aclose()
             await client.aclose()
             raise
+        if request.method=='GET' and route.rstrip('/') in CLOSED_AVAILABILITY_PATHS and upstream.status_code==200:
+            # An operator quote can be inspected before all execution paths are
+            # qualified. Do not expose worker readiness as an open gateway gate.
+            try:
+                content=bytearray()
+                async for chunk in upstream.aiter_raw():
+                    if len(content)+len(chunk)>2*1024*1024:
+                        raise ValueError('Bounded availability response required')
+                    content.extend(chunk)
+                envelope=json.loads(content)
+                if not isinstance(envelope,dict) or not isinstance(envelope.get('data'),dict):
+                    raise ValueError('Availability response required')
+                envelope['data'].update(available=False,message='当前身份空间的收费执行尚未开放；可查看原模型费用上界与项目预算')
+                return JSONResponse(envelope,headers={'Cache-Control':'no-store'})
+            except (ValueError,TypeError):
+                raise HTTPException(502,'模型状态响应尚未确认，请刷新核对；没有提交模型调用') from None
+            finally:
+                await upstream.aclose()
+                await client.aclose()
         response_headers = {key: value for key, value in upstream.headers.items() if key.lower() in {
             'content-type', 'content-disposition', 'content-length', 'content-range', 'accept-ranges', 'etag', 'last-modified',
         }}

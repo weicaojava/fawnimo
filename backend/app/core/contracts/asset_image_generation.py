@@ -12,6 +12,9 @@ class ImageModelChoice(BaseModel):
     name: str
     configured: bool
     message: str
+    priced: bool = False
+    max_call_minor: int | None = None
+    price_fingerprint: str | None = None
 
 
 class AssetImageAvailability(BaseModel):
@@ -44,6 +47,8 @@ class AssetImageSubmit(BaseModel):
     """Authorize one image, rejecting references and hidden provider routing overrides."""
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
     request_key: str = Field(min_length=1, max_length=128)
+    project_id: str = Field(min_length=1,max_length=64)
+    expected_price_fingerprint: str = Field(pattern=r'^[a-f0-9]{64}$')
     model_id: str = Field(min_length=1, max_length=64)
     prompt: str = Field(min_length=1, max_length=8000)
     size: Literal['256x256', '512x512', '1024x1024'] = '1024x1024'
@@ -54,6 +59,7 @@ class AssetImageRetry(BaseModel):
     """Create a distinct attempt after acknowledging uncertain remote charges."""
     model_config = ConfigDict(extra='forbid')
     request_key: str = Field(min_length=1, max_length=128)
+    expected_price_fingerprint: str = Field(pattern=r'^[a-f0-9]{64}$')
     acknowledge_duplicate_charge: Literal[True]
 
 
@@ -92,6 +98,8 @@ class AssetImageJobRead(BaseModel):
     adopted_at: datetime | None
     content_url: str | None = None
     provenance: Literal['generated_asset_candidate_unqualified'] = 'generated_asset_candidate_unqualified'
+    project_id: str | None = None
+    authorized_max_minor: str | None = None
 
     @field_validator('created_at', 'finished_at', 'adopted_at')
     @classmethod

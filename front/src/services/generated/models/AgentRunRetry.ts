@@ -7,6 +7,7 @@
  */
 export type AgentRunRetry = {
     request_key: string;
+    expected_price_fingerprint: string;
     acknowledge_duplicate_charge: boolean;
 };
 

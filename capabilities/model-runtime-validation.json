@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-30",
+  "features": [
+    "F-001.04",
+    "F-006.01",
+    "F-008.02",
+    "F-009.03"
+  ],
+  "scope": "SQLite standalone Agent workflow, text connection probe and single text-image project runtime integration; fixed-identity paid gateway remains closed",
+  "related_tests_passed": 139,
+  "unique_selected_tests_passed": 435,
+  "primary_runs": [
+    {
+      "file": "regressions-and-runtime.xml",
+      "passed": 435,
+      "sha256": "a6438caf67cd0d30d8740cb0de3b1c5cf0c50955ed29d20809230f6609c3c240"
+    },
+    {
+      "file": "protocol-price.xml",
+      "passed": 1,
+      "sha256": "b8c27443a1b976a3552bffbb8b4f0a920cee5b442308ea88e18f29667dd0026c"
+    }
+  ],
+  "count_note": "All related cases and the protocol-price case are included in the final broad run. The earlier one-case run is retained and deduplicated. Independent initial, affected rerun, adversarial and worker controls are separate evidence; never add them as feature coverage.",
+  "browser_checks_passed": 42,
+  "browser_sha256": "094163f0749d7153c44d4e820af8f12dd5a19ec077da42a39100d95886a392ad",
+  "independent_runs": {
+    "initial_related_source58": {
+      "file": "independent-related-initial.xml",
+      "sha256": "b04b748241e80b2ef5330f353642f9c037d56b9170b968455d9215b63054dcf9",
+      "tests": 136,
+      "passed": 136,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "qualification": "Initial 58-file source run. It is not a rerun of all cases against final59 source.",
+      "unchanged_foundation_cases_carried_forward": 95
+    },
+    "final_affected_backend": {
+      "file": "independent-affected-final.xml",
+      "sha256": "486dabc60e3d51866ab0dece4ae0524aee756c595011ca0a697232f50fc0dd74",
+      "tests": 44,
+      "passed": 44,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "qualification": "Final frozen backend: affected Agent/image/admission/schema/price/gateway tests rerun after P2 fix."
+    },
+    "final_private_counterexamples": {
+      "file": "independent-private-closure.xml",
+      "sha256": "137fb714fc6cb84fbcc4fa98703af089982472a082e28d811ab01a3609afb537",
+      "tests": 22,
+      "passed": 22,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "qualification": "Independent test schedules and assertions, using disposable authored fixtures. Two deterministic late-response cases replace the transport seam and are not real HTTP claims."
+    }
+  },
+  "independent_review_status": "passed_for_bounded_model_runtime",
+  "independent_actual_worker_checks": {
+    "passed": 16,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "synthetic_workspaces": 3,
+    "process_starts": 6,
+    "all_processes_joined": true,
+    "supplier_http_requests": 0,
+    "scope": "Owned loopback startup/restart/readiness, direct-read refusal, private A pricing, no B host/sibling inheritance, imported C pricing/runtime pause. No paid execution test.",
+    "evidence": "private_external:stage-b-model-runtime/independent-worker-check.json",
+    "sha256": "dcbbd9c37568585461dafa27519c4ea7d97bbea812422286ba91d2b27fdb718c"
+  },
+  "independent_review_sha256": "dd2ac82e00bc78d26d04798610e771ec6e272cd73366f35fcd36c9325b132a49",
+  "independent_review_evidence": "private_external:stage-b-model-runtime/independent-review.json",
+  "metadata_review_evidence": "private_external:stage-b-model-runtime/independent-metadata-review.json",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "5867f6400107a1a397d47c3e29d05a3c2baafa3df36bdd35652591c9108c4771",
+    "backend/app/api/v1/routes/agent_execution.py": "181d9d3b4e5281b1273aa9668258e811366d501648aed6b9c003a7ec33f8a628",
+    "backend/app/api/v1/routes/asset_image_generation.py": "4184dcdc1d6f6257df40573d4282da577a8fa7c9e2bf2fb1099a648c17593912",
+    "backend/app/api/workspace_actor.py": "476f6bedb51d4d657035d5671094be88f934dc6f4e889bdb02da28d2e3e1a021",
+    "backend/app/config.py": "cf1e28276f06c6284747d275b0456f3cc4552296d539a043257c5a58f1bdf385",
+    "backend/app/controlplane/gateway.py": "29e93bbaeaf8dd82f79dbdbc5eee1260a432a046acec5d71e2cc1e73f39f1d2a",
+    "backend/app/core/contracts/agent_execution.py": "9e761fc67473d748ed5174a6a88000bef8a3713d975b758e832210aa0a1abfc3",
+    "backend/app/core/contracts/asset_image_generation.py": "56ed2a9ef9963d5dceac92f800feea776c614420f4457d3dfbe30c8d4644fd4e",
+    "backend/app/core/contracts/model_accounting.py": "ed36c35af68c3c5ada179a43b572c67cae92fa65fc6134d0af5f0efa7988d695",
+    "backend/app/core/db.py": "9d52638c997c1ab7ddbf6f8588e868604a4c0db85d5091777a89ec3abbd91079",
+    "backend/app/core/integrations/agent_text.py": "b7712da12f4997c861148c5dd3908095dfedd48e3cfc3d741106ae2db15a8b4e",
+    "backend/app/core/integrations/asset_image.py": "2ef30ae73eb575b61b741556909b9bf8a83ff06721bcfa28170b38b6fadbecf4",
+    "backend/app/core/workspace_boundary.py": "cdb6cd08ef72e54f2a97ec58516381ff4d9d2feea6b8ced3d538e95077f3c9e7",
+    "backend/app/dependencies.py": "217d21cdba0c384100b32298e2eb8613a83f235fe5ca29e428519f05265a2761",
+    "backend/app/main.py": "418ea0bf8567fba4bf487ef2fc11537706ea0d341fca827c9981a72acc3ef164",
+    "backend/app/models/agent_execution.py": "18e174ecd6be471fcebe644cb2bbad8af74705f95272fc0d55631771bb2478e1",
+    "backend/app/models/asset_image_generation.py": "2dea0017ca094a4c2eeddd1ad5d4824a1748001b6d5d4488f73b9bd5c1862911",
+    "backend/app/models/model_billing.py": "6a0cce822cd691aab1054f01bd67f54a273c2f7c1d8094382e52080e41007a34",
+    "backend/app/models/model_charge.py": "912a3e982e2e585af54c5c248a78d15f0457836a568a794ae76e59dcfb08979c",
+    "backend/app/models/model_job_charge.py": "df6b147865a4479bd1eb675fd5f7a82226874aefde6fd843011e73c16bf25f1e",
+    "backend/app/services/agent_execution.py": "34533055c5847c262fa91879869b597c5abebb1b326094feba0ece6fd32d3242",
+    "backend/app/services/asset_image_generation.py": "a58f7d2936a9762d470a8edc89fad57df30f0a63824459cfd7942d64cc850dac",
+    "backend/app/services/llm/connection_versions.py": "62bff7e7537d2b0874ff0d21f759ee2ba0fdfe659ff6b7aaa4be8a5cff3679ab",
+    "backend/app/services/worker/execution_budget.py": "de6bbad4cbe3f6ea05820df6cc7f9fff19ea5cc7e989ad95ce7b4e9693d81848",
+    "backend/app/services/worker/model_billing.py": "1ac6101d4db13627ee7c64307d334ed4b43959e11d5f395cb19bbfd21b77faec",
+    "backend/app/services/worker/model_billing_schema.py": "161c98d62b7335e129b9598cd7ba3d22fe5fe261cb6d33f735d43bcb077d60e1",
+    "backend/app/services/worker/model_charge_schema.py": "0b0029d87a717b9cc9065acba89ea5dd557339d5a0d4b505f14a94c27af92853",
+    "backend/app/services/worker/model_charges.py": "30b936038697ed8d75014e6d4adf946760fc6b40e4347064fd48d329e2cf2dd6",
+    "backend/app/services/worker/model_job_charge_schema.py": "b6796a6979241a356b3b46b3f7b0b39bcf5ff3969c5c214544e0530fc5b49727",
+    "backend/app/services/worker/model_job_charges.py": "bb79b181ffda28c4ff56df438d1251ab814e4ff04dbacd07364a3483083e5885",
+    "backend/app/services/worker/model_prices.py": "282760073c39e0134467f18e1015f20ac77b6218c85f8dff36d85ffb14f5594a",
+    "backend/app/services/worker/project_budget.py": "658ac3370b86615829f2ee4d0c4b01a53bc70100ee8f0b339faad87b5162a720",
+    "backend/run_tenant_worker.py": "7226c02e9c129980d20dfb06cea63f5462b8f310760e99461dad6e416d807a9a",
+    "backend/tests/test_agent_execution.py": "20c159f52a256cc0c3c0bab1c0ea35fd80043c4a0df21ff2e913b195e87f3e9e",
+    "backend/tests/test_agent_project_accounting.py": "d0a1438f5b612be32e1fd9ac0150750ef55f4106394efafcacbb1145e4732c8b",
+    "backend/tests/test_asset_image_generation.py": "ecf5e7bde8b4219b1ac6cca725047a3a04d0b4216ea4fa0d4139368b3cd952d9",
+    "backend/tests/test_cross_model_project_budget.py": "ebbaccb472891557d0a83dd338e1c895c6852fb3e9875fd6a26b90d4ffc3b6d4",
+    "backend/tests/test_gateway_pricing_status.py": "9b541efe076e90c2b0428e19611658c49fcc21b2982b4b1d34877827e90bdafc",
+    "backend/tests/test_image_project_accounting.py": "e5210bfdc30bc6a1a7b90d7344ea51b4db1b89064834cbf6dcb5250a77109fe4",
+    "backend/tests/test_model_job_charges.py": "d017a1c21fea84046a2eabbb0bf4cdb33c27cd23399042ead4d4dc5cac1bae2e",
+    "backend/tests/test_model_price_workspace.py": "a43497e759fd03f2fa330dfc9aae6c5d2830a313374f64bd415833ab0eeb55ac",
+    "front/openapi.json": "d2ebc7e6d75f63ab6fb60d87500ea89e73d81688cbece2a3385450810ea9bcf3",
+    "front/src/pages/aiStudio/agents/AgentRunDetails.tsx": "62993b64408d5951d46f8457b04350c61ec63077c3458483a32795fe12ce229a",
+    "front/src/pages/aiStudio/agents/AgentRunsPanel.tsx": "af4d0d3115c5f892e233385e63d81187d5cc9bfc33f7281fb8bdde2a45804bde",
+    "front/src/pages/aiStudio/assets/components/AssetImageGenerationPanel.tsx": "7ecdb8ebeb576f7a08ee5246669f4ad12efae056caa7330e303a81a988dff9c2",
+    "front/src/pages/aiStudio/models/ModelConnectionTestModal.tsx": "ae1d41686ffa250892eab17ba37877f5e8e1edebf706658341f0d4687b67b53d",
+    "front/src/pages/aiStudio/project/ModelSubmissionRecovery.tsx": "dde92a0354d4842a020f7353d82ac670404f2ab51fee2c21a2d511bdc7862e05",
+    "front/src/pages/aiStudio/project/ProjectChargePicker.tsx": "890dcf799082c7daaad04b47a34f7317bc4c70e53000417c71eff882e9286e1a",
+    "front/src/services/generated/models/AgentExecutionAvailability.ts": "426214b3ea71c7ddb497799afee0ac80682789ff1a74747f9fbf5b8f7d7557df",
+    "front/src/services/generated/models/AgentRunCreate.ts": "0567d1f02f26471fcf30fb3133d062de7056952dc4bb8ef0bc2600f350dec7a4",
+    "front/src/services/generated/models/AgentRunRead.ts": "7f8ac32eed2c1910a4d5ad84a8951a0d6323a839b635543c4b26d75f7a386905",
+    "front/src/services/generated/models/AgentRunRetry.ts": "6e82e0acc1b92c115329e9048897f9797c7523e1feb09ddd4add5c0ec39a52c8",
+    "front/src/services/generated/models/AssetImageJobRead.ts": "a2217059c73e82091eb8142f379ea115cedacaa6a7db4419194715ee4f3ac2bf",
+    "front/src/services/generated/models/AssetImageRetry.ts": "c0a72e79f8fc445b99a41d68291bbbcb137dc92c577d5322b32116fff4792cc2",
+    "front/src/services/generated/models/AssetImageSubmit.ts": "cbe3f5e0c394330ad6b6c6545bf0bc177564915a910e78568a44ec55ac9599b7",
+    "front/src/services/generated/models/ExecutionModelChoice.ts": "fb610ab93e296708785e3a34a01e8e75dd289c351cea45e1e989d828b1ee430a",
+    "front/src/services/generated/models/ImageModelChoice.ts": "256dd506a097d85230cfd03d18e2368b78fd3765e60166750cbbe1ce633c0d15",
+    "front/src/services/generated/models/ModelConnectionTestCreate.ts": "c79313206af3dd411f6e5b3e19d88f07448a22ce1fc0da2a5b9063c8fa97ffd7",
+    "front/src/services/generated/services/AgentExecutionService.ts": "b42314c0be9eb831834c5af88f6aa2e76adf00665ae3a32f3bcc27bb07e9549c"
+  },
+  "coverage": [
+    "Whole workflow/job/node/project batch admission in one SQLite writer transaction with exact actor and input replay",
+    "Trusted per-protocol quote fingerprints, connection clocks, original project and private response evidence",
+    "Prepare-once before HTTP; unknown holds survive success, failure, cancellation and lease interruption; only unsent units release",
+    "Explicit retry reserves a new attempt in original project; image adoption creates no request or reservation",
+    "Separate three-minor probe policy and cross-model same-project capacity exercised with self-authored loopback servers",
+    "Immutable job/node identity and replacement guards; bounded fixed-workspace private price files without host inheritance",
+    "Generated UI project search, complete reservation confirmation, manual same-page recovery after accepted-response loss",
+    "Fixed gateway metadata projects unavailable and paid POST remains503"
+  ],
+  "closed_independent_finding_categories": [
+    "Incomplete native financial-plan linkage could dispatch a prefix of an Agent workflow; full-plan SQL and scanner checks now reject before HTTP"
+  ],
+  "closed_primary_review_findings": [
+    "Accepted-response recovery was blocked by an exhausted project; independent frozen-action recovery now covers text, probe, image and both retry paths"
+  ],
+  "frontend": {
+    "openapi_regenerated": true,
+    "typescript_passed": true,
+    "production_build_passed": true
+  },
+  "runtime_price_registry_connected": true,
+  "connected_protocols": [
+    "agent_text",
+    "model_connection_test",
+    "asset_image"
+  ],
+  "all_model_runtime_admission_connected": false,
+  "paid_gateway_enabled": false,
+  "provider_bill_verified": false,
+  "full_execution_isolation_qualified": false,
+  "model_quality_qualified": false,
+  "complete_film_qualified": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "original_workspace_writes": 0,
+  "limitations": [
+    "All prices, bills, accounts, images and protocol outputs in this stage are self-authored fixtures.",
+    "Gateway metadata uses a loopback metadata stub; it does not qualify actual paid A/B worker execution.",
+    "Vision/ASR/native-video common bill wiring and full fixed-identity paid isolation remain incomplete.",
+    "Uncertain admission identity survives within the same mounted business page, not a reload, leaving that scope or another device.",
+    "No supplier statement authentication, real model quality, full-film or public hosting acceptance is granted."
+  ]
+}

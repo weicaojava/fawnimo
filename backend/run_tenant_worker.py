@@ -76,6 +76,13 @@ def configure_worker(message: dict) -> tuple[Path, str, int]:
         if not probe_path.is_file():
             raise ValueError("Media executable must be a file")
         probe = str(probe_path)
+    price_file=None
+    if marked and not imported:
+        private=directory/'private'
+        candidate=private/'model-prices.json'
+        if private.resolve()!=private or candidate.resolve()!=candidate:
+            raise ValueError('Workspace model pricing cannot redirect')
+        price_file=str(candidate)
     # The second allowlist protects direct launcher use as well as gateway spawn.
     # It prevents future inherited credential names from bypassing a denylist.
     kept = {key: value for key, value in os.environ.items() if key.upper() in SAFE_ENVIRONMENT_KEYS}
@@ -85,6 +92,7 @@ def configure_worker(message: dict) -> tuple[Path, str, int]:
         "JELLYFISH_SKIP_ENV_FILE": "1", "WORKSPACE_ID": workspace_id,
         "WORKSPACE_INTERNAL_TOKEN": token,
         "WORKSPACE_RUNTIME_LOCKED": 'true' if imported else 'false',
+        "MODEL_PRICE_CONFIG": price_file or '',
         "DATABASE_URL": "sqlite+aiosqlite:///" + database.as_posix(),
         "LOCAL_STORAGE_ROOT": str(directory / "files"), "STORAGE_BACKEND": "local",
         "PRODUCTION_MEDIA_ROOT": str(directory / "media"),

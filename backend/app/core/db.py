@@ -108,6 +108,7 @@ async def init_db() -> None:
     import app.models.provider_connection_version  # noqa: F401
     import app.models.model_charge  # noqa: F401
     import app.models.model_billing  # noqa: F401
+    import app.models.model_job_charge  # noqa: F401
 
     async with engine.begin() as conn:
         if engine.dialect.name=='sqlite':
@@ -152,6 +153,8 @@ async def init_db() -> None:
         await migrate_model_charges(engine)
         from app.services.worker.model_billing_schema import migrate_model_billing
         await migrate_model_billing(engine)
+        from app.services.worker.model_job_charge_schema import migrate_model_job_charges
+        await migrate_model_job_charges(engine)
 
 
 async def close_db() -> None:
