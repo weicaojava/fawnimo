@@ -73,6 +73,9 @@ class WorkspaceWorkers:
         """Start at most one fixed-scope process, fenced by its private readiness token."""
         if not WORKSPACE.fullmatch(workspace_id):
             raise HTTPException(404, '工作空间不存在')
+        from app.controlplane.migration import migration_pending
+        if await asyncio.to_thread(migration_pending, self.root, workspace_id):
+            raise HTTPException(503, '旧数据迁移尚未完成，请由维护者核对原迁移请求')
         async with self.lock:
             # Reap all dead entries, without interrupting any live workspace's jobs.
             for stale_id, stale in list(self.workers.items()):

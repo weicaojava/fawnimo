@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from contextlib import closing
 import hmac
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -148,6 +149,24 @@ def prepare_workspace_boundary(database: Path, workspace_id: str, *, allow_initi
     Initializing an unmarked database is limited to empty business tables. This
     function is deliberately never called by the existing local launcher.
     """
+    _bind_workspace(database, workspace_id, allow_initialize=allow_initialize)
+
+
+def claim_legacy_workspace(database: Path, workspace_id: str, *, expected_sha256: str) -> None:
+    """Bind a verified offline copy, never exposed by registration or normal worker startup.
+
+    The maintenance caller owns the root/worker leases, schema migration and
+    source receipt checks. An exact database digest fences accidental path reuse.
+    """
+    with Path(database).open('rb') as stream:
+        actual = hashlib.file_digest(stream, 'sha256').hexdigest()
+    if not re.fullmatch(r'[a-f0-9]{64}', expected_sha256) or actual != expected_sha256:
+        raise ValueError('Offline migration database does not match its verified digest')
+    _bind_workspace(database, workspace_id, allow_initialize=True, offline_claim=True)
+
+
+def _bind_workspace(database: Path, workspace_id: str, *, allow_initialize: bool, offline_claim: bool = False) -> None:
+    """Share fixed-owner guards while keeping normal initialization restricted to empty data."""
     validate_workspace_id(workspace_id)
     database = Path(database).resolve(strict=True)
     with closing(sqlite3.connect(database.as_uri() + "?mode=rw", uri=True)) as connection:
@@ -158,7 +177,13 @@ def prepare_workspace_boundary(database: Path, workspace_id: str, *, allow_initi
             if not _read_marker(connection, workspace_id):
                 if not allow_initialize:
                     raise ValueError("Workspace database is not bound to an identity")
-                _require_empty_unclaimed(connection)
+                if not offline_claim:
+                    _require_empty_unclaimed(connection)
+                else:
+                    # A previously owned database cannot be relabelled by this migration.
+                    for table in _tables(connection):
+                        if any(row[1] == 'workspace_id' for row in connection.execute(f'PRAGMA table_info({_identifier(table)})')):
+                            raise ValueError('Offline claim requires an unowned legacy database')
                 connection.execute(
                     "CREATE TABLE workspace_identity (singleton INTEGER PRIMARY KEY CHECK(singleton=1),"
                     f"workspace_id TEXT NOT NULL UNIQUE CHECK(workspace_id='{workspace_id}'),"
@@ -175,6 +200,14 @@ def prepare_workspace_boundary(database: Path, workspace_id: str, *, allow_initi
                 _check_columns(connection, workspace_id, table)
                 for name, sql in _guard_sql(workspace_id, table).items():
                     _check_trigger(connection, name, sql, create=True)
+            if offline_claim:
+                # ORM lease tables inherit Base.workspace_id too, although the
+                # normal boundary treats their concurrency state as infrastructure.
+                for table in ('execution_slots', 'edit_export_slot', 'transition_export_slot'):
+                    if connection.execute('SELECT 1 FROM sqlite_master WHERE type=\'table\' AND name=?', (table,)).fetchone():
+                        columns = {row[1] for row in connection.execute(f'PRAGMA table_info({_identifier(table)})')}
+                        if 'workspace_id' not in columns:
+                            connection.execute(f'ALTER TABLE {_identifier(table)} ADD COLUMN workspace_id TEXT NOT NULL DEFAULT \'{workspace_id}\' CHECK(workspace_id=\'{workspace_id}\')')
             for name, sql in _guard_sql(workspace_id, MARKER_TABLE).items():
                 _check_trigger(connection, name, sql, create=True)
             if connection.execute("PRAGMA foreign_key_check").fetchone():

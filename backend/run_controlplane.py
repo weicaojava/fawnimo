@@ -25,6 +25,13 @@ def main():
         parser.error('Insecure cookies are available only on a loopback listener')
     if not 1 <= args.port <= 65535:
         parser.error('Port must be between 1 and 65535')
+    from app.controlplane.maintenance import ProcessLease
+    with ProcessLease(args.root.resolve()/'.maintenance.lock'):
+        run_selected(args, parser)
+
+
+def run_selected(args, parser):
+    """Run provisioning or the gateway only while its root cannot be maintained concurrently."""
     if args.provision_account:
         if not args.credential_file or args.credential_file.exists():
             parser.error('Provisioning requires a new private --credential-file')

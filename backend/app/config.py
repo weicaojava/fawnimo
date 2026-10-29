@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     # A tenant process is permanently bound to one server-owned database and root.
     workspace_id: str | None = Field(None, pattern=r'^ws_[a-f0-9]{32}$')
     workspace_internal_token: str | None = None
+    workspace_runtime_locked: bool = False
 
     # Redis / Celery Broker
     redis_host: str = "localhost"

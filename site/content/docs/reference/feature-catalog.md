@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-10-29.6`，更新日期：2026-10-29。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-10-29.7`，更新日期：2026-10-29。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-预算已按用户最新要求调整为单项目独立上限、预留、结算和明细，工作空间总上限停用；系统设置不再展示预算。其他模型费用、真实账单、旧数据迁移、完整示例及公网尚未完成。
+项目独立预算已保留；新增离线旧数据stage/明确owner认领/独立回退，原9工程及全部本地文件在私有副本演练通过，原正式入口未切换。完整隔离矩阵、其他模型费用、实际账单、完整成片和公网仍待完成。
 
-本轮按项目预算修正通过122项本机后端回归和25项实际浏览器检查，独立审查包含旧总预算规则移除与真实worker升级。不同证据有重叠，不能相加；真实账单、模型、成片和公网资格保持未通过。
+新增迁移针对性与既有隔离/预算回归、独立崩溃/执行锁实测及原数据只读演练已记录。不同测试轮次/独立检查有重叠，不相加。迁移后台扫描器暂停且新导出不接受，模型/账单/成片/公网资格未提升。
 
 ## F-001 身份与工作空间
 
@@ -27,7 +27,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | [F-001.02 首次登录幂等建立个人空间与成员权限](#f-001-02) | 已实现 | 本阶段已验证 | 不适用 | 仅本机 | /projects · 受信账号建立时原子创建个人空间，登录读取现有成员关系 |
 | [F-001.03 业务资源及嵌套引用隔离](#f-001-03) | 部分实现 | 未验收 | 不适用 | 仅本机 | /projects · 新18000固定空间网关→私有worker |
 | [F-001.04 任务、模型连接、凭据、预算与执行隔离](#f-001-04) | 部分实现 | 未验收 | 不适用 | 仅本机 | /projects · 新18000私有任务、配置与固定执行进程 |
-| [F-001.05 旧数据认领、迁移与回退](#f-001-05) | 部分实现 | 未验收 | 不适用 | 仅本机 | CLI backend/run_tenant_worker.py · 新空空间初始化与旧数据拒绝自动认领 |
+| [F-001.05 旧数据认领、迁移与回退](#f-001-05) | 已实现 | 本阶段已验证 | 不适用 | 仅本机 | CLI backend/migrate_workspace.py · 维护者离线 stage / verify / claim / restore；无公开认领接口 |
 | [F-001.06 用户资料、语言与主题归属](#f-001-06) | 已实现 | 本阶段已验证 | 不适用 | 仅本机 | /settings · 用户资料、语言、主题；多空间成员可切换 |
 
 <a id="f-001-01"></a>
@@ -92,11 +92,11 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 需求：R-002, R-007；验收阶段：B；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
 
-代码：[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`backend/run_tenant_worker.py`](../../../../backend/run_tenant_worker.py)、[`backend/run_controlplane.py`](../../../../backend/run_controlplane.py)。
+代码：[`backend/migrate_workspace.py`](../../../../backend/migrate_workspace.py)、[`backend/app/controlplane/migration.py`](../../../../backend/app/controlplane/migration.py)、[`backend/app/controlplane/maintenance.py`](../../../../backend/app/controlplane/maintenance.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`backend/run_tenant_worker.py`](../../../../backend/run_tenant_worker.py)、[`backend/app/main.py`](../../../../backend/app/main.py)。
 
-限制：非空未认领数据库启动拒绝，防止首个注册者获得旧资料；尚无受信旧数据认领迁移/回退工具及真实迁移演练；原8工程、原片与编辑未迁移，不能将新空空间初始化算作旧数据迁移完成。
+限制：仅维护者本机离线工具，不是公开注册认领；已在独立控制根完成真实原数据副本演练，正式用户入口/账号尚未切换。；只支持完整本地SQLite/media/files；缺失/外部存储、已绑定空间或已有目标目录拒绝，不提供合并和跨空间重标。；导入后台任务全部保持执行锁，新导出也拒绝；手工查看/编辑可用，当前没有网页解锁入口，不能当成恢复收费或全部隔离通过。；原服务及旧版本需维护者明确停写/停机；文件fsync和支持平台目录fsync不授予底层存储断电保证。。
 
-验证依据：`EV-IDENTITY-CHECKPOINT`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-WORKSPACE-MIGRATION`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1071,6 +1071,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-FAWNIMO-PUBLICATION | software | repository · `capabilities/published-ci.json` | GitHub公开源码与精确提交的只读CI：59项后端测试、23项登记检查、前端类型及构建通过；旧发布job实际跳过，不授予应用公网部署资格。 |
 | EV-WORKSPACE-BUDGET | historical_software | repository · `capabilities/workspace-budget-validation.json` | 已停用总预算方案的历史软件证据；用户最新要求改为单项目预算，旧总上限不再生效，不能作为当前预算验收证据。 |
 | EV-PROJECT-BUDGET | software | repository · `capabilities/project-budget-validation.json` | 项目独立预算与旧总预算停用迁移的软件验收：122项本机后端及25项实际浏览器检查；各项目不占彼此额度，原预留与历史收据保留，没有真实供应商账单/模型或公网资格。 |
+| EV-WORKSPACE-MIGRATION | software | repository · `capabilities/workspace-migration-validation.json` | 离线stage/明确owner claim/独立restore、原业务和文件保留、执行锁及进程中断恢复的软件证据；原9工程/29文件记录/95文件树副本演练和11浏览器检查通过，原库未改且正式账号未切换。独立检查重叠不累加，不授予模型/成片/公网资格。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

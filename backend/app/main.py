@@ -123,13 +123,16 @@ async def lifespan(app: FastAPI):
         enabled=settings.video_understanding_enabled, allow_remote=settings.video_understanding_allow_remote)
     app.state.understanding_worker = understanding_worker
     try:
-        if runtime is not None:await runtime.start()
-        await agent_execution_runtime.start()
-        await asset_image_generation_runtime.start()
-        await understanding_worker.start()
-        if reverse_scanner is not None:await reverse_scanner.start()
-        if local_export_worker is not None:await local_export_worker.start()
-        if transition_export_worker is not None:await transition_export_worker.start()
+        # Imported historical queues retain their original records without
+        # automatically replaying model calls, decoders or export work.
+        if not settings.workspace_runtime_locked:
+            if runtime is not None:await runtime.start()
+            await agent_execution_runtime.start()
+            await asset_image_generation_runtime.start()
+            await understanding_worker.start()
+            if reverse_scanner is not None:await reverse_scanner.start()
+            if local_export_worker is not None:await local_export_worker.start()
+            if transition_export_worker is not None:await transition_export_worker.start()
         yield
     finally:
         await asset_image_generation_runtime.stop()

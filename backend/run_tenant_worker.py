@@ -10,6 +10,8 @@ import json
 import os
 from pathlib import Path
 import sys
+import sqlite3
+from contextlib import closing
 
 from app.core.workspace_boundary import (
     assert_workspace_boundary, preflight_workspace_boundary,
@@ -48,6 +50,14 @@ def configure_worker(message: dict) -> tuple[Path, str, int]:
         if target.resolve() != target:
             raise ValueError("Workspace storage path cannot redirect to another path")
     marked = preflight_workspace_boundary(database, workspace_id)
+    imported = False
+    if marked:
+        with closing(sqlite3.connect(database.as_uri()+'?mode=ro', uri=True)) as db:
+            if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='workspace_import'").fetchone():
+                rows = db.execute('SELECT id,runtime_locked,workspace_id FROM workspace_import').fetchall()
+                if rows != [(1, 1, workspace_id)]:
+                    raise ValueError('Imported workspace execution lock is invalid')
+                imported = True
     if not marked:
         for item in directory.iterdir():
             # Only empty storage directories and SQLite's own startup artifacts
@@ -74,6 +84,7 @@ def configure_worker(message: dict) -> tuple[Path, str, int]:
     os.environ.update({
         "JELLYFISH_SKIP_ENV_FILE": "1", "WORKSPACE_ID": workspace_id,
         "WORKSPACE_INTERNAL_TOKEN": token,
+        "WORKSPACE_RUNTIME_LOCKED": 'true' if imported else 'false',
         "DATABASE_URL": "sqlite+aiosqlite:///" + database.as_posix(),
         "LOCAL_STORAGE_ROOT": str(directory / "files"), "STORAGE_BACKEND": "local",
         "PRODUCTION_MEDIA_ROOT": str(directory / "media"),
@@ -112,8 +123,14 @@ def main() -> None:
         raise ValueError("Private workspace startup message missing or oversized")
     # The parent assigns its Job Object or process group before closing stdin.
     message = json.loads(payload)
-    database, workspace_id, port = configure_worker(message)
-    asyncio.run(serve_worker(database, workspace_id, port))
+    from app.controlplane.maintenance import ProcessLease
+    if not isinstance(message, dict) or not isinstance(message.get('root'), str) or not Path(message['root']).is_absolute():
+        raise ValueError('Private workspace root must be absolute')
+    workspace_id = validate_workspace_id(message.get('workspace_id'))
+    root = Path(message['root']).resolve()
+    with ProcessLease(root / '.leases' / (workspace_id+'.lock')):
+        database, workspace_id, port = configure_worker(message)
+        asyncio.run(serve_worker(database, workspace_id, port))
 
 
 if __name__ == "__main__":

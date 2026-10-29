@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-10-29.6",
+  "register_version": "2026-10-29.7",
   "updated_at": "2026-10-29",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -286,6 +286,16 @@
         "F-007.02",
         "F-009.03"
       ]
+    },
+    {
+      "id": "EV-WORKSPACE-MIGRATION",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/workspace-migration-validation.json",
+      "scope": "离线stage/明确owner claim/独立restore、原业务和文件保留、执行锁及进程中断恢复的软件证据；原9工程/29文件记录/95文件树副本演练和11浏览器检查通过，原库未改且正式账号未切换。独立检查重叠不累加，不授予模型/成片/公网资格。",
+      "features": [
+        "F-001.05"
+      ]
     }
   ],
   "features": [
@@ -520,12 +530,13 @@
         "R-002",
         "R-007"
       ],
-      "implementation": "partial",
+      "implementation": "implemented",
       "validation": {
-        "software": "not_verified",
+        "software": "verified",
         "model": "not_required",
         "evidence": [
-          "EV-IDENTITY-CHECKPOINT"
+          "EV-IDENTITY-CHECKPOINT",
+          "EV-WORKSPACE-MIGRATION"
         ]
       },
       "deployment": {
@@ -537,25 +548,32 @@
         "release": null
       },
       "entry": {
-        "route": "CLI backend/run_tenant_worker.py",
-        "label": "新空空间初始化与旧数据拒绝自动认领"
+        "route": "CLI backend/migrate_workspace.py",
+        "label": "维护者离线 stage / verify / claim / restore；无公开认领接口"
       },
       "code": [
+        "backend/migrate_workspace.py",
+        "backend/app/controlplane/migration.py",
+        "backend/app/controlplane/maintenance.py",
         "backend/app/core/workspace_boundary.py",
         "backend/run_tenant_worker.py",
-        "backend/run_controlplane.py"
+        "backend/app/main.py"
       ],
       "tests": [
-        "backend/tests/test_workspace_boundary.py"
+        "backend/tests/test_workspace_migration.py",
+        "backend/tests/test_workspace_boundary.py",
+        "backend/tests/test_workspace_launcher.py"
       ],
       "acceptance": [
-        "在一致备份副本迁移，验证原8工程与7镜21提示词、收据和来源hash保留",
-        "旧数据归固定待认领空间，受信认领且不能被首个任意注册者取得；恢复到独立路径验证回退"
+        "完整本地SQLite/media/files一致副本，校验源变化、所有业务原列、文件hash和引用；原9工程、7个pending镜头、21模板及来源收据保留。",
+        "必须明确有效owner和从未初始化的目标目录，持久认领journal与根/worker OS锁阻止并发或中断后误建空空间；同意图恢复不覆盖新编辑。",
+        "导入旧任务不自动恢复，未知费用保持；原包恢复到独立全新目录，不覆盖原入口或迁入后的新编辑。"
       ],
       "limits": [
-        "非空未认领数据库启动拒绝，防止首个注册者获得旧资料",
-        "尚无受信旧数据认领迁移/回退工具及真实迁移演练",
-        "原8工程、原片与编辑未迁移，不能将新空空间初始化算作旧数据迁移完成"
+        "仅维护者本机离线工具，不是公开注册认领；已在独立控制根完成真实原数据副本演练，正式用户入口/账号尚未切换。",
+        "只支持完整本地SQLite/media/files；缺失/外部存储、已绑定空间或已有目标目录拒绝，不提供合并和跨空间重标。",
+        "导入后台任务全部保持执行锁，新导出也拒绝；手工查看/编辑可用，当前没有网页解锁入口，不能当成恢复收费或全部隔离通过。",
+        "原服务及旧版本需维护者明确停写/停机；文件fsync和支持平台目录fsync不授予底层存储断电保证。"
       ],
       "depends_on": [
         "F-001.02"
@@ -3424,7 +3442,7 @@
         "迁移/备份/回退报告",
         "原数据完整性与后台执行绑定证据"
       ],
-      "progress": "身份、固定空间进程、A/B体验及项目独立视频预算已通过本机软件验证。工作空间总上限按用户要求停用并保留历史；其他模型费用、实际账单、完整隔离及旧数据迁移回退仍未完成。"
+      "progress": "身份、固定空间进程、项目预算及离线旧数据认领/回退工具已通过本机软件验证；真实原数据仅在私有副本演练，原入口未切换。完整资源/嵌套引用隔离矩阵、其他模型费用和实际账单仍未完成，B整体保持推进。"
     },
     {
       "id": "C",
@@ -3514,7 +3532,7 @@
         "公网浏览器与隔离/恢复报告",
         "功能最终状态清单"
       ],
-      "progress": "Fawnimo公开源码已推送，精确提交的GitHub CI通过59项后端、23项登记检查与前端构建；旧上游镜像/Pages工作流实际跳过。应用稳定/预览公网部署尚未完成，部署资源与域名仍待明确。"
+      "progress": "Fawnimo源码与只读CI已公开，旧上游镜像/Pages发布实际跳过；源码发布不等于应用部署。稳定/预览公网运行、部署资源和域名仍未完成。"
     }
   ],
   "external_inputs": [
@@ -3557,11 +3575,11 @@
     "缺失检查、旧PR版本、独立审核失败或费用/资源超限不晋级；失败有明确结果与有限恢复。"
   ],
   "current_state": {
-    "overview": "预算已按用户最新要求调整为单项目独立上限、预留、结算和明细，工作空间总上限停用；系统设置不再展示预算。其他模型费用、真实账单、旧数据迁移、完整示例及公网尚未完成。",
+    "overview": "项目独立预算已保留；新增离线旧数据stage/明确owner认领/独立回退，原9工程及全部本地文件在私有副本演练通过，原正式入口未切换。完整隔离矩阵、其他模型费用、实际账单、完整成片和公网仍待完成。",
     "acceptance_setup": "使用独立验收数据和本机A/B账号。项目大厅可建立/重置纯自作7镜、21条可编辑提示词示例；每次重建新工程保留旧编辑，同一请求恢复返回原结果。本机入口与账号交付已可复验，尚无公网平台。",
-    "readme_status": "已有身份、个人空间、A/B账号与可重建文字示例。预算按项目独立管理，通过122项本机后端回归和25项浏览器检查，旧总预算已停用且历史保留。其他模型费用、供应商对账、迁移回退、完整示例、社区研发及公网部署仍待完成。",
-    "verification_checkpoint": "本轮按项目预算修正通过122项本机后端回归和25项实际浏览器检查，独立审查包含旧总预算规则移除与真实worker升级。不同证据有重叠，不能相加；真实账单、模型、成片和公网资格保持未通过。",
-    "architecture_summary": "固定空间worker提供数据隔离，预算由每个项目独立管理；写事务/CAS限制本项目预留，记录项目和操作者修改收据。旧空间控制仅归档，未知费用保持原预留，收费模型尚未启用。"
+    "readme_status": "已有身份、个人空间、A/B文字示例与项目独立预算；离线迁移工具完成原9工程/29文件记录/95本地文件副本演练，原7镜pending及21模板保留，11项浏览器检查通过。原入口未切换，完整隔离矩阵、实际账单、社区研发、成片和公网部署仍待完成。",
+    "verification_checkpoint": "新增迁移针对性与既有隔离/预算回归、独立崩溃/执行锁实测及原数据只读演练已记录。不同测试轮次/独立检查有重叠，不相加。迁移后台扫描器暂停且新导出不接受，模型/账单/成片/公网资格未提升。",
+    "architecture_summary": "维护CLI先制作私有完整备份包，再明确绑定到有效owner的全新未初始化空间；OS锁和持久journal限制并发与中断，导入执行锁保留旧任务/未知预留。回退只恢复独立新路径，普通注册不能认领旧资料。"
   },
   "brand": {
     "name": "Fawnimo",

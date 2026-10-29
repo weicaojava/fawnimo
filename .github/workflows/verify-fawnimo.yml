@@ -45,6 +45,7 @@ jobs:
           tests/test_project_discovery.py tests/test_file_ranges.py
           tests/test_workspace_launcher.py tests/test_response_commit_order.py
           tests/test_project_budget.py tests/test_execution_budget.py
+          tests/test_workspace_migration.py
           tests/test_workspace_video_runtime.py tests/test_execution_admission.py
           tests/test_execution_api.py tests/test_execution_accounting.py
 

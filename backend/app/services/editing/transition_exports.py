@@ -26,7 +26,12 @@ LOGGER = logging.getLogger(__name__)
 
 def enabled(ffmpeg: str) -> bool:
     """A local trusted tool can be enabled independently of every model account."""
-    return settings.editing_export_enabled and bool(ffmpeg) and Path(ffmpeg).is_file()
+    return not getattr(settings,'workspace_runtime_locked',False) and settings.editing_export_enabled and bool(ffmpeg) and Path(ffmpeg).is_file()
+
+
+def disabled_reason() -> str:
+    """Expose the import execution lock instead of accepting an unserviceable render queue."""
+    return '迁入空间的后台执行已暂停，不能新建导出任务；已有记录仍保留' if getattr(settings,'workspace_runtime_locked',False) else '尚未启用本地导出或配置受信媒体工具'
 
 
 async def owned_job(db, project_id: str, identifier: str):
@@ -85,7 +90,7 @@ async def list_exports(factory, project_id: str, chapter_id: str, ffmpeg: str) -
         jobs = (await db.execute(select(EditExportJob).where(EditExportJob.project_id == project_id, EditExportJob.chapter_id == chapter_id).order_by(EditExportJob.created_at.desc()).limit(101))).scalars().all()
         if len(jobs) > 100:
             raise HTTPException(409, '导出历史超过本版100条上限，请分章管理')
-        return {'enabled': enabled(ffmpeg), 'reason': '' if enabled(ffmpeg) else '尚未启用本地导出或配置受信媒体工具', 'exports': [await job_view(db, job) for job in jobs]}
+        return {'enabled': enabled(ffmpeg), 'reason': '' if enabled(ffmpeg) else disabled_reason(), 'exports': [await job_view(db, job) for job in jobs]}
 
 
 async def replay(db, project_id: str, publication, request_key: str):
@@ -110,7 +115,7 @@ async def create_export(factory, project_id: str, publication_id: str, request_k
         if previous is not None:
             return await job_view(db, previous)
         if not enabled(ffmpeg):
-            raise HTTPException(503, '尚未启用本地导出或配置受信媒体工具')
+            raise HTTPException(503, disabled_reason())
         payload_hash = publication.content_hash
         payload = copy.deepcopy(publication.payload)
     proof = await verify_publication_sources(factory, project_id, payload)

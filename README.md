@@ -11,7 +11,7 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 <!-- features:begin -->
 ## 当前开发与验收状态
 
-本分支继续开发开源AI短视频制作工具，登记15个功能区、64项子功能：42项已实现、9项部分实现、13项待实现。实现、软件验证、真实模型验证和部署分别记录，数量不表示全部验收通过。
+本分支继续开发开源AI短视频制作工具，登记15个功能区、64项子功能：43项已实现、8项部分实现、13项待实现。实现、软件验证、真实模型验证和部署分别记录，数量不表示全部验收通过。
 
 - [功能总表与代码/入口/验证矩阵](site/content/docs/reference/feature-catalog.md)
 - [逐项验收指南](site/content/docs/guide/feature-acceptance.md)
@@ -19,7 +19,7 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 - [公开路线图](site/content/docs/plans/public-roadmap.md)
 - [单一功能登记源](capabilities/features.json)，检查/生成：`python scripts/features.py --check` / `python scripts/features.py`
 
-已有身份、个人空间、A/B账号与可重建文字示例。预算按项目独立管理，通过122项本机后端回归和25项浏览器检查，旧总预算已停用且历史保留。其他模型费用、供应商对账、迁移回退、完整示例、社区研发及公网部署仍待完成。本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
+已有身份、个人空间、A/B文字示例与项目独立预算；离线迁移工具完成原9工程/29文件记录/95本地文件副本演练，原7镜pending及21模板保留，11项浏览器检查通过。原入口未切换，完整隔离矩阵、实际账单、社区研发、成片和公网部署仍待完成。本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
 
 代码保留并基于[Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish)继续开发，遵循[现有许可证](LICENSE)，来源和发布边界见[UPSTREAM.md](UPSTREAM.md)。现有代码包含上游、既有改动和AI辅助开发成果，不能宣称全部从零AI原创。仓库里的上游Issues、Actions、Pages与镜像链接属于上游，不是已交付的自有平台。
 <!-- features:end -->
@@ -29,10 +29,10 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 - 项目、章节、分镜、演员、服装、场景、道具、提示词和文件的持久编辑。
 - 独立身份入口、个人空间和固定空间工作进程；旧本地模式保留。
 - 可建立并重新建立的纯自作文字示例，含7镜、21条可编辑提示词，保留旧工程与编辑。
-- 有界顺序文本Agent、图片候选与采用、视频理解候选、视频执行及工程预算等软件协议；新身份空间的生成提交在空间预算验收前保持关闭。
+- 有界顺序文本Agent、图片候选与采用、视频理解候选、视频执行及项目独立预算等软件协议；其他模型费用及专用配置尚未验收，新身份空间收费提交保持关闭。
 - 不可变剪辑版本、硬切与交叉淡化、本地FFmpeg渲染和字幕导出；适用范围及验证证据以功能登记为准。
 
-实现、软件验证、真实模型质量和部署是不同状态。当前完整空间隔离矩阵、空间预算、旧数据迁移回退、参考生成与声音扩展、完整成片、社区自动研发和公网稳定/预览平台仍有待完成事项。
+实现、软件验证、真实模型质量和部署是不同状态。项目独立预算和离线迁移/回退工具已实现并验证；完整隔离矩阵、正式账号切换、其他模型费用、参考生成与声音扩展、完整成片、社区自动研发和公网稳定/预览平台仍待完成。
 
 ## 本机身份体验
 
@@ -45,7 +45,7 @@ python run_controlplane.py --root ./local-identity --host 127.0.0.1 --port 18000
 
 浏览器访问 `http://127.0.0.1:18000/projects`。`--probe` 必须替换成受信FFmpeg的绝对路径。示例 `local-identity/` 已排除版本控制，正式数据根建议放在仓库之外。公网部署保持HTTPS和默认Secure Cookie；纯HTTP参数仅用于回环地址。
 
-体验账号由维护者离线建立，密码仅写入指定的新私有文件：
+体验账号由维护者离线建立，密码仅写入指定的新私有文件。请在启动网关前创建；同一控制根已有网关运行时需先停机，维护锁会拒绝并发操作：
 
 ```sh
 python run_controlplane.py --root ./local-identity --provision-account demo-a --credential-file /private/path/demo-a.json
@@ -53,7 +53,7 @@ python run_controlplane.py --root ./local-identity --provision-account demo-a --
 
 个人空间在建立账号时一并创建。账号文件不能进入公开仓库。示例重建会创建全新工程，保留旧示例与编辑，不调用模型；更多操作见[身份与空间体验指南](site/content/docs/guide/workspace-experience.md)。
 
-旧本地数据继续使用原入口。当前没有通过验收的旧数据认领/迁移工具，不要把旧数据库直接放入新账号目录。
+旧本地数据继续使用原入口。[离线迁移工具](site/content/docs/guide/workspace-migration.md)已完成原数据私有副本演练；正式迁入必须明确owner及从未初始化的目标空间，原入口尚未切换。不要手工覆盖新账号目录。
 
 ## 自行部署
 
