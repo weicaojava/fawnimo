@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-29",
+  "features": [
+    "F-001.03",
+    "F-001.04"
+  ],
+  "scope": "Listed local business-resource, nested-reference and retained-history read authorization; not exhaustive every-endpoint or paid-execution qualification",
+  "matrix_checks_passed": 161,
+  "browser_checks_passed": 58,
+  "related_regressions_passed": 55,
+  "independent_supplemental_checks_passed": 38,
+  "gateway_test_mode": "Real ASGI gateway via TestClient; two real independently scoped loopback worker processes",
+  "resource_families": [
+    "project",
+    "chapter",
+    "shot",
+    "shot_detail",
+    "actor",
+    "character",
+    "costume",
+    "scene",
+    "prop",
+    "prompt",
+    "agent",
+    "provider",
+    "model",
+    "file"
+  ],
+  "coverage": [
+    "Owned read/write/search/delete positive controls; foreign CRUD and exact owner preservation",
+    "Nested parent/entity/template/provider/file usage/slot rejection with rollback and failed-upload orphan check",
+    "Project-owned immutable versions, media, preparation drafts and structure receipts",
+    "Actual PNG/range/native identity scope and all-or-nothing ZIP",
+    "Agent/chapter history and restore parent guards; project budget and paged entries",
+    "Retained synthetic failed Agent/image task detail and terminal cancellation; credential-free summaries",
+    "Retained v1/v2 export history; exact MP4/SRT/VTT/ZIP bytes and matching space/project",
+    "Real browser lobby/model settings/project budget/media; old-tab scope after shared-cookie identity change"
+  ],
+  "fixture_limits": [
+    "All accounts/content/media are synthetic; no original user workspace or private clip is opened.",
+    "Ready export history is directly seeded with FFmpeg-authored bytes; freeze/render pipeline is not qualified by this test.",
+    "Failed task cancellation is terminal idempotency; paid retry/callback 503 proves only the closed gate.",
+    "Legacy missing-resource deletes may return the identical empty success; actual owner data is rechecked.",
+    "No OS-user/container/public-security or exhaustive every-endpoint claim."
+  ],
+  "frontend_build": {
+    "command": "pnpm run build",
+    "typescript_passed": true,
+    "production_build_passed": true,
+    "change": "Restore validated model-management tab query on direct task return and browser navigation"
+  },
+  "openapi_semantically_changed": false,
+  "original_workspace_writes": 0,
+  "external_model_calls": 0,
+  "paid_gateway_enabled": false,
+  "provider_bill_verified": false,
+  "full_execution_isolation_qualified": false,
+  "complete_film_qualified": false,
+  "model_quality_qualified": false,
+  "public_deployment_verified": false,
+  "count_note": "Each stage and independent supplemental run is reported separately; historical or repeated runs are not added together.",
+  "source_sha256_lf_normalized": {
+    "backend/tests/test_workspace_resource_matrix.py": "625d332b36e1ed95c03b7e1c5becf68fe37dfaa72d0c230c85ecfe582a934c5f",
+    "front/src/pages/aiStudio/models/ModelManagement.tsx": "ba451e866a3cf72a073428c8bbfae0f756b3b467795a14f0316878ad982a8e8e",
+    ".github/workflows/verify-fawnimo.yml": "69140937901ba1f27604216b0c6f0eac5511fa563e9b6f72923ade43b1f3f238",
+    "backend/app/controlplane/gateway.py": "d9398f4133ba154dd120c1040f78553470e97fc312829f754c1c310395cc493c",
+    "backend/app/controlplane/workers.py": "c4d63ed03792f4de52b26dffe46ed7a8707e92483634f3e0bf4d632807598e79",
+    "backend/app/core/workspace_boundary.py": "cdb6cd08ef72e54f2a97ec58516381ff4d9d2feea6b8ced3d538e95077f3c9e7",
+    "site/content/docs/architecture/resource-isolation.md": "04ea09ae68015b47500342a3e8872646533c1ba1d3bcdbb5970f393e65091242",
+    "site/content/docs/architecture/identity-workspaces.md": "9550399e84405264a56686f0167d7a8d97c63ece422db6c3ba8f59513a6bb8ca"
+  },
+  "independent_review_status": "passed_for_declared_bounded_resource_matrix",
+  "independent_review_evidence": "private_external:stage-b-resource-isolation/independent-review.json",
+  "independent_review_sha256": "10fd9b69059ffcdc994e0d82f185aba9e6d24c8aa1726ee0948d43b6a0f3f6de"
+}

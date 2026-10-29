@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-10-29.7`，更新日期：2026-10-29。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-10-29.8`，更新日期：2026-10-29。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-项目独立预算已保留；新增离线旧数据stage/明确owner认领/独立回退，原9工程及全部本地文件在私有副本演练通过，原正式入口未切换。完整隔离矩阵、其他模型费用、实际账单、完整成片和公网仍待完成。
+业务资源及明确嵌套/历史文件隔离通过161项本机矩阵与58项浏览器；项目独立预算、离线迁移副本演练保留。收费执行、其他模型费用、实际账单、社区研发、完整成片和公网仍待完成。
 
-新增迁移针对性与既有隔离/预算回归、独立崩溃/执行锁实测及原数据只读演练已记录。不同测试轮次/独立检查有重叠，不相加。迁移后台扫描器暂停且新导出不接受，模型/账单/成片/公网资格未提升。
+本轮161项资源矩阵、58项实际双会话浏览器通过，修复模型管理tab回跳；独立补测与旧证据分别报告，不累加覆盖。导出历史为明确合成夹具，收费/模型/账单/成片/公网资格不提升。
 
 ## F-001 身份与工作空间
 
@@ -25,7 +25,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | --- | --- | --- | --- | --- | --- |
 | [F-001.01 用户登录、会话与退出](#f-001-01) | 已实现 | 本阶段已验证 | 不适用 | 仅本机 | /projects · 新18000体验：登录/退出；注册由维护者开关控制 |
 | [F-001.02 首次登录幂等建立个人空间与成员权限](#f-001-02) | 已实现 | 本阶段已验证 | 不适用 | 仅本机 | /projects · 受信账号建立时原子创建个人空间，登录读取现有成员关系 |
-| [F-001.03 业务资源及嵌套引用隔离](#f-001-03) | 部分实现 | 未验收 | 不适用 | 仅本机 | /projects · 新18000固定空间网关→私有worker |
+| [F-001.03 业务资源及嵌套引用隔离](#f-001-03) | 已实现 | 本阶段已验证 | 不适用 | 仅本机 | /projects · 新18000固定空间网关→私有worker |
 | [F-001.04 任务、模型连接、凭据、预算与执行隔离](#f-001-04) | 部分实现 | 未验收 | 不适用 | 仅本机 | /projects · 新18000私有任务、配置与固定执行进程 |
 | [F-001.05 旧数据认领、迁移与回退](#f-001-05) | 已实现 | 本阶段已验证 | 不适用 | 仅本机 | CLI backend/migrate_workspace.py · 维护者离线 stage / verify / claim / restore；无公开认领接口 |
 | [F-001.06 用户资料、语言与主题归属](#f-001-06) | 已实现 | 本阶段已验证 | 不适用 | 仅本机 | /settings · 用户资料、语言、主题；多空间成员可切换 |
@@ -66,9 +66,9 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`backend/app/controlplane/gateway.py`](../../../../backend/app/controlplane/gateway.py)、[`backend/app/controlplane/workers.py`](../../../../backend/app/controlplane/workers.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`backend/run_tenant_worker.py`](../../../../backend/run_tenant_worker.py)。
 
-限制：每空间固定SQLite/files/media/进程；私有业务表固定workspace_id、marker及写入约束；工作进程身份不能由请求切换；这不是操作系统用户级隔离；完整资源/嵌套引用/文件/任务/模型连接越权矩阵与浏览器联合验收尚未完成；原本地数据仍保留在旧模式，尚未迁移。
+限制：固定SQLite/files/media/进程与workspace_id写入约束，属于应用隔离，不是OS用户或容器隔离声明。；检查覆盖14类根资源及本轮列明的嵌套/历史路径，不声称穷尽所有业务端点。；合成失败任务和直接登记的导出历史仅用于授权检查；真实收费执行、完整冻结/渲染链仍由F-001.04及制作验收单独验证。；原正式入口仍保留旧模式；迁移只在私有副本演练，正式账号未切换。。
 
-验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-IDENTITY-BROWSER`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-IDENTITY-BROWSER`、`EV-RESOURCE-ISOLATION`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -80,9 +80,9 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`backend/app/controlplane/gateway.py`](../../../../backend/app/controlplane/gateway.py)、[`backend/app/controlplane/workers.py`](../../../../backend/app/controlplane/workers.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`front/src/services/workspaceContext.ts`](../../../../front/src/services/workspaceContext.ts)、[`backend/app/services/worker/project_budget_schema.py`](../../../../backend/app/services/worker/project_budget_schema.py)。
 
-限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；旧共享执行入口允许只读任务查询，写入/回调被拒绝；后台固定在原workspace进程；完整执行/预算隔离资格仍待验收；持久视频已按项目独立管理预算，工作空间总上限已停用；其他模型费用与供应商对账未完成，收费入口仍503。。
+限制：工作进程不继承旧主机模型/云凭据与共享Celery配置。；历史任务、凭据返回、模型配置及项目费用读取隔离已补测；收费503只证明门禁关闭。；后台固定原workspace进程；真实收费准入、连接版本、运行中取消/重试/恢复及候选采用仍待联合验收。；持久视频按项目独立管理预算，无工作空间总上限；其他模型费用与供应商对账仍未完成。。
 
-验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-IDENTITY-BROWSER`、`EV-PROJECT-BUDGET`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-IDENTITY-BROWSER`、`EV-PROJECT-BUDGET`、`EV-RESOURCE-ISOLATION`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1072,6 +1072,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-WORKSPACE-BUDGET | historical_software | repository · `capabilities/workspace-budget-validation.json` | 已停用总预算方案的历史软件证据；用户最新要求改为单项目预算，旧总上限不再生效，不能作为当前预算验收证据。 |
 | EV-PROJECT-BUDGET | software | repository · `capabilities/project-budget-validation.json` | 项目独立预算与旧总预算停用迁移的软件验收：122项本机后端及25项实际浏览器检查；各项目不占彼此额度，原预留与历史收据保留，没有真实供应商账单/模型或公网资格。 |
 | EV-WORKSPACE-MIGRATION | software | repository · `capabilities/workspace-migration-validation.json` | 离线stage/明确owner claim/独立restore、原业务和文件保留、执行锁及进程中断恢复的软件证据；原9工程/29文件记录/95文件树副本演练和11浏览器检查通过，原库未改且正式账号未切换。独立检查重叠不累加，不授予模型/成片/公网资格。 |
+| EV-RESOURCE-ISOLATION | software | repository · `capabilities/resource-isolation-validation.json` | 161项本机根资源/嵌套引用/历史文件正反向检查及58项实际双会话浏览器通过；历史任务/导出夹具仅证明授权和实际字节，收费执行及完整成片不提升。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

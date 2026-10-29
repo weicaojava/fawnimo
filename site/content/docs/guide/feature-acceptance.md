@@ -39,14 +39,14 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 ### F-001.03 业务资源及嵌套引用隔离
 
-入口：`/projects`，新18000固定空间网关→私有worker。当前：部分实现 / 未验收 / 仅本机。
+入口：`/projects`，新18000固定空间网关→私有worker。当前：已实现 / 本阶段已验证 / 仅本机。
 
-1. A/B两用户两空间创建资源，交叉读取、搜索、修改、删除均失败
-2. 覆盖工程、章节、资产、提示词、Agent、文件、历史与导出以及跨空间引用
+1. A/B两用户两空间分别成功读写、搜索与真正删除新建资源；交叉请求不泄露或改变对方资料。部分旧删除接口对不存在ID返回相同空成功。
+2. 覆盖登记的14类根资源及明确列出的嵌套引用、制作版本/媒体、历史、导出任务及视频/字幕/ZIP实际字节；失败不留部分写入。
 
-软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`。
+软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`、`backend/tests/test_workspace_resource_matrix.py`。
 
-验收限制：每空间固定SQLite/files/media/进程；私有业务表固定workspace_id、marker及写入约束；工作进程身份不能由请求切换；这不是操作系统用户级隔离；完整资源/嵌套引用/文件/任务/模型连接越权矩阵与浏览器联合验收尚未完成；原本地数据仍保留在旧模式，尚未迁移。
+验收限制：固定SQLite/files/media/进程与workspace_id写入约束，属于应用隔离，不是OS用户或容器隔离声明。；检查覆盖14类根资源及本轮列明的嵌套/历史路径，不声称穷尽所有业务端点。；合成失败任务和直接登记的导出历史仅用于授权检查；真实收费执行、完整冻结/渲染链仍由F-001.04及制作验收单独验证。；原正式入口仍保留旧模式；迁移只在私有副本演练，正式账号未切换。。
 
 ### F-001.04 任务、模型连接、凭据、预算与执行隔离
 
@@ -55,9 +55,9 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权
 2. 后台任务固化原空间、提交人、连接版本；切换空间不重发原收费请求
 
-软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`、`backend/tests/test_project_budget.py`。
+软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`、`backend/tests/test_project_budget.py`、`backend/tests/test_workspace_resource_matrix.py`。
 
-验收限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；旧共享执行入口允许只读任务查询，写入/回调被拒绝；后台固定在原workspace进程；完整执行/预算隔离资格仍待验收；持久视频已按项目独立管理预算，工作空间总上限已停用；其他模型费用与供应商对账未完成，收费入口仍503。。
+验收限制：工作进程不继承旧主机模型/云凭据与共享Celery配置。；历史任务、凭据返回、模型配置及项目费用读取隔离已补测；收费503只证明门禁关闭。；后台固定原workspace进程；真实收费准入、连接版本、运行中取消/重试/恢复及候选采用仍待联合验收。；持久视频按项目独立管理预算，无工作空间总上限；其他模型费用与供应商对账仍未完成。。
 
 ### F-001.05 旧数据认领、迁移与回退
 

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-10-29.7",
+  "register_version": "2026-10-29.8",
   "updated_at": "2026-10-29",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -296,6 +296,17 @@
       "features": [
         "F-001.05"
       ]
+    },
+    {
+      "id": "EV-RESOURCE-ISOLATION",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/resource-isolation-validation.json",
+      "scope": "161项本机根资源/嵌套引用/历史文件正反向检查及58项实际双会话浏览器通过；历史任务/导出夹具仅证明授权和实际字节，收费执行及完整成片不提升。",
+      "features": [
+        "F-001.03",
+        "F-001.04"
+      ]
     }
   ],
   "features": [
@@ -411,13 +422,14 @@
       "requirements": [
         "R-002"
       ],
-      "implementation": "partial",
+      "implementation": "implemented",
       "validation": {
-        "software": "not_verified",
+        "software": "verified",
         "model": "not_required",
         "evidence": [
           "EV-IDENTITY-CHECKPOINT",
-          "EV-IDENTITY-BROWSER"
+          "EV-IDENTITY-BROWSER",
+          "EV-RESOURCE-ISOLATION"
         ]
       },
       "deployment": {
@@ -441,17 +453,18 @@
       "tests": [
         "backend/tests/test_identity_controlplane.py",
         "backend/tests/test_identity_review.py",
-        "backend/tests/test_workspace_boundary.py"
+        "backend/tests/test_workspace_boundary.py",
+        "backend/tests/test_workspace_resource_matrix.py"
       ],
       "acceptance": [
-        "A/B两用户两空间创建资源，交叉读取、搜索、修改、删除均失败",
-        "覆盖工程、章节、资产、提示词、Agent、文件、历史与导出以及跨空间引用"
+        "A/B两用户两空间分别成功读写、搜索与真正删除新建资源；交叉请求不泄露或改变对方资料。部分旧删除接口对不存在ID返回相同空成功。",
+        "覆盖登记的14类根资源及明确列出的嵌套引用、制作版本/媒体、历史、导出任务及视频/字幕/ZIP实际字节；失败不留部分写入。"
       ],
       "limits": [
-        "每空间固定SQLite/files/media/进程；私有业务表固定workspace_id、marker及写入约束",
-        "工作进程身份不能由请求切换；这不是操作系统用户级隔离",
-        "完整资源/嵌套引用/文件/任务/模型连接越权矩阵与浏览器联合验收尚未完成",
-        "原本地数据仍保留在旧模式，尚未迁移"
+        "固定SQLite/files/media/进程与workspace_id写入约束，属于应用隔离，不是OS用户或容器隔离声明。",
+        "检查覆盖14类根资源及本轮列明的嵌套/历史路径，不声称穷尽所有业务端点。",
+        "合成失败任务和直接登记的导出历史仅用于授权检查；真实收费执行、完整冻结/渲染链仍由F-001.04及制作验收单独验证。",
+        "原正式入口仍保留旧模式；迁移只在私有副本演练，正式账号未切换。"
       ],
       "depends_on": [
         "F-001.02"
@@ -476,7 +489,8 @@
         "evidence": [
           "EV-IDENTITY-CHECKPOINT",
           "EV-IDENTITY-BROWSER",
-          "EV-PROJECT-BUDGET"
+          "EV-PROJECT-BUDGET",
+          "EV-RESOURCE-ISOLATION"
         ]
       },
       "deployment": {
@@ -502,17 +516,18 @@
         "backend/tests/test_identity_controlplane.py",
         "backend/tests/test_identity_review.py",
         "backend/tests/test_workspace_boundary.py",
-        "backend/tests/test_project_budget.py"
+        "backend/tests/test_project_budget.py",
+        "backend/tests/test_workspace_resource_matrix.py"
       ],
       "acceptance": [
         "A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权",
         "后台任务固化原空间、提交人、连接版本；切换空间不重发原收费请求"
       ],
       "limits": [
-        "工作进程不继承旧主机模型/云凭据与共享Celery配置",
-        "旧共享执行入口允许只读任务查询，写入/回调被拒绝",
-        "后台固定在原workspace进程；完整执行/预算隔离资格仍待验收",
-        "持久视频已按项目独立管理预算，工作空间总上限已停用；其他模型费用与供应商对账未完成，收费入口仍503。"
+        "工作进程不继承旧主机模型/云凭据与共享Celery配置。",
+        "历史任务、凭据返回、模型配置及项目费用读取隔离已补测；收费503只证明门禁关闭。",
+        "后台固定原workspace进程；真实收费准入、连接版本、运行中取消/重试/恢复及候选采用仍待联合验收。",
+        "持久视频按项目独立管理预算，无工作空间总上限；其他模型费用与供应商对账仍未完成。"
       ],
       "depends_on": [
         "F-001.03"
@@ -3434,7 +3449,7 @@
         "首次个人空间幂等；旧资料只归受信待认领空间，不自动交给任意首注册者。",
         "两用户两空间完成正向与越权矩阵：根资源、嵌套引用、搜索、下载/缩略图/ZIP、任务/取消重试、模型连接、导出、历史恢复。",
         "后台固定原空间/提交人/连接版本；切换空间清理缓存与恢复意图但保留原请求身份；未知结果不重复收费。",
-        "迁移前一致备份DB/media/files，在副本验证完整性、原8工程与原片来源、故障中断恢复和独立路径回退。",
+        "迁移前一致备份DB/media/files，在副本验证完整性、源清单全部工程与原片来源、故障中断恢复和独立路径回退。",
         "项目预算独立准入、不同项目不占彼此额度；相关后端测试、OpenAPI、类型和实际浏览器通过；独立审查关闭越权问题。"
       ],
       "evidence_outputs": [
@@ -3442,7 +3457,7 @@
         "迁移/备份/回退报告",
         "原数据完整性与后台执行绑定证据"
       ],
-      "progress": "身份、固定空间进程、项目预算及离线旧数据认领/回退工具已通过本机软件验证；真实原数据仅在私有副本演练，原入口未切换。完整资源/嵌套引用隔离矩阵、其他模型费用和实际账单仍未完成，B整体保持推进。"
+      "progress": "身份、资源/嵌套/历史文件隔离、项目预算及离线迁移副本演练通过本机软件检查；161项资源矩阵、58项浏览器及独立补测分别记录。收费执行、其他模型费用/实际账单及正式数据切换尚未完成，B整体继续推进。"
     },
     {
       "id": "C",
@@ -3538,7 +3553,7 @@
   "external_inputs": [
     "Fawnimo 鹿帧与仓库weicaojava/fawnimo已确认并实际创建；首批代码、功能目录与CI分别验收，上游仅保留来源说明。",
     "可用于此项目的部署资源、域名/访问方式、独立凭据及云费用上限；不能使用其他业务项目资源。",
-    "真实模型供应商与新增费用上限，及对公开示例素材来源的确认；旧样片预算不能沿用为无限授权。"
+    "已找回原火山方舟配置及doubao-seedance-2-5-260628模型；本机加密凭据文件仍在，执行保持关闭。本阶段新增费用上限仍需明确，旧样片预算不能沿用。其他模型须各自配置/验收。"
   ],
   "long_term": [
     {
@@ -3575,11 +3590,11 @@
     "缺失检查、旧PR版本、独立审核失败或费用/资源超限不晋级；失败有明确结果与有限恢复。"
   ],
   "current_state": {
-    "overview": "项目独立预算已保留；新增离线旧数据stage/明确owner认领/独立回退，原9工程及全部本地文件在私有副本演练通过，原正式入口未切换。完整隔离矩阵、其他模型费用、实际账单、完整成片和公网仍待完成。",
+    "overview": "业务资源及明确嵌套/历史文件隔离通过161项本机矩阵与58项浏览器；项目独立预算、离线迁移副本演练保留。收费执行、其他模型费用、实际账单、社区研发、完整成片和公网仍待完成。",
     "acceptance_setup": "使用独立验收数据和本机A/B账号。项目大厅可建立/重置纯自作7镜、21条可编辑提示词示例；每次重建新工程保留旧编辑，同一请求恢复返回原结果。本机入口与账号交付已可复验，尚无公网平台。",
-    "readme_status": "已有身份、个人空间、A/B文字示例与项目独立预算；离线迁移工具完成原9工程/29文件记录/95本地文件副本演练，原7镜pending及21模板保留，11项浏览器检查通过。原入口未切换，完整隔离矩阵、实际账单、社区研发、成片和公网部署仍待完成。",
-    "verification_checkpoint": "新增迁移针对性与既有隔离/预算回归、独立崩溃/执行锁实测及原数据只读演练已记录。不同测试轮次/独立检查有重叠，不相加。迁移后台扫描器暂停且新导出不接受，模型/账单/成片/公网资格未提升。",
-    "architecture_summary": "维护CLI先制作私有完整备份包，再明确绑定到有效owner的全新未初始化空间；OS锁和持久journal限制并发与中断，导入执行锁保留旧任务/未知预留。回退只恢复独立新路径，普通注册不能认领旧资料。"
+    "readme_status": "身份、个人空间、A/B文字示例与项目独立预算可用；业务资源、嵌套引用和历史文件的本机正反向矩阵已通过。旧数据仅在私有副本认领/回退，原入口未切换；收费执行、实际账单、社区研发、成片和公网部署仍待完成。",
+    "verification_checkpoint": "本轮161项资源矩阵、58项实际双会话浏览器通过，修复模型管理tab回跳；独立补测与旧证据分别报告，不累加覆盖。导出历史为明确合成夹具，收费/模型/账单/成片/公网资格不提升。",
+    "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {
     "name": "Fawnimo",

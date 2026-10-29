@@ -11,7 +11,7 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 <!-- features:begin -->
 ## 当前开发与验收状态
 
-本分支继续开发开源AI短视频制作工具，登记15个功能区、64项子功能：43项已实现、8项部分实现、13项待实现。实现、软件验证、真实模型验证和部署分别记录，数量不表示全部验收通过。
+本分支继续开发开源AI短视频制作工具，登记15个功能区、64项子功能：44项已实现、7项部分实现、13项待实现。实现、软件验证、真实模型验证和部署分别记录，数量不表示全部验收通过。
 
 - [功能总表与代码/入口/验证矩阵](site/content/docs/reference/feature-catalog.md)
 - [逐项验收指南](site/content/docs/guide/feature-acceptance.md)
@@ -19,7 +19,7 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 - [公开路线图](site/content/docs/plans/public-roadmap.md)
 - [单一功能登记源](capabilities/features.json)，检查/生成：`python scripts/features.py --check` / `python scripts/features.py`
 
-已有身份、个人空间、A/B文字示例与项目独立预算；离线迁移工具完成原9工程/29文件记录/95本地文件副本演练，原7镜pending及21模板保留，11项浏览器检查通过。原入口未切换，完整隔离矩阵、实际账单、社区研发、成片和公网部署仍待完成。本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
+身份、个人空间、A/B文字示例与项目独立预算可用；业务资源、嵌套引用和历史文件的本机正反向矩阵已通过。旧数据仅在私有副本认领/回退，原入口未切换；收费执行、实际账单、社区研发、成片和公网部署仍待完成。本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
 
 代码保留并基于[Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish)继续开发，遵循[现有许可证](LICENSE)，来源和发布边界见[UPSTREAM.md](UPSTREAM.md)。现有代码包含上游、既有改动和AI辅助开发成果，不能宣称全部从零AI原创。仓库里的上游Issues、Actions、Pages与镜像链接属于上游，不是已交付的自有平台。
 <!-- features:end -->
@@ -32,7 +32,7 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 - 有界顺序文本Agent、图片候选与采用、视频理解候选、视频执行及项目独立预算等软件协议；其他模型费用及专用配置尚未验收，新身份空间收费提交保持关闭。
 - 不可变剪辑版本、硬切与交叉淡化、本地FFmpeg渲染和字幕导出；适用范围及验证证据以功能登记为准。
 
-实现、软件验证、真实模型质量和部署是不同状态。项目独立预算和离线迁移/回退工具已实现并验证；完整隔离矩阵、正式账号切换、其他模型费用、参考生成与声音扩展、完整成片、社区自动研发和公网稳定/预览平台仍待完成。
+实现、软件验证、真实模型质量和部署是不同状态。业务资源及明确嵌套/历史文件隔离、项目独立预算和离线迁移/回退工具已通过本机验证；完整收费执行隔离、正式账号切换、其他模型费用、参考生成与声音扩展、完整成片、社区自动研发和公网稳定/预览平台仍待完成。
 
 ## 本机身份体验
 

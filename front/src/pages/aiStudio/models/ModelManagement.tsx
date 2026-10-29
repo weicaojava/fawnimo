@@ -10,8 +10,11 @@ import '../assets/components/LibraryPages.css'
 export default function ModelManagement() {
   const [searchParams] = useSearchParams()
   const connectionModel = searchParams.get('connectionModel')
-  const [activeTab, setActiveTab] = useState<string>(() => connectionModel ? 'models' : 'providers')
-  useEffect(() => { if (connectionModel) setActiveTab('models') }, [connectionModel])
+  const requestedTab = searchParams.get('tab')
+  const preferredTab = connectionModel ? 'models' : requestedTab && ['providers', 'models', 'settings'].includes(requestedTab) ? requestedTab : 'providers'
+  const [activeTab, setActiveTab] = useState<string>(preferredTab)
+  // Task return links and browser navigation must restore the requested panel.
+  useEffect(() => { setActiveTab(preferredTab) }, [preferredTab])
 
   return (
     <Layout className="library-page library-management" style={{ minHeight: 0 }}>
