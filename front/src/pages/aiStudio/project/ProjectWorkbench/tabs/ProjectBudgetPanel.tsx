@@ -1,12 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Descriptions, InputNumber, Space, Table, Tag, Typography, message } from 'antd'
-import { VideoRuntimeService as Budget, type ProjectBudgetRead, type ProjectBudgetPage } from '../../../../../services/generated'
+import { VideoRuntimeService as Budget, type ProjectBudgetRead, type ProjectBudgetPage, type ProjectBudgetEntryRead } from '../../../../../services/generated'
 import { agentError } from '../../../agents/agentConfigIO'
 import { useIdentity } from '../../../../../identity/IdentityGate'
 
 /** Format the ledger's integer minor units without changing its accounting precision. */
 const money = (minor: number) => `${(minor / 100).toFixed(2)} 元`
+/** Preserve imported bill amounts beyond floating-point precision using server decimal strings. */
+const exactMoney = (minor: string) => {
+  const negative = minor.startsWith('-')
+  const digits = (negative ? minor.slice(1) : minor).padStart(3, '0')
+  return `${negative ? '-' : ''}${digits.slice(0, -2)}.${digits.slice(-2)} 元`
+}
 const states = { reserved: '已预留', unknown: '待核实，保留额度', released: '已释放', settled: '账本已结算' }
+const callLabels = { agent_text: '文本工作流', model_connection_test: '连接测试', asset_image: '图片候选', video_vision: '视频理解', video_asr: '语音转写' }
+/** Explain each ledger row without exposing a private provider request identifier. */
+const sourceLabel = (row: ProjectBudgetEntryRead) => row.source === 'model_call' ? row.call_kind ? callLabels[row.call_kind] : '模型调用'
+  : row.source === 'bill_adjustment' ? '账单差额' : row.source === 'durable_video' ? '视频任务' : '来源待核对'
 
 /** Let members inspect one project's ceiling and allow only the trusted owner to change it. */
 export function ProjectBudgetPanel({ projectId }: { projectId: string }) {
@@ -69,10 +79,19 @@ export function ProjectBudgetPanel({ projectId }: { projectId: string }) {
         { key: 'limit', label: '项目累计上限', children: money(budget.limit_minor) },
         { key: 'held', label: '任务预留', children: money(budget.reserved_minor) },
         { key: 'spent', label: '账本已结算', children: money(budget.spent_minor) },
-        { key: 'available', label: '可预留余额', children: money(budget.available_minor) },
-        { key: 'unknown', label: '待核实任务', children: `${budget.uncertain_jobs} 项（继续保留额度）` },
-        { key: 'verification', label: '供应商账单', children: '尚未核对' },
+        { key: 'available', label: '剩余额度', children: money(budget.available_minor) },
+        { key: 'unknown', label: '待核实费用', children: `${budget.uncertain_jobs} 条（继续保留额度）` },
+        { key: 'verification', label: '账单记录', children: (budget.bill_receipt_count ?? 0) > 0 ? `${budget.bill_receipt_count} 条已核对` : '尚无核对记录' },
+        ...((budget.bill_receipt_count ?? 0) > 0 ? [{ key: 'billed', label: '账单已核对金额', children: exactMoney(budget.bill_receipt_total_minor ?? '0') }] : []),
+        ...((budget.unfunded_bill_minor ?? '0') !== '0' ? [{ key: 'unfunded', label: '账单待补入金额', children: exactMoney(budget.unfunded_bill_minor ?? '0') }] : []),
+        ...((budget.unfunded_bill_minor ?? '0') !== '0' ? [{ key: 'after-bills', label: '计入待核对账单后', children: exactMoney(budget.available_after_bills_minor ?? '0') }] : []),
       ]} />}
+      {budget && (budget.pending_bill_reviews ?? 0) > 0 && <Alert type="warning" showIcon
+        message={(budget.available_after_bills_minor ?? '').startsWith('-') ? '账单金额超出当前项目授权' : '项目账单仍待核对'}
+        description={(budget.available_after_bills_minor ?? '').startsWith('-')
+          ? `当前授权还差 ${exactMoney((budget.available_after_bills_minor ?? '').slice(1))}。请先补足预算，再核对原账单；新模型调用保持暂停。`
+          : '请先核对重复、冲突或尚未补入的账单记录，再继续新的模型调用。'} />}
+      {budget && (budget.price_violation_count ?? 0) > 0 && <Alert type="info" showIcon message="曾有账单超过原预留金额" description="后续调用需先核对该模型的费用上界；账单全额与原记录均已保留。" />}
       <Space wrap>
         {canEdit && <><Typography.Text>项目累计上限（元）</Typography.Text>
           <InputNumber aria-label="项目累计上限（元）" min={0} max={1000000} precision={2} value={ceiling}
@@ -82,12 +101,13 @@ export function ProjectBudgetPanel({ projectId }: { projectId: string }) {
         {!canEdit && <Typography.Text type="secondary">当前角色可查看，调整上限请联系所有者。</Typography.Text>}
       </Space>
       <Typography.Text strong>本项目额度明细</Typography.Text>
-      <Table size="small" loading={loading} rowKey="job_id" pagination={false} scroll={{ x: 540 }} dataSource={page?.items ?? []}
+      <Table size="small" loading={loading} rowKey="job_id" pagination={false} scroll={{ x: 760 }} dataSource={page?.items ?? []}
         locale={{ emptyText: error ? '暂时无法读取明细' : '本项目尚无费用预留' }} columns={[
-          { title: '任务标识', dataIndex: 'job_id', ellipsis: true, width: 200 },
+          { title: '费用记录', dataIndex: 'job_id', ellipsis: true, width: 200 },
+          { title: '来源', render: (_value, row) => sourceLabel(row), width: 110 },
           { title: '状态', dataIndex: 'state', render: (state: keyof typeof states) => <Tag color={state === 'unknown' ? 'orange' : 'default'}>{states[state]}</Tag> },
-          { title: '预留', dataIndex: 'quote_minor', render: money },
-          { title: '结算', dataIndex: 'actual_minor', render: (minor: number | null, row) => minor === null ? row.state === 'released' ? '未结算' : '待确认' : money(minor) },
+          { title: '预留 / 补录', dataIndex: 'quote_minor', render: (minor: number, row) => `${row.source === 'bill_adjustment' ? '补录 ' : ''}${row.quote_minor_exact ? exactMoney(row.quote_minor_exact) : money(minor)}` },
+          { title: '结算', dataIndex: 'actual_minor', render: (minor: number | null, row) => minor === null ? row.state === 'released' ? '未结算' : '待确认' : row.actual_minor_exact ? exactMoney(row.actual_minor_exact) : money(minor) },
         ]} />
       <Space>
         <Button disabled={loading || saving || cursors.length < 2} onClick={() => {

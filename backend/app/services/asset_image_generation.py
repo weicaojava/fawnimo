@@ -19,7 +19,6 @@ from app.models.asset_image_generation import AssetImageJob
 from app.models.llm import Model, ModelSettings, Provider
 from app.models.studio import FileItem
 from app.services.agent_execution import clock, digest
-from app.services.llm.provider_resolver import resolve_provider_config_by_model
 from app.services.studio.entity_specs import entity_spec
 from app.services.worker.execution_budget import transaction
 
@@ -62,18 +61,26 @@ async def availability(db, runtime, model_id=None):
     return AssetImageAvailability(available=available, message=message, default_model_id=default_id, models=choices)
 
 
-async def binding(db, model_id):
-    """Resolve only the explicitly supported provider protocol into a credential-free snapshot."""
-    model = await db.get(Model, model_id)
-    if model is None or model.category != 'image' or (model.params or {}).get('asset_image_protocol') != PROTOCOL:
+async def image_connection_material(db, model_id):
+    """Capture protocol, endpoint, key and clock from one coherent model/provider snapshot."""
+    from app.services.llm.connection_versions import model_connection_snapshot
+    from app.services.llm.provider_resolver import resolve_provider_config_from_provider
+    model,provider,revision=await model_connection_snapshot(db,model_id)
+    if model.category != 'image' or (model.params or {}).get('asset_image_protocol') != PROTOCOL:
         raise HTTPException(503, '模型没有启用受支持的单张 base64 文生图协议')
-    config = await resolve_provider_config_by_model(db, model=model)
+    config = resolve_provider_config_from_provider(provider=provider,category=model.category)
     if config.provider_key != 'openai':
         raise HTTPException(503, '此入口仅支持声明的 OpenAI-compatible base64 图片协议')
     parsed = urlsplit(config.base_url or '')
     if not parsed.hostname or parsed.query or parsed.fragment or parsed.username or parsed.password:
         raise HTTPException(422, '图片供应商基础地址无效')
-    return {'model_id': model.id, 'model_name': model.name, 'provider_id': model.provider_id, 'base_url': config.base_url, 'protocol': PROTOCOL}
+    return {'model_id': model.id, 'model_name': model.name, 'provider_id': model.provider_id, 'provider_connection_version': revision, 'base_url': config.base_url, 'protocol': PROTOCOL},config.api_key
+
+
+async def binding(db, model_id):
+    """Keep the saved image connection snapshot free of credential values or key hashes."""
+    resolved,_secret=await image_connection_material(db,model_id)
+    return resolved
 
 
 async def slot(db, kind, asset_id, slot_id):
@@ -289,11 +296,10 @@ class AssetImageGenerationRuntime:
                 if job is None:
                     return
                 await slot(db, job.asset_kind, job.asset_id, job.slot_id)
-                resolved = await binding(db, job.model_id)
+                resolved,secret = await image_connection_material(db, job.model_id)
                 if resolved != job.model_binding:
                     raise AssetImageModelError('图片模型配置已改变，请新建执行；未转向其他连接')
-                provider = await db.get(Provider, resolved['provider_id'])
-                secret, prompt, size = provider.api_key, job.prompt, job.size
+                prompt, size = job.prompt, job.size
             call = asyncio.create_task(invoke_asset_image(base_url=resolved['base_url'], api_key=secret, model=resolved['model_name'], prompt=prompt, size=size, trusted_local_host=self.trusted_local_host, trusted_local_ports=self.trusted_local_ports))
             while True:
                 done, _ = await asyncio.wait({call}, timeout=.1)

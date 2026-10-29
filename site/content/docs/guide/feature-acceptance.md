@@ -55,9 +55,9 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权
 2. 后台任务固化原空间、提交人、连接版本；切换空间不重发原收费请求
 
-软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`、`backend/tests/test_project_budget.py`、`backend/tests/test_workspace_resource_matrix.py`。
+软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`、`backend/tests/test_project_budget.py`、`backend/tests/test_workspace_resource_matrix.py`、`backend/tests/test_agent_execution.py`、`backend/tests/test_asset_image_generation.py`、`backend/tests/test_connection_versions.py`、`backend/tests/test_model_accounting_guards.py`、`backend/tests/test_model_billing.py`、`backend/tests/test_model_billing_budget_view.py`、`backend/tests/test_model_billing_cli.py`、`backend/tests/test_model_charges.py`、`backend/tests/test_model_prices.py`。
 
-验收限制：工作进程不继承旧主机模型/云凭据与共享Celery配置。；历史任务、凭据返回、模型配置及项目费用读取隔离已补测；收费503只证明门禁关闭。；后台固定原workspace进程；真实收费准入、连接版本、运行中取消/重试/恢复及候选采用仍待联合验收。；持久视频按项目独立管理预算，无工作空间总上限；其他模型费用与供应商对账仍未完成。。
+验收限制：工作进程不继承旧主机模型/云凭据与共享Celery配置，历史任务及资源读取隔离证据保留。；连接版本及同快照凭据、通用项目预留/发送一次/未知额度基础已本机验证；收费503仍只证明门禁关闭。；所有模型运行时与费用、提交者/原项目/连接版本的实际准入、取消、重试、恢复和候选采用尚待联合接线验收。；无工作空间总上限；价格文件仅受信解析，真实供应商账单认证和全部收费执行隔离仍未验收。。
 
 ### F-001.05 旧数据认领、迁移与回退
 
@@ -449,9 +449,9 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. 项目分别设置上限并原子预留，不能超本项目预算；项目之间互不占额度，旧总上限规则完全停用。
 2. 实际账单与应用请求ID关联；接受未知保留未知费用，人工/自动对账有收据
 
-软件回归目标：`backend/tests/test_execution_budget.py`、`backend/tests/test_execution_accounting.py`、`backend/tests/test_project_budget.py`。
+软件回归目标：`backend/tests/test_execution_budget.py`、`backend/tests/test_execution_accounting.py`、`backend/tests/test_project_budget.py`、`backend/tests/test_agent_execution.py`、`backend/tests/test_asset_image_generation.py`、`backend/tests/test_connection_versions.py`、`backend/tests/test_model_accounting_guards.py`、`backend/tests/test_model_billing.py`、`backend/tests/test_model_billing_budget_view.py`、`backend/tests/test_model_billing_cli.py`、`backend/tests/test_model_charges.py`、`backend/tests/test_model_prices.py`。
 
-验收限制：已实现项目预留/结算明细、所有者CAS修改收据与分页；工作空间仅承载数据归属，不设置合计费用上限。；其他模型费用及供应商实际账单获取/对账仍未完成，provider_bill_verified=false，收费网关继续关闭。；用户旧20元样片预算不能用作本阶段新增费用授权。。
+验收限制：项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。；通用预留及人工规范化账单基础、全额差额/争议、重复人工确认、精确金额与私有证据本机通过；不同金额更正、退款和多义请求仍未决。；全部模型实际运行时尚未接入费用基础，真实供应商账单不由CSV或哈希自动认证；provider_bill_verified=false，收费网关继续关闭。；已找到原模型配置；本轮费用上限未获确认，旧20元样片预算不能沿用。。
 
 ## F-010 剪辑、字幕与声音
 

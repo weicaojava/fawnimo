@@ -17,7 +17,8 @@ from app.models.llm import Model, ModelSettings, Provider
 from app.schemas.agent_config import AgentConfigCreate
 from app.services.agent_config import draft_of, owned_agent
 from app.services.llm.provider_registry import get_provider_spec, resolve_provider_key_from_name
-from app.services.llm.provider_resolver import resolve_provider_config_by_model
+from app.services.llm.provider_resolver import resolve_provider_config_from_provider
+from app.services.llm.connection_versions import model_connection_snapshot
 
 TERMINAL = {'succeeded', 'failed', 'cancelled'}
 INTERRUPTED = '执行中断，模型请求结果可能未知；不会自动重发，显式重试将从头开始且可能重复计费'
@@ -85,16 +86,22 @@ async def availability(db, runtime, model_id: str | None = None) -> AgentExecuti
     return AgentExecutionAvailability(available=running and chosen is not None and chosen.configured, message=message, default_model_id=default_id, models=choices)
 
 
-async def safe_binding(db, model_id: str) -> dict:
-    """Snapshot stable connection metadata and supported parameters, never API credentials."""
-    model = await db.get(Model, model_id)
-    if model is None or model.category != 'text':
+async def text_connection_material(db, model_id: str) -> tuple[dict,str]:
+    """Capture one coherent connection; the key is transient and never part of the saved binding."""
+    model,provider,revision=await model_connection_snapshot(db,model_id)
+    if model.category != 'text':
         raise HTTPException(422, '请选择已配置的文本模型')
-    config = await resolve_provider_config_by_model(db, model=model)
+    config = resolve_provider_config_from_provider(provider=provider, category=model.category)
     parsed = urlsplit(config.base_url or '')
     if not parsed.hostname or parsed.scheme not in {'http', 'https'} or parsed.query or parsed.fragment or parsed.username or parsed.password:
         raise HTTPException(422, '文本模型地址无效；请检查供应商基础地址')
-    return {'model_id': model.id, 'model_name': model.name, 'provider_id': model.provider_id, 'base_url': config.base_url, 'params': sampler(model.params or {})}
+    return {'model_id': model.id, 'model_name': model.name, 'provider_id': model.provider_id, 'provider_connection_version': revision, 'base_url': config.base_url, 'params': sampler(model.params or {})},config.api_key
+
+
+async def safe_binding(db, model_id: str) -> dict:
+    """Return only persisted non-secret connection metadata and its numeric clock."""
+    binding,_secret=await text_connection_material(db,model_id)
+    return binding
 
 
 async def get_run(db, run_id: str) -> AgentRun:
@@ -336,12 +343,9 @@ class AgentExecutionRuntime:
                     # Keep the concrete attempted node even if its queued model binding is now invalid.
                     await db.commit()
                     if node.type == 'llm':
-                        binding = await safe_binding(db, run.model_id)
+                        binding,secret = await text_connection_material(db, run.model_id)
                         if binding != run.model_binding:
                             raise AgentModelError('模型配置在排队后改变；未重定向请求，请新建执行')
-                        model = await db.get(Model, run.model_id)
-                        provider = await db.get(Provider, model.provider_id)
-                        secret = provider.api_key
                         setting = await db.get(ModelSettings, 1)
                         timeout = max(1, min(60, setting.api_timeout if setting else 30))
                     await db.commit()

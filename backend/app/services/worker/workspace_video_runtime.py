@@ -14,6 +14,8 @@ from app.core.contracts.seedance25 import MODEL_ID, SUPPORTED_DURATIONS, Seedanc
 from app.core.contracts.video_runtime_setup import ProjectBudgetRead, ProjectBudgetWrite, VideoRuntimeConfiguration
 from app.core.integrations.volcengine.seedance25 import Seedance25DurableTransport
 from app.models.execution_budget import ExecutionBudget, ExecutionBudgetEntry
+from app.services.worker.model_billing import billing_summary,project_read_snapshot
+from app.models.model_charge import ModelCallCharge
 from app.services.studio.production import project_exists
 from app.services.worker.durable_execution import DurableExecution
 from app.services.worker.execution_admission import AdmissionPolicy
@@ -86,7 +88,10 @@ def configuration_template() -> dict:
 
 async def read_project_budget(db, project_id: str) -> ProjectBudgetRead:
     """Read current accounting with explicit unsettled/unknown holds and no external requests."""
+    await project_read_snapshot(db)
     await project_exists(db, project_id)
+    bill=await billing_summary(db,project_id)
+    model_entries=await db.scalar(select(func.count()).select_from(ModelCallCharge).where(ModelCallCharge.project_id==project_id))
     owned = ExecutionBudgetEntry.project_id == project_id
     pending = select(func.count()).select_from(ExecutionBudgetEntry).where(owned, ExecutionBudgetEntry.state.in_({'reserved', 'unknown'})).scalar_subquery()
     unknown = select(func.count()).select_from(ExecutionBudgetEntry).where(owned, ExecutionBudgetEntry.state == 'unknown').scalar_subquery()
@@ -95,10 +100,13 @@ async def read_project_budget(db, project_id: str) -> ProjectBudgetRead:
         return ProjectBudgetRead(project_id=project_id, exists=False, currency='CNY', limit_minor=0, reserved_minor=0,
                                  spent_minor=0, available_minor=0, revision=0, unsettled_jobs=0, uncertain_jobs=0)
     row, unsettled_jobs, uncertain_jobs = result
+    public_bill={**bill,**{key:str(bill[key]) for key in ('bill_receipt_total_minor','observed_pending_bill_minor','unfunded_bill_minor')}}
     return ProjectBudgetRead(project_id=project_id, exists=True, currency=row.currency,
                              limit_minor=row.limit_minor, reserved_minor=row.reserved_minor, spent_minor=row.spent_minor,
                              available_minor=row.limit_minor-row.reserved_minor-row.spent_minor, revision=row.revision,
-                             unsettled_jobs=unsettled_jobs, uncertain_jobs=uncertain_jobs)
+                             available_after_bills_minor=str(row.limit_minor-row.reserved_minor-row.spent_minor-bill['unfunded_bill_minor']),
+                             unsettled_jobs=unsettled_jobs, uncertain_jobs=uncertain_jobs,
+                             coverage='project_ledger' if model_entries else 'durable_video',**public_bill)
 
 
 async def save_project_budget(factory, project_id: str, body: ProjectBudgetWrite, *, actor_id: str | None = None) -> ProjectBudgetRead:
@@ -118,8 +126,9 @@ async def save_project_budget(factory, project_id: str, body: ProjectBudgetWrite
                     raise HTTPException(409, '当前服务仅支持人民币预算，不能改写既有币种。')
                 if row.revision != body.expected_revision:
                     raise HTTPException(409, '预算已更新，请刷新后重新确认。')
-                if body.limit_minor < row.reserved_minor + row.spent_minor:
-                    raise HTTPException(409, '预算不能低于已预留与已结算金额；未确认的费用仍保留。')
+                bill=await billing_summary(db,project_id)
+                if body.limit_minor < row.reserved_minor + row.spent_minor + bill['unfunded_bill_minor']:
+                    raise HTTPException(409, '预算不能低于已预留、已结算及已导入待补足账单金额；未确认的费用仍保留。')
                 result = await db.execute(update(ExecutionBudget).where(
                     ExecutionBudget.project_id == project_id, ExecutionBudget.revision == body.expected_revision
                 ).values(limit_minor=body.limit_minor, revision=ExecutionBudget.revision+1).execution_options(synchronize_session=False))

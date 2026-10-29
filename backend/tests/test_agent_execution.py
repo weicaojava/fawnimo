@@ -19,6 +19,7 @@ from app.dependencies import get_db
 from app.models.agent_config import AgentConfig, AgentConfigRevision
 from app.models.agent_execution import AgentNodeRun, AgentRun
 from app.models.llm import Model, ModelSettings, Provider
+from app.services.llm.connection_versions import migrate_connection_versions
 from app.services.agent_execution import AgentExecutionRuntime, clock
 from app.services.agent_execution import create_run
 from app.core.contracts.agent_execution import AgentRunCreate
@@ -78,6 +79,7 @@ async def isolated_client(tmp_path, fixture, *, workers=1, configured=True):
     async with engine.begin() as connection:
         for table in tables:
             await connection.run_sync(table.create)
+    await migrate_connection_versions(engine)
     sessions = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
     async with sessions() as db:
         if configured:

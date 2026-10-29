@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "register_version": "2026-10-29.8",
-  "updated_at": "2026-10-29",
+  "register_version": "2026-10-30.1",
+  "updated_at": "2026-10-30",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
     "branch": "local/hallmark-dual-theme",
@@ -307,6 +307,17 @@
         "F-001.03",
         "F-001.04"
       ]
+    },
+    {
+      "id": "EV-MODEL-ACCOUNTING",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/model-accounting-validation.json",
+      "features": [
+        "F-001.04",
+        "F-009.03"
+      ],
+      "scope": "SQLite连接版本、通用项目预留与人工规范化账单基础：109项相关测试含于405项回归、22项浏览器；独立109重跑和16补测分别记录。运行时全接线、真实账单及收费执行资格不提升。"
     }
   ],
   "features": [
@@ -490,7 +501,8 @@
           "EV-IDENTITY-CHECKPOINT",
           "EV-IDENTITY-BROWSER",
           "EV-PROJECT-BUDGET",
-          "EV-RESOURCE-ISOLATION"
+          "EV-RESOURCE-ISOLATION",
+          "EV-MODEL-ACCOUNTING"
         ]
       },
       "deployment": {
@@ -498,7 +510,7 @@
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "working-tree-2026-10-30",
         "release": null
       },
       "entry": {
@@ -510,24 +522,36 @@
         "backend/app/controlplane/workers.py",
         "backend/app/core/workspace_boundary.py",
         "front/src/services/workspaceContext.ts",
-        "backend/app/services/worker/project_budget_schema.py"
+        "backend/app/services/worker/project_budget_schema.py",
+        "backend/app/services/llm/connection_versions.py",
+        "backend/app/services/worker/model_charges.py",
+        "backend/app/services/worker/model_prices.py"
       ],
       "tests": [
         "backend/tests/test_identity_controlplane.py",
         "backend/tests/test_identity_review.py",
         "backend/tests/test_workspace_boundary.py",
         "backend/tests/test_project_budget.py",
-        "backend/tests/test_workspace_resource_matrix.py"
+        "backend/tests/test_workspace_resource_matrix.py",
+        "backend/tests/test_agent_execution.py",
+        "backend/tests/test_asset_image_generation.py",
+        "backend/tests/test_connection_versions.py",
+        "backend/tests/test_model_accounting_guards.py",
+        "backend/tests/test_model_billing.py",
+        "backend/tests/test_model_billing_budget_view.py",
+        "backend/tests/test_model_billing_cli.py",
+        "backend/tests/test_model_charges.py",
+        "backend/tests/test_model_prices.py"
       ],
       "acceptance": [
         "A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权",
         "后台任务固化原空间、提交人、连接版本；切换空间不重发原收费请求"
       ],
       "limits": [
-        "工作进程不继承旧主机模型/云凭据与共享Celery配置。",
-        "历史任务、凭据返回、模型配置及项目费用读取隔离已补测；收费503只证明门禁关闭。",
-        "后台固定原workspace进程；真实收费准入、连接版本、运行中取消/重试/恢复及候选采用仍待联合验收。",
-        "持久视频按项目独立管理预算，无工作空间总上限；其他模型费用与供应商对账仍未完成。"
+        "工作进程不继承旧主机模型/云凭据与共享Celery配置，历史任务及资源读取隔离证据保留。",
+        "连接版本及同快照凭据、通用项目预留/发送一次/未知额度基础已本机验证；收费503仍只证明门禁关闭。",
+        "所有模型运行时与费用、提交者/原项目/连接版本的实际准入、取消、重试、恢复和候选采用尚待联合接线验收。",
+        "无工作空间总上限；价格文件仅受信解析，真实供应商账单认证和全部收费执行隔离仍未验收。"
       ],
       "depends_on": [
         "F-001.03"
@@ -2177,7 +2201,8 @@
         "software": "not_verified",
         "model": "not_required",
         "evidence": [
-          "EV-PROJECT-BUDGET"
+          "EV-PROJECT-BUDGET",
+          "EV-MODEL-ACCOUNTING"
         ]
       },
       "deployment": {
@@ -2185,7 +2210,7 @@
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "working-tree-2026-10-30",
         "release": null
       },
       "entry": {
@@ -2197,21 +2222,36 @@
         "backend/app/services/worker/project_budget.py",
         "backend/app/services/worker/project_budget_schema.py",
         "backend/app/api/video_runtime_setup.py",
-        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx"
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx",
+        "backend/app/models/model_charge.py",
+        "backend/app/models/model_billing.py",
+        "backend/app/services/worker/model_charges.py",
+        "backend/app/services/worker/model_billing.py",
+        "backend/reconcile_model_billing.py"
       ],
       "tests": [
         "backend/tests/test_execution_budget.py",
         "backend/tests/test_execution_accounting.py",
-        "backend/tests/test_project_budget.py"
+        "backend/tests/test_project_budget.py",
+        "backend/tests/test_agent_execution.py",
+        "backend/tests/test_asset_image_generation.py",
+        "backend/tests/test_connection_versions.py",
+        "backend/tests/test_model_accounting_guards.py",
+        "backend/tests/test_model_billing.py",
+        "backend/tests/test_model_billing_budget_view.py",
+        "backend/tests/test_model_billing_cli.py",
+        "backend/tests/test_model_charges.py",
+        "backend/tests/test_model_prices.py"
       ],
       "acceptance": [
         "项目分别设置上限并原子预留，不能超本项目预算；项目之间互不占额度，旧总上限规则完全停用。",
         "实际账单与应用请求ID关联；接受未知保留未知费用，人工/自动对账有收据"
       ],
       "limits": [
-        "已实现项目预留/结算明细、所有者CAS修改收据与分页；工作空间仅承载数据归属，不设置合计费用上限。",
-        "其他模型费用及供应商实际账单获取/对账仍未完成，provider_bill_verified=false，收费网关继续关闭。",
-        "用户旧20元样片预算不能用作本阶段新增费用授权。"
+        "项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。",
+        "通用预留及人工规范化账单基础、全额差额/争议、重复人工确认、精确金额与私有证据本机通过；不同金额更正、退款和多义请求仍未决。",
+        "全部模型实际运行时尚未接入费用基础，真实供应商账单不由CSV或哈希自动认证；provider_bill_verified=false，收费网关继续关闭。",
+        "已找到原模型配置；本轮费用上限未获确认，旧20元样片预算不能沿用。"
       ],
       "depends_on": [
         "F-001.04",
@@ -3457,7 +3497,7 @@
         "迁移/备份/回退报告",
         "原数据完整性与后台执行绑定证据"
       ],
-      "progress": "身份、资源/嵌套/历史文件隔离、项目预算及离线迁移副本演练通过本机软件检查；161项资源矩阵、58项浏览器及独立补测分别记录。收费执行、其他模型费用/实际账单及正式数据切换尚未完成，B整体继续推进。"
+      "progress": "资源/嵌套/历史文件隔离、项目预算及离线迁移副本演练保留；新增连接版本、通用项目预留与人工规范化账单基础通过本机软件检查（109相关含于405回归、22浏览器，独立补测另记）。所有模型运行时接线、真实账单/收费执行及正式数据切换尚未完成，B继续推进。"
     },
     {
       "id": "C",
@@ -3552,7 +3592,7 @@
   ],
   "external_inputs": [
     "Fawnimo 鹿帧与仓库weicaojava/fawnimo已确认并实际创建；首批代码、功能目录与CI分别验收，上游仅保留来源说明。",
-    "可用于此项目的部署资源、域名/访问方式、独立凭据及云费用上限；不能使用其他业务项目资源。",
+    "用户确认尚未购买服务器；公网待指定本项目的资源、域名/访问方式、独立凭据及云费用上限，不能使用其他业务资源。",
     "已找回原火山方舟配置及doubao-seedance-2-5-260628模型；本机加密凭据文件仍在，执行保持关闭。本阶段新增费用上限仍需明确，旧样片预算不能沿用。其他模型须各自配置/验收。"
   ],
   "long_term": [
@@ -3590,10 +3630,10 @@
     "缺失检查、旧PR版本、独立审核失败或费用/资源超限不晋级；失败有明确结果与有限恢复。"
   ],
   "current_state": {
-    "overview": "业务资源及明确嵌套/历史文件隔离通过161项本机矩阵与58项浏览器；项目独立预算、离线迁移副本演练保留。收费执行、其他模型费用、实际账单、社区研发、完整成片和公网仍待完成。",
+    "overview": "资源/嵌套/历史文件隔离、项目预算及离线迁移副本演练保留；连接版本、通用项目预留与人工规范化账单基础已验证。模型运行时全接线、真实账单、社区研发、完整成片及公网仍待完成。",
     "acceptance_setup": "使用独立验收数据和本机A/B账号。项目大厅可建立/重置纯自作7镜、21条可编辑提示词示例；每次重建新工程保留旧编辑，同一请求恢复返回原结果。本机入口与账号交付已可复验，尚无公网平台。",
-    "readme_status": "身份、个人空间、A/B文字示例与项目独立预算可用；业务资源、嵌套引用和历史文件的本机正反向矩阵已通过。旧数据仅在私有副本认领/回退，原入口未切换；收费执行、实际账单、社区研发、成片和公网部署仍待完成。",
-    "verification_checkpoint": "本轮161项资源矩阵、58项实际双会话浏览器通过，修复模型管理tab回跳；独立补测与旧证据分别报告，不累加覆盖。导出历史为明确合成夹具，收费/模型/账单/成片/公网资格不提升。",
+    "readme_status": "身份、个人空间、A/B文字示例与项目独立预算可用；资源隔离及离线迁移副本演练保留。新增连接版本、通用费用预留、人工账单核对与预算待补金额基础；所有模型实际费用接线、真实账单、社区研发、成片和公网仍待完成。",
+    "verification_checkpoint": "本轮109相关测试含于405项回归、22项实际浏览器通过；独立109重跑及16补测分别记录，不累加覆盖。人工自作账单不认证真实供应商，运行时接线/模型/成片/公网资格不提升。",
     "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {

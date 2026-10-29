@@ -19,7 +19,7 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 - [公开路线图](site/content/docs/plans/public-roadmap.md)
 - [单一功能登记源](capabilities/features.json)，检查/生成：`python scripts/features.py --check` / `python scripts/features.py`
 
-身份、个人空间、A/B文字示例与项目独立预算可用；业务资源、嵌套引用和历史文件的本机正反向矩阵已通过。旧数据仅在私有副本认领/回退，原入口未切换；收费执行、实际账单、社区研发、成片和公网部署仍待完成。本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
+身份、个人空间、A/B文字示例与项目独立预算可用；资源隔离及离线迁移副本演练保留。新增连接版本、通用费用预留、人工账单核对与预算待补金额基础；所有模型实际费用接线、真实账单、社区研发、成片和公网仍待完成。本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
 
 代码保留并基于[Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish)继续开发，遵循[现有许可证](LICENSE)，来源和发布边界见[UPSTREAM.md](UPSTREAM.md)。现有代码包含上游、既有改动和AI辅助开发成果，不能宣称全部从零AI原创。仓库里的上游Issues、Actions、Pages与镜像链接属于上游，不是已交付的自有平台。
 <!-- features:end -->

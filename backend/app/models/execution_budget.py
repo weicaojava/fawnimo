@@ -1,5 +1,5 @@
 """Integer minor-unit budgets; these records contain configured quotes, not real prices."""
-from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, String
+from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.db import Base
 
@@ -24,4 +24,4 @@ class ExecutionBudgetEntry(Base):
     quote_minor: Mapped[int] = mapped_column(BigInteger, nullable=False)
     actual_minor: Mapped[int | None] = mapped_column(BigInteger)
     state: Mapped[str] = mapped_column(String(16), nullable=False)
-    __table_args__ = (CheckConstraint('quote_minor >= 0 AND (actual_minor IS NULL OR (actual_minor >= 0 AND actual_minor <= quote_minor))'), CheckConstraint("state IN ('reserved','unknown','released','settled')"),)
+    __table_args__ = (CheckConstraint('quote_minor >= 0 AND (actual_minor IS NULL OR (actual_minor >= 0 AND actual_minor <= quote_minor))'), CheckConstraint("state IN ('reserved','unknown','released','settled')"), UniqueConstraint('job_id','project_id'),)

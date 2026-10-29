@@ -28,6 +28,7 @@ from app.models.llm import Model, ModelSettings, Provider
 from app.models.studio import Actor, ActorImage, Costume, CostumeImage, FileItem, Prop, PropImage, Scene, SceneImage
 from app.services.asset_image_generation import AssetImageGenerationRuntime, migrate_asset_image_generation, verified_bytes
 from app.services.agent_execution import clock
+from app.services.llm.connection_versions import migrate_connection_versions
 from app.services.studio.files import build_download_response, delete_file, get_storage_info, read_file_bytes
 
 KEY = 'image-fixture-only-key'
@@ -94,6 +95,7 @@ async def fixture_client(tmp_path, monkeypatch, state, workers=1):
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
     await migrate_asset_image_generation(engine)
+    await migrate_connection_versions(engine)
     factory = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
     local_storage.upload('files/original.png', state['png'], 'image/png')
     slots = {}

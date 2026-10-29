@@ -51,6 +51,11 @@ jobs:
           tests/test_workspace_resource_matrix.py
           tests/test_workspace_video_runtime.py tests/test_execution_admission.py
           tests/test_execution_api.py tests/test_execution_accounting.py
+          tests/test_connection_versions.py tests/test_model_charges.py
+          tests/test_model_prices.py tests/test_model_billing.py
+          tests/test_model_billing_budget_view.py tests/test_model_billing_cli.py
+          tests/test_model_accounting_guards.py
+          tests/test_agent_execution.py tests/test_asset_image_generation.py
 
   frontend:
     if: github.repository == 'weicaojava/fawnimo'

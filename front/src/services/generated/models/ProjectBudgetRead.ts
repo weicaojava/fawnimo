@@ -17,6 +17,13 @@ export type ProjectBudgetRead = {
     unsettled_jobs: number;
     uncertain_jobs: number;
     provider_bill_verified?: boolean;
-    coverage?: string;
+    coverage?: 'durable_video' | 'project_ledger';
+    bill_receipt_count?: number;
+    bill_receipt_total_minor?: string;
+    pending_bill_reviews?: number;
+    observed_pending_bill_minor?: string;
+    unfunded_bill_minor?: string;
+    available_after_bills_minor?: string;
+    price_violation_count?: number;
 };
 

@@ -2,6 +2,7 @@
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt
 from app.core.contracts.shot_plan import PlanIssue
+from app.core.contracts.model_accounting import ModelCallKind
 
 
 class VideoRuntimeConfiguration(BaseModel):
@@ -55,7 +56,14 @@ class ProjectBudgetRead(BaseModel):
     unsettled_jobs: int
     uncertain_jobs: int
     provider_bill_verified: Literal[False] = False
-    coverage: Literal['durable_video'] = 'durable_video'
+    coverage: Literal['durable_video','project_ledger'] = 'durable_video'
+    bill_receipt_count: int = 0
+    bill_receipt_total_minor: str = '0'
+    pending_bill_reviews: int = 0
+    observed_pending_bill_minor: str = '0'
+    unfunded_bill_minor: str = '0'
+    available_after_bills_minor: str = '0'
+    price_violation_count: int = 0
 
 
 class ProjectBudgetEntryRead(BaseModel):
@@ -65,6 +73,10 @@ class ProjectBudgetEntryRead(BaseModel):
     state: Literal['reserved', 'unknown', 'released', 'settled']
     quote_minor: int
     actual_minor: int | None
+    quote_minor_exact: str | None = None
+    actual_minor_exact: str | None = None
+    source: Literal['durable_video','model_call','bill_adjustment','unclassified'] = 'unclassified'
+    call_kind: ModelCallKind | None = None
 
 
 class ProjectBudgetPage(BaseModel):

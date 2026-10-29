@@ -105,12 +105,17 @@ async def init_db() -> None:
     import app.models.video_understanding  # noqa: F401
     import app.models.editing_v2  # noqa: F401
     import app.models.asset_image_generation  # noqa: F401
+    import app.models.provider_connection_version  # noqa: F401
+    import app.models.model_charge  # noqa: F401
+    import app.models.model_billing  # noqa: F401
 
     async with engine.begin() as conn:
         if engine.dialect.name=='sqlite':
             from sqlalchemy import text
             if (await conn.execute(text("SELECT 1 FROM sqlite_master WHERE type='table' AND name='chapters'"))).first():
                 await conn.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS chapter_id_project_scope ON chapters(id,project_id)'))
+            from app.services.worker.model_charge_schema import prepare_model_charge_parent
+            await prepare_model_charge_parent(conn)
         await conn.run_sync(Base.metadata.create_all)
     if engine.dialect.name == "sqlite":
         from app.services.studio.production_schema import migrate_production
@@ -141,6 +146,12 @@ async def init_db() -> None:
         await migrate_asset_image_generation(engine)
         from app.services.worker.project_budget_schema import migrate_project_budget
         await migrate_project_budget(engine)
+        from app.services.llm.connection_versions import migrate_connection_versions
+        await migrate_connection_versions(engine)
+        from app.services.worker.model_charge_schema import migrate_model_charges
+        await migrate_model_charges(engine)
+        from app.services.worker.model_billing_schema import migrate_model_billing
+        await migrate_model_billing(engine)
 
 
 async def close_db() -> None:
