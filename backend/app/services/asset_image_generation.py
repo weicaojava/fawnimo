@@ -63,7 +63,7 @@ async def availability(db, runtime, model_id=None):
         if configured:
             try:
                 quote=(runtime.price_registry if runtime else ModelPriceRegistry()).required('asset_image',row.id)
-                if quote.provider_id!=row.provider_id or quote.provider_connection_version!=row.revision:
+                if quote.provider_id!=row.provider_id or quote.provider_connection_version!=row.revision or quote.model_name!=row.name:
                     quote=None;message='图片模型连接已改变，请核对原连接的受信费用上界'
             except HTTPException:
                 message='此图片模型尚未登记单次调用的费用上界'

@@ -3,7 +3,7 @@ import hashlib
 import json
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, field_validator, model_serializer, model_validator
 
 ModelCallKind = Literal['agent_text','model_connection_test','asset_image','video_vision','video_asr']
 
@@ -13,12 +13,21 @@ class ModelPriceEnvelope(BaseModel):
 
     model_config = ConfigDict(extra='forbid',str_strip_whitespace=True,frozen=True)
     model_id: str = Field(min_length=1,max_length=64)
+    model_name: str | None = Field(default=None,min_length=1,max_length=255)
     provider_id: str = Field(min_length=1,max_length=64)
     provider_connection_version: StrictInt = Field(ge=0,le=9223372036854775806)
     account_version: str = Field(pattern=r'^[A-Za-z0-9_-]{1,128}$')
     currency: Literal['CNY'] = 'CNY'
     max_call_minor: StrictInt = Field(ge=1,le=100_000_000)
     source_note: str = Field(min_length=1,max_length=1000)
+
+    @model_serializer(mode='wrap')
+    def legacy_compatible_dump(self,handler):
+        """Preserve exact historical quote fingerprints/manifests; unbound legacy quotes cannot authorize new calls."""
+        data=handler(self)
+        if self.model_name is None:
+            data.pop('model_name',None)
+        return data
 
     @property
     def fingerprint(self) -> str:

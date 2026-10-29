@@ -61,10 +61,12 @@ async def reserve_in_transaction(db,*,project_id,scope_key,submitted_by,calls):
     if budget is None or budget.currency!='CNY':
         raise HTTPException(409,'请先设置该项目的人民币预算')
     for item in calls:
-        model=await db.get(Model,item.quote.model_id)
-        provider=await db.get(Provider,item.quote.provider_id)
+        model=await db.scalar(select(Model).where(Model.id==item.quote.model_id).execution_options(populate_existing=True))
+        provider=await db.scalar(select(Provider).where(Provider.id==item.quote.provider_id).execution_options(populate_existing=True))
         if model is None or provider is None or model.provider_id!=provider.id or provider.status=='disabled':
             raise HTTPException(409,'报价对应的项目空间模型连接不可用')
+        if item.quote.model_name is None or item.quote.model_name!=model.name:
+            raise HTTPException(409,'实际模型名称与受信报价不一致，请重新核对费用；未创建调用批次')
         if await connection_version(db,provider.id)!=item.quote.provider_connection_version:
             raise HTTPException(409,'供应商连接已变化，请核对新的受信报价')
     total=sum(item.quote.max_call_minor for item in calls)
@@ -114,12 +116,20 @@ async def prepare_call(db,*,project_id,charge_id,binding_hash):
     charge,entry=await owned_call(db,project_id,charge_id)
     if charge.dispatch_state!='planned' or entry.state!='reserved':
         raise HTTPException(409,'原调用已准备或结果未知，不能重新发送')
+    # An invoice can arrive after whole-plan admission but before a later
+    # reserved phase sends. Old reservations cannot bypass a now-breached quote
+    # or an unresolved original-project liability.
+    from app.services.worker.model_billing import admission_review_block
+    priced=QuotedModelCall(unit_key=charge.unit_key,kind=charge.kind,binding_hash=charge.binding_hash,quote=charge.price_snapshot)
+    await admission_review_block(db,project_id,[priced])
     if binding_hash!=charge.binding_hash or await connection_version(db,charge.provider_id)!=charge.provider_connection_version:
         raise HTTPException(409,'调用连接版本已变化，未向新连接发送')
-    provider=await db.get(Provider,charge.provider_id)
-    model=await db.get(Model,charge.model_id)
+    provider=await db.scalar(select(Provider).where(Provider.id==charge.provider_id).execution_options(populate_existing=True))
+    model=await db.scalar(select(Model).where(Model.id==charge.model_id).execution_options(populate_existing=True))
     if provider is None or provider.status=='disabled' or model is None or model.provider_id!=provider.id:
         raise HTTPException(409,'原调用模型连接不可用')
+    if priced.quote.model_name is None or priced.quote.model_name!=model.name:
+        raise HTTPException(409,'原报价没有匹配实际模型名称，未发起调用')
     changed=await db.execute(update(ModelCallCharge).where(ModelCallCharge.id==charge_id,ModelCallCharge.project_id==project_id,
         ModelCallCharge.dispatch_state=='planned').values(dispatch_state='prepared').execution_options(synchronize_session=False))
     if changed.rowcount!=1:

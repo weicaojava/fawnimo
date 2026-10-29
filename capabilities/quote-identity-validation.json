@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-30",
+  "features": [
+    "F-001.04",
+    "F-006.01",
+    "F-008.02",
+    "F-009.03"
+  ],
+  "scope": "Actual request model-name price binding and invoice quarantine at dispatch for the existing SQLite text/probe/image runtime; pending ASR implementation excluded",
+  "base_published_commit": "5e9f7bb15375df678b8ff2ada4c3c51e63dad2d5",
+  "selected_source_tree": "c510c82f0d1dd6f499f3464b2f0ea546ea085331",
+  "related_tests_passed": 145,
+  "full_selected_regressions_passed": 441,
+  "browser_checks_passed": 46,
+  "count_note": "145 related cases are included in441. Independent145 rerun and12 controls are separate. The earlier counterexample assertion passing once proves an authorization defect, not a passed product invariant.",
+  "before": {
+    "authorization_invariant_violations": 1,
+    "passed_product_checks": 0,
+    "counterexample_assertions_passed": 1,
+    "evidence": "private_external:stage-b-understanding/independent-model-name-counterexample.json",
+    "sha256": "be37fa5524ddac80db1ce17740d19fb3b4658d037d58ff96376ec96aab6e6bbe"
+  },
+  "closed_findings": [
+    "An unchanged logical model ID/provider clock could reuse a quote after the actual request model name changed"
+  ],
+  "independent_runs": {
+    "related_snapshot": {
+      "file": "independent-related.xml",
+      "sha256": "cc77cb080128fb34a0fbb200f0cce203081b01835ba63e3700a892730d7941fa",
+      "tests": 145,
+      "passed": 145,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "private_counterexamples": {
+      "file": "independent-private-final.xml",
+      "sha256": "8aeed19c38b8b99d8b745692bbe26ec3d888a4c828162a57190e53a8f5b68c75",
+      "tests": 12,
+      "passed": 12,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "independent_review_status": "passed_for_quote_identity_fix",
+  "independent_review_sha256": "9fb13068e2dc21a33f16c72aefb076504ec2a5e15fc53a64d1e284bcc9edb06b",
+  "independent_review_evidence": "private_external:stage-b-quote-identity/independent-review.json",
+  "metadata_review_evidence": "private_external:stage-b-quote-identity/independent-metadata-review.json",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "bc71abda829cd01253ecb1d1a95ce421444413a570071fa90416bed6f1eafdac",
+    "backend/app/core/contracts/model_accounting.py": "0757d2f964ec8cbfb41458f161295a74f36c07327b259a53d616a6016e2e4c6d",
+    "backend/app/services/worker/model_prices.py": "b9755d47ad29d07291898f4a4dd7349e4056b847dbb96f18412ee2349c081b91",
+    "backend/app/services/worker/model_charges.py": "cca1031aeee760f2a86ae349fa494db1d0e551c90ace29f60a149bcfa740ea57",
+    "backend/app/services/worker/model_job_charges.py": "62f7de869de529e1e3a74bc0db71fe413901e8bb8b32678ee0b243717d667664",
+    "backend/app/services/agent_execution.py": "ebd54eed60903a27e639bdf74b971a19336ab59ca1e5ac72f5339deffc0599b1",
+    "backend/app/services/asset_image_generation.py": "0a0961d89eec8ae5f42836a7272d8bea9ccd02139c2867bc19b9411ae8709c0f",
+    "backend/tests/test_agent_execution.py": "4f48c597844e2107bad23ee4aac90fadf216c72b728e6b7164ddb19e210adbde",
+    "backend/tests/test_asset_image_generation.py": "8d5a73e512e348181f20d14c9a49b83aabbf85a6468d2f599cf9f88e7005c77f",
+    "backend/tests/test_model_charges.py": "04fa152b5cfecdf2aee975afa3ea0c90bec85ba90c9758b944c58be417d7de6d",
+    "backend/tests/test_model_billing.py": "b9b8311cc2af55d006c4f2d7660b9240d5a7603efa549b7b5f80a502777f3e0f",
+    "backend/tests/test_quote_model_identity.py": "4e67c480017fd3bf083aae82651095045956e334d81dfda869b3eeda66936651"
+  },
+  "coverage": [
+    "Actual model_name enters new quote fingerprints and batch manifests",
+    "Availability, fresh metadata reservation and dispatch require exact current model name; stale ORM state cannot bypass",
+    "Missing-name legacy serialization, fingerprints, manifests, accepted request replay and explicit old bills remain readable",
+    "Legacy unbound quotes cannot authorize any new registry/admission/HTTP dispatch",
+    "A newly arrived excessive/disputed bill also blocks the remaining pre-reserved phases before another HTTP",
+    "Real self-authored loopback Agent/image positive controls, rejected renames, independent historical linked-job controls",
+    "Unchanged frontend built from the isolated selected tree; 46 browser checks including renamed-model UI/API gating"
+  ],
+  "frontend": {
+    "openapi_semantics_changed": false,
+    "typescript_passed": true,
+    "production_build_passed": true
+  },
+  "connected_protocols": [
+    "agent_text",
+    "model_connection_test",
+    "asset_image"
+  ],
+  "all_model_runtime_admission_connected": false,
+  "paid_gateway_enabled": false,
+  "provider_bill_verified": false,
+  "full_execution_isolation_qualified": false,
+  "model_quality_qualified": false,
+  "complete_film_qualified": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "original_workspace_writes": 0,
+  "limitations": [
+    "All prices, invoices, accounts and model outputs are self-authored fixtures.",
+    "The model-name field verifies configured request identity, not actual supplier pricing or model quality.",
+    "Pending vision/ASR/audio-category/transport work is absent from this publication snapshot.",
+    "All-protocol billing, paid fixed-workspace isolation, full-film and public hosting remain incomplete."
+  ]
+}

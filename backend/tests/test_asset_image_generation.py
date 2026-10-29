@@ -43,7 +43,7 @@ KINDS = {'actor': (Actor, ActorImage, 'actor_id'), 'costume': (Costume, CostumeI
 
 def image_fixture_price():
     """Author a positive inert image quote for protocol tests, never an actual supplier tariff."""
-    return ModelPriceEnvelope(model_id='image-model',provider_id='image-provider',provider_connection_version=1,
+    return ModelPriceEnvelope(model_id='image-model',model_name='local-image-fixture',provider_id='image-provider',provider_connection_version=1,
         account_version='synthetic-image-account',max_call_minor=15,source_note='Authored local image/accounting fixture; no real supplier')
 
 

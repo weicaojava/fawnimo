@@ -50,7 +50,7 @@ async def fixture(tmp_path):
 
 def calls(*,count=2,amount=25,revision=1):
     """Use an explicitly synthetic operator quote, never a fetched or invented supplier price."""
-    quote=ModelPriceEnvelope(model_id='m',provider_id='p',provider_connection_version=revision,
+    quote=ModelPriceEnvelope(model_id='m',model_name='Synthetic text',provider_id='p',provider_connection_version=revision,
         account_version='synthetic-account-v1',max_call_minor=amount,source_note='Synthetic accounting fixture; no supplier or actual bill')
     return [QuotedModelCall(unit_key='node-'+str(index),kind='agent_text',binding_hash='a'*64,quote=quote) for index in range(count)]
 

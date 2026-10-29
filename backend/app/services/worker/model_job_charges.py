@@ -68,7 +68,7 @@ async def verify_complete_plan(db,kind,job_id,binding):
             quote=ModelPriceEnvelope.model_validate(charge.price_snapshot)
         except (ValueError,TypeError):
             raise invalid from None
-        if entry is None or charge.project_id!=binding.project_id or entry.project_id!=binding.project_id or entry.quote_minor!=quote.max_call_minor or charge.kind!=call_kind or charge.model_id!=job.model_id or charge.provider_id!=job.model_binding.get('provider_id') or charge.provider_connection_version!=job.model_binding.get('provider_connection_version') or charge.binding_hash!=binding_digest(job.model_binding) or (quote.model_id,quote.provider_id,quote.provider_connection_version,quote.account_version)!=(charge.model_id,charge.provider_id,charge.provider_connection_version,charge.account_version):
+        if entry is None or charge.project_id!=binding.project_id or entry.project_id!=binding.project_id or entry.quote_minor!=quote.max_call_minor or charge.kind!=call_kind or charge.model_id!=job.model_id or charge.provider_id!=job.model_binding.get('provider_id') or charge.provider_connection_version!=job.model_binding.get('provider_connection_version') or charge.binding_hash!=binding_digest(job.model_binding) or (quote.model_name is not None and quote.model_name!=job.model_binding.get('model_name')) or (quote.model_id,quote.provider_id,quote.provider_connection_version,quote.account_version)!=(charge.model_id,charge.provider_id,charge.provider_connection_version,charge.account_version):
             raise invalid
         quotes.append(QuotedModelCall(unit_key=charge.unit_key,kind=charge.kind,binding_hash=charge.binding_hash,quote=quote))
     if len({unit.quote.fingerprint for unit in quotes})!=1 or manifest(binding.project_id,binding.submitted_by,quotes)!=batch.manifest_hash:
@@ -96,7 +96,7 @@ async def bind_new_job(db,*,kind,job_id,project_id,submitted_by,request_hash,cal
     expected={node['id'] for node in job.config_snapshot['workflow'] if node['type']=='llm'} if kind=='agent' else {'candidate'}
     call_kind=('model_connection_test' if job.kind=='connection_test' else 'agent_text') if kind=='agent' else 'asset_image'
     if not expected or len(calls)!=len(expected) or {call.unit_key for call in calls}!=expected or any(
-        call.kind!=call_kind or call.quote.model_id!=job.model_id or call.binding_hash!=binding_digest(job.model_binding)
+        call.kind!=call_kind or call.quote.model_id!=job.model_id or (call.quote.model_name is None and prior is None) or (call.quote.model_name is not None and call.quote.model_name!=job.model_binding.get('model_name')) or call.binding_hash!=binding_digest(job.model_binding)
         or call.quote.provider_id!=job.model_binding.get('provider_id')
         or call.quote.provider_connection_version!=job.model_binding.get('provider_connection_version') for call in calls):
         raise HTTPException(409,'原任务的模型、连接或完整调用清单与费用授权不一致')

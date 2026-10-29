@@ -14,7 +14,7 @@ from app.models.model_charge import ModelCallCharge
 from app.services.worker.execution_budget import transaction
 from app.services.worker.model_billing import import_statement,parse_normalized_csv,reconcile_statement,resolve_duplicate,billing_summary
 from app.services.worker.model_billing_schema import migrate_model_billing
-from app.services.worker.model_charges import prepare_call,record_accepted_call,reserve_batch
+from app.services.worker.model_charges import prepare_call,record_accepted_call,release_unprepared,reserve_batch
 from app.services.worker.workspace_video_runtime import save_project_budget
 from tests.test_model_charges import ACTOR,calls,fixture,state
 
@@ -49,6 +49,37 @@ async def imported(factory,content,**extra):
     """Bind the normalized line to an explicit original authored evidence hash."""
     return await import_statement(factory,context=context(**extra),normalized_csv=content,
         original_content=b'Synthetic authored invoice evidence. No real bill or external call.')
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('actual,status',[(30,'applied'),(150,'disputed')])
+async def test_new_bill_blocks_an_already_reserved_later_phase_before_dispatch(tmp_path,actual,status):
+    """A complete earlier reservation cannot authorize more calls after its quote is breached or project billing is disputed."""
+    engine,factory=await fixture(tmp_path);await migrate_model_billing(engine)
+    try:
+        batch=await reserve_batch(factory,project_id='a',scope_key='two-phase-invoice',submitted_by=ACTOR,calls=calls(count=2))
+        async with factory() as db:
+            rows=(await db.scalars(select(ModelCallCharge).where(ModelCallCharge.batch_id==batch).order_by(ModelCallCharge.unit_key))).all()
+            first,second=rows[0].id,rows[1].id
+        async with factory() as db:
+            async with transaction(db):
+                await prepare_call(db,project_id='a',charge_id=first,binding_hash='a'*64)
+                await record_accepted_call(db,project_id='a',charge_id=first,provider_request_id='fixture-request-1')
+        statement=await imported(factory,invoice(actual))
+        assert (await reconcile_statement(factory,statement))[0]['status']==status
+        async with factory() as db:
+            with pytest.raises(HTTPException) as failure:
+                async with transaction(db):await prepare_call(db,project_id='a',charge_id=second,binding_hash='a'*64)
+            assert failure.value.status_code==409
+        async with factory() as db:
+            assert (await db.get(ModelCallCharge,second)).dispatch_state=='planned'
+        async with factory() as db:
+            async with transaction(db):
+                await release_unprepared(db,project_id='a',batch_id=batch)
+        assert (await state(factory))[:2]==((0,30) if status=='applied' else (25,0))
+        assert (await state(factory,'b'))[:2]==(0,0)
+    finally:
+        await engine.dispose()
 
 
 @pytest.mark.asyncio

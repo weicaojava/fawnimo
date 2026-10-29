@@ -85,7 +85,7 @@ async def availability(db, runtime, model_id: str | None = None, *, call_kind='a
         if configured:
             try:
                 quote=(runtime.price_registry if runtime else ModelPriceRegistry()).required(call_kind,row.id)
-                if quote.provider_id!=row.provider_id or quote.provider_connection_version!=row.revision:
+                if quote.provider_id!=row.provider_id or quote.provider_connection_version!=row.revision or quote.model_name!=row.name:
                     quote=None
                     message='模型连接已改变，请先核对该连接的受信费用上界'
             except HTTPException:

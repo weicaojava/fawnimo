@@ -55,9 +55,9 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权
 2. 后台任务固化原空间、提交人、连接版本；切换空间不重发原收费请求
 
-软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`、`backend/tests/test_project_budget.py`、`backend/tests/test_workspace_resource_matrix.py`、`backend/tests/test_agent_execution.py`、`backend/tests/test_asset_image_generation.py`、`backend/tests/test_connection_versions.py`、`backend/tests/test_model_accounting_guards.py`、`backend/tests/test_model_billing.py`、`backend/tests/test_model_billing_budget_view.py`、`backend/tests/test_model_billing_cli.py`、`backend/tests/test_model_charges.py`、`backend/tests/test_model_prices.py`、`backend/tests/test_agent_project_accounting.py`、`backend/tests/test_cross_model_project_budget.py`、`backend/tests/test_gateway_pricing_status.py`、`backend/tests/test_image_project_accounting.py`、`backend/tests/test_model_job_charges.py`、`backend/tests/test_model_price_workspace.py`。
+软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`、`backend/tests/test_project_budget.py`、`backend/tests/test_workspace_resource_matrix.py`、`backend/tests/test_agent_execution.py`、`backend/tests/test_asset_image_generation.py`、`backend/tests/test_connection_versions.py`、`backend/tests/test_model_accounting_guards.py`、`backend/tests/test_model_billing.py`、`backend/tests/test_model_billing_budget_view.py`、`backend/tests/test_model_billing_cli.py`、`backend/tests/test_model_charges.py`、`backend/tests/test_model_prices.py`、`backend/tests/test_agent_project_accounting.py`、`backend/tests/test_cross_model_project_budget.py`、`backend/tests/test_gateway_pricing_status.py`、`backend/tests/test_image_project_accounting.py`、`backend/tests/test_model_job_charges.py`、`backend/tests/test_model_price_workspace.py`、`backend/tests/test_quote_model_identity.py`。
 
-验收限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；资源及历史读取隔离证据保留。；单独SQLite的文本工作流、连接测试、单张图片已绑定提交人/原项目/连接版本/报价，原子预留、发送准备、取消/重试与采用已本机验证。；固定身份网关收费仍503，可用性明确关闭；该门禁不授予全部收费执行隔离资格。；视频理解、ASR及原生视频统一账单接线、A/B收费执行联合验收和真实供应商账单仍未完成。。
+验收限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；资源及历史读取隔离证据保留。；单独SQLite的文本工作流、连接测试、单张图片已绑定提交人/原项目/连接版本/报价，原子预留、发送准备、取消/重试与采用已本机验证。；固定身份网关收费仍503，可用性明确关闭；该门禁不授予全部收费执行隔离资格。；视频理解、ASR及原生视频统一账单接线、A/B收费执行联合验收和真实供应商账单仍未完成。；新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。。
 
 ### F-001.05 旧数据认领、迁移与回退
 
@@ -286,7 +286,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. 显式配置openai_b64_v1模型，用本地夹具确认参数、单次发送和持久候选
 2. 拒绝URL-only、多张、坏base64和坏图片；取消与未知结果不自动重发
 
-软件回归目标：`backend/tests/test_asset_image_generation.py`、`backend/tests/test_agent_project_accounting.py`、`backend/tests/test_cross_model_project_budget.py`、`backend/tests/test_gateway_pricing_status.py`、`backend/tests/test_image_project_accounting.py`、`backend/tests/test_model_job_charges.py`、`backend/tests/test_model_price_workspace.py`。
+软件回归目标：`backend/tests/test_asset_image_generation.py`、`backend/tests/test_agent_project_accounting.py`、`backend/tests/test_cross_model_project_budget.py`、`backend/tests/test_gateway_pricing_status.py`、`backend/tests/test_image_project_accounting.py`、`backend/tests/test_model_job_charges.py`、`backend/tests/test_model_price_workspace.py`、`backend/tests/test_quote_model_identity.py`。
 
 验收限制：仅单张方图文本生成，不发送参考图，不保证任意供应商兼容；须显式选择费用项目和确认协议价格。；单独SQLite候选和采用已连接费用保护；新身份收费入口仍关闭，真实画面质量待验收。。
 
@@ -394,7 +394,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. 本地HTTP夹具执行顺序节点，固化版本/提示词/连接并记录真实输入输出
 2. 验证重复请求、并发租约、超时/响应上限、取消和显式重试；迟到结果不能采用
 
-软件回归目标：`backend/tests/test_agent_execution.py`、`backend/tests/test_agent_project_accounting.py`、`backend/tests/test_cross_model_project_budget.py`、`backend/tests/test_gateway_pricing_status.py`、`backend/tests/test_image_project_accounting.py`、`backend/tests/test_model_job_charges.py`、`backend/tests/test_model_price_workspace.py`。
+软件回归目标：`backend/tests/test_agent_execution.py`、`backend/tests/test_agent_project_accounting.py`、`backend/tests/test_cross_model_project_budget.py`、`backend/tests/test_gateway_pricing_status.py`、`backend/tests/test_image_project_accounting.py`、`backend/tests/test_model_job_charges.py`、`backend/tests/test_model_price_workspace.py`、`backend/tests/test_quote_model_identity.py`。
 
 验收限制：无分支、并行、代码或任意工具执行；社区研发Agent另行实现。；单独SQLite执行要求选择费用项目并确认完整节点报价；新身份网关仍503，全部收费隔离及真实模型未验收。。
 
@@ -449,9 +449,9 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. 项目分别设置上限并原子预留，不能超本项目预算；项目之间互不占额度，旧总上限规则完全停用。
 2. 实际账单与应用请求ID关联；接受未知保留未知费用，人工/自动对账有收据
 
-软件回归目标：`backend/tests/test_execution_budget.py`、`backend/tests/test_execution_accounting.py`、`backend/tests/test_project_budget.py`、`backend/tests/test_agent_execution.py`、`backend/tests/test_asset_image_generation.py`、`backend/tests/test_connection_versions.py`、`backend/tests/test_model_accounting_guards.py`、`backend/tests/test_model_billing.py`、`backend/tests/test_model_billing_budget_view.py`、`backend/tests/test_model_billing_cli.py`、`backend/tests/test_model_charges.py`、`backend/tests/test_model_prices.py`、`backend/tests/test_agent_project_accounting.py`、`backend/tests/test_cross_model_project_budget.py`、`backend/tests/test_gateway_pricing_status.py`、`backend/tests/test_image_project_accounting.py`、`backend/tests/test_model_job_charges.py`、`backend/tests/test_model_price_workspace.py`。
+软件回归目标：`backend/tests/test_execution_budget.py`、`backend/tests/test_execution_accounting.py`、`backend/tests/test_project_budget.py`、`backend/tests/test_agent_execution.py`、`backend/tests/test_asset_image_generation.py`、`backend/tests/test_connection_versions.py`、`backend/tests/test_model_accounting_guards.py`、`backend/tests/test_model_billing.py`、`backend/tests/test_model_billing_budget_view.py`、`backend/tests/test_model_billing_cli.py`、`backend/tests/test_model_charges.py`、`backend/tests/test_model_prices.py`、`backend/tests/test_agent_project_accounting.py`、`backend/tests/test_cross_model_project_budget.py`、`backend/tests/test_gateway_pricing_status.py`、`backend/tests/test_image_project_accounting.py`、`backend/tests/test_model_job_charges.py`、`backend/tests/test_model_price_workspace.py`、`backend/tests/test_quote_model_identity.py`。
 
-验收限制：项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。；文本工作流/连接测试/单张图片实际执行已接受信协议上界、原项目预留、私有请求证据和人工规范化账单；采用不再次预留。；视觉理解、ASR及原生视频统一账单接线未完成；更正、退款和多义请求仍未决。CSV或哈希不认证真实供应商，provider_bill_verified=false。；身份网关收费仍关闭；本轮付费上限未获确认，旧样片预算不能沿用。。
+验收限制：项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。；文本工作流/连接测试/单张图片实际执行已接受信协议上界、原项目预留、私有请求证据和人工规范化账单；采用不再次预留。；视觉理解、ASR及原生视频统一账单接线未完成；更正、退款和多义请求仍未决。CSV或哈希不认证真实供应商，provider_bill_verified=false。；身份网关收费仍关闭；本轮付费上限未获确认，旧样片预算不能沿用。；新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。。
 
 ## F-010 剪辑、字幕与声音
 

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-10-30.2",
+  "register_version": "2026-10-30.3",
   "updated_at": "2026-10-30",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -331,6 +331,19 @@
         "F-009.03"
       ],
       "scope": "单独SQLite的文本工作流/连接测试/单张图片已接项目费用；139相关含于435选定测试，42浏览器；独立首跑/受影响重跑/补测及worker分记。真实模型、全部收费隔离和公网不提升。"
+    },
+    {
+      "id": "EV-QUOTE-IDENTITY",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/quote-identity-validation.json",
+      "features": [
+        "F-001.04",
+        "F-006.01",
+        "F-008.02",
+        "F-009.03"
+      ],
+      "scope": "隔离快照修复模型改名沿用旧价：441项含145相关、46浏览器，独立145重跑/12补测分记；旧缺名称报价仅历史兼容。ASR开发、真实收费和公网资格不提升。"
     }
   ],
   "features": [
@@ -516,7 +529,8 @@
           "EV-PROJECT-BUDGET",
           "EV-RESOURCE-ISOLATION",
           "EV-MODEL-ACCOUNTING",
-          "EV-MODEL-RUNTIME"
+          "EV-MODEL-RUNTIME",
+          "EV-QUOTE-IDENTITY"
         ]
       },
       "deployment": {
@@ -565,7 +579,8 @@
         "backend/tests/test_gateway_pricing_status.py",
         "backend/tests/test_image_project_accounting.py",
         "backend/tests/test_model_job_charges.py",
-        "backend/tests/test_model_price_workspace.py"
+        "backend/tests/test_model_price_workspace.py",
+        "backend/tests/test_quote_model_identity.py"
       ],
       "acceptance": [
         "A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权",
@@ -575,7 +590,8 @@
         "工作进程不继承旧主机模型/云凭据与共享Celery配置；资源及历史读取隔离证据保留。",
         "单独SQLite的文本工作流、连接测试、单张图片已绑定提交人/原项目/连接版本/报价，原子预留、发送准备、取消/重试与采用已本机验证。",
         "固定身份网关收费仍503，可用性明确关闭；该门禁不授予全部收费执行隔离资格。",
-        "视频理解、ASR及原生视频统一账单接线、A/B收费执行联合验收和真实供应商账单仍未完成。"
+        "视频理解、ASR及原生视频统一账单接线、A/B收费执行联合验收和真实供应商账单仍未完成。",
+        "新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。"
       ],
       "depends_on": [
         "F-001.03"
@@ -1513,7 +1529,8 @@
         "model": "not_verified",
         "evidence": [
           "EV-LOCAL-20261029",
-          "EV-MODEL-RUNTIME"
+          "EV-MODEL-RUNTIME",
+          "EV-QUOTE-IDENTITY"
         ]
       },
       "deployment": {
@@ -1539,7 +1556,8 @@
         "backend/tests/test_gateway_pricing_status.py",
         "backend/tests/test_image_project_accounting.py",
         "backend/tests/test_model_job_charges.py",
-        "backend/tests/test_model_price_workspace.py"
+        "backend/tests/test_model_price_workspace.py",
+        "backend/tests/test_quote_model_identity.py"
       ],
       "acceptance": [
         "显式配置openai_b64_v1模型，用本地夹具确认参数、单次发送和持久候选",
@@ -1995,7 +2013,8 @@
         "model": "not_verified",
         "evidence": [
           "EV-LOCAL-20261029",
-          "EV-MODEL-RUNTIME"
+          "EV-MODEL-RUNTIME",
+          "EV-QUOTE-IDENTITY"
         ]
       },
       "deployment": {
@@ -2022,7 +2041,8 @@
         "backend/tests/test_gateway_pricing_status.py",
         "backend/tests/test_image_project_accounting.py",
         "backend/tests/test_model_job_charges.py",
-        "backend/tests/test_model_price_workspace.py"
+        "backend/tests/test_model_price_workspace.py",
+        "backend/tests/test_quote_model_identity.py"
       ],
       "acceptance": [
         "本地HTTP夹具执行顺序节点，固化版本/提示词/连接并记录真实输入输出",
@@ -2242,7 +2262,8 @@
         "evidence": [
           "EV-PROJECT-BUDGET",
           "EV-MODEL-ACCOUNTING",
-          "EV-MODEL-RUNTIME"
+          "EV-MODEL-RUNTIME",
+          "EV-QUOTE-IDENTITY"
         ]
       },
       "deployment": {
@@ -2291,7 +2312,8 @@
         "backend/tests/test_gateway_pricing_status.py",
         "backend/tests/test_image_project_accounting.py",
         "backend/tests/test_model_job_charges.py",
-        "backend/tests/test_model_price_workspace.py"
+        "backend/tests/test_model_price_workspace.py",
+        "backend/tests/test_quote_model_identity.py"
       ],
       "acceptance": [
         "项目分别设置上限并原子预留，不能超本项目预算；项目之间互不占额度，旧总上限规则完全停用。",
@@ -2301,7 +2323,8 @@
         "项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。",
         "文本工作流/连接测试/单张图片实际执行已接受信协议上界、原项目预留、私有请求证据和人工规范化账单；采用不再次预留。",
         "视觉理解、ASR及原生视频统一账单接线未完成；更正、退款和多义请求仍未决。CSV或哈希不认证真实供应商，provider_bill_verified=false。",
-        "身份网关收费仍关闭；本轮付费上限未获确认，旧样片预算不能沿用。"
+        "身份网关收费仍关闭；本轮付费上限未获确认，旧样片预算不能沿用。",
+        "新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。"
       ],
       "depends_on": [
         "F-001.04",
@@ -3547,7 +3570,7 @@
         "迁移/备份/回退报告",
         "原数据完整性与后台执行绑定证据"
       ],
-      "progress": "项目预算、资源隔离和离线迁移副本演练保留；文本工作流/连接测试/单张图片已接项目费用准入与发送证据。139相关包含于435项选定测试、42项浏览器通过；独立首跑、修复后受影响重跑、补测及实际worker检查分开记录。真实账单、全部收费执行、模型/成片/公网资格不提升。视频理解/ASR/原生视频统一账单、全部收费隔离和正式切换继续推进。"
+      "progress": "项目预算、资源隔离、离线迁移与文本/连接测试/图片费用接入保留；修复实际模型改名沿用旧价，并在发送时复核新账单隔离。441项含145相关、46浏览器；独立145/12另记。理解/ASR/原生视频、全部收费隔离、正式切换仍待完成。"
     },
     {
       "id": "C",
@@ -3683,7 +3706,7 @@
     "overview": "资源隔离、项目预算及离线迁移副本演练保留；文本工作流/连接测试/单张图片已接项目费用。理解/ASR/原生视频统一账单、社区研发、完整成片与公网仍待完成。",
     "acceptance_setup": "使用独立验收数据和本机A/B账号。项目大厅可建立/重置纯自作7镜、21条可编辑提示词示例；每次重建新工程保留旧编辑，同一请求恢复返回原结果。本机入口与账号交付已可复验，尚无公网平台。",
     "readme_status": "身份、个人空间、A/B文字示例与项目预算可用；单独SQLite文本工作流/连接测试/单张图片接入完整项目预留和私有响应证据。身份收费网关仍关闭；理解/视频统一账单、社区研发、成片及公网继续推进。",
-    "verification_checkpoint": "139相关包含于435项选定测试、42项浏览器通过；独立首跑、修复后受影响重跑、补测及实际worker检查分开记录。真实账单、全部收费执行、模型/成片/公网资格不提升。",
+    "verification_checkpoint": "441项选定回归含145相关、46浏览器；隔离快照独立145重跑和12反例另记。模型名称报价及发送时账单门禁修复，真实账单、全部收费隔离、模型/成片/公网资格不提升。",
     "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {

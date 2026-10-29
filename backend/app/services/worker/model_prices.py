@@ -18,7 +18,7 @@ class ModelPriceRegistry:
     def required(self,kind,model_id):
         """Reject unpriced, disabled or wrong-protocol execution before job admission."""
         quote=self.rules.get((kind,model_id)) if self.configuration.enabled else None
-        if quote is None:
+        if quote is None or quote.model_name is None:
             raise HTTPException(503,'此模型尚未登记本调用协议的受信费用上界，未创建收费任务')
         return quote
 

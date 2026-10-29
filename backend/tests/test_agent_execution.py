@@ -37,7 +37,7 @@ FIXTURE_KEY = 'local-fixture-not-a-secret'
 
 def fixture_price():
     """Author a synthetic ten-minor upper bound; it is not an actual supplier price or spend authorization."""
-    return ModelPriceEnvelope(model_id='fixture-model',provider_id='fixture-provider',provider_connection_version=1,
+    return ModelPriceEnvelope(model_id='fixture-model',model_name='local-fixture-model',provider_id='fixture-provider',provider_connection_version=1,
         account_version='synthetic-text-account',max_call_minor=10,source_note='Synthetic local transport/accounting fixture only')
 
 
