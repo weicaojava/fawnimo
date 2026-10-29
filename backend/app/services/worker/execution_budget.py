@@ -6,6 +6,7 @@ mark_unknown and must never call release. Settlement needs trusted actual costs.
 """
 from contextlib import asynccontextmanager
 from sqlalchemy import text, update
+from sqlalchemy.exc import IntegrityError
 from app.models.execution_budget import ExecutionBudget, ExecutionBudgetEntry
 
 MAX_MINOR = 2**62 - 1
@@ -53,7 +54,7 @@ async def configure(db, project_id: str, currency: str, limit_minor: int):
 
 async def change_balance(db, budget, reserved_delta: int, spent_delta: int):
     """CAS the project revision and available balance in one atomic SQL update."""
-    result = await db.execute(update(ExecutionBudget).where(
+    statement = update(ExecutionBudget).where(
         ExecutionBudget.project_id == budget.project_id,
         ExecutionBudget.revision == budget.revision,
         ExecutionBudget.reserved_minor + reserved_delta >= 0,
@@ -61,7 +62,15 @@ async def change_balance(db, budget, reserved_delta: int, spent_delta: int):
         ExecutionBudget.reserved_minor + reserved_delta + ExecutionBudget.spent_minor + spent_delta <= ExecutionBudget.limit_minor,
     ).values(reserved_minor=ExecutionBudget.reserved_minor + reserved_delta,
              spent_minor=ExecutionBudget.spent_minor + spent_delta,
-             revision=ExecutionBudget.revision + 1).execution_options(synchronize_session=False))
+             revision=ExecutionBudget.revision + 1).execution_options(synchronize_session=False)
+    try:
+        result = await db.execute(statement)
+    except IntegrityError as error:
+        # Fixed-space SQL guards serialize all project holds under one ceiling.
+        # Preserve unrelated integrity errors for diagnostics rather than hiding them.
+        if 'Workspace spending ceiling exceeded' in str(error.orig):
+            raise BudgetError('Workspace spending ceiling exceeded') from None
+        raise
     if result.rowcount != 1:
         raise BudgetError('Insufficient budget or stale revision')
 

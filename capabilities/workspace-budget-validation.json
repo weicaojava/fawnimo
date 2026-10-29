@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-29",
+  "scope": "durable_video workspace budget software",
+  "backend_primary": 94,
+  "backend_complementary": 29,
+  "backend_primary_total": 123,
+  "browser_checks": 19,
+  "independent_targeted_tests": 31,
+  "independent_worker_checks": 14,
+  "independent_gateway_checks": 12,
+  "independent_review_passed": true,
+  "counts_note": "Independent tests and checks overlap the primary coverage and prior identity checkpoints; do not add them together.",
+  "openapi_synchronized": true,
+  "typescript_and_build_passed": true,
+  "external_model_calls": 0,
+  "real_provider_bill_verified": false,
+  "paid_gateway_enabled": false,
+  "overall_stage_b_complete": false,
+  "public_app_deployed": false,
+  "features": [
+    "F-001.04",
+    "F-009.03"
+  ],
+  "known_limits": [
+    "Other model calls are not admitted by this ledger.",
+    "Provider statement retrieval and reconciliation remain incomplete.",
+    "Zero default and saved ceilings do not activate model execution."
+  ],
+  "source_sha256_lf_normalized": {
+    "backend/app/models/workspace_budget.py": "af6ea8c672f2cce8ebcecf5f509ef407b0b26d76398e9a5cceda78d1a8f18893",
+    "backend/app/services/worker/workspace_budget.py": "6e0de60db1930a87a81a3acf346fabfd9390b5742337a063e551d1fb6171c4e7",
+    "backend/app/services/worker/workspace_budget_schema.py": "5a31313e12f726a1e507d801927dcfc63859c7c1dfadf33cd29b7dc693dcb3d1",
+    "backend/app/core/contracts/workspace_budget.py": "ff787e1ce52daaeb9ec3d69c4c9790fff851bee1c4d6cb52f5c2b0b972c99468",
+    "backend/app/api/workspace_budget.py": "91590eb59a361eee330d54e440182ea51b638aba2ec14dcee430c586d2406f73",
+    "backend/app/api/v1/__init__.py": "52ecd445fdc43bf3b95e66fa2fa09f3c1d30416d683c968c2d81c65145dd5e03",
+    "backend/app/core/db.py": "91e5227e394d2718f9a99fc419e2b74cb98d44663b6786ca0bce973f2dd4cbc3",
+    "backend/run_tenant_worker.py": "f8b26b04ba2f1f5e37ab9d2acdcaba9302041e0b2cf3fa0df1849c301a857617",
+    "backend/app/services/worker/execution_budget.py": "3937980b51fd23560717a07431ab4a6c94c3fb29c85dee68fa92f548627e5219",
+    "backend/app/controlplane/gateway.py": "d9b36230b07b8e29c1523eec6933eacdfe121f1676b8dd8ad16fba4901504ef4",
+    "backend/tests/test_workspace_budget.py": "3b215e8041cf5e20a1722667c9e473286269afd8e299cb047464662f0f11f374",
+    "front/src/identity/WorkspaceBudgetPanel.tsx": "33ba1f42e346073c6c87d21dc77dd7d49a51aa48bb2e8b2c1ed92d03082319fb",
+    "front/src/pages/Settings.tsx": "1661838622ef14854573e8e0ef05b5102ec4fd2a13e864c6ab7fa1a251ec7ea2",
+    "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoRuntimeSetupPanel.tsx": "a2da1600da8a88a774df0179a157fb96176b66e30504a263317a4d1676043425",
+    "front/openapi.json": "a4ec0873ae35feef5b98c3e317934b335c849c78f715cb8165344923919929ef",
+    ".github/workflows/verify-fawnimo.yml": "deb09dad87ea11000f6a19801a955bb034935ae0436808db61825fd5fe4091f5"
+  }
+}

@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-10-29.4`，更新日期：2026-10-29。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-10-29.5`，更新日期：2026-10-29。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-身份网关及每空间固定数据库、文件/媒体目录和执行进程已实现，本机体验入口为 http://127.0.0.1:18000/projects；原17888/8000本地模式保留。双账号本地软件与浏览器验证已通过；B/C仍有旧数据迁移回退、空间预算、完整隔离矩阵和完整制作示例待完成。新空间生成提交返回503。
+身份网关、固定空间数据库/文件/进程及A/B体验可用；空间持久视频预算已补双层原子保护、修改收据与分页明细。旧数据迁移回退、其他模型预算、真实账单、完整示例和公网仍未完成，收费模型入口继续关闭。
 
-本轮43项新增后端测试、16项原模式回归与46项实际浏览器检查通过，另有14项worker启动/重启检查和独立身份审查。只有登录会话、个人空间幂等和用户偏好三个有界功能标为软件验证通过；完整隔离、预算、迁移、示例成片、真实模型和公网仍按各自门槛记录。
+本轮预算改动通过94项主要后端加29项互不重复的补充回归，以及19项浏览器检查；独立31项定向测试与真实网关联验存在覆盖重叠，不重复计数。已验证范围为持久视频空间预算，不能提升全B、完整隔离、真实账单、模型或公网资格。
 
 ## F-001 身份与工作空间
 
@@ -78,11 +78,11 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 需求：R-002, R-010；验收阶段：B；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
 
-代码：[`backend/app/controlplane/gateway.py`](../../../../backend/app/controlplane/gateway.py)、[`backend/app/controlplane/workers.py`](../../../../backend/app/controlplane/workers.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`front/src/services/workspaceContext.ts`](../../../../front/src/services/workspaceContext.ts)。
+代码：[`backend/app/controlplane/gateway.py`](../../../../backend/app/controlplane/gateway.py)、[`backend/app/controlplane/workers.py`](../../../../backend/app/controlplane/workers.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`front/src/services/workspaceContext.ts`](../../../../front/src/services/workspaceContext.ts)、[`backend/app/services/worker/workspace_budget_schema.py`](../../../../backend/app/services/worker/workspace_budget_schema.py)。
 
-限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；空间预算尚未实现，所有已识别收费提交入口返回503；连接CRUD不等于生成许可；旧共享执行入口允许只读任务查询，写入/回调被拒绝；后台固定在原workspace进程；完整执行/预算隔离资格仍待验收。
+限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；旧共享执行入口允许只读任务查询，写入/回调被拒绝；后台固定在原workspace进程；完整执行/预算隔离资格仍待验收；持久视频空间总预算已通过本机隔离验证；其他模型预算和供应商对账未完成，收费入口仍503。。
 
-验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-IDENTITY-BROWSER`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-IDENTITY-BROWSER`、`EV-WORKSPACE-BUDGET`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -613,7 +613,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | --- | --- | --- | --- | --- | --- |
 | [F-009.01 模型、供应商与分类默认模型配置](#f-009-01) | 已实现 | 历史软件基线通过 | 未验收 | 仅本机 | /models · 模型/供应商/默认设置 |
 | [F-009.02 提示词模板、分类、编辑与工程导入来源](#f-009-02) | 已实现 | 历史软件基线通过 | 不适用 | 仅本机 | /prompts · 提示词库及工程DNA提示词 |
-| [F-009.03 空间预算与供应商账单对账](#f-009-03) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
+| [F-009.03 空间预算与供应商账单对账](#f-009-03) | 部分实现 | 未验收 | 不适用 | 仅本机 | /settings · 系统设置 → 工作空间预算；工程执行任务 → 工程预算 |
 
 <a id="f-009-01"></a>
 
@@ -647,11 +647,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-009.03 空间预算与供应商账单对账
 
-需求：R-002, R-010；验收阶段：B；范围：本阶段交付；实现版本：`未实现`；发布版本：`未发布`。
+需求：R-002, R-010；验收阶段：B；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
 
-限制：用户旧20元样片预算不能用作本阶段新增费用授权。
+代码：[`backend/app/models/workspace_budget.py`](../../../../backend/app/models/workspace_budget.py)、[`backend/app/services/worker/workspace_budget.py`](../../../../backend/app/services/worker/workspace_budget.py)、[`backend/app/services/worker/workspace_budget_schema.py`](../../../../backend/app/services/worker/workspace_budget_schema.py)、[`backend/app/api/workspace_budget.py`](../../../../backend/app/api/workspace_budget.py)、[`front/src/identity/WorkspaceBudgetPanel.tsx`](../../../../front/src/identity/WorkspaceBudgetPanel.tsx)。
 
-验证依据：尚无通过证据。测试文件是待运行目标，文件存在不代表测试通过。
+限制：已实现固定空间持久视频的跨工程总上限、原子预留、未知保留、所有者CAS与修改收据、分页明细；保存上限不会启用模型。；其他模型调用的空间预算接入、供应商实际账单获取/对账仍未完成，provider_bill_verified=false，收费网关继续关闭。；用户旧20元样片预算不能用作本阶段新增费用授权。。
+
+验证依据：`EV-WORKSPACE-BUDGET`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1067,6 +1069,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-DEPLOY-CONFIG | software | repository · `deploy/workspace/validation.json` | 14项静态Compose与配置检查通过；Docker engine不可用，image_built/container_runtime_verified/public_deployment_verified均false。 |
 | EV-IDENTITY-BROWSER | software | private_external · `stage-b-identity/browser.json` | 32项实际双账号/文件/示例浏览器检查，另profile-browser.json14项资料/旧标签/媒体/退出检查，共46；本机软件验证，不是完整隔离或公网证明。 |
 | EV-FAWNIMO-PUBLICATION | software | repository · `capabilities/published-ci.json` | GitHub公开源码与精确提交的只读CI：59项后端测试、23项登记检查、前端类型及构建通过；旧发布job实际跳过，不授予应用公网部署资格。 |
+| EV-WORKSPACE-BUDGET | software | repository · `capabilities/workspace-budget-validation.json` | 空间持久视频预算的软件验收：123项主回归、19项浏览器、独立真实网关与worker联验。与其他证据有重叠，不累加；没有外部模型费用、实际供应商账单或公网资格。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

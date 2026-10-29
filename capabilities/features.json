@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-10-29.4",
+  "register_version": "2026-10-29.5",
   "updated_at": "2026-10-29",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -263,6 +263,17 @@
       "features": [
         "F-014.01"
       ]
+    },
+    {
+      "id": "EV-WORKSPACE-BUDGET",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/workspace-budget-validation.json",
+      "scope": "空间持久视频预算的软件验收：123项主回归、19项浏览器、独立真实网关与worker联验。与其他证据有重叠，不累加；没有外部模型费用、实际供应商账单或公网资格。",
+      "features": [
+        "F-001.04",
+        "F-009.03"
+      ]
     }
   ],
   "features": [
@@ -442,7 +453,8 @@
         "model": "not_required",
         "evidence": [
           "EV-IDENTITY-CHECKPOINT",
-          "EV-IDENTITY-BROWSER"
+          "EV-IDENTITY-BROWSER",
+          "EV-WORKSPACE-BUDGET"
         ]
       },
       "deployment": {
@@ -461,12 +473,14 @@
         "backend/app/controlplane/gateway.py",
         "backend/app/controlplane/workers.py",
         "backend/app/core/workspace_boundary.py",
-        "front/src/services/workspaceContext.ts"
+        "front/src/services/workspaceContext.ts",
+        "backend/app/services/worker/workspace_budget_schema.py"
       ],
       "tests": [
         "backend/tests/test_identity_controlplane.py",
         "backend/tests/test_identity_review.py",
-        "backend/tests/test_workspace_boundary.py"
+        "backend/tests/test_workspace_boundary.py",
+        "backend/tests/test_workspace_budget.py"
       ],
       "acceptance": [
         "A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权",
@@ -474,9 +488,9 @@
       ],
       "limits": [
         "工作进程不继承旧主机模型/云凭据与共享Celery配置",
-        "空间预算尚未实现，所有已识别收费提交入口返回503；连接CRUD不等于生成许可",
         "旧共享执行入口允许只读任务查询，写入/回调被拒绝",
-        "后台固定在原workspace进程；完整执行/预算隔离资格仍待验收"
+        "后台固定在原workspace进程；完整执行/预算隔离资格仍待验收",
+        "持久视频空间总预算已通过本机隔离验证；其他模型预算和供应商对账未完成，收费入口仍503。"
       ],
       "depends_on": [
         "F-001.03"
@@ -2110,32 +2124,46 @@
         "R-002",
         "R-010"
       ],
-      "implementation": "planned",
+      "implementation": "partial",
       "validation": {
         "software": "not_verified",
         "model": "not_required",
-        "evidence": []
+        "evidence": [
+          "EV-WORKSPACE-BUDGET"
+        ]
       },
       "deployment": {
-        "status": "not_deployed",
+        "status": "local_only",
         "url": null
       },
       "version": {
-        "implementation": null,
+        "implementation": "working-tree-2026-10-29",
         "release": null
       },
       "entry": {
-        "route": "",
-        "label": "尚无可验收入口"
+        "route": "/settings",
+        "label": "系统设置 → 工作空间预算；工程执行任务 → 工程预算"
       },
-      "code": [],
-      "tests": [],
+      "code": [
+        "backend/app/models/workspace_budget.py",
+        "backend/app/services/worker/workspace_budget.py",
+        "backend/app/services/worker/workspace_budget_schema.py",
+        "backend/app/api/workspace_budget.py",
+        "front/src/identity/WorkspaceBudgetPanel.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_workspace_budget.py",
+        "backend/tests/test_execution_budget.py",
+        "backend/tests/test_execution_accounting.py"
+      ],
       "acceptance": [
         "空间/项目双重准入，同一事务预留，跨项目并发不突破空间上限",
         "实际账单与应用请求ID关联；接受未知保留未知费用，人工/自动对账有收据"
       ],
       "limits": [
-        "用户旧20元样片预算不能用作本阶段新增费用授权"
+        "已实现固定空间持久视频的跨工程总上限、原子预留、未知保留、所有者CAS与修改收据、分页明细；保存上限不会启用模型。",
+        "其他模型调用的空间预算接入、供应商实际账单获取/对账仍未完成，provider_bill_verified=false，收费网关继续关闭。",
+        "用户旧20元样片预算不能用作本阶段新增费用授权。"
       ],
       "depends_on": [
         "F-001.04",
@@ -3381,7 +3409,7 @@
         "迁移/备份/回退报告",
         "原数据完整性与后台执行绑定证据"
       ],
-      "progress": "身份、固定空间进程及本机A/B软件和浏览器检查已通过；完整API/浏览器隔离矩阵、任务提交人逐项绑定、空间预算、旧数据迁移/回退仍未完成，B整体保持推进中。"
+      "progress": "身份、固定空间进程、A/B体验及持久视频空间预算已通过本机软件验证。其他模型预算、专用收费连接、实际账单、完整越权矩阵和旧数据迁移回退尚未完成，B整体继续推进。"
     },
     {
       "id": "C",
@@ -3514,11 +3542,11 @@
     "缺失检查、旧PR版本、独立审核失败或费用/资源超限不晋级；失败有明确结果与有限恢复。"
   ],
   "current_state": {
-    "overview": "身份网关及每空间固定数据库、文件/媒体目录和执行进程已实现，本机体验入口为 http://127.0.0.1:18000/projects；原17888/8000本地模式保留。双账号本地软件与浏览器验证已通过；B/C仍有旧数据迁移回退、空间预算、完整隔离矩阵和完整制作示例待完成。新空间生成提交返回503。",
+    "overview": "身份网关、固定空间数据库/文件/进程及A/B体验可用；空间持久视频预算已补双层原子保护、修改收据与分页明细。旧数据迁移回退、其他模型预算、真实账单、完整示例和公网仍未完成，收费模型入口继续关闭。",
     "acceptance_setup": "使用独立验收数据和本机A/B账号。项目大厅可建立/重置纯自作7镜、21条可编辑提示词示例；每次重建新工程保留旧编辑，同一请求恢复返回原结果。本机入口与账号交付已可复验，尚无公网平台。",
-    "readme_status": "已交付本机身份、个人空间、A/B账号和可重建文字示例，通过43项新增后端、16项原模式回归和46项实际浏览器检查。B/C阶段仍未整体通过；空间预算、旧数据迁移回退、完整制作示例、社区研发和公网交付待完成。",
-    "verification_checkpoint": "本轮43项新增后端测试、16项原模式回归与46项实际浏览器检查通过，另有14项worker启动/重启检查和独立身份审查。只有登录会话、个人空间幂等和用户偏好三个有界功能标为软件验证通过；完整隔离、预算、迁移、示例成片、真实模型和公网仍按各自门槛记录。",
-    "architecture_summary": "当前已有身份网关、个人空间、固定工作空间进程和纯自作文字示例。本地双账号与浏览器验证通过，B/C阶段仍有空间预算、旧数据迁移回退、完整隔离矩阵及完整制作示例待完成；社区研发与公网平台未交付。"
+    "readme_status": "已有独立身份、个人空间、A/B账号与可重建文字示例。本轮补充空间持久视频预算，通过123项主后端回归和19项浏览器检查，另有独立真实进程联验。B/C仍部分交付；其他模型预算、供应商对账、旧数据迁移回退、完整示例、社区研发与公网部署仍待完成。",
+    "verification_checkpoint": "本轮预算改动通过94项主要后端加29项互不重复的补充回归，以及19项浏览器检查；独立31项定向测试与真实网关联验存在覆盖重叠，不重复计数。已验证范围为持久视频空间预算，不能提升全B、完整隔离、真实账单、模型或公网资格。",
+    "architecture_summary": "固定空间worker拥有自身账本，SQLite写事务和触发器约束跨工程持久视频总预留；默认上限零，修改需要当前所有者并记录不可变收据。未知预留保持，其他模型和收费网关未启用。"
   },
   "brand": {
     "name": "Fawnimo",

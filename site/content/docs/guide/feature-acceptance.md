@@ -55,9 +55,9 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权
 2. 后台任务固化原空间、提交人、连接版本；切换空间不重发原收费请求
 
-软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`。
+软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`、`backend/tests/test_workspace_budget.py`。
 
-验收限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；空间预算尚未实现，所有已识别收费提交入口返回503；连接CRUD不等于生成许可；旧共享执行入口允许只读任务查询，写入/回调被拒绝；后台固定在原workspace进程；完整执行/预算隔离资格仍待验收。
+验收限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；旧共享执行入口允许只读任务查询，写入/回调被拒绝；后台固定在原workspace进程；完整执行/预算隔离资格仍待验收；持久视频空间总预算已通过本机隔离验证；其他模型预算和供应商对账未完成，收费入口仍503。。
 
 ### F-001.05 旧数据认领、迁移与回退
 
@@ -443,12 +443,14 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 ### F-009.03 空间预算与供应商账单对账
 
-入口：`尚无入口`，尚无可验收入口。当前：待实现 / 未验收 / 未部署。
+入口：`/settings`，系统设置 → 工作空间预算；工程执行任务 → 工程预算。当前：部分实现 / 未验收 / 仅本机。
 
 1. 空间/项目双重准入，同一事务预留，跨项目并发不突破空间上限
 2. 实际账单与应用请求ID关联；接受未知保留未知费用，人工/自动对账有收据
 
-验收限制：用户旧20元样片预算不能用作本阶段新增费用授权。
+软件回归目标：`backend/tests/test_workspace_budget.py`、`backend/tests/test_execution_budget.py`、`backend/tests/test_execution_accounting.py`。
+
+验收限制：已实现固定空间持久视频的跨工程总上限、原子预留、未知保留、所有者CAS与修改收据、分页明细；保存上限不会启用模型。；其他模型调用的空间预算接入、供应商实际账单获取/对账仍未完成，provider_bill_verified=false，收费网关继续关闭。；用户旧20元样片预算不能用作本阶段新增费用授权。。
 
 ## F-010 剪辑、字幕与声音
 

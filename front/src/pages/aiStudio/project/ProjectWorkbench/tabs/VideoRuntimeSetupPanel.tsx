@@ -3,9 +3,12 @@ import { Alert, Button, Collapse, Descriptions, InputNumber, Space, Tag, Typogra
 import { VideoRuntimeService as V } from '../../../../../services/generated'
 import type { ProjectBudgetRead, VideoRuntimeSetupRead } from '../../../../../services/generated'
 import { agentError, downloadAgentConfig } from '../../../agents/agentConfigIO'
+import { Link } from 'react-router-dom'
+import { useIdentity } from '../../../../../identity/IdentityGate'
 
 /** Display one project's actual ledger and the separately configured video executor. */
 export function VideoRuntimeSetupPanel({ projectId, onSaved }: { projectId: string; onSaved: () => void }) {
+  const identity = useIdentity()
   const [setup, setSetup] = useState<VideoRuntimeSetupRead | null>(null)
   const [budget, setBudget] = useState<ProjectBudgetRead | null>(null)
   const [ceiling, setCeiling] = useState<number | null>(null)
@@ -82,6 +85,9 @@ export function VideoRuntimeSetupPanel({ projectId, onSaved }: { projectId: stri
       <Button loading={loading} disabled={busy} onClick={() => void load()}>刷新预算与配置</Button>
       <Button disabled={busy} onClick={() => void downloadTemplate()}>下载本机配置模板</Button>
     </Space>
+    {identity && <Typography.Paragraph type="secondary" className="!mb-0">
+      本工程的视频预留同时受空间总预算限制。请到<Link to="/settings">系统设置 → 工作空间预算</Link>查看所有工程共用的余额与明细。
+    </Typography.Paragraph>}
     <Typography.Paragraph type="secondary" className="!mb-0">
       预算限制本工程的视频任务预留；这里的账本金额尚未与服务商账单核对。保存预算不会启动任务，未确认的预留不会被重置。
       {setup?.quote_note ? ` 预留依据：${setup.quote_note}` : ' 实际模型调用前须先核定单次预留，再启用本机执行配置。'}

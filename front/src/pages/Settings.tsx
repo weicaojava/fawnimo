@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '../theme/useThemeStore'
 import { useIdentity } from '../identity/IdentityGate'
 import { IdentityService } from '../services/generated'
+import { WorkspaceBudgetPanel } from '../identity/WorkspaceBudgetPanel'
 import './aiStudio/assets/components/LibraryPages.css'
 
 /** Apply the shared appearance preference immediately while preserving profile form saving. */
@@ -117,6 +118,7 @@ const Settings: React.FC = () => {
           </Button>
         </Form.Item>
       </Form>
+      {identity && <WorkspaceBudgetPanel />}
     </div>
   )
 }

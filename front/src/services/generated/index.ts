@@ -167,6 +167,8 @@ export type { ApiResponse_VideoExecutionPlanPreview_ } from './models/ApiRespons
 export type { ApiResponse_VideoGenerationOptionsRead_ } from './models/ApiResponse_VideoGenerationOptionsRead_';
 export type { ApiResponse_VideoPromptPreviewResponse_ } from './models/ApiResponse_VideoPromptPreviewResponse_';
 export type { ApiResponse_VideoRuntimeSetupRead_ } from './models/ApiResponse_VideoRuntimeSetupRead_';
+export type { ApiResponse_WorkspaceBudgetPage_ } from './models/ApiResponse_WorkspaceBudgetPage_';
+export type { ApiResponse_WorkspaceBudgetRead_ } from './models/ApiResponse_WorkspaceBudgetRead_';
 export type { ApiResponse_WorkspaceTaskFeed_ } from './models/ApiResponse_WorkspaceTaskFeed_';
 export type { ArchiveWrite } from './models/ArchiveWrite';
 export type { AssetImageAdopt } from './models/AssetImageAdopt';
@@ -532,6 +534,10 @@ export type { VideoGenerationOptionsRead } from './models/VideoGenerationOptions
 export type { VideoGenerationTaskRequest } from './models/VideoGenerationTaskRequest';
 export type { VideoPromptPreviewResponse } from './models/VideoPromptPreviewResponse';
 export type { VideoRuntimeSetupRead } from './models/VideoRuntimeSetupRead';
+export type { WorkspaceBudgetEntryRead } from './models/WorkspaceBudgetEntryRead';
+export type { WorkspaceBudgetPage } from './models/WorkspaceBudgetPage';
+export type { WorkspaceBudgetRead } from './models/WorkspaceBudgetRead';
+export type { WorkspaceBudgetWrite } from './models/WorkspaceBudgetWrite';
 export type { WorkspaceSwitch } from './models/WorkspaceSwitch';
 export type { WorkspaceTaskFeed } from './models/WorkspaceTaskFeed';
 export type { WorkspaceTaskSource } from './models/WorkspaceTaskSource';
@@ -571,4 +577,5 @@ export { VideoDnaService } from './services/VideoDnaService';
 export { VideoDnaProductionService } from './services/VideoDnaProductionService';
 export { VideoRuntimeService } from './services/VideoRuntimeService';
 export { VideoUnderstandingService } from './services/VideoUnderstandingService';
+export { WorkspaceBudgetService } from './services/WorkspaceBudgetService';
 export { WorkspaceTasksService } from './services/WorkspaceTasksService';

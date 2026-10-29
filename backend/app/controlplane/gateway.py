@@ -106,10 +106,12 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
             if identity['role'] == 'viewer':
                 raise HTTPException(403, '此工作空间只有查看权限')
         route = '/api/v1/' + path
+        if write and route.rstrip('/') == '/api/v1/video-runtime/workspace-budget' and identity['role'] != 'owner':
+            raise HTTPException(403, '只有空间所有者可以调整空间预算')
         if write and (route.startswith(LEGACY_PATHS) or path in {'film', 'script-processing'}):
             raise HTTPException(503, '旧共享执行入口尚未通过空间隔离验收')
         if write and (any(re.fullmatch(pattern, route) for pattern in BILLABLE) or route.endswith('/callbacks')):
-            raise HTTPException(503, '空间级生成预算准入尚未验收，当前体验空间保留编辑与本地制作功能')
+            raise HTTPException(503, '收费模型尚未启用：空间专用服务配置与费用验收仍待完成，当前可编辑与本地制作')
         body = bytearray()
         async for chunk in request.stream():
             body.extend(chunk)
@@ -120,7 +122,7 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
         headers = {key: value for key, value in request.headers.items() if key.lower() in {
             'content-type', 'range', 'if-range', 'accept', 'accept-language',
         }}
-        headers.update({'X-Workspace-Token': worker.token, 'X-Workspace-Id': workspace, 'X-Identity-Id': identity['user']['id'], 'Accept-Encoding': 'identity'})
+        headers.update({'X-Workspace-Token': worker.token, 'X-Workspace-Id': workspace, 'X-Identity-Id': identity['user']['id'], 'X-Workspace-Role': identity['role'], 'Accept-Encoding': 'identity'})
         if receipt:
             headers['X-Submission-Receipt'] = receipt
         client = httpx.AsyncClient(trust_env=False, follow_redirects=False, timeout=httpx.Timeout(180, connect=5))
