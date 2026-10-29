@@ -55,6 +55,22 @@ class ProjectBudgetRead(BaseModel):
     unsettled_jobs: int
     uncertain_jobs: int
     provider_bill_verified: Literal[False] = False
+    coverage: Literal['durable_video'] = 'durable_video'
+
+
+class ProjectBudgetEntryRead(BaseModel):
+    """Expose one project's amount/state without remote identifiers, prompts or credentials."""
+    job_id: str
+    project_id: str
+    state: Literal['reserved', 'unknown', 'released', 'settled']
+    quote_minor: int
+    actual_minor: int | None
+
+
+class ProjectBudgetPage(BaseModel):
+    """Bound the current project's ledger and paginate by immutable job identity."""
+    items: list[ProjectBudgetEntryRead]
+    next_after: str | None
 
 
 class VideoExecutionPreviewEntry(BaseModel):

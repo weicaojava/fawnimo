@@ -55,9 +55,9 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权
 2. 后台任务固化原空间、提交人、连接版本；切换空间不重发原收费请求
 
-软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`、`backend/tests/test_workspace_budget.py`。
+软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`、`backend/tests/test_project_budget.py`。
 
-验收限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；旧共享执行入口允许只读任务查询，写入/回调被拒绝；后台固定在原workspace进程；完整执行/预算隔离资格仍待验收；持久视频空间总预算已通过本机隔离验证；其他模型预算和供应商对账未完成，收费入口仍503。。
+验收限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；旧共享执行入口允许只读任务查询，写入/回调被拒绝；后台固定在原workspace进程；完整执行/预算隔离资格仍待验收；持久视频已按项目独立管理预算，工作空间总上限已停用；其他模型费用与供应商对账未完成，收费入口仍503。。
 
 ### F-001.05 旧数据认领、迁移与回退
 
@@ -320,18 +320,18 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 软件回归目标：`backend/tests/test_workspace_video_runtime.py`、`backend/tests/test_workspace_launcher.py`。
 
-验收限制：当前固定Seedance文本视频协议，不能将上游或其他账号配置当授权；新身份网关不继承旧主机视频配置，空间预算未验收前收费提交返回503。
+验收限制：当前固定Seedance文本视频协议，不能将上游或其他账号配置当授权；新身份网关不继承旧主机视频配置，专用服务与项目费用未验收前收费提交返回503。
 
-### F-007.02 工程预算、准入、预留与未知费用
+### F-007.02 项目预算、准入、预留与未知费用
 
-入口：`/projects/:projectId?tab=production`，工程预算。当前：已实现 / 历史软件基线通过 / 仅本机。
+入口：`/projects/:projectId?tab=settings`，项目设置 → 项目预算。当前：已实现 / 本阶段已验证 / 仅本机。
 
 1. 保存工程上限并刷新，用并发revision验证409保留输入
 2. 预留/结算/接受未知分类不混用，降低额度不得小于已占用；超额在发送前拒绝
 
-软件回归目标：`backend/tests/test_workspace_video_runtime.py`、`backend/tests/test_execution_budget.py`、`backend/tests/test_execution_accounting.py`。
+软件回归目标：`backend/tests/test_workspace_video_runtime.py`、`backend/tests/test_execution_budget.py`、`backend/tests/test_execution_accounting.py`、`backend/tests/test_project_budget.py`。
 
-验收限制：当前仅工程预算；空间预算仍待实现；预留和spent=0不是账单；新身份空间的预算尚未实现，不能用旧本地工程预算替代空间级准入。
+验收限制：预算按项目独立管理，项目之间不占用额度；旧工作空间总上限已移除，历史控制和修改收据只读归档。；当前费用覆盖持久视频，其他模型费用和实际供应商账单仍未接入；预留或spent=0不能当成实际账单。。
 
 ### F-007.03 逐镜持久执行、幂等、取消与失败恢复
 
@@ -395,7 +395,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 软件回归目标：`backend/tests/test_agent_execution.py`。
 
-验收限制：无分支、并行、代码或任意工具执行；不是社区研发Agent工厂；新身份空间的Agent运行/重试在空间预算验收前返回503。
+验收限制：无分支、并行、代码或任意工具执行；不是社区研发Agent工厂；新身份空间的Agent运行/重试在项目费用准入验收前返回503。
 
 ### F-008.03 文本模型单次连接测试与历史回跳
 
@@ -441,16 +441,16 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 验收限制：提示词存在不等于供应商接收或成片通过。
 
-### F-009.03 空间预算与供应商账单对账
+### F-009.03 项目费用明细与供应商账单对账
 
-入口：`/settings`，系统设置 → 工作空间预算；工程执行任务 → 工程预算。当前：部分实现 / 未验收 / 仅本机。
+入口：`/projects/:projectId?tab=settings`，项目设置 → 项目预算及本项目额度明细。当前：部分实现 / 未验收 / 仅本机。
 
-1. 空间/项目双重准入，同一事务预留，跨项目并发不突破空间上限
+1. 项目分别设置上限并原子预留，不能超本项目预算；项目之间互不占额度，旧总上限规则完全停用。
 2. 实际账单与应用请求ID关联；接受未知保留未知费用，人工/自动对账有收据
 
-软件回归目标：`backend/tests/test_workspace_budget.py`、`backend/tests/test_execution_budget.py`、`backend/tests/test_execution_accounting.py`。
+软件回归目标：`backend/tests/test_execution_budget.py`、`backend/tests/test_execution_accounting.py`、`backend/tests/test_project_budget.py`。
 
-验收限制：已实现固定空间持久视频的跨工程总上限、原子预留、未知保留、所有者CAS与修改收据、分页明细；保存上限不会启用模型。；其他模型调用的空间预算接入、供应商实际账单获取/对账仍未完成，provider_bill_verified=false，收费网关继续关闭。；用户旧20元样片预算不能用作本阶段新增费用授权。。
+验收限制：已实现项目预留/结算明细、所有者CAS修改收据与分页；工作空间仅承载数据归属，不设置合计费用上限。；其他模型费用及供应商实际账单获取/对账仍未完成，provider_bill_verified=false，收费网关继续关闭。；用户旧20元样片预算不能用作本阶段新增费用授权。。
 
 ## F-010 剪辑、字幕与声音
 
@@ -653,7 +653,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 软件回归目标：`scripts/features_check.py`、`backend/tests/test_identity_controlplane.py`、`backend/tests/test_workspace_demo.py`。
 
-验收限制：GitHub源码已公开，保留Jellyfish许可证和Git历史；私人素材与本机证据不在公开源码中；本功能只验证源码发布；应用公网部署仍为not_deployed，空间预算、数据迁移和社区研发仍按各自门槛验收。
+验收限制：GitHub源码已公开，保留Jellyfish许可证和Git历史；私人素材与本机证据不在公开源码中；本功能只验证源码发布；应用公网部署仍为not_deployed，其他模型费用、数据迁移和社区研发仍按各自门槛验收。
 
 ### F-014.02 稳定/预览部署与数据/执行环境分离
 

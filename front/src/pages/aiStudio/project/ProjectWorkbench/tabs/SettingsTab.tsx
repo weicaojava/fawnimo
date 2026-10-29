@@ -5,6 +5,7 @@ import { LlmService, StudioProjectsService } from '../../../../../services/gener
 import type { ProjectRead, ProjectUpdate } from '../../../../../services/generated'
 import { ProjectSection } from '../../ProjectSection'
 import { ProjectVisualStyleAndStyleFields, type ProjectStyleFieldOptions } from '../../ProjectVisualStyleAndStyleFields'
+import { ProjectBudgetPanel } from './ProjectBudgetPanel'
 
 /** Surface the actual API explanation without exposing payloads or substituting global settings. */
 function explain(error: unknown): string {
@@ -95,6 +96,7 @@ export function SettingsTab({ onSaved }: { onSaved?: () => void | Promise<void> 
         <p className="text-sm text-gray-500 mb-4">这里修改当前项目。已经保存的资产版本、生成记录与其他项目不会被改写。</p>
         <Form.Item><Space><Button type="primary" htmlType="submit" loading={saving}>保存项目设置</Button></Space></Form.Item>
       </Form>}
+      {project && projectId && <ProjectBudgetPanel key={projectId} projectId={projectId} />}
     </ProjectSection>
   )
 }

@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { WorkspaceBudgetRead } from './WorkspaceBudgetRead';
-export type ApiResponse_WorkspaceBudgetRead_ = {
+import type { ProjectBudgetPage } from './ProjectBudgetPage';
+export type ApiResponse_ProjectBudgetPage_ = {
     /**
      * 与 HTTP 状态码一致
      */
@@ -15,7 +15,7 @@ export type ApiResponse_WorkspaceBudgetRead_ = {
     /**
      * 实际数据
      */
-    data?: (WorkspaceBudgetRead | null);
+    data?: (ProjectBudgetPage | null);
     /**
      * 附加元信息
      */

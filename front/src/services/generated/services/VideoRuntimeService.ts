@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ApiResponse_ProjectBudgetPage_ } from '../models/ApiResponse_ProjectBudgetPage_';
 import type { ApiResponse_ProjectBudgetRead_ } from '../models/ApiResponse_ProjectBudgetRead_';
 import type { ApiResponse_VideoExecutionPlanPreview_ } from '../models/ApiResponse_VideoExecutionPlanPreview_';
 import type { ApiResponse_VideoRuntimeSetupRead_ } from '../models/ApiResponse_VideoRuntimeSetupRead_';
@@ -77,6 +78,36 @@ export class VideoRuntimeService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Project Budget Entries
+     * Read a bounded ledger belonging only to the current owned project.
+     * @returns ApiResponse_ProjectBudgetPage_ Successful Response
+     * @throws ApiError
+     */
+    public static getProjectBudgetEntries({
+        projectId,
+        after,
+        limit = 20,
+    }: {
+        projectId: string,
+        after?: (string | null),
+        limit?: number,
+    }): CancelablePromise<ApiResponse_ProjectBudgetPage_> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/video-runtime/projects/{project_id}/budget/entries',
+            path: {
+                'project_id': projectId,
+            },
+            query: {
+                'after': after,
+                'limit': limit,
+            },
             errors: {
                 422: `Validation Error`,
             },

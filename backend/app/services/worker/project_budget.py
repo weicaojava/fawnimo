@@ -1,0 +1,30 @@
+"""Project-scoped ledger projections and immutable budget edit receipts."""
+import re
+import time
+import uuid
+from fastapi import HTTPException
+from sqlalchemy import select
+from app.core.contracts.video_runtime_setup import ProjectBudgetEntryRead, ProjectBudgetPage
+from app.models.execution_budget import ExecutionBudgetEntry
+from app.models.project_budget import ProjectBudgetChange
+from app.services.studio.production import project_exists
+
+
+def record_budget_change(db, project_id: str, actor_id: str | None, previous_limit: int | None, limit: int, revision: int) -> None:
+    """Append a server-selected local or identity actor within the caller's budget transaction."""
+    if actor_id is not None and not re.fullmatch(r'usr_[a-f0-9]{32}', actor_id):
+        raise HTTPException(403, '项目预算需要受信的操作者身份')
+    db.add(ProjectBudgetChange(id=uuid.uuid4().hex, project_id=project_id, actor_id=actor_id or 'local_operator',
+                              previous_limit_minor=previous_limit, limit_minor=limit, revision=revision, created_at=int(time.time())))
+
+
+async def list_project_entries(db, project_id: str, *, after: str | None, limit: int) -> ProjectBudgetPage:
+    """Filter by owned project before pagination; another project's cursor cannot change the scope."""
+    await project_exists(db, project_id)
+    statement = select(ExecutionBudgetEntry).where(ExecutionBudgetEntry.project_id == project_id).order_by(ExecutionBudgetEntry.job_id).limit(limit+1)
+    if after:
+        statement = statement.where(ExecutionBudgetEntry.job_id > after)
+    rows = (await db.scalars(statement)).all()
+    items = [ProjectBudgetEntryRead(job_id=entry.job_id, project_id=entry.project_id, state=entry.state,
+                                    quote_minor=entry.quote_minor, actual_minor=entry.actual_minor) for entry in rows[:limit]]
+    return ProjectBudgetPage(items=items, next_after=items[-1].job_id if len(rows) > limit else None)

@@ -98,10 +98,7 @@ async def serve_worker(database: Path, workspace_id: str, port: int) -> None:
     from run_local import build_server
     try:
         await init_db()
-        from app.core.db import engine
-        from app.services.worker.workspace_budget_schema import migrate_workspace_budget
         prepare_workspace_boundary(database, workspace_id, allow_initialize=True)
-        await migrate_workspace_budget(engine)
         assert_workspace_boundary(database, workspace_id)
         await build_server(port).serve()
     finally:

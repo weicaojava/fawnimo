@@ -106,12 +106,14 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
             if identity['role'] == 'viewer':
                 raise HTTPException(403, '此工作空间只有查看权限')
         route = '/api/v1/' + path
-        if write and route.rstrip('/') == '/api/v1/video-runtime/workspace-budget' and identity['role'] != 'owner':
-            raise HTTPException(403, '只有空间所有者可以调整空间预算')
+        if route.rstrip('/').startswith('/api/v1/video-runtime/workspace-budget'):
+            raise HTTPException(410, '预算已改为按项目管理，请进入项目设置')
+        if write and re.fullmatch(r'/api/v1/video-runtime/projects/[^/]+/budget/?', route) and identity['role'] != 'owner':
+            raise HTTPException(403, '只有所有者可以调整项目预算')
         if write and (route.startswith(LEGACY_PATHS) or path in {'film', 'script-processing'}):
             raise HTTPException(503, '旧共享执行入口尚未通过空间隔离验收')
         if write and (any(re.fullmatch(pattern, route) for pattern in BILLABLE) or route.endswith('/callbacks')):
-            raise HTTPException(503, '收费模型尚未启用：空间专用服务配置与费用验收仍待完成，当前可编辑与本地制作')
+            raise HTTPException(503, '收费模型尚未启用：项目费用与专用服务配置仍待验收，当前可编辑与本地制作')
         body = bytearray()
         async for chunk in request.stream():
             body.extend(chunk)

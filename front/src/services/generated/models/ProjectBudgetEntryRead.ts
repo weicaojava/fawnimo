@@ -3,12 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Expose ledger identifiers and amounts without remote IDs, prompts, URLs or credentials.
+ * Expose one project's amount/state without remote identifiers, prompts or credentials.
  */
-export type WorkspaceBudgetEntryRead = {
+export type ProjectBudgetEntryRead = {
     job_id: string;
     project_id: string;
-    project_name: (string | null);
     state: 'reserved' | 'unknown' | 'released' | 'settled';
     quote_minor: number;
     actual_minor: (number | null);

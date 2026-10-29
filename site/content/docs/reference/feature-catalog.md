@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-10-29.5`，更新日期：2026-10-29。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-10-29.6`，更新日期：2026-10-29。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-身份网关、固定空间数据库/文件/进程及A/B体验可用；空间持久视频预算已补双层原子保护、修改收据与分页明细。旧数据迁移回退、其他模型预算、真实账单、完整示例和公网仍未完成，收费模型入口继续关闭。
+预算已按用户最新要求调整为单项目独立上限、预留、结算和明细，工作空间总上限停用；系统设置不再展示预算。其他模型费用、真实账单、旧数据迁移、完整示例及公网尚未完成。
 
-本轮预算改动通过94项主要后端加29项互不重复的补充回归，以及19项浏览器检查；独立31项定向测试与真实网关联验存在覆盖重叠，不重复计数。已验证范围为持久视频空间预算，不能提升全B、完整隔离、真实账单、模型或公网资格。
+本轮按项目预算修正通过122项本机后端回归和25项实际浏览器检查，独立审查包含旧总预算规则移除与真实worker升级。不同证据有重叠，不能相加；真实账单、模型、成片和公网资格保持未通过。
 
 ## F-001 身份与工作空间
 
@@ -78,11 +78,11 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 需求：R-002, R-010；验收阶段：B；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
 
-代码：[`backend/app/controlplane/gateway.py`](../../../../backend/app/controlplane/gateway.py)、[`backend/app/controlplane/workers.py`](../../../../backend/app/controlplane/workers.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`front/src/services/workspaceContext.ts`](../../../../front/src/services/workspaceContext.ts)、[`backend/app/services/worker/workspace_budget_schema.py`](../../../../backend/app/services/worker/workspace_budget_schema.py)。
+代码：[`backend/app/controlplane/gateway.py`](../../../../backend/app/controlplane/gateway.py)、[`backend/app/controlplane/workers.py`](../../../../backend/app/controlplane/workers.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`front/src/services/workspaceContext.ts`](../../../../front/src/services/workspaceContext.ts)、[`backend/app/services/worker/project_budget_schema.py`](../../../../backend/app/services/worker/project_budget_schema.py)。
 
-限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；旧共享执行入口允许只读任务查询，写入/回调被拒绝；后台固定在原workspace进程；完整执行/预算隔离资格仍待验收；持久视频空间总预算已通过本机隔离验证；其他模型预算和供应商对账未完成，收费入口仍503。。
+限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；旧共享执行入口允许只读任务查询，写入/回调被拒绝；后台固定在原workspace进程；完整执行/预算隔离资格仍待验收；持久视频已按项目独立管理预算，工作空间总上限已停用；其他模型费用与供应商对账未完成，收费入口仍503。。
 
-验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-IDENTITY-BROWSER`、`EV-WORKSPACE-BUDGET`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-IDENTITY-BROWSER`、`EV-PROJECT-BUDGET`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -454,7 +454,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | 编号 / 子功能 | 实现 | 软件验证 | 真实模型 | 部署 | 实际入口 |
 | --- | --- | --- | --- | --- | --- |
 | [F-007.01 主机显式视频服务配置与默认关闭](#f-007-01) | 已实现 | 历史软件基线通过 | 未验收 | 仅本机 | /projects/:projectId?tab=production · 资产版本→执行任务→视频服务 |
-| [F-007.02 工程预算、准入、预留与未知费用](#f-007-02) | 已实现 | 历史软件基线通过 | 未验收 | 仅本机 | /projects/:projectId?tab=production · 工程预算 |
+| [F-007.02 项目预算、准入、预留与未知费用](#f-007-02) | 已实现 | 本阶段已验证 | 未验收 | 仅本机 | /projects/:projectId?tab=settings · 项目设置 → 项目预算 |
 | [F-007.03 逐镜持久执行、幂等、取消与失败恢复](#f-007-03) | 已实现 | 历史软件基线通过 | 未验收 | 仅本机 | /projects/:projectId?tab=production · 逐镜预览与确认提交 |
 | [F-007.04 真实媒体下载、完整性验证与显式候选采用](#f-007-04) | 已实现 | 历史软件基线通过 | 未验收 | 仅本机 | /projects/:projectId/editor · 生成任务候选→剪辑采用 |
 | [F-007.05 参考图/首尾帧/参考视频与更多供应商](#f-007-05) | 待实现 | 未验收 | 未验收 | 未部署 | 尚无入口 · 尚无可验收入口 |
@@ -468,7 +468,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`backend/app/api/video_runtime_setup.py`](../../../../backend/app/api/video_runtime_setup.py)、[`backend/app/services/worker/workspace_video_runtime.py`](../../../../backend/app/services/worker/workspace_video_runtime.py)。
 
-限制：当前固定Seedance文本视频协议，不能将上游或其他账号配置当授权；新身份网关不继承旧主机视频配置，空间预算未验收前收费提交返回503。
+限制：当前固定Seedance文本视频协议，不能将上游或其他账号配置当授权；新身份网关不继承旧主机视频配置，专用服务与项目费用未验收前收费提交返回503。
 
 验证依据：`EV-LOCAL-20261029`。测试文件是待运行目标，文件存在不代表测试通过。
 
@@ -476,15 +476,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 <a id="f-007-02"></a>
 
-### F-007.02 工程预算、准入、预留与未知费用
+### F-007.02 项目预算、准入、预留与未知费用
 
 需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
 
-代码：[`backend/app/api/video_runtime_setup.py`](../../../../backend/app/api/video_runtime_setup.py)、[`backend/app/services/worker`](../../../../backend/app/services/worker)。
+代码：[`backend/app/api/video_runtime_setup.py`](../../../../backend/app/api/video_runtime_setup.py)、[`backend/app/services/worker`](../../../../backend/app/services/worker)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx)。
 
-限制：当前仅工程预算；空间预算仍待实现；预留和spent=0不是账单；新身份空间的预算尚未实现，不能用旧本地工程预算替代空间级准入。
+限制：预算按项目独立管理，项目之间不占用额度；旧工作空间总上限已移除，历史控制和修改收据只读归档。；当前费用覆盖持久视频，其他模型费用和实际供应商账单仍未接入；预留或spent=0不能当成实际账单。。
 
-验证依据：`EV-LOCAL-20261029`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-20261029`、`EV-PROJECT-BUDGET`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -573,7 +573,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`backend/app/services/agent_execution.py`](../../../../backend/app/services/agent_execution.py)、[`backend/app/core/integrations/agent_text.py`](../../../../backend/app/core/integrations/agent_text.py)、[`front/src/pages/aiStudio/agents/AgentRunsPanel.tsx`](../../../../front/src/pages/aiStudio/agents/AgentRunsPanel.tsx)。
 
-限制：无分支、并行、代码或任意工具执行；不是社区研发Agent工厂；新身份空间的Agent运行/重试在空间预算验收前返回503。
+限制：无分支、并行、代码或任意工具执行；不是社区研发Agent工厂；新身份空间的Agent运行/重试在项目费用准入验收前返回503。
 
 验证依据：`EV-LOCAL-20261029`。测试文件是待运行目标，文件存在不代表测试通过。
 
@@ -607,13 +607,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ## F-009 模型、提示词与费用
 
-连接和默认配置、模板与空间账单。
+连接和默认配置、模板、项目费用与供应商账单。
 
 | 编号 / 子功能 | 实现 | 软件验证 | 真实模型 | 部署 | 实际入口 |
 | --- | --- | --- | --- | --- | --- |
 | [F-009.01 模型、供应商与分类默认模型配置](#f-009-01) | 已实现 | 历史软件基线通过 | 未验收 | 仅本机 | /models · 模型/供应商/默认设置 |
 | [F-009.02 提示词模板、分类、编辑与工程导入来源](#f-009-02) | 已实现 | 历史软件基线通过 | 不适用 | 仅本机 | /prompts · 提示词库及工程DNA提示词 |
-| [F-009.03 空间预算与供应商账单对账](#f-009-03) | 部分实现 | 未验收 | 不适用 | 仅本机 | /settings · 系统设置 → 工作空间预算；工程执行任务 → 工程预算 |
+| [F-009.03 项目费用明细与供应商账单对账](#f-009-03) | 部分实现 | 未验收 | 不适用 | 仅本机 | /projects/:projectId?tab=settings · 项目设置 → 项目预算及本项目额度明细 |
 
 <a id="f-009-01"></a>
 
@@ -645,15 +645,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 <a id="f-009-03"></a>
 
-### F-009.03 空间预算与供应商账单对账
+### F-009.03 项目费用明细与供应商账单对账
 
 需求：R-002, R-010；验收阶段：B；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
 
-代码：[`backend/app/models/workspace_budget.py`](../../../../backend/app/models/workspace_budget.py)、[`backend/app/services/worker/workspace_budget.py`](../../../../backend/app/services/worker/workspace_budget.py)、[`backend/app/services/worker/workspace_budget_schema.py`](../../../../backend/app/services/worker/workspace_budget_schema.py)、[`backend/app/api/workspace_budget.py`](../../../../backend/app/api/workspace_budget.py)、[`front/src/identity/WorkspaceBudgetPanel.tsx`](../../../../front/src/identity/WorkspaceBudgetPanel.tsx)。
+代码：[`backend/app/models/project_budget.py`](../../../../backend/app/models/project_budget.py)、[`backend/app/services/worker/project_budget.py`](../../../../backend/app/services/worker/project_budget.py)、[`backend/app/services/worker/project_budget_schema.py`](../../../../backend/app/services/worker/project_budget_schema.py)、[`backend/app/api/video_runtime_setup.py`](../../../../backend/app/api/video_runtime_setup.py)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx)。
 
-限制：已实现固定空间持久视频的跨工程总上限、原子预留、未知保留、所有者CAS与修改收据、分页明细；保存上限不会启用模型。；其他模型调用的空间预算接入、供应商实际账单获取/对账仍未完成，provider_bill_verified=false，收费网关继续关闭。；用户旧20元样片预算不能用作本阶段新增费用授权。。
+限制：已实现项目预留/结算明细、所有者CAS修改收据与分页；工作空间仅承载数据归属，不设置合计费用上限。；其他模型费用及供应商实际账单获取/对账仍未完成，provider_bill_verified=false，收费网关继续关闭。；用户旧20元样片预算不能用作本阶段新增费用授权。。
 
-验证依据：`EV-WORKSPACE-BUDGET`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-PROJECT-BUDGET`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -957,7 +957,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`README.md`](../../../../README.md)、[`UPSTREAM.md`](../../../../UPSTREAM.md)、[`.gitignore`](../../../../.gitignore)、[`.github/workflows/verify-fawnimo.yml`](../../../../.github/workflows/verify-fawnimo.yml)、[`capabilities/published-ci.json`](../../../../capabilities/published-ci.json)。
 
-限制：GitHub源码已公开，保留Jellyfish许可证和Git历史；私人素材与本机证据不在公开源码中；本功能只验证源码发布；应用公网部署仍为not_deployed，空间预算、数据迁移和社区研发仍按各自门槛验收。
+限制：GitHub源码已公开，保留Jellyfish许可证和Git历史；私人素材与本机证据不在公开源码中；本功能只验证源码发布；应用公网部署仍为not_deployed，其他模型费用、数据迁移和社区研发仍按各自门槛验收。
 
 验证依据：`EV-FAWNIMO-PUBLICATION`。测试文件是待运行目标，文件存在不代表测试通过。
 
@@ -1069,14 +1069,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-DEPLOY-CONFIG | software | repository · `deploy/workspace/validation.json` | 14项静态Compose与配置检查通过；Docker engine不可用，image_built/container_runtime_verified/public_deployment_verified均false。 |
 | EV-IDENTITY-BROWSER | software | private_external · `stage-b-identity/browser.json` | 32项实际双账号/文件/示例浏览器检查，另profile-browser.json14项资料/旧标签/媒体/退出检查，共46；本机软件验证，不是完整隔离或公网证明。 |
 | EV-FAWNIMO-PUBLICATION | software | repository · `capabilities/published-ci.json` | GitHub公开源码与精确提交的只读CI：59项后端测试、23项登记检查、前端类型及构建通过；旧发布job实际跳过，不授予应用公网部署资格。 |
-| EV-WORKSPACE-BUDGET | software | repository · `capabilities/workspace-budget-validation.json` | 空间持久视频预算的软件验收：123项主回归、19项浏览器、独立真实网关与worker联验。与其他证据有重叠，不累加；没有外部模型费用、实际供应商账单或公网资格。 |
+| EV-WORKSPACE-BUDGET | historical_software | repository · `capabilities/workspace-budget-validation.json` | 已停用总预算方案的历史软件证据；用户最新要求改为单项目预算，旧总上限不再生效，不能作为当前预算验收证据。 |
+| EV-PROJECT-BUDGET | software | repository · `capabilities/project-budget-validation.json` | 项目独立预算与旧总预算停用迁移的软件验收：122项本机后端及25项实际浏览器检查；各项目不占彼此额度，原预留与历史收据保留，没有真实供应商账单/模型或公网资格。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 
 ## 需求索引
 
 - `R-001`：短视频主线：脚本/参考片到资产、候选、剪辑、字幕声音和成片；中间结果可编辑可追溯。
-- `R-002`：首次个人空间，可信用户/成员与全部资源、模型/凭据、任务和预算隔离；偏好归用户。
+- `R-002`：首次个人空间与可信成员，空间内资源、模型/凭据和任务隔离；费用预算按项目独立管理，偏好归用户。
 - `R-003`：社区需求查重、澄清、合理性评估、规划队列、隔离开发、独立审核、预览、策略发布与反馈。
 - `R-004`：GitHub可查所有功能和子功能，稳定ID关联需求/代码PR/版本/证据/实际入口及限制。
 - `R-005`：安全交付测试账号A/B、可重置示例和社区独立体验额度。

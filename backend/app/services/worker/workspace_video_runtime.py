@@ -18,6 +18,7 @@ from app.services.studio.production import project_exists
 from app.services.worker.durable_execution import DurableExecution
 from app.services.worker.execution_admission import AdmissionPolicy
 from app.services.worker.execution_budget import transaction
+from app.services.worker.project_budget import record_budget_change
 from app.services.worker.execution_runtime import ExecutionRuntime
 from app.core.integrations.volcengine.seedance25_payload import build_seedance25_body
 
@@ -86,24 +87,27 @@ def configuration_template() -> dict:
 async def read_project_budget(db, project_id: str) -> ProjectBudgetRead:
     """Read current accounting with explicit unsettled/unknown holds and no external requests."""
     await project_exists(db, project_id)
-    row = await db.get(ExecutionBudget, project_id)
-    if row is None:
+    owned = ExecutionBudgetEntry.project_id == project_id
+    pending = select(func.count()).select_from(ExecutionBudgetEntry).where(owned, ExecutionBudgetEntry.state.in_({'reserved', 'unknown'})).scalar_subquery()
+    unknown = select(func.count()).select_from(ExecutionBudgetEntry).where(owned, ExecutionBudgetEntry.state == 'unknown').scalar_subquery()
+    result = (await db.execute(select(ExecutionBudget, pending, unknown).where(ExecutionBudget.project_id == project_id))).first()
+    if result is None:
         return ProjectBudgetRead(project_id=project_id, exists=False, currency='CNY', limit_minor=0, reserved_minor=0,
                                  spent_minor=0, available_minor=0, revision=0, unsettled_jobs=0, uncertain_jobs=0)
-    counts = dict((await db.execute(select(ExecutionBudgetEntry.state, func.count()).where(
-        ExecutionBudgetEntry.project_id == project_id).group_by(ExecutionBudgetEntry.state))).all())
+    row, unsettled_jobs, uncertain_jobs = result
     return ProjectBudgetRead(project_id=project_id, exists=True, currency=row.currency,
                              limit_minor=row.limit_minor, reserved_minor=row.reserved_minor, spent_minor=row.spent_minor,
                              available_minor=row.limit_minor-row.reserved_minor-row.spent_minor, revision=row.revision,
-                             unsettled_jobs=counts.get('reserved', 0)+counts.get('unknown', 0), uncertain_jobs=counts.get('unknown', 0))
+                             unsettled_jobs=unsettled_jobs, uncertain_jobs=uncertain_jobs)
 
 
-async def save_project_budget(factory, project_id: str, body: ProjectBudgetWrite) -> ProjectBudgetRead:
+async def save_project_budget(factory, project_id: str, body: ProjectBudgetWrite, *, actor_id: str | None = None) -> ProjectBudgetRead:
     """CAS only the ceiling; held/settled funds cannot be erased by lowering or resetting it."""
     async with factory() as db:
         async with transaction(db):
             await project_exists(db, project_id)
             row = await db.get(ExecutionBudget, project_id)
+            previous_limit = row.limit_minor if row else None
             if row is None:
                 if body.expected_revision != 0:
                     raise HTTPException(409, '预算尚未登记，请刷新后保存。')
@@ -122,6 +126,8 @@ async def save_project_budget(factory, project_id: str, body: ProjectBudgetWrite
                 if result.rowcount != 1:
                     raise HTTPException(409, '预算发生并发更新，请刷新后重试。')
                 db.expire(row)
+            record_budget_change(db, project_id, actor_id, previous_limit, body.limit_minor, body.expected_revision+1)
+            await db.flush()
             result = await read_project_budget(db, project_id)
         return result
 

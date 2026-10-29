@@ -1,11 +1,13 @@
 """Non-secret execution setup and project-owned budget controls, never direct billing."""
 import json
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
-from app.core.contracts.video_runtime_setup import ProjectBudgetRead, ProjectBudgetWrite, VideoRuntimeSetupRead, VideoExecutionPlanPreview
+from app.core.contracts.video_runtime_setup import ProjectBudgetRead, ProjectBudgetWrite, ProjectBudgetPage, VideoRuntimeSetupRead, VideoExecutionPlanPreview
+from app.config import settings
 from app.core.db import async_session_maker
 from app.schemas.common import ApiResponse, success_response
 from app.services.worker.workspace_video_runtime import configuration_template, read_project_budget, save_project_budget, setup_projection, preview_executable_plan
+from app.services.worker.project_budget import list_project_entries
 
 router = APIRouter(prefix='/video-runtime', tags=['video-runtime'])
 
@@ -42,9 +44,21 @@ async def get_video_project_budget(project_id: str, factory=Depends(get_video_se
 
 
 @router.put('/projects/{project_id}/budget', response_model=ApiResponse[ProjectBudgetRead], operation_id='save_video_project_budget')
-async def save_video_project_budget(project_id: str, body: ProjectBudgetWrite, factory=Depends(get_video_setup_factory)):
+async def save_video_project_budget(project_id: str, body: ProjectBudgetWrite, request: Request, factory=Depends(get_video_setup_factory)):
     """Save an explicitly chosen ceiling; saving does not start generation or settle provider charges."""
-    return success_response(await save_project_budget(factory, project_id, body))
+    if settings.workspace_id is not None and request.headers.get('x-workspace-role') != 'owner':
+        raise HTTPException(403, '只有所有者可以调整项目预算')
+    actor = request.headers.get('x-identity-id') if settings.workspace_id is not None else None
+    if settings.workspace_id is not None and not actor:
+        raise HTTPException(403, '项目预算需要受信的操作者身份')
+    return success_response(await save_project_budget(factory, project_id, body, actor_id=actor))
+
+
+@router.get('/projects/{project_id}/budget/entries', response_model=ApiResponse[ProjectBudgetPage], operation_id='get_project_budget_entries')
+async def get_project_budget_entries(project_id: str, after: str | None = Query(None, min_length=1, max_length=64), limit: int = Query(20, ge=1, le=100), factory=Depends(get_video_setup_factory)):
+    """Read a bounded ledger belonging only to the current owned project."""
+    async with factory() as db:
+        return success_response(await list_project_entries(db, project_id, after=after, limit=limit))
 
 
 @router.get('/projects/{project_id}/plans/{plan_id}/request-preview', response_model=ApiResponse[VideoExecutionPlanPreview], operation_id='preview_executable_video_plan')

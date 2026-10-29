@@ -17,5 +17,6 @@ export type ProjectBudgetRead = {
     unsettled_jobs: number;
     uncertain_jobs: number;
     provider_bill_verified?: boolean;
+    coverage?: string;
 };
 

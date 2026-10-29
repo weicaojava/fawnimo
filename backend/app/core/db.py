@@ -88,7 +88,7 @@ async def init_db() -> None:
     import app.models.production  # noqa: F401
     import app.models.execution  # noqa: F401
     import app.models.execution_budget  # noqa: F401
-    import app.models.workspace_budget  # noqa: F401
+    import app.models.project_budget  # noqa: F401
     import app.models.execution_binding  # noqa: F401
     import app.models.reverse  # noqa: F401
     import app.models.benchmark  # noqa: F401
@@ -139,6 +139,8 @@ async def init_db() -> None:
         await migrate_transitions(engine)
         from app.services.asset_image_generation import migrate_asset_image_generation
         await migrate_asset_image_generation(engine)
+        from app.services.worker.project_budget_schema import migrate_project_budget
+        await migrate_project_budget(engine)
 
 
 async def close_db() -> None:
