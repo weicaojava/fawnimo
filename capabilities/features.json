@@ -1,0 +1,3509 @@
+{
+  "schema_version": 1,
+  "register_version": "2026-10-29.3",
+  "updated_at": "2026-10-29",
+  "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
+  "baseline": {
+    "branch": "local/hallmark-dual-theme",
+    "head": "b2ffe1d8353a3f72094f164384e07f6cad7a8ff7",
+    "includes_uncommitted_changes": true,
+    "overall_platform_complete": false,
+    "model_quality_qualified": false,
+    "complete_film_qualified": false
+  },
+  "groups": [
+    {
+      "id": "F-001",
+      "title": "身份与工作空间",
+      "description": "个人空间、成员、资源/执行隔离与迁移。"
+    },
+    {
+      "id": "F-002",
+      "title": "工程、章节与剧本",
+      "description": "从创意/脚本形成可编辑、可追溯的制作资料。"
+    },
+    {
+      "id": "F-003",
+      "title": "演员、服装、场景与道具",
+      "description": "资产库、关联、图片与不可变版本。"
+    },
+    {
+      "id": "F-004",
+      "title": "分镜准备与生成工作室",
+      "description": "信息确认、结构编辑、视频准备度与逐镜计划分离。"
+    },
+    {
+      "id": "F-005",
+      "title": "参考视频拆解与Video DNA",
+      "description": "原始帧时钟、人工/模型候选、来源声明和入库。"
+    },
+    {
+      "id": "F-006",
+      "title": "图像生成",
+      "description": "文本图片候选、明确采用及参考生成扩展。"
+    },
+    {
+      "id": "F-007",
+      "title": "视频执行与质量",
+      "description": "配置、预算、持久任务、候选与真实模型联合验证。"
+    },
+    {
+      "id": "F-008",
+      "title": "Agent配置与执行",
+      "description": "已实现有限顺序文本链；高级图与社区研发独立规划。"
+    },
+    {
+      "id": "F-009",
+      "title": "模型、提示词与费用",
+      "description": "连接和默认配置、模板与空间账单。"
+    },
+    {
+      "id": "F-010",
+      "title": "剪辑、字幕与声音",
+      "description": "固定采用、硬切/交叉淡化、实际导出与声音缺口。"
+    },
+    {
+      "id": "F-011",
+      "title": "文件、任务与持久运行",
+      "description": "实际字节、轻量任务、SQLite启动与恢复。"
+    },
+    {
+      "id": "F-012",
+      "title": "账号、示例与体验",
+      "description": "可安全领取、可重置且空间隔离的验收入口。"
+    },
+    {
+      "id": "F-013",
+      "title": "社区AI研发",
+      "description": "维护者控制的独立研发服务与公开可追溯闭环。"
+    },
+    {
+      "id": "F-014",
+      "title": "开源发布与公网平台",
+      "description": "自有目标仓库、稳定/预览部署及公网验收。"
+    },
+    {
+      "id": "F-015",
+      "title": "功能治理、来源与体验规范",
+      "description": "唯一功能登记、文档、契约与已选外观。"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R-001",
+      "description": "短视频主线：脚本/参考片到资产、候选、剪辑、字幕声音和成片；中间结果可编辑可追溯。"
+    },
+    {
+      "id": "R-002",
+      "description": "首次个人空间，可信用户/成员与全部资源、模型/凭据、任务和预算隔离；偏好归用户。"
+    },
+    {
+      "id": "R-003",
+      "description": "社区需求查重、澄清、合理性评估、规划队列、隔离开发、独立审核、预览、策略发布与反馈。"
+    },
+    {
+      "id": "R-004",
+      "description": "GitHub可查所有功能和子功能，稳定ID关联需求/代码PR/版本/证据/实际入口及限制。"
+    },
+    {
+      "id": "R-005",
+      "description": "安全交付测试账号A/B、可重置示例和社区独立体验额度。"
+    },
+    {
+      "id": "R-006",
+      "description": "实际公网稳定与预览平台、部署隔离、数据恢复与可回退发布。"
+    },
+    {
+      "id": "R-007",
+      "description": "保护Jellyfish来源、许可证、用户原片/私人数据；不得向上游误发布。"
+    },
+    {
+      "id": "R-008",
+      "description": "保留用户已选电影工作室A风格和中性亮暗主题。"
+    },
+    {
+      "id": "R-009",
+      "description": "分阶段计划、独立审核、完成一步验收一步；实现/验证/部署分别记录。"
+    },
+    {
+      "id": "R-010",
+      "description": "付费调用与云资源先获明确额度；幂等避免重复收费，未知费用保留未知。"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "EV-LOCAL-20261029",
+      "kind": "historical_software",
+      "visibility": "private_external",
+      "location": "software-completion/acceptance-summary.json",
+      "scope": "2026-10-29冻结本地软件里程碑：后端166、浏览器206、32路由只读巡检；OpenAPI/tsc/构建通过，外部模型调用0；本登记不重跑或改写旧报告。",
+      "features": [
+        "F-002.01",
+        "F-002.02",
+        "F-002.03",
+        "F-003.01",
+        "F-003.02",
+        "F-004.01",
+        "F-004.02",
+        "F-004.03",
+        "F-004.04",
+        "F-005.03",
+        "F-005.05",
+        "F-006.01",
+        "F-006.02",
+        "F-007.01",
+        "F-007.02",
+        "F-007.03",
+        "F-007.04",
+        "F-008.01",
+        "F-008.02",
+        "F-008.03",
+        "F-009.01",
+        "F-009.02",
+        "F-010.01",
+        "F-010.02",
+        "F-010.03",
+        "F-011.01",
+        "F-011.02",
+        "F-011.03",
+        "F-011.04",
+        "F-015.03"
+      ]
+    },
+    {
+      "id": "EV-SOURCE-20261029",
+      "kind": "historical_source_integrity",
+      "visibility": "private_external",
+      "location": "software-completion/final-integrity.json",
+      "scope": "私有原工程、原片来源及不可变收据在独立本地证据中保留，确认资格未提升；公开登记不披露原片、项目身份或私人媒体。",
+      "features": []
+    },
+    {
+      "id": "EV-REGISTER-CHECK",
+      "kind": "register_check",
+      "visibility": "repository",
+      "location": "capabilities/register-validation.json",
+      "scope": "登记完整性、生成视图一致性及拒绝错误状态声明的本阶段检查；不是应用/模型/部署资格。",
+      "features": [
+        "F-015.01",
+        "F-015.02"
+      ]
+    },
+    {
+      "id": "EV-A-INDEPENDENT",
+      "kind": "software",
+      "visibility": "private_external",
+      "location": "stage-a-baseline/independent-review.json",
+      "scope": "独立Agent对A登记/生成器/来源/完整A-F计划审核19项通过、阻断发现0；仅对应报告记录的当时source/generator hash，不将其升级为B/C验收。",
+      "features": [
+        "F-015.01",
+        "F-015.02"
+      ]
+    },
+    {
+      "id": "EV-IDENTITY-CHECKPOINT",
+      "kind": "software",
+      "visibility": "private_external",
+      "location": "stage-b-identity/backend-final.xml",
+      "scope": "本阶段43项新增后端测试（含身份、边界、独立回归、示例）全部通过；原模式16项另记。浏览器/完整矩阵/迁移/预算不由此证据自动升级。",
+      "features": [
+        "F-001.01",
+        "F-001.02",
+        "F-001.03",
+        "F-001.04",
+        "F-001.05",
+        "F-001.06",
+        "F-012.01",
+        "F-012.03"
+      ]
+    },
+    {
+      "id": "EV-DEMO-LOCAL",
+      "kind": "software",
+      "visibility": "private_external",
+      "location": "stage-b-identity/backend-final.xml",
+      "scope": "本阶段示例10项测试通过，包含实际A/B worker、HTTP/SQLite、原key恢复、编辑保护与创建次数；它们属于43项测试的子集。没有模型或完整成片通过声明。",
+      "features": [
+        "F-012.01",
+        "F-012.02"
+      ]
+    },
+    {
+      "id": "EV-DEPLOY-CONFIG",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "deploy/workspace/validation.json",
+      "scope": "14项静态Compose与配置检查通过；Docker engine不可用，image_built/container_runtime_verified/public_deployment_verified均false。",
+      "features": [
+        "F-014.02"
+      ]
+    },
+    {
+      "id": "EV-IDENTITY-BROWSER",
+      "kind": "software",
+      "visibility": "private_external",
+      "location": "stage-b-identity/browser.json",
+      "scope": "32项实际双账号/文件/示例浏览器检查，另profile-browser.json14项资料/旧标签/媒体/退出检查，共46；本机软件验证，不是完整隔离或公网证明。",
+      "features": [
+        "F-001.01",
+        "F-001.02",
+        "F-001.03",
+        "F-001.04",
+        "F-001.06",
+        "F-012.01",
+        "F-012.02"
+      ]
+    }
+  ],
+  "features": [
+    {
+      "id": "F-001.01",
+      "group": "F-001",
+      "title": "用户登录、会话与退出",
+      "milestone": "B",
+      "requirements": [
+        "R-002"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-IDENTITY-CHECKPOINT",
+          "EV-IDENTITY-BROWSER"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects",
+        "label": "新18000体验：登录/退出；注册由维护者开关控制"
+      },
+      "code": [
+        "backend/app/controlplane/store.py",
+        "backend/app/controlplane/routes.py",
+        "backend/run_controlplane.py",
+        "front/src/identity/IdentityGate.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_identity_controlplane.py",
+        "backend/tests/test_identity_review.py"
+      ],
+      "acceptance": [
+        "新用户注册/登录，验证会话过期与退出后旧会话失效",
+        "未登录访问私有接口失败；登录失败不透露账号存在性"
+      ],
+      "limits": [
+        "会话HttpOnly且默认Secure；纯HTTP仅显式回环例外",
+        "成员/账号撤销逐请求核对；本机双账号浏览器检查已通过，完整越权矩阵另行验收",
+        "旧17888/8000本地模式没有新增登录保护，不属于对公网开放方案"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-001.02",
+      "group": "F-001",
+      "title": "首次登录幂等建立个人空间与成员权限",
+      "milestone": "B",
+      "requirements": [
+        "R-002"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-IDENTITY-CHECKPOINT",
+          "EV-IDENTITY-BROWSER"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects",
+        "label": "受信账号建立时原子创建个人空间，登录读取现有成员关系"
+      },
+      "code": [
+        "backend/app/controlplane/store.py",
+        "backend/app/core/contracts/identity.py"
+      ],
+      "tests": [
+        "backend/tests/test_identity_controlplane.py"
+      ],
+      "acceptance": [
+        "同一用户并发首次登录只建立一个个人空间和owner成员记录",
+        "可信身份读取成员角色；伪造workspace_id不能获得成员权限"
+      ],
+      "limits": [
+        "个人空间与owner成员在同一事务建立，首次登录不认领旧数据",
+        "底层支持owner/editor/viewer及已有成员空间切换；团队邀请管理尚未实现"
+      ],
+      "depends_on": [
+        "F-001.01"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-001.03",
+      "group": "F-001",
+      "title": "业务资源及嵌套引用隔离",
+      "milestone": "B",
+      "requirements": [
+        "R-002"
+      ],
+      "implementation": "partial",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-IDENTITY-CHECKPOINT",
+          "EV-IDENTITY-BROWSER"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects",
+        "label": "新18000固定空间网关→私有worker"
+      },
+      "code": [
+        "backend/app/controlplane/gateway.py",
+        "backend/app/controlplane/workers.py",
+        "backend/app/core/workspace_boundary.py",
+        "backend/run_tenant_worker.py"
+      ],
+      "tests": [
+        "backend/tests/test_identity_controlplane.py",
+        "backend/tests/test_identity_review.py",
+        "backend/tests/test_workspace_boundary.py"
+      ],
+      "acceptance": [
+        "A/B两用户两空间创建资源，交叉读取、搜索、修改、删除均失败",
+        "覆盖工程、章节、资产、提示词、Agent、文件、历史与导出以及跨空间引用"
+      ],
+      "limits": [
+        "每空间固定SQLite/files/media/进程；私有业务表固定workspace_id、marker及写入约束",
+        "工作进程身份不能由请求切换；这不是操作系统用户级隔离",
+        "完整资源/嵌套引用/文件/任务/模型连接越权矩阵与浏览器联合验收尚未完成",
+        "原本地数据仍保留在旧模式，尚未迁移"
+      ],
+      "depends_on": [
+        "F-001.02"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-001.04",
+      "group": "F-001",
+      "title": "任务、模型连接、凭据、预算与执行隔离",
+      "milestone": "B",
+      "requirements": [
+        "R-002",
+        "R-010"
+      ],
+      "implementation": "partial",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-IDENTITY-CHECKPOINT",
+          "EV-IDENTITY-BROWSER"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects",
+        "label": "新18000私有任务、配置与固定执行进程"
+      },
+      "code": [
+        "backend/app/controlplane/gateway.py",
+        "backend/app/controlplane/workers.py",
+        "backend/app/core/workspace_boundary.py",
+        "front/src/services/workspaceContext.ts"
+      ],
+      "tests": [
+        "backend/tests/test_identity_controlplane.py",
+        "backend/tests/test_identity_review.py",
+        "backend/tests/test_workspace_boundary.py"
+      ],
+      "acceptance": [
+        "A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权",
+        "后台任务固化原空间、提交人、连接版本；切换空间不重发原收费请求"
+      ],
+      "limits": [
+        "工作进程不继承旧主机模型/云凭据与共享Celery配置",
+        "空间预算尚未实现，所有已识别收费提交入口返回503；连接CRUD不等于生成许可",
+        "旧共享执行入口允许只读任务查询，写入/回调被拒绝",
+        "后台固定在原workspace进程；完整执行/预算隔离资格仍待验收"
+      ],
+      "depends_on": [
+        "F-001.03"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-001.05",
+      "group": "F-001",
+      "title": "旧数据认领、迁移与回退",
+      "milestone": "B",
+      "requirements": [
+        "R-002",
+        "R-007"
+      ],
+      "implementation": "partial",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-IDENTITY-CHECKPOINT"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "CLI backend/run_tenant_worker.py",
+        "label": "新空空间初始化与旧数据拒绝自动认领"
+      },
+      "code": [
+        "backend/app/core/workspace_boundary.py",
+        "backend/run_tenant_worker.py",
+        "backend/run_controlplane.py"
+      ],
+      "tests": [
+        "backend/tests/test_workspace_boundary.py"
+      ],
+      "acceptance": [
+        "在一致备份副本迁移，验证原8工程与7镜21提示词、收据和来源hash保留",
+        "旧数据归固定待认领空间，受信认领且不能被首个任意注册者取得；恢复到独立路径验证回退"
+      ],
+      "limits": [
+        "非空未认领数据库启动拒绝，防止首个注册者获得旧资料",
+        "尚无受信旧数据认领迁移/回退工具及真实迁移演练",
+        "原8工程、原片与编辑未迁移，不能将新空空间初始化算作旧数据迁移完成"
+      ],
+      "depends_on": [
+        "F-001.02"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-001.06",
+      "group": "F-001",
+      "title": "用户资料、语言与主题归属",
+      "milestone": "B",
+      "requirements": [
+        "R-002",
+        "R-008"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-IDENTITY-CHECKPOINT",
+          "EV-IDENTITY-BROWSER"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/settings",
+        "label": "用户资料、语言、主题；多空间成员可切换"
+      },
+      "code": [
+        "backend/app/controlplane/store.py",
+        "front/src/identity/IdentityGate.tsx",
+        "front/src/pages/Settings.tsx",
+        "front/src/services/workspaceContext.ts",
+        "front/src/layouts/MainLayout.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_identity_controlplane.py",
+        "backend/tests/test_identity_review.py"
+      ],
+      "acceptance": [
+        "两个账号分别保存资料与语言/主题，刷新和重登仍正确",
+        "同用户切换空间保留个人偏好，账号切换清理私有缓存与恢复意图"
+      ],
+      "limits": [
+        "用户偏好存身份库；空间切换使用整页加载，恢复请求localStorage按user/workspace命名空间",
+        "旧标签context header与媒体scope URL不匹配返回409；不会自动改写成新请求标识",
+        "本机资料、主题及旧标签检查已通过；仍不宣称全部竞态已验证"
+      ],
+      "depends_on": [
+        "F-001.01"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-002.01",
+      "group": "F-002",
+      "title": "工程列表、创建、搜索与真实统计",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects",
+        "label": "项目大厅"
+      },
+      "code": [
+        "backend/app/api/v1/routes/studio/projects.py",
+        "front/src/pages/aiStudio/project/ProjectLobby.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_project_discovery.py"
+      ],
+      "acceptance": [
+        "创建隔离工程并刷新，确认名称和真实创建/更新时间持久保存",
+        "准备超过一页工程，验证全部分页与搜索；失败提示可重试，不静默漏项"
+      ],
+      "limits": [
+        "原本地模式未引入身份；新18000经固定空间网关访问，完整隔离矩阵仍待验收",
+        "时间不得用浏览器当前时间替代"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-002.02",
+      "group": "F-002",
+      "title": "工程设置与资产关联",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId?tab=settings",
+        "label": "工作台设置及演员/角色/场景/道具/服装页"
+      },
+      "code": [
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/SettingsTab.tsx",
+        "backend/app/services/studio"
+      ],
+      "tests": [
+        "backend/tests/test_entity_create_character_linking.py"
+      ],
+      "acceptance": [
+        "保存工程名称、风格、比例、种子等设置后重新打开验证",
+        "关联演员、角色、场景、道具和服装，另一工程资源不被意外修改"
+      ],
+      "limits": [
+        "项目设置不改变已冻结版本、历史生成请求或审核资格"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-002.03",
+      "group": "F-002",
+      "title": "章节创建与原文/精简文本CAS历史恢复",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId?tab=chapters",
+        "label": "章节原文编辑器及历史"
+      },
+      "code": [
+        "backend/app/services/studio/chapter_text_history.py",
+        "front/src/pages/aiStudio/chapter/components/ChapterRawTextEditorModal.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_chapter_text_history.py"
+      ],
+      "acceptance": [
+        "保存原文和精简文本，刷新查看真实历史并恢复旧版为新修订",
+        "两窗口并发编辑，旧revision返回409且输入保留；读取历史不产生写入"
+      ],
+      "limits": [
+        "历史时间是系统实际保存时间；旧PATCH契约未要求编辑者版本"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-002.04",
+      "group": "F-002",
+      "title": "结构化制作剧本与必需节拍/对白覆盖",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId?tab=production",
+        "label": "制作剧本准备"
+      },
+      "code": [
+        "backend/app/services/script_preparation",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ScriptPreparationPanel.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_script_preparation_acceptance.py",
+        "backend/tests/test_script_preparation_http.py"
+      ],
+      "acceptance": [
+        "声明必需节拍和对白、角色/场景/镜头并校验精确时长和覆盖",
+        "冻结后修改必需内容须显式接受变更；旧快照保留且跨项目引用失败"
+      ],
+      "limits": [
+        "人工准备不等于模型理解；不修改原文或shot.status"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-002.05",
+      "group": "F-002",
+      "title": "AI剧本提取、优化、精简与候选确认",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "partial",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_verified",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId/chapters/:chapterId/shots",
+        "label": "章节分镜提取及编辑"
+      },
+      "code": [
+        "backend/app/api/v1/routes/script_processing.py",
+        "backend/app/services/script_processing_tasks.py",
+        "front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_script_processing_async_api.py",
+        "backend/tests/test_shot_extracted_candidates_api_responses.py"
+      ],
+      "acceptance": [
+        "运行时不可用时明确禁用模型操作；手工编辑继续可用",
+        "使用独立夹具校验提取候选、采用/忽略及取消后状态，真实文本质量另验"
+      ],
+      "limits": [
+        "旧Film/Celery执行默认未授权；当前不得据此承诺真实模型提取可用"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-003.01",
+      "group": "F-003",
+      "title": "四类资产CRUD及演员/角色关联",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/assets",
+        "label": "演员、服装、场景、道具资产库"
+      },
+      "code": [
+        "backend/app/api/v1/routes/studio/entities.py",
+        "front/src/pages/aiStudio/assets/AssetManager.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_entities_api_responses.py",
+        "backend/tests/test_entity_create_character_linking.py"
+      ],
+      "acceptance": [
+        "创建并编辑四类资产及角色关联，刷新验证真实保存",
+        "检查名称存在提示、同项目引用和删除保护"
+      ],
+      "limits": [
+        "原17888全局库与新18000私有空间分开；全资源隔离完整矩阵仍待验收"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-003.02",
+      "group": "F-003",
+      "title": "图片槽位、上传与并发保护",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/assets/actors/:actorImageId/edit",
+        "label": "四类资产编辑页图片槽位"
+      },
+      "code": [
+        "backend/app/services/studio/entity_images.py",
+        "front/src/pages/aiStudio/assets/components/DisplayImageCard.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_asset_slot_initialization.py"
+      ],
+      "acceptance": [
+        "双窗口/StrictMode同时打开空图片槽，不重复创建",
+        "上传图片后切页再返回验证，迟到结果不写入另一个资产"
+      ],
+      "limits": [
+        "原参考图不会被生成候选自动覆盖"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-003.03",
+      "group": "F-003",
+      "title": "资产版本、媒体导入与不可变来源",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId?tab=production",
+        "label": "资产版本与媒体导入"
+      },
+      "code": [
+        "backend/app/services/studio/production.py",
+        "backend/app/services/studio/production_media.py"
+      ],
+      "tests": [
+        "backend/tests/test_durable_execution.py"
+      ],
+      "acceptance": [
+        "创建资产版本、导入有hash清单的媒体ZIP，验证实际字节和采用来源",
+        "坏hash、路径穿越、跨工程引用、不可变记录修改均失败"
+      ],
+      "limits": [
+        "媒体ZIP不是完整工程备份；原音视频导入不等于AI生成"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-004.01",
+      "group": "F-004",
+      "title": "镜头基础信息、资产/对白确认与ready语义",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId/chapters/:chapterId/shots/:shotId/edit",
+        "label": "分镜编辑页"
+      },
+      "code": [
+        "front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx",
+        "backend/app/api/v1/routes/studio/shots.py"
+      ],
+      "tests": [
+        "backend/tests/test_shot_preparation_state.py",
+        "backend/tests/test_shot_status_service.py"
+      ],
+      "acceptance": [
+        "编辑镜头基础信息并确认资产/对白，再进入工作室",
+        "检查pending/ready只反映信息确认，运行中任务与视频准备度分别显示"
+      ],
+      "limits": [
+        "ready不等于video-ready或真实模型合格"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-004.02",
+      "group": "F-004",
+      "title": "分镜重排、中间插入、复制与合并",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId/chapters/:chapterId/studio",
+        "label": "镜头结构操作"
+      },
+      "code": [
+        "backend/app/services/studio/shot_graph.py",
+        "front/src/pages/aiStudio/chapter/components/ShotPlanPanel.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_shot_graph.py"
+      ],
+      "acceptance": [
+        "原子重排、中插、复制和可合并镜头操作后，顺序连续且收据保留",
+        "两个旧指纹并发操作冲突；已被不可变文档引用的合并受保护"
+      ],
+      "limits": [
+        "复制不继承任务、采用或审核资格；合并不绕过历史引用"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-004.03",
+      "group": "F-004",
+      "title": "关键帧、视频准备度与明确回跳",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId/chapters/:chapterId/studio",
+        "label": "分镜工作室"
+      },
+      "code": [
+        "front/src/pages/aiStudio/chapter/ChapterStudio.tsx",
+        "front/src/pages/aiStudio/chapter/components/ChapterStudioVideoReadinessPanel.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_shot_plan_guard_acceptance.py"
+      ],
+      "acceptance": [
+        "检查关键帧、提示词与就绪条件，未完成确认时回跳镜头编辑",
+        "实际截帧、步进预览、保存后刷新；不可用模型显示原因"
+      ],
+      "limits": [
+        "人物参考图存在不代表当前文本视频协议支持该输入"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-004.04",
+      "group": "F-004",
+      "title": "固定逐镜执行计划与历史请求恢复",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId?tab=production",
+        "label": "镜头计划编译与执行"
+      },
+      "code": [
+        "backend/app/services/shot_plan",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProductionTab.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_shot_plan_acceptance.py",
+        "backend/tests/test_workspace_video_pipeline.py"
+      ],
+      "acceptance": [
+        "用锁定剧本/资产版本编译计划，验证精确镜头覆盖与不可变hash",
+        "重复原request_key只恢复原任务；修改内容拒绝；准备计划后配置模型也不自动获得执行资格"
+      ],
+      "limits": [
+        "编译和GET预览不调用模型；准备清单不授予生成质量资格"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-005.01",
+      "group": "F-005",
+      "title": "原片上传、技术解析、原PTS时钟与帧预览",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId?tab=production",
+        "label": "原片技术拆解"
+      },
+      "code": [
+        "backend/app/services/reverse",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ReverseVideoPanel.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_reverse_ingestion.py",
+        "backend/tests/test_reverse_frame_preview.py"
+      ],
+      "acceptance": [
+        "上传独立有许可的视频，检查字节hash、实际解码帧/PTS和帧预览",
+        "确认切点后刷新；无可靠末帧duration时结束保持未知，不能用标称fps补齐"
+      ],
+      "limits": [
+        "技术切分不等于镜头语义或原作者参数"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-005.02",
+      "group": "F-005",
+      "title": "基准样本标注、必需事件与固定快照",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId?tab=production",
+        "label": "验收样本准备"
+      },
+      "code": [
+        "backend/app/services/benchmark",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/BenchmarkPanel.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_benchmark_acceptance.py"
+      ],
+      "acceptance": [
+        "按原帧标注角色、对白、必需事件、口型锚点和检查点并冻结",
+        "越界/重复/悬挂引用失败；导入重验不继承通过结论"
+      ],
+      "limits": [
+        "人工声明不认证许可、身份、语义或正式质量门禁"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-005.03",
+      "group": "F-005",
+      "title": "视觉/ASR理解任务与带证据候选",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_verified",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId?tab=production",
+        "label": "视频理解候选"
+      },
+      "code": [
+        "backend/app/services/video_understanding",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_video_understanding.py"
+      ],
+      "acceptance": [
+        "独立本地夹具接收实际原帧或带时钟音轨，返回未审核候选",
+        "验证取消、修订冲突、异常与刷新恢复；真实模型逐镜语义和逐句音轨另验"
+      ],
+      "limits": [
+        "远程调用默认关闭；语义、口型及ASR准确性尚未验收"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-005.04",
+      "group": "F-005",
+      "title": "Video DNA编辑、七层提示词编译与快照比较",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_verified",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId?tab=production",
+        "label": "Video DNA草稿与准备"
+      },
+      "code": [
+        "backend/app/services/video_dna",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/DnaPanel.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_video_dna.py",
+        "backend/tests/test_video_dna_independent.py"
+      ],
+      "acceptance": [
+        "保留observed/inferred/unknown及原帧证据，编辑、冻结、导入导出",
+        "比较两版本按稳定ID计算影响；七层准备不建立生成任务或预算"
+      ],
+      "limits": [
+        "schema1有体积与安全整数约束；末镜结束未知；人工声明不等于还原合格"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-005.05",
+      "group": "F-005",
+      "title": "DNA明确导入制作与不可变来源收据",
+      "milestone": "D",
+      "requirements": [
+        "R-001",
+        "R-007"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId?tab=production",
+        "label": "DNA导入预览与入库"
+      },
+      "code": [
+        "backend/app/services/video_dna/production.py",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/DnaProductionControls.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_dna_production.py"
+      ],
+      "acceptance": [
+        "预览计数并明确导入独立工程，确认演员/服装/角色/场景/道具/提示词映射",
+        "相同意图重放返回原收据，修改意图冲突；镜头pending及human_reviewed=false保留"
+      ],
+      "limits": [
+        "不得重跑恢复覆盖用户编辑；用户原片资料不作为开源示例"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-006.01",
+      "group": "F-006",
+      "title": "单张文本生图协议与PNG/JPEG候选",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_verified",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/assets/scenes/:sceneId/edit",
+        "label": "四类资产编辑页：文本生成图片"
+      },
+      "code": [
+        "backend/app/services/asset_image_generation.py",
+        "backend/app/core/integrations/asset_image.py"
+      ],
+      "tests": [
+        "backend/tests/test_asset_image_generation.py"
+      ],
+      "acceptance": [
+        "显式配置openai_b64_v1模型，用本地夹具确认参数、单次发送和持久候选",
+        "拒绝URL-only、多张、坏base64和坏图片；取消与未知结果不自动重发"
+      ],
+      "limits": [
+        "仅单张方图文本生成；不发送参考图；不保证任意供应商兼容"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-006.02",
+      "group": "F-006",
+      "title": "图片候选CAS采用与原图保护",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_verified",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/assets/costumes/:costumeId/edit",
+        "label": "生成候选→确认采用到槽位"
+      },
+      "code": [
+        "backend/app/services/asset_image_generation.py",
+        "front/src/pages/aiStudio/assets/components/AssetImageGenerationPanel.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_asset_image_generation.py",
+        "backend/tests/test_asset_slot_initialization.py"
+      ],
+      "acceptance": [
+        "确认候选前原图保持，明确采用才更新指定槽位",
+        "新旧revision并发采用、切页迟到结果和跨资产候选引用均受保护"
+      ],
+      "limits": [
+        "画面可解码或采用成功不能证明人物一致性或模型质量"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-006.03",
+      "group": "F-006",
+      "title": "参考条件图像与更多返回协议",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_verified",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "按已声明能力发送真实参考图片并检查hash、用途和尺寸",
+        "分别验收URL/其他返回协议和下载边界，不支持时拒绝而不是丢弃参考输入"
+      ],
+      "limits": [
+        "各适配器及真实账号质量需要独立预算和验收"
+      ],
+      "depends_on": [
+        "F-001.04"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-007.01",
+      "group": "F-007",
+      "title": "主机显式视频服务配置与默认关闭",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_verified",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId?tab=production",
+        "label": "资产版本→执行任务→视频服务"
+      },
+      "code": [
+        "backend/app/api/video_runtime_setup.py",
+        "backend/app/services/worker/workspace_video_runtime.py"
+      ],
+      "tests": [
+        "backend/tests/test_workspace_video_runtime.py",
+        "backend/tests/test_workspace_launcher.py"
+      ],
+      "acceptance": [
+        "未配置服务保持准备模式；下载模板默认关闭且没有密钥",
+        "专用配置和环境凭据验证通过才启用；构造、GET与浏览不发模型请求"
+      ],
+      "limits": [
+        "当前固定Seedance文本视频协议，不能将上游或其他账号配置当授权",
+        "新身份网关不继承旧主机视频配置，空间预算未验收前收费提交返回503"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-007.02",
+      "group": "F-007",
+      "title": "工程预算、准入、预留与未知费用",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_verified",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId?tab=production",
+        "label": "工程预算"
+      },
+      "code": [
+        "backend/app/api/video_runtime_setup.py",
+        "backend/app/services/worker"
+      ],
+      "tests": [
+        "backend/tests/test_workspace_video_runtime.py",
+        "backend/tests/test_execution_budget.py",
+        "backend/tests/test_execution_accounting.py"
+      ],
+      "acceptance": [
+        "保存工程上限并刷新，用并发revision验证409保留输入",
+        "预留/结算/接受未知分类不混用，降低额度不得小于已占用；超额在发送前拒绝"
+      ],
+      "limits": [
+        "当前仅工程预算；空间预算仍待实现；预留和spent=0不是账单",
+        "新身份空间的预算尚未实现，不能用旧本地工程预算替代空间级准入"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-007.03",
+      "group": "F-007",
+      "title": "逐镜持久执行、幂等、取消与失败恢复",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_verified",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId?tab=production",
+        "label": "逐镜预览与确认提交"
+      },
+      "code": [
+        "backend/app/api/execution.py",
+        "backend/app/services/worker",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ExecutionJobsPanel.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_workspace_video_pipeline.py",
+        "backend/tests/test_execution_http_integration.py"
+      ],
+      "acceptance": [
+        "明确预览hash/金额后用实际本地HTTP提交，重复相同意图只返回原任务",
+        "覆盖取消、租约丢失、接受未知与恢复；已发送请求不因重启自动再POST"
+      ],
+      "limits": [
+        "软件夹具不是真实视频模型；当前无参考输入、无生成音频",
+        "新身份网关收费提交当前被拒绝；历史本地软件协议通过不能升级空间执行资格"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-007.04",
+      "group": "F-007",
+      "title": "真实媒体下载、完整性验证与显式候选采用",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_verified",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId/editor",
+        "label": "生成任务候选→剪辑采用"
+      },
+      "code": [
+        "backend/app/services/editing",
+        "backend/app/services/worker",
+        "front/src/pages/aiStudio/editor/VideoEditor.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_workspace_video_pipeline.py",
+        "backend/tests/test_execution_artifacts.py",
+        "backend/tests/test_editing_independent.py"
+      ],
+      "acceptance": [
+        "本地服务返回实际MP4并下载、核hash/解码，候选就绪前后不自动采用",
+        "明确采用记录计划/镜头/版本来源；修改历史或跨项目采用失败"
+      ],
+      "limits": [
+        "模型语义、连续性、参考还原与账单对账仍未验收"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-007.05",
+      "group": "F-007",
+      "title": "参考图/首尾帧/参考视频与更多供应商",
+      "milestone": "D",
+      "requirements": [
+        "R-001",
+        "R-010"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_verified",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "每种协议按能力声明发送真实条件媒体；不支持的输入提交前拒绝",
+        "验证不可变连接版本、返回协议、预算和实际供应商响应与账单"
+      ],
+      "limits": [
+        "不能以资产已有图片推断供应商已经接收参考输入"
+      ],
+      "depends_on": [
+        "F-001.04",
+        "F-007.03"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-007.06",
+      "group": "F-007",
+      "title": "真实模型与完整短视频联合验收",
+      "milestone": "D",
+      "requirements": [
+        "R-001",
+        "R-010"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_verified",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "固定获授权预算，分别验证文本、视觉、ASR、图像、视频及实际账单",
+        "从示例创意/脚本到导出验证人物/服装连续性、对白字幕、声音、剪辑和完整叙事，逐项记录通过与限制"
+      ],
+      "limits": [
+        "当前model_quality_qualified=false及complete_film_qualified=false；原片还原不得靠夹具升级"
+      ],
+      "depends_on": [
+        "F-007.04",
+        "F-010.04"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-008.01",
+      "group": "F-008",
+      "title": "Agent配置、节点、修订、复制与导入导出",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/agents",
+        "label": "Agent列表及编辑"
+      },
+      "code": [
+        "backend/app/services/agent_config.py",
+        "front/src/pages/aiStudio/agents/AgentEdit.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_agent_config.py"
+      ],
+      "acceptance": [
+        "保存节点/参数、查看真实修订，复制和导出再导入",
+        "非法结构拒绝；打开/保存配置不发送模型请求"
+      ],
+      "limits": [
+        "配置最多32节点不表示执行支持任意图"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-008.02",
+      "group": "F-008",
+      "title": "1至8顺序文本节点持久执行",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_verified",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/agents/:id/edit",
+        "label": "保存Agent→明确运行"
+      },
+      "code": [
+        "backend/app/services/agent_execution.py",
+        "backend/app/core/integrations/agent_text.py",
+        "front/src/pages/aiStudio/agents/AgentRunsPanel.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_agent_execution.py"
+      ],
+      "acceptance": [
+        "本地HTTP夹具执行顺序节点，固化版本/提示词/连接并记录真实输入输出",
+        "验证重复请求、并发租约、超时/响应上限、取消和显式重试；迟到结果不能采用"
+      ],
+      "limits": [
+        "无分支、并行、代码或任意工具执行；不是社区研发Agent工厂",
+        "新身份空间的Agent运行/重试在空间预算验收前返回503"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-008.03",
+      "group": "F-008",
+      "title": "文本模型单次连接测试与历史回跳",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_verified",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/models",
+        "label": "文本模型→连接测试"
+      },
+      "code": [
+        "backend/app/services/agent_execution.py",
+        "front/src/pages/aiStudio/models/ModelConnectionTestModal.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_agent_execution.py"
+      ],
+      "acceptance": [
+        "打开面板只读历史；明确确认后只发一次8-token ping",
+        "刷新读取持久成功/失败记录，任务精确跳回模型与记录"
+      ],
+      "limits": [
+        "仅文本协议；不证明图像/视频可用或真实模型质量",
+        "新身份空间的文本连接测试也属于收费提交，当前返回503"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-008.04",
+      "group": "F-008",
+      "title": "分支、工具节点与复杂Agent",
+      "milestone": "E",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "为新增节点定义受限输入输出、权限、资源和恢复契约",
+        "独立测试分支/工具失败、取消、重试和越权边界后再开放"
+      ],
+      "limits": [
+        "长期扩展；不得让公开Issue内容成为系统指令或任意代码"
+      ],
+      "depends_on": [
+        "F-001.04",
+        "F-013.05"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "long_term"
+    },
+    {
+      "id": "F-009.01",
+      "group": "F-009",
+      "title": "模型、供应商与分类默认模型配置",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_verified",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/models",
+        "label": "模型/供应商/默认设置"
+      },
+      "code": [
+        "backend/app/api/v1/routes/llm.py",
+        "backend/app/services/llm",
+        "front/src/pages/aiStudio/models/ModelManagement.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_llm_manage.py",
+        "backend/tests/test_llm_resolver.py"
+      ],
+      "acceptance": [
+        "保存供应商、模型、参数和分类默认值再刷新验证",
+        "配置修改不回改历史绑定；模型页打开与保存不发连接测试"
+      ],
+      "limits": [
+        "新18000模型/连接存私有空间且不继承旧凭据；配置CRUD不代表收费生成已开放",
+        "供应商支持范围和真实账号质量须分协议核验"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-009.02",
+      "group": "F-009",
+      "title": "提示词模板、分类、编辑与工程导入来源",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/prompts",
+        "label": "提示词库及工程DNA提示词"
+      },
+      "code": [
+        "backend/app/api/v1/routes/studio/prompts.py",
+        "front/src/pages/aiStudio/prompts/PromptTemplateManager.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_studio_prompts_categories.py",
+        "backend/tests/test_dna_production.py"
+      ],
+      "acceptance": [
+        "创建分类模板、编辑搜索再刷新；导入提示词保留来源映射",
+        "保存提示词不建立收费任务；未知观察保留"
+      ],
+      "limits": [
+        "提示词存在不等于供应商接收或成片通过"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-009.03",
+      "group": "F-009",
+      "title": "空间预算与供应商账单对账",
+      "milestone": "B",
+      "requirements": [
+        "R-002",
+        "R-010"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "空间/项目双重准入，同一事务预留，跨项目并发不突破空间上限",
+        "实际账单与应用请求ID关联；接受未知保留未知费用，人工/自动对账有收据"
+      ],
+      "limits": [
+        "用户旧20元样片预算不能用作本阶段新增费用授权"
+      ],
+      "depends_on": [
+        "F-001.04",
+        "F-007.02"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-010.01",
+      "group": "F-010",
+      "title": "v1硬切编辑、采用CAS与不可变时间线",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId/editor",
+        "label": "剪辑页v1"
+      },
+      "code": [
+        "backend/app/services/editing",
+        "front/src/pages/aiStudio/editor/VideoEditor.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_editing.py",
+        "backend/tests/test_editing_independent.py"
+      ],
+      "acceptance": [
+        "明确采用候选、设置源裁剪、剧情与对白保留区间并冻结",
+        "旧revision冲突、缺源、坏hash、不完整时钟和跨项目引用拒绝"
+      ],
+      "limits": [
+        "固定镜头顺序v1硬切；冻结不代表导出成功或模型质量"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-010.02",
+      "group": "F-010",
+      "title": "v2交叉淡化与原音频混合",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId/editor",
+        "label": "独立v2转场编辑"
+      },
+      "code": [
+        "backend/app/services/editing/transitions.py",
+        "backend/app/services/editing/transition_exports.py",
+        "front/src/pages/aiStudio/editor/TransitionEditor.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_transitions_v2.py",
+        "backend/tests/test_owned_process.py"
+      ],
+      "acceptance": [
+        "保存/锁定v2交叉淡化并明确接受时长缩短，剧情/对白锚点避开混合区",
+        "实际FFmpeg渲染验证像素/PCM/PTS与音频覆盖；取消/异常退出清理整个子进程树"
+      ],
+      "limits": [
+        "100至1000ms、100ms步进；禁止三镜混合；不是任意高级剪辑"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-010.03",
+      "group": "F-010",
+      "title": "MP4、SRT/VTT及来源ZIP实际导出",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects/:projectId/editor",
+        "label": "本地导出任务与下载"
+      },
+      "code": [
+        "backend/app/services/editing",
+        "front/src/pages/aiStudio/editor/VideoEditor.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_transitions_v2.py",
+        "backend/tests/test_editing_independent.py"
+      ],
+      "acceptance": [
+        "导出真实MP4、字幕和来源ZIP，校验hash、总帧数、PTS与字幕位置",
+        "刷新/重启恢复原任务；部分/失败产物不能发布，私有路径不进入公开来源清单"
+      ],
+      "limits": [
+        "字幕为独立文件不烧录；成品可解码不代表AI叙事/还原质量"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-010.04",
+      "group": "F-010",
+      "title": "独立配音/音效与声音时间线",
+      "milestone": "D",
+      "requirements": [
+        "R-001",
+        "R-010"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_verified",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "显式选择声音模型和预算，生成声音候选并确认采用",
+        "对齐对白/字幕/音效与片段裁剪，检查音量、音轨覆盖、重启恢复和完整导出"
+      ],
+      "limits": [
+        "当前仅源音频保留/混合与静音；尚无独立配音/音效生成流水线"
+      ],
+      "depends_on": [
+        "F-001.04",
+        "F-010.03"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-011.01",
+      "group": "F-011",
+      "title": "文件持久上传、标签、搜索与列表分页",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/files",
+        "label": "文件库及工程文件"
+      },
+      "code": [
+        "backend/app/services/studio/files.py",
+        "backend/app/core/local_storage.py",
+        "front/src/pages/aiStudio/files/FileManager.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_local_file_storage.py",
+        "backend/tests/test_studio_files_service.py"
+      ],
+      "acceptance": [
+        "上传真实小文件，改标签、筛选、刷新与读完分页",
+        "坏路径、超限上传、不可读对象失败；部分修改失败明确提示"
+      ],
+      "limits": [
+        "新18000文件经成员网关与私有文件根；完整文件/缩略图/ZIP隔离矩阵仍待验收"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-011.02",
+      "group": "F-011",
+      "title": "原始二进制下载、视频Range与有界ZIP",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/files",
+        "label": "单下载与批量下载"
+      },
+      "code": [
+        "backend/app/services/studio/file_exports.py",
+        "backend/app/api/v1/routes/studio/files.py",
+        "front/openapi/request.ts"
+      ],
+      "tests": [
+        "backend/tests/test_file_exports.py",
+        "backend/tests/test_file_ranges.py"
+      ],
+      "acceptance": [
+        "单下载校验原始字节，视频定位时间获得206，非法范围416",
+        "1至20文件ZIP校验成员与字节，总大小超限或任意缺失整体失败"
+      ],
+      "limits": [
+        "ZIP总原始大小32MiB；文件导出不是完整工程备份"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-011.03",
+      "group": "F-011",
+      "title": "轻量任务中心、取消、精确业务回跳",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects",
+        "label": "顶部任务中心及业务历史面板"
+      },
+      "code": [
+        "backend/app/services/workspace_tasks.py",
+        "front/src/pages/aiStudio/components/TaskCenter.tsx",
+        "front/src/pages/aiStudio/components/TaskRuntimeProvider.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_workspace_tasks.py"
+      ],
+      "acceptance": [
+        "分别提交隔离Agent/图像/理解/视频/本地导出，中心展示轻量真实状态",
+        "按任务类型正确取消并精确回到记录；任务故障保留，刷新不重发收费请求"
+      ],
+      "limits": [
+        "新18000任务查询在私有worker内；收费提交与旧共享执行写入仍关闭",
+        "业务提示词与调试详情留在业务页"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-011.04",
+      "group": "F-011",
+      "title": "SQLite持久启动、迁移前备份与提交顺序",
+      "milestone": "D",
+      "requirements": [
+        "R-001"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "CLI backend/run_workspace.py",
+        "label": "本机启动器与备份流程"
+      },
+      "code": [
+        "backend/run_workspace.py",
+        "backend/app/core/db.py",
+        "backend/app/dependencies.py"
+      ],
+      "tests": [
+        "backend/tests/test_workspace_launcher.py",
+        "backend/tests/test_response_commit_order.py"
+      ],
+      "acceptance": [
+        "隔离副本启动保留数据并生成一致备份，备份配套保存media/files",
+        "ASGI发送成功响应前另一连接已能读到新记录；未知schema或坏外键拒绝迁移"
+      ],
+      "limits": [
+        "当前资格仅本地SQLite；MySQL/PostgreSQL服务器并发与恢复未联合验收"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-012.01",
+      "group": "F-012",
+      "title": "独立测试账号A/B与安全领取",
+      "milestone": "C",
+      "requirements": [
+        "R-005"
+      ],
+      "implementation": "partial",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-IDENTITY-CHECKPOINT",
+          "EV-DEMO-LOCAL",
+          "EV-IDENTITY-BROWSER"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/projects",
+        "label": "新18000本机A/B账号；凭据由维护者安全提供"
+      },
+      "code": [
+        "backend/run_controlplane.py",
+        "backend/app/controlplane/store.py",
+        "front/src/identity/IdentityGate.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_identity_controlplane.py",
+        "backend/tests/test_workspace_demo.py"
+      ],
+      "acceptance": [
+        "创建A/B两账号及空间，在真实浏览器分别登录并完整走关键流程",
+        "专用凭据通过安全途径交付，不写公开仓库；额度、有效期和领取方式明确"
+      ],
+      "limits": [
+        "本机已建立A/B独立身份与个人空间；专用凭据不写公开仓库",
+        "真实浏览器全链验收尚未完成；没有可领取的公网账号平台",
+        "CLI创建凭据文件不覆盖已有文件，Windows文件访问权限由维护者保护"
+      ],
+      "depends_on": [
+        "F-001.05",
+        "F-001.04"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-012.02",
+      "group": "F-012",
+      "title": "可重置、有许可的示例工程",
+      "milestone": "C",
+      "requirements": [
+        "R-005",
+        "R-007"
+      ],
+      "implementation": "partial",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-DEMO-LOCAL",
+          "EV-IDENTITY-BROWSER"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "API POST /api/v1/identity/demo",
+        "label": "项目大厅：建立 / 重置体验示例（已登录）"
+      },
+      "code": [
+        "backend/app/controlplane/demo.py",
+        "backend/app/controlplane/routes.py",
+        "backend/app/core/contracts/identity.py"
+      ],
+      "tests": [
+        "backend/tests/test_workspace_demo.py"
+      ],
+      "acceptance": [
+        "以合成/有许可素材建立脚本、分镜、资产和可导出示例",
+        "重置幂等且仅影响目标示例空间；不覆盖其他用户项目或个人原片"
+      ],
+      "limits": [
+        "纯自作《点亮小岛》文字示例，7个pending镜头、每镜首/尾/关键帧3条可编辑提示词，无图片/视频或模型调用",
+        "重建创建全新工程保留旧例；成功原请求重放不覆盖编辑，部分结果改/删后返回409",
+        "每空间最多20次新示例请求，旧请求恢复不占新名额",
+        "服务与按钮通过本地HTTP/SQLite和实际浏览器检查；未提供媒体成片或公网平台"
+      ],
+      "depends_on": [
+        "F-012.01"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-012.03",
+      "group": "F-012",
+      "title": "社区注册/独立体验空间与额度",
+      "milestone": "C",
+      "requirements": [
+        "R-002",
+        "R-005"
+      ],
+      "implementation": "partial",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-IDENTITY-CHECKPOINT"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "API /api/v1/identity/register",
+        "label": "维护者可显式开放注册；当前本机默认领取独立账号"
+      },
+      "code": [
+        "backend/run_controlplane.py",
+        "backend/app/controlplane/routes.py",
+        "backend/app/controlplane/store.py",
+        "front/src/identity/IdentityGate.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_identity_controlplane.py"
+      ],
+      "acceptance": [
+        "社区用户注册或领取独立账号，首次进入拥有个人空间",
+        "检验并发领取、防重复、额度耗尽和到期后的明确行为，不能读取维护者私有数据"
+      ],
+      "limits": [
+        "注册开关默认关闭；每个新账号创建独立个人空间",
+        "公网注册/领取、费用额度、有效期与资源容量方案尚未验收",
+        "示例建立上限不是生成额度；所有空间收费提交保持503"
+      ],
+      "depends_on": [
+        "F-012.02",
+        "F-009.03"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-013.01",
+      "group": "F-013",
+      "title": "GitHub需求接入、事件去重与需求版本",
+      "milestone": "E",
+      "requirements": [
+        "R-003",
+        "R-004"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "真实目标仓库接收签名事件，重复delivery/issue版本只入库一次",
+        "只保存用户明确提交的公开需求，不读取私人视频空间"
+      ],
+      "limits": [
+        "目标仓库名fawnimo已确认，创建与事件接入待核验；Issue正文只作为需求数据"
+      ],
+      "depends_on": [
+        "F-015.01"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-013.02",
+      "group": "F-013",
+      "title": "AI查重、澄清、合理性评估与复议",
+      "milestone": "E",
+      "requirements": [
+        "R-003"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "评估保存依据、需求版本、重复候选及合理性结果，给出公开理由",
+        "资料不足进入澄清，允许补充/复议；合理与优先分别记录"
+      ],
+      "limits": [
+        "维护者服务使用独立模型与费用额度；模型建议不越过确定性规则"
+      ],
+      "depends_on": [
+        "F-013.01"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-013.03",
+      "group": "F-013",
+      "title": "依赖、价值、成本与容量排队",
+      "milestone": "E",
+      "requirements": [
+        "R-003"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "将合理需求关联功能ID，按依赖和容量形成带版本路线图与队列",
+        "验证依赖循环、超预算/并发/时限、取消、有限重试与失败恢复"
+      ],
+      "limits": [
+        "优先不等于已开发/验证/上线；不擅自承诺交付日期"
+      ],
+      "depends_on": [
+        "F-013.02"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-013.04",
+      "group": "F-013",
+      "title": "租约、幂等、取消与资源上限",
+      "milestone": "E",
+      "requirements": [
+        "R-003",
+        "R-010"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "两个调度器竞争领取只产生一次开发attempt，租约失联进入可恢复状态",
+        "覆盖重复事件、取消、重试、进程失败、时间/费用/并发限制和审计"
+      ],
+      "limits": [
+        "开发环境独立于用户数据；未知外部结果不盲目重放"
+      ],
+      "depends_on": [
+        "F-013.03"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-013.05",
+      "group": "F-013",
+      "title": "隔离开发、变更提交与PR追溯",
+      "milestone": "E",
+      "requirements": [
+        "R-003",
+        "R-004"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "开发attempt绑定精确需求版本、功能ID、分支及允许的仓库",
+        "独立工作目录、受限凭据、命令/网络/文件边界；产出可审阅PR及测试记录"
+      ],
+      "limits": [
+        "不能接触用户私有媒体/密钥；不向未指定上游仓库创建事项或PR"
+      ],
+      "depends_on": [
+        "F-013.04",
+        "F-001.04"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-013.06",
+      "group": "F-013",
+      "title": "独立审查、客观测试与CI触发验证",
+      "milestone": "E",
+      "requirements": [
+        "R-003",
+        "R-004"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "开发Agent不能自批，独立审查与客观检查结果关联准确PR版本",
+        "真实创建PR后验证CI确实触发；旧头/失败/缺失检查阻止晋级，修复后重新验证"
+      ],
+      "limits": [
+        "不能只以成功创建PR或合并作为完成；策略不能被开发执行器绕过"
+      ],
+      "depends_on": [
+        "F-013.05"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-013.07",
+      "group": "F-013",
+      "title": "隔离预览、策略发布、回退与反馈",
+      "milestone": "E",
+      "requirements": [
+        "R-003",
+        "R-004",
+        "R-006"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "通过检查后给每次变更独立预览，预览数据与稳定环境分开",
+        "按预配置范围自动发布，失败可回退；用户实际验收和部署结果独立登记，再收集反馈"
+      ],
+      "limits": [
+        "常规已授权步骤自动推进；外部费用/授权范围需先明确"
+      ],
+      "depends_on": [
+        "F-013.06",
+        "F-014.02"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-014.01",
+      "group": "F-014",
+      "title": "用户目标仓库与来源合规发布包",
+      "milestone": "F",
+      "requirements": [
+        "R-004",
+        "R-006",
+        "R-007"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "用户指定自有仓库后，将可审阅变更、许可证、来源和脱敏证据发布到正确目标",
+        "核对私有原片/资料/凭据排除；镜像、Actions、Pages和链接使用自有目标"
+      ],
+      "limits": [
+        "项目名Fawnimo 鹿帧、仓库名fawnimo已确认；GitHub仓库已创建，首批代码发布待核验，origin来源不构成推送授权"
+      ],
+      "depends_on": [
+        "F-015.01",
+        "F-001.05"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-014.02",
+      "group": "F-014",
+      "title": "稳定/预览部署与数据/执行环境分离",
+      "milestone": "F",
+      "requirements": [
+        "R-006"
+      ],
+      "implementation": "partial",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-DEPLOY-CONFIG"
+        ]
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "CLI deploy/workspace/compose.yaml",
+        "label": "稳定/预览单节点容器准备文件，未运行部署"
+      },
+      "code": [
+        "deploy/workspace/Dockerfile",
+        "deploy/workspace/compose.yaml",
+        "deploy/workspace/README.md",
+        "backend/run_controlplane.py"
+      ],
+      "tests": [],
+      "acceptance": [
+        "在已授权资源部署稳定和预览，执行真实数据库迁移、并发、恢复和持久文件验证",
+        "预览使用独立账号数据/凭据/额度；稳定可回退，重启与升级不丢任务/媒体"
+      ],
+      "limits": [
+        "14项静态Compose/config检查通过；Docker engine不可用，镜像未构建、容器未验证",
+        "稳定/预览卷与端口分开只是配置，运行隔离、迁移、并发、恢复和回退未通过",
+        "无本项目公网平台；本机18000不是稳定/预览公网交付",
+        "仅单节点SQLite方案，不支持多副本网关共享数据库或服务器数据库资格"
+      ],
+      "depends_on": [
+        "F-001.05",
+        "F-001.04",
+        "F-014.01"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-014.03",
+      "group": "F-014",
+      "title": "公网实机、交付账号与关键制作链验收",
+      "milestone": "F",
+      "requirements": [
+        "R-005",
+        "R-006"
+      ],
+      "implementation": "planned",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "not_deployed",
+        "url": null
+      },
+      "version": {
+        "implementation": null,
+        "release": null
+      },
+      "entry": {
+        "route": "",
+        "label": "尚无可验收入口"
+      },
+      "code": [],
+      "tests": [],
+      "acceptance": [
+        "从公网稳定与预览URL分别登录A/B，完成示例创作到导出并验证隔离",
+        "记录实际URL、版本、账号安全领取、额度、功能/限制与可重复证据；关闭需求须上线且验收"
+      ],
+      "limits": [
+        "真实模型资格单列，HTTP200/截图/模拟视频不算公网关键流程通过"
+      ],
+      "depends_on": [
+        "F-012.03",
+        "F-014.02",
+        "F-007.06"
+      ],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-015.01",
+      "group": "F-015",
+      "title": "稳定功能编号与单一登记生成文档",
+      "milestone": "A",
+      "requirements": [
+        "R-004",
+        "R-009"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-REGISTER-CHECK",
+          "EV-A-INDEPENDENT"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "CLI python scripts/features.py --check",
+        "label": "README、功能总表、验收指南与路线图"
+      },
+      "code": [
+        "capabilities/features.json",
+        "scripts/features.py"
+      ],
+      "tests": [],
+      "acceptance": [
+        "执行生成与--check，逐项检查唯一ID、依赖、代码/测试路径和证据引用",
+        "修改登记但不生成时检查必须失败；虚假公网/模型通过声明缺少证据时必须失败"
+      ],
+      "limits": [
+        "登记验证不是应用软件验收；私有历史证据未打包到公开仓库"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-015.02",
+      "group": "F-015",
+      "title": "Jellyfish来源记录与发布边界",
+      "milestone": "A",
+      "requirements": [
+        "R-007",
+        "R-009"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-REGISTER-CHECK",
+          "EV-A-INDEPENDENT"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "README.md",
+        "label": "来源与发布边界说明"
+      },
+      "code": [
+        "README.md",
+        "UPSTREAM.md"
+      ],
+      "tests": [],
+      "acceptance": [
+        "核对原许可证/上游来源保留，现有代码不被宣称全部AI从零原创",
+        "README指出上游Actions/镜像并非自有部署；原片、个人数据和凭据不作为公开示例"
+      ],
+      "limits": [
+        "Fawnimo 鹿帧品牌和fawnimo仓库名已确认；发布前仍需内容清单、来源及脱敏检查"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-015.03",
+      "group": "F-015",
+      "title": "OpenAPI统一客户端与API类型同步",
+      "milestone": "A",
+      "requirements": [
+        "R-009"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "baseline_verified",
+        "model": "not_required",
+        "evidence": [
+          "EV-LOCAL-20261029"
+        ]
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "CLI pnpm run openapi:update",
+        "label": "前端接口生成流程"
+      },
+      "code": [
+        "front/openapi/request.ts",
+        "front/src/services/generated",
+        "front/package.json",
+        "front/public/fawnimo.svg",
+        "site/content/docs/architecture/brand-and-provenance.md"
+      ],
+      "tests": [],
+      "acceptance": [
+        "API变更后运行openapi:update，检查generated类型与请求一致",
+        "前端typecheck及生产构建通过，二进制响应保留Blob"
+      ],
+      "limits": [
+        "OpenAPI同步不代表鉴权或业务功能已经通过"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    },
+    {
+      "id": "F-015.04",
+      "group": "F-015",
+      "title": "电影工作室A风格与中性亮暗主题",
+      "milestone": "A",
+      "requirements": [
+        "R-008"
+      ],
+      "implementation": "implemented",
+      "validation": {
+        "software": "not_verified",
+        "model": "not_required",
+        "evidence": []
+      },
+      "deployment": {
+        "status": "local_only",
+        "url": null
+      },
+      "version": {
+        "implementation": "working-tree-2026-10-29",
+        "release": null
+      },
+      "entry": {
+        "route": "/settings",
+        "label": "顶部主题及设置页"
+      },
+      "code": [
+        "front/src/theme",
+        "front/src/styles",
+        "front/src/layouts/MainLayout.tsx"
+      ],
+      "tests": [],
+      "acceptance": [
+        "亮暗主题分别检查主要流程、静态确认弹窗、窄屏与可读性",
+        "切换主题/刷新/跨标签同步不产生模型调用或修改业务状态"
+      ],
+      "limits": [
+        "新身份模式语言/主题归用户；旧本地模式保留浏览器偏好，两种模式浏览器联合验收另记"
+      ],
+      "depends_on": [],
+      "issues": [],
+      "prs": [],
+      "delivery_scope": "current_delivery"
+    }
+  ],
+  "milestones": [
+    {
+      "id": "A",
+      "title": "基线、来源与功能/验收登记",
+      "status": "passed",
+      "depends_on": [],
+      "scope": "保留原工作树、历史验收和用户资料，形成可生成的功能总表、短期验收计划与长期路线图。",
+      "gates": [
+        "记录HEAD、分支、已修改/新增文件与代码清单hash；不得reset/clean覆盖成果。",
+        "全部功能/子功能有稳定ID、代码、真实入口、限制、版本及独立的实现/验证/部署状态。",
+        "生成与一致性校验可运行；README入口、来源和发布边界准确；方案经独立Agent审核，无未关闭阻断问题。"
+      ],
+      "evidence_outputs": [
+        "本阶段基线manifest",
+        "登记校验与独立审核记录",
+        "生成文档及来源边界"
+      ],
+      "progress": "A登记/生成器/来源/完整A-F计划已获独立审核19项通过，无阻断发现；审核对应记录中的当时hash。后续B/C状态更新重新生成和检查，不以A审核代替新功能验收。"
+    },
+    {
+      "id": "B",
+      "title": "用户、个人空间、全资源与执行链隔离",
+      "status": "in_progress",
+      "depends_on": [
+        "A"
+      ],
+      "scope": "可信身份/成员、个人空间、数据/文件/模型/任务/预算隔离，迁移旧数据并验证回退。",
+      "gates": [
+        "首次个人空间幂等；旧资料只归受信待认领空间，不自动交给任意首注册者。",
+        "两用户两空间完成正向与越权矩阵：根资源、嵌套引用、搜索、下载/缩略图/ZIP、任务/取消重试、模型连接、导出、历史恢复。",
+        "后台固定原空间/提交人/连接版本；切换空间清理缓存与恢复意图但保留原请求身份；未知结果不重复收费。",
+        "迁移前一致备份DB/media/files，在副本验证完整性、原8工程与原片来源、故障中断恢复和独立路径回退。",
+        "空间与工程预算准入一致；相关后端测试、OpenAPI、类型和实际浏览器通过；独立审查关闭越权问题。"
+      ],
+      "evidence_outputs": [
+        "隔离API与浏览器矩阵",
+        "迁移/备份/回退报告",
+        "原数据完整性与后台执行绑定证据"
+      ],
+      "progress": "身份、固定空间进程及本机A/B软件和浏览器检查已通过；完整API/浏览器隔离矩阵、任务提交人逐项绑定、空间预算、旧数据迁移/回退仍未完成，B整体保持推进中。"
+    },
+    {
+      "id": "C",
+      "title": "测试账号、可重置示例与体验入口",
+      "status": "in_progress",
+      "depends_on": [
+        "B"
+      ],
+      "scope": "提供安全领取的A/B测试身份、独立示例及可重复验收步骤。",
+      "gates": [
+        "账号A/B实际登录，资料/空间/示例独立；凭据不写公开仓库。",
+        "示例素材合成或有许可，标注来源；重置只作用目标空间，可重复且不覆盖私有工程。",
+        "社区注册或领取规则、额度/有效期和额度耗尽行为明确可测；功能入口与编号对应。"
+      ],
+      "evidence_outputs": [
+        "账号交付说明与安全领取入口",
+        "示例来源/重置报告",
+        "A/B浏览器制作与隔离记录"
+      ],
+      "progress": "本机A/B账号已安全建立；纯自作7镜/21提示词服务已用真实本地HTTP/SQLite验证，示例按钮、重建保留旧编辑及双账号本机浏览器检查已通过。C仍partial，公网领取与完整体验未交付。"
+    },
+    {
+      "id": "D",
+      "title": "短视频主线软件缺口及模型/成片联合验收",
+      "status": "planned",
+      "depends_on": [
+        "B",
+        "C"
+      ],
+      "scope": "补参考条件生成与必要声音链，联合验证完整创作流程；真实模型独立费用和质量门槛。",
+      "gates": [
+        "明确每个适配器支持的文本/图片/首尾帧/视频/音频输入与返回方式，不支持时拒绝，不能静默丢弃。",
+        "使用独立本地服务验证取消、幂等、重试、失败恢复、预算、候选和显式采用；实际FFmpeg导出MP4/字幕/来源包。",
+        "在明确授权预算内分别验证真实文本、视觉、ASR、图像、视频和声音账号，记录请求、响应、用量与真实供应商账单。",
+        "完整短视频逐项验收人物服装连续性、叙事、对白字幕/声音同步、镜头时长、导出及参考还原；未通过项保持未通过。"
+      ],
+      "evidence_outputs": [
+        "软件端到端报告",
+        "各真实模型与费用验证单",
+        "完整成片检查表和限制"
+      ]
+    },
+    {
+      "id": "E",
+      "title": "社区需求到AI开发、审核、预览和发布基本闭环",
+      "status": "planned",
+      "depends_on": [
+        "A",
+        "B"
+      ],
+      "scope": "维护者控制的独立执行服务；只处理用户明确公开的需求，全部阶段有版本和理由。",
+      "gates": [
+        "真实GitHub App/事件签名与重复事件去重；需求版本、评估/查重/澄清/复议、优先级与计划队列可追溯。",
+        "开发服务与用户视频空间彻底分离，独立凭据/额度、受限仓库和命令权限；Issue内容当数据。",
+        "两个执行器竞争、租约过期、重复事件、取消、有限重试、进程崩溃与并发/时间/费用上限均实测。",
+        "开发attempt关联需求/功能ID/PR精确版本，独立审查与客观测试不可绕过；真实自动建PR后CI确实触发。",
+        "独立预览与测试数据，按已配置发布策略上线、回退、验收并收集反馈；实现/验收/部署分别记录。"
+      ],
+      "evidence_outputs": [
+        "事件到部署完整追踪记录",
+        "调度/故障/资源上限矩阵",
+        "独立审查与CI触发证明",
+        "预览及回退报告"
+      ]
+    },
+    {
+      "id": "F",
+      "title": "自有GitHub、稳定/预览公网平台与最终交付",
+      "status": "in_progress",
+      "depends_on": [
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "scope": "在用户明确指定的仓库和获授权资源发布；从真实公网和交付账号验收。",
+      "gates": [
+        "目标仓库、名称/品牌、托管资源和预算明确；来源许可保留，私有资料/账号凭据排除，所有上游镜像/发布链接已审查。",
+        "稳定/预览数据、凭据、队列和费用分离；数据库迁移、并发、持久文件、任务恢复与发布回退实际通过。",
+        "真实公网URL上用A/B完成示例关键制作链、空间隔离与下载；社区账号领取与额度行为可用。",
+        "GitHub可查所有功能/子功能、PR版本、脱敏证据、限制、路线图与版本说明；只有已上线且已验收的需求可关闭。",
+        "交付实际GitHub地址、稳定/预览平台、账号安全领取、复验步骤、功能状态及未完成项；不能以localhost或模拟视频替代。"
+      ],
+      "evidence_outputs": [
+        "目标GitHub及版本链接",
+        "稳定/预览URL和账号获取说明",
+        "公网浏览器与隔离/恢复报告",
+        "功能最终状态清单"
+      ],
+      "progress": "已准备稳定/预览单节点Docker文件并通过14项静态配置检查；engine不可用，镜像未构建、容器未运行验证，公网仍not_deployed。仓库名fawnimo已确认，创建和代码发布待核验；部署资源与域名仍待明确。"
+    }
+  ],
+  "external_inputs": [
+    "Fawnimo 鹿帧与仓库weicaojava/fawnimo已确认并实际创建；首批代码、功能目录与CI分别验收，上游仅保留来源说明。",
+    "可用于此项目的部署资源、域名/访问方式、独立凭据及云费用上限；不能使用其他业务项目资源。",
+    "真实模型供应商与新增费用上限，及对公开示例素材来源的确认；旧样片预算不能沿用为无限授权。"
+  ],
+  "long_term": [
+    {
+      "title": "团队协作深化",
+      "scope": "多成员邀请、团队角色、审计、共享审批与容量管理",
+      "gate": "个人空间与所有执行链隔离通过"
+    },
+    {
+      "title": "更多供应商与生成能力",
+      "scope": "更多模型、参考协议、返回方式、声音风格及一致性能力",
+      "gate": "每个适配器和真实账号独立验收及预算"
+    },
+    {
+      "title": "复杂Agent",
+      "scope": "分支、工具、并行图与可恢复编排",
+      "gate": "最小社区研发闭环和执行权限/资源边界验证"
+    },
+    {
+      "title": "高级剪辑",
+      "scope": "更多轨道、转场、关键帧、声音处理与编辑交互",
+      "gate": "现有硬切/交叉淡化与来源/声音时间线稳定"
+    },
+    {
+      "title": "服务器数据库与规模化执行",
+      "scope": "面向多进程/多节点的数据库、队列、存储和运行维护",
+      "gate": "实际迁移、并发、灾难恢复和部署验收，不能只改连接配置"
+    }
+  ],
+  "community_policy": [
+    "合理性、重复关系、优先级与当前容量分别给出理由；拒绝/延期可补充资料和复议。",
+    "用户只公开其明确提交的需求；平台私人资产、日志和密钥不自动同步GitHub。",
+    "需求版本→评估→计划→开发尝试→PR→独立审核/测试→预览→部署→用户验收可追溯。",
+    "自动发布按维护者预先配置范围逐步开放，日常授权内步骤不逐个变成人工审批。",
+    "缺失检查、旧PR版本、独立审核失败或费用/资源超限不晋级；失败有明确结果与有限恢复。"
+  ],
+  "current_state": {
+    "overview": "身份网关及每空间固定数据库、文件/媒体目录和执行进程已实现，本机体验入口为 http://127.0.0.1:18000/projects；原17888/8000本地模式保留。双账号本地软件与浏览器验证已通过；B/C仍有旧数据迁移回退、空间预算、完整隔离矩阵和完整制作示例待完成。新空间生成提交返回503。",
+    "acceptance_setup": "使用独立验收数据和本机A/B账号。项目大厅可建立/重置纯自作7镜、21条可编辑提示词示例；每次重建新工程保留旧编辑，同一请求恢复返回原结果。本机入口与账号交付已可复验，尚无公网平台。",
+    "readme_status": "已交付本机身份、个人空间、A/B账号和可重建文字示例，通过43项新增后端、16项原模式回归和46项实际浏览器检查。B/C阶段仍未整体通过；空间预算、旧数据迁移回退、完整制作示例、社区研发和公网交付待完成。",
+    "verification_checkpoint": "本轮43项新增后端测试、16项原模式回归与46项实际浏览器检查通过，另有14项worker启动/重启检查和独立身份审查。只有登录会话、个人空间幂等和用户偏好三个有界功能标为软件验证通过；完整隔离、预算、迁移、示例成片、真实模型和公网仍按各自门槛记录。",
+    "architecture_summary": "当前已有身份网关、个人空间、固定工作空间进程和纯自作文字示例。本地双账号与浏览器验证通过，B/C阶段仍有空间预算、旧数据迁移回退、完整隔离矩阵及完整制作示例待完成；社区研发与公网平台未交付。"
+  },
+  "brand": {
+    "name": "Fawnimo",
+    "chinese_name": "鹿帧",
+    "repository_name": "fawnimo",
+    "intended_owner": "weicaojava",
+    "repository_status": "created",
+    "confirmed_date": "2026-10-29",
+    "repository_url": "https://github.com/weicaojava/fawnimo"
+  }
+}

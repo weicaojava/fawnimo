@@ -31,7 +31,7 @@ router = APIRouter()
 )
 async def create_shot_frame_prompt_task(
     body: ShotFramePromptRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[TaskCreated]:
     await assert_legacy_allowed(db,'shot',body.shot_id)
     frame_type = normalize_frame_type(body.frame_type)

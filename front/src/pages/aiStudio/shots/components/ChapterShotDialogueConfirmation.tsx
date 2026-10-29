@@ -71,39 +71,39 @@ export function ChapterShotDialogueConfirmation({
           : '当前没有待确认对白；如果需要，也可以直接补录最终对白'
 
   return (
-    <div className="space-y-3 rounded-xl border border-slate-200 bg-white/80 px-4 py-4">
+    <div className="production-form-section space-y-3">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-900 px-1.5 text-[11px] font-semibold text-white">
+            <span className="production-step-index inline-flex min-w-5 items-center justify-center px-1.5 text-xs font-semibold">
               2.2
             </span>
             <div className="text-sm font-medium text-slate-900">对白确认</div>
             <span
-              className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium"
+              className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium"
               style={{
                 background:
                   dialogueStatus.tone === 'green'
-                    ? '#dcfce7'
+                    ? 'var(--color-success-soft)'
                     : dialogueStatus.tone === 'blue'
-                      ? '#dbeafe'
+                      ? 'var(--color-accent-soft)'
                       : dialogueStatus.tone === 'default'
-                        ? '#f1f5f9'
-                        : '#fef3c7',
+                        ? 'var(--color-paper-3)'
+                        : 'var(--color-warning-soft)',
                 color:
                   dialogueStatus.tone === 'green'
-                    ? '#166534'
+                    ? 'var(--color-success)'
                     : dialogueStatus.tone === 'blue'
-                      ? '#1d4ed8'
+                      ? 'var(--color-accent)'
                       : dialogueStatus.tone === 'default'
-                        ? '#475569'
-                        : '#92400e',
+                        ? 'var(--color-ink-2)'
+                        : 'var(--color-warning)',
               }}
             >
               {dialogueStatus.text}
             </span>
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">这里处理系统提取出的对白候选，并确认最终对白内容。</div>
+          <div className="text-xs text-slate-500 mt-1">这里处理系统提取出的对白候选，并确认最终对白内容。</div>
         </div>
         <div className="flex items-center gap-2">
           {extractedDialogLines.length > 0 ? (

@@ -1,11 +1,13 @@
+import { workspaceMediaUrl } from '../../../../../services/workspaceContext'
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Button, Card, Empty, Form, Input, List, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd'
+import { Alert, Button, Empty, Form, Input, List, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd'
 import { Link, useParams } from 'react-router-dom'
 import { OpenAPI, ProductionService as P, StudioChaptersService, StudioShotsService } from '../../../../../services/generated'
 import type { AssetWrite, TakeWrite, VersionWrite } from '../../../../../services/generated'
 import { ExecutionJobsPanel } from './ExecutionJobsPanel'
 import { ReverseVideoPanel } from './ReverseVideoPanel'
 import { BenchmarkPanel } from './BenchmarkPanel'
+import { ProjectSection } from '../../ProjectSection'
 
 type Version = { id: string; revision: number; payload: { description: string; media_ids: string[] }; content_hash: string }
 type Asset = { asset: { id: string; name: string; kind: string; archived: boolean; entity_id: string | null }; versions: Version[]; affected_shot_ids: string[] }
@@ -73,20 +75,17 @@ export function ProductionTab() {
   }
 
   const mediaOptions = media.map(m => ({ value: m.id, label: m.name }))
-  return <div className="space-y-4 pb-6">
-    <ReverseVideoPanel key={`reverse-${projectId}`} projectId={projectId} />
-    <BenchmarkPanel key={`benchmark-${projectId}`} projectId={projectId} />
-    <ExecutionJobsPanel key={projectId} projectId={projectId} />
+  return <div className="project-production">
     <Alert type="info" showIcon message="工程资产与版本" description="修订会新增版本，已采用片段保留原版本。这里导入的文件属于用户素材，不计作模型生成或成片验收。" />
     {loadError && <Alert type="error" message={loadError} action={<Button onClick={() => void load()}>重试</Button>} />}
-    <Card title="资产库" loading={loading} extra={<Button type="primary" onClick={() => { form.resetFields(); setMode('create') }}>新建版本资产</Button>}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+    <ProjectSection title="资产库" loading={loading} extra={<Button type="primary" onClick={() => { form.resetFields(); setMode('create') }}>新建版本资产</Button>}>
+      <div className="project-version-layout">
         <List dataSource={assets} locale={{ emptyText: <Empty description="尚未创建版本资产" /> }} renderItem={item => <List.Item>
           <Button type={selected?.asset.id === item.asset.id ? 'primary' : 'text'} onClick={() => setSelected(item)}>{item.asset.name}</Button>
           <Space><Tag>{kinds.find(k => k.value === item.asset.kind)?.label}</Tag><Tag>{item.asset.archived ? '已归档' : `v${item.versions[0]?.revision}`}</Tag></Space>
         </List.Item>} />
         <div>{selected ? <>
-          <h3 className="text-base font-semibold mb-3">{selected.asset.name} · 版本历史</h3>
+          <h3 className="text-base font-semibold mb-3">{selected.asset.name} 版本历史</h3>
           <Space wrap className="mb-3">
             <Button disabled={selected.asset.archived} onClick={() => { form.resetFields(); form.setFieldsValue(selected.versions[0]?.payload); setMode('revise') }}>修订为新版本</Button>
             <Popconfirm title={selected.asset.archived ? '恢复此资产？' : '归档此资产？'} description={`关联 ${selected.affected_shot_ids.length} 个镜头，历史采用记录会保留。`} onConfirm={() => mutate(() => P.archiveAssetApiV1StudioProductionProjectsProjectIdAssetsAssetIdArchivePatch({ projectId, assetId: selected.asset.id, requestBody: { archived: !selected.asset.archived } }))}>
@@ -97,16 +96,21 @@ export function ProductionTab() {
           <Table size="small" rowKey="id" pagination={false} dataSource={selected.versions} columns={[{ title: '版本', dataIndex: 'revision', render: value => `v${value}` }, { title: '描述', render: (_, v) => <span style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{v.payload.description}</span> }, { title: '参考素材', render: (_, v) => v.payload.media_ids.length }]} />
         </> : <Empty description="选择资产查看历史" />}</div>
       </div>
-    </Card>
-    <Card title="本工程媒体">
+    </ProjectSection>
+    <ProjectSection title="本工程媒体">
       <Space wrap className="mb-3"><label>导入媒体 <input aria-label="导入媒体" type="file" accept=".png,.jpg,.jpeg,.webp,.mp4,.wav" disabled={busy} onChange={e => { upload(e.target.files?.[0], false); e.target.value = '' }} /></label><label>导入媒体包 <input aria-label="导入媒体包" type="file" accept=".zip" disabled={busy} onChange={e => { upload(e.target.files?.[0], true); e.target.value = '' }} /></label></Space>
       <p className="text-gray-500 mb-3">媒体包只导入清单内的素材。文件上限 64 MB；不接受脚本、链接或未经声明的归档内容。</p>
-      <List dataSource={media} locale={{ emptyText: '暂无媒体' }} renderItem={m => <List.Item><a href={`${OpenAPI.BASE}/api/v1/studio/production/projects/${encodeURIComponent(projectId)}/media/${encodeURIComponent(m.id)}/content`} target="_blank" rel="noreferrer">{m.name}</a><span>{Math.ceil(m.size / 1024)} KB · 用户导入</span></List.Item>} />
-    </Card>
+      <List dataSource={media} locale={{ emptyText: '暂无媒体' }} renderItem={m => <List.Item><a href={workspaceMediaUrl(`${OpenAPI.BASE}/api/v1/studio/production/projects/${encodeURIComponent(projectId)}/media/${encodeURIComponent(m.id)}/content`)} target="_blank" rel="noreferrer">{m.name}</a><div className="project-inline-facts"><span>{Math.ceil(m.size / 1024)} KB</span><span>用户导入</span></div></List.Item>} />
+    </ProjectSection>
     <Alert className="mb-3" type="info" message="已登记制作剧本的工程，请在剪辑页明确采用或切回" description="下方原采用入口保留给未登记剧本的工程；已登记工程会拒绝此旧入口，请使用片段旁的剪辑页链接。历史记录与用户素材仍可查看。" />
-    <Card title="采用记录" extra={<Button disabled={!shots.length || !media.some(m => m.mime.startsWith('video/')) || !assets.length} onClick={() => { form.resetFields(); setMode('take') }}>采用导入片段</Button>}>
-      <List dataSource={takes} locale={{ emptyText: '暂无采用记录' }} renderItem={t => <List.Item><div>{shots.find(s => s.value === t.shot_id)?.label ?? t.shot_id}<p><a href={`${OpenAPI.BASE}/api/v1/studio/production/projects/${encodeURIComponent(projectId)}/media/${encodeURIComponent(t.media_id)}/content`} target="_blank" rel="noreferrer">{media.find(m => m.id === t.media_id)?.name ?? '媒体待核验'} · 查看片段</a></p><p>{shots.find(s => s.value === t.shot_id)?.chapterId && <Link to={`/projects/${projectId}/editor?chapter=${encodeURIComponent(shots.find(s => s.value === t.shot_id)!.chapterId)}`}>去剪辑页确认采用或切回</Link>}</p><p className="text-gray-500">{t.provenance === "execution_candidate_unqualified" ? "执行候选（未获质量资格）" : t.provenance === "user_import" ? "用户导入" : "历史素材（来源未核定）"} · {t.versions.map(v => `v${v.revision}`).join(' / ')} · 历史版本已固定</p></div>{t.selected ? <Tag color="green">当前采用</Tag> : <Button disabled={busy} onClick={() => void mutate(() => P.postSelectionApiV1StudioProductionProjectsProjectIdTakesTakeIdSelectPost({ projectId, takeId: t.id }))}>切换采用</Button>}</List.Item>} />
-    </Card>
+    <ProjectSection title="采用记录" extra={<Button disabled={!shots.length || !media.some(m => m.mime.startsWith('video/')) || !assets.length} onClick={() => { form.resetFields(); setMode('take') }}>采用导入片段</Button>}>
+      <List dataSource={takes} locale={{ emptyText: '暂无采用记录' }} renderItem={t => <List.Item><div>{shots.find(s => s.value === t.shot_id)?.label ?? t.shot_id}<p><a href={workspaceMediaUrl(`${OpenAPI.BASE}/api/v1/studio/production/projects/${encodeURIComponent(projectId)}/media/${encodeURIComponent(t.media_id)}/content`)} target="_blank" rel="noreferrer">{media.find(m => m.id === t.media_id)?.name ?? '媒体待核验'} · 查看片段</a></p><p>{shots.find(s => s.value === t.shot_id)?.chapterId && <Link to={`/projects/${projectId}/editor?chapter=${encodeURIComponent(shots.find(s => s.value === t.shot_id)!.chapterId)}`}>去剪辑页确认采用或切回</Link>}</p><div className="project-inline-facts"><span>{t.provenance === "execution_candidate_unqualified" ? "执行候选（未获质量资格）" : t.provenance === "user_import" ? "用户导入" : "历史素材（来源未核定）"}</span><span>{t.versions.map(v => `v${v.revision}`).join(' / ')}</span><span>历史版本已固定</span></div></div>{t.selected ? <Tag color="green">当前采用</Tag> : <Button disabled={busy} onClick={() => void mutate(() => P.postSelectionApiV1StudioProductionProjectsProjectIdTakesTakeIdSelectPost({ projectId, takeId: t.id }))}>切换采用</Button>}</List.Item>} />
+    </ProjectSection>
+    <div className="project-production-tools">
+      <ReverseVideoPanel key={`reverse-${projectId}`} projectId={projectId} />
+      <BenchmarkPanel key={`benchmark-${projectId}`} projectId={projectId} />
+      <ExecutionJobsPanel key={projectId} projectId={projectId} />
+    </div>
     <Modal title={mode === 'create' ? '新建版本资产' : mode === 'revise' ? '发布新版本' : '采用导入片段'} open={mode !== null} onCancel={() => setMode(null)} footer={null} destroyOnClose>
       <Form form={form} layout="vertical" onFinish={submit} initialValues={{ kind: 'scene', description: '', media_ids: [] }} preserve={false}>
         {mode === 'create' && <><Form.Item name="kind" label="资产类别" rules={[{ required: true }]}><Select options={kinds} /></Form.Item><Form.Item name="name" label="资产名称" rules={[{ required: true }]}><Input maxLength={120} /></Form.Item>{['appearance', 'voice'].includes(kind) && <Form.Item name="subject_id" label="所属角色" rules={[{ required: true }]}><Select options={assets.filter(a => a.asset.kind === 'character' && !a.asset.archived).map(a => ({ value: a.asset.entity_id, label: a.asset.name }))} /></Form.Item>}</>}

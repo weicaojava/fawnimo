@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import os
+import re
 import uuid
+import asyncio
+import hashlib
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -17,6 +20,7 @@ from sqlalchemy.orm import selectinload
 from app.api.utils import apply_keyword_filter, apply_order, paginate
 from app.core import storage
 from app.models.studio import FileItem, FileType
+from app.models.production import ProductionMedia
 from app.schemas.common import ApiResponse, PaginatedData, paginated_response
 from app.schemas.studio import FileDetailRead, FileRead, FileUpdate, FileUsageRead, FileUsageWrite
 from app.services.common import create_and_refresh, entity_not_found, flush_and_refresh, get_or_404, patch_model
@@ -159,48 +163,110 @@ async def upload_file(
         extra_args={"ACL": "public-read"},
     )
 
-    file_item = await create_and_refresh(
-        db,
-        FileItem(
-            id=str(uuid.uuid4()),
-            type=file_type,
-            name=display_name,
-            thumbnail=info.url,
-            tags=[],
-            storage_key=key,
-        ),
-    )
-
-    if project_id and usage_kind:
-        await upsert_file_usage(
+    file_id = str(uuid.uuid4())
+    try:
+        file_item = await create_and_refresh(
             db,
-            file_id=file_item.id,
-            project_id=project_id,
-            chapter_id=chapter_id,
-            shot_id=shot_id,
-            usage_kind=usage_kind,
-            source_ref=source_ref,
+            FileItem(
+                id=file_id,
+                type=file_type,
+                name=display_name,
+                thumbnail=info.url or f"/api/v1/studio/files/{file_id}/download",
+                tags=[],
+                storage_key=key,
+            ),
         )
+        if project_id and usage_kind:
+            await upsert_file_usage(
+                db,
+                file_id=file_item.id,
+                project_id=project_id,
+                chapter_id=chapter_id,
+                shot_id=shot_id,
+                usage_kind=usage_kind,
+                source_ref=source_ref,
+            )
+        return file_item
+    except Exception:
+        # The generated key belongs solely to this failed upload, never an existing object.
+        try:
+            await storage.delete_file(key=key)
+        except Exception:
+            pass
+        raise
 
-    return file_item
+
+async def read_file_bytes(db: AsyncSession, *, file_id: str) -> tuple[FileItem, bytes]:
+    """Read local/S3 files and hash-check immutable production media through one entry point."""
+    file_item = await get_or_404(db, FileItem, file_id, detail=entity_not_found("File"))
+    if file_item.storage_key.startswith("local-asset-image/"):
+        from app.services.asset_image_generation import read_adopted_file
+        return file_item, await read_adopted_file(db, file_item)
+    if file_item.storage_key.startswith("local-production/"):
+        from app.services.studio.production_media import media_path
+        from app.config import settings
+        media = await db.get(ProductionMedia, file_id)
+        if media is None or file_item.storage_key != "local-production/" + media.relative_path:
+            raise HTTPException(409, "生产媒体记录与文件不匹配")
+        target = media_path(media.relative_path)
+
+        def read_verified() -> bytes:
+            """Bound disk reads before checking the immutable size and content hash."""
+            if not target.is_file():
+                raise HTTPException(404, "文件不存在或已移除")
+            try:
+                with target.open("rb") as stream:
+                    content = stream.read(settings.production_upload_limit + 1)
+            except FileNotFoundError as exc:
+                raise HTTPException(404, "文件不存在或已移除") from exc
+            if len(content) > settings.production_upload_limit:
+                raise HTTPException(413, "文件超过本地媒体上限")
+            if len(content) != media.size or hashlib.sha256(content).hexdigest() != media.sha256:
+                raise HTTPException(409, "媒体校验失败，请重新导入原文件")
+            return content
+
+        return file_item, await asyncio.to_thread(read_verified)
+    return file_item, await storage.download_file(key=file_item.storage_key)
 
 
 async def build_download_response(
     db: AsyncSession,
     *,
     file_id: str,
+    range_header: str | None = None,
 ) -> StreamingResponse:
-    """根据 file_id 构建下载响应。"""
-    file_item = await get_or_404(db, FileItem, file_id, detail=entity_not_found("File"))
-    content = await storage.download_file(key=file_item.storage_key)
+    """Serve real bounded bytes with HTTP ranges so media previews can seek and capture frames."""
+    file_item, content = await read_file_bytes(db, file_id=file_id)
 
     filename = Path(file_item.storage_key).name or "download"
     media_type = _resolve_download_media_type(filename)
     content_disposition = f"attachment; filename*=UTF-8''{quote(filename)}"
+    size = len(content)
+    headers = {"Content-Disposition": content_disposition, "Accept-Ranges": "bytes"}
+    status_code = 200
+    if range_header:
+        match = re.fullmatch(r'bytes=(\d*)-(\d*)', range_header) if len(range_header) <= 128 else None
+        if not match or not size or not any(match.groups()):
+            raise HTTPException(416, '不支持的文件范围', headers={'Content-Range': f'bytes */{size}'})
+        first, last = match.groups()
+        if first:
+            start, end = int(first), min(int(last), size - 1) if last else size - 1
+        else:
+            suffix = int(last)
+            start, end = max(0, size - suffix), size - 1
+            if not suffix:
+                raise HTTPException(416, '文件范围为空', headers={'Content-Range': f'bytes */{size}'})
+        if start >= size or start > end:
+            raise HTTPException(416, '文件范围超出内容', headers={'Content-Range': f'bytes */{size}'})
+        headers['Content-Range'] = f'bytes {start}-{end}/{size}'
+        content = content[start:end + 1]
+        status_code = 206
+    headers['Content-Length'] = str(len(content))
     return StreamingResponse(
         iter([content]),
         media_type=media_type,
-        headers={"Content-Disposition": content_disposition},
+        status_code=status_code,
+        headers=headers,
     )
 
 
@@ -211,10 +277,19 @@ async def get_storage_info(
 ) -> dict[str, Any]:
     """读取对象存储信息。"""
     file_item = await get_or_404(db, FileItem, file_id, detail=entity_not_found("File"))
+    if file_item.storage_key.startswith("local-asset-image/"):
+        from app.services.asset_image_generation import read_adopted_file
+        content = await read_adopted_file(db, file_item)
+        return {"key": file_item.storage_key, "url": f"/api/v1/studio/files/{file_id}/download", "size": len(content), "content_type": _resolve_download_media_type(file_item.storage_key), "etag": hashlib.sha256(content).hexdigest()}
+    if file_item.storage_key.startswith("local-production/"):
+        _, content = await read_file_bytes(db, file_id=file_id)
+        media = await db.get(ProductionMedia, file_id)
+        assert media is not None
+        return {"key": file_item.storage_key, "url": f"/api/v1/studio/files/{file_id}/download", "size": len(content), "content_type": media.mime, "etag": media.sha256}
     info = await storage.get_file_info(key=file_item.storage_key)
     return {
         "key": info.key,
-        "url": info.url,
+        "url": info.url or f"/api/v1/studio/files/{file_id}/download",
         "size": info.size,
         "content_type": info.content_type,
         "etag": info.etag,
@@ -231,11 +306,10 @@ async def delete_file(
     if file_item is None:
         return
 
-    try:
-        await storage.delete_file(key=file_item.storage_key)
-    except Exception:
-        # 存储删除失败不阻塞记录删除，保持当前接口语义。
-        pass
-
+    if file_item.storage_key.startswith(("local-production/", "local-asset-image/")) or await db.get(ProductionMedia, file_id) is not None:
+        raise HTTPException(409, "生产媒体已固定，请从工程中管理引用；不能从文件列表删除")
+    key = file_item.storage_key
     await db.delete(file_item)
     await db.flush()
+    # Validate DB references before touching bytes; storage failures roll back the request.
+    await storage.delete_file(key=key)

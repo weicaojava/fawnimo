@@ -1,10 +1,8 @@
 """Bounded isolated video analysis; no decoding runs in the application process."""
-import asyncio
 import json
-import os
-import signal
 import sys
 from pathlib import Path
+from app.core.owned_process import run_owned_process
 
 
 async def probe(path, output_dir, *, trusted_ffmpeg, deadline_seconds=90) -> dict:
@@ -17,18 +15,9 @@ async def probe(path, output_dir, *, trusted_ffmpeg, deadline_seconds=90) -> dic
     output.mkdir(parents=True,exist_ok=True)
     if any(output.iterdir()):raise ValueError('Probe output directory must be empty')
     child=Path(__file__).with_name('video_probe_child.py')
-    process=await asyncio.create_subprocess_exec(sys.executable,str(child),stdin=asyncio.subprocess.PIPE,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.DEVNULL,start_new_session=os.name!='nt')
-    try:
-        parameters={'path':str(source),'output_dir':str(output),'ffmpeg':str(ffmpeg),'deadline':deadline_seconds}
-        stdout,_=await asyncio.wait_for(process.communicate(json.dumps(parameters).encode()),deadline_seconds+1)
-        result=json.loads(stdout)
-        if process.returncode or 'error' in result:raise ValueError(result.get('error','Video probe failed'))
-        return result
-    finally:
-        if process.returncode is None:
-            if os.name=='nt':
-                killer=await asyncio.create_subprocess_exec('taskkill','/PID',str(process.pid),'/T','/F',stdout=asyncio.subprocess.DEVNULL,stderr=asyncio.subprocess.DEVNULL)
-                await killer.wait()
-            else:os.killpg(process.pid,signal.SIGKILL)
-            if process.returncode is None:process.kill()
-            await process.wait()
+    parameters={'path':str(source),'output_dir':str(output),'ffmpeg':str(ffmpeg),'deadline':deadline_seconds}
+    stdout,returncode=await run_owned_process([sys.executable,str(child)],json.dumps(parameters).encode(),timeout=deadline_seconds+1)
+    result=json.loads(stdout)
+    if not isinstance(result,dict):raise ValueError('Video probe returned an invalid result')
+    if returncode or 'error' in result:raise ValueError(result.get('error','Video probe failed'))
+    return result

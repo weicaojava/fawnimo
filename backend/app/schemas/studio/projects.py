@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.studio import ChapterStatus, ProjectStyle, ProjectVisualStyle
 
@@ -41,9 +42,21 @@ class ProjectUpdate(BaseModel):
 
 
 class ProjectRead(ProjectBase):
+    """Return persisted project times with an explicit UTC offset, including SQLite reads."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    created_at: datetime = Field(..., description="数据库记录的创建时间（UTC）")
+    updated_at: datetime = Field(..., description="数据库记录的最近更新时间（UTC）")
+
+    @field_validator("created_at", "updated_at")
+    @classmethod
+    def normalize_utc(cls, value: datetime) -> datetime:
+        """SQLite drops timezone metadata from UTC SQL timestamps; restore it without changing the instant."""
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
 
 
 class ChapterBase(BaseModel):

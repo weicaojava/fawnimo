@@ -1,5 +1,7 @@
+import { workspaceStorage } from '../../../services/workspaceContext'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -57,7 +59,7 @@ import {
   UserOutlined,
   DownloadOutlined,
 } from '@ant-design/icons'
-import { useLocation, useParams, Link } from 'react-router-dom'
+import { useLocation, useParams, useNavigate, Link } from 'react-router-dom'
 import {
   FilmService,
   LlmService,
@@ -97,6 +99,8 @@ import type {
   ShotRuntimeSummaryRead,
   ProjectSceneLinkRead,
   ShotStatus,
+  ShotGraphRead,
+  ShotGraphResult,
   ShotVideoPromptPackRead,
 } from '../../../services/generated'
 import { listTaskLinksNormalized } from '../../../services/filmTaskLinks'
@@ -116,6 +120,14 @@ import type { RelationTaskState } from '../project/ProjectWorkbench/chapterDivis
 import { toRelationTaskStateFromStatusRead } from '../project/ProjectWorkbench/chapterDivisionTasks'
 import { useProjectStyleOptions } from '../project/useProjectStyleOptions'
 import './chapterStudio.separation.css'
+import './production.css'
+import {
+  copySavedShot, capturePreviewPng, stepPreview, studioActionError, readChapterShots,
+  saveGraphAction, readGraphState, pendingGraphAction, recoverGraphAction, discardGraphAction, downloadGraphReceipt,
+  STRUCTURAL_EDIT_HINT, MERGE_HINT, TRANSITION_EDIT_HINT,
+  LEGACY_GENERATION_AVAILABLE, LEGACY_GENERATION_REASON,
+} from './studioActions'
+import { useGenerationAvailability } from '../../../hooks/useGenerationAvailability'
 
 const { Sider, Content } = Layout
 const { TextArea } = Input
@@ -364,6 +376,7 @@ function applyTaskCancelState(
   }
 }
 
+/** Reorder local reference arrays; chapter sequence writes use a separate guarded contract. */
 function reorder<T>(list: T[], startIndex: number, endIndex: number) {
   const result = [...list]
   const [removed] = result.splice(startIndex, 1)
@@ -394,7 +407,7 @@ function isTypingTarget(target: EventTarget | null) {
   const tag = target.tagName.toLowerCase()
   if (tag === 'input' || tag === 'textarea' || tag === 'select') return true
   if (target.isContentEditable) return true
-  return Boolean(target.closest('[contenteditable="true"]'))
+  return Boolean(target.closest('[contenteditable="true"], button, a, [role="button"], [role="radio"]'))
 }
 
 function toUIChapter(c: ChapterRead): Chapter {
@@ -446,7 +459,7 @@ const CAMERA_MOVEMENT_OPTIONS: { value: CameraMovement; label: string }[] = [
 function useLocalStoragePrefs() {
   const [prefs, setPrefs] = useState<LayoutPrefs>(() => {
     try {
-      const raw = window.localStorage.getItem(LAYOUT_STORAGE_KEY)
+      const raw = workspaceStorage.getItem(LAYOUT_STORAGE_KEY)
       if (!raw) {
         return {
           leftWidth: 280,
@@ -479,18 +492,21 @@ function useLocalStoragePrefs() {
   })
 
   useEffect(() => {
-    window.localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(prefs))
+    try { workspaceStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(prefs)) } catch { /* Keep layout controls usable for this session. */ }
   }, [prefs])
 
   return [prefs, setPrefs] as const
 }
 
 const ChapterStudio: React.FC = () => {
+  const navigate = useNavigate()
   const { projectId, chapterId } = useParams<{
     projectId?: string
     chapterId?: string
   }>()
   const location = useLocation()
+  const generationAvailability = useGenerationAvailability()
+  const generationBlockedReason = `${generationAvailability.message} ${LEGACY_GENERATION_REASON}`
   const [shotPlanOpen, setShotPlanOpen] = useState(new URLSearchParams(location.search).has('plan'))
   useEffect(() => { if (new URLSearchParams(location.search).has('plan')) setShotPlanOpen(true) }, [location.key, location.search])
   const [chapter, setChapter] = useState<Chapter | null>(null)
@@ -544,6 +560,17 @@ const ChapterStudio: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false)
   const [videoDuration, setVideoDuration] = useState(0)
   const [videoTime, setVideoTime] = useState(0)
+  const [videoReady, setVideoReady] = useState(false)
+  const [videoError, setVideoError] = useState('')
+  const [capturing, setCapturing] = useState(false)
+  const [structuralActionLoading, setStructuralActionLoading] = useState(false)
+  const structuralLockRef = useRef(false)
+  const structureScopeRef = useRef(`${projectId}:${chapterId}`)
+  structureScopeRef.current = `${projectId}:${chapterId}`
+  const [graphState, setGraphState] = useState<ShotGraphRead | null>(null)
+  const [hasPendingStructure, setHasPendingStructure] = useState(false)
+  const activeShotIdRef = useRef(selectedShotId)
+  activeShotIdRef.current = selectedShotId
 
   const [filter, setFilter] = useState<ShotFilter>('all')
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null)
@@ -590,18 +617,20 @@ const ChapterStudio: React.FC = () => {
   const hiddenIds = useMemo(() => {
     if (!hiddenKey) return new Set<string>()
     try {
-      const raw = window.localStorage.getItem(hiddenKey)
+      const raw = workspaceStorage.getItem(hiddenKey)
       const arr = raw ? (JSON.parse(raw) as unknown) : []
       return new Set(Array.isArray(arr) ? (arr.filter((x) => typeof x === 'string') as string[]) : [])
     } catch {
       return new Set<string>()
     }
   }, [hiddenKey])
+  const hiddenStateRef = useRef({ key: hiddenKey, ids: hiddenIds })
+  if (hiddenStateRef.current.key !== hiddenKey) hiddenStateRef.current = { key: hiddenKey, ids: hiddenIds }
 
   const saveHiddenIds = (next: Set<string>) => {
     if (!hiddenKey) return
     try {
-      window.localStorage.setItem(hiddenKey, JSON.stringify(Array.from(next)))
+      workspaceStorage.setItem(hiddenKey, JSON.stringify(Array.from(next)))
     } catch {
       // ignore
     }
@@ -609,12 +638,13 @@ const ChapterStudio: React.FC = () => {
 
   const toggleHiddenShots = (ids: string[]) => {
     if (!hiddenKey) return
-    const next = new Set(hiddenIds)
+    const next = new Set(hiddenStateRef.current.ids)
     ids.forEach((id) => {
       if (next.has(id)) next.delete(id)
       else next.add(id)
     })
     saveHiddenIds(next)
+    hiddenStateRef.current.ids = next
     setShots((prev) => prev.map((s) => (ids.includes(s.id) ? { ...s, hidden: next.has(s.id) } : s)))
   }
 
@@ -622,19 +652,18 @@ const ChapterStudio: React.FC = () => {
     if (!chapterId) return
     setLoadingShots(true)
     try {
-      const [res, runtimeRes] = await Promise.all([
-        StudioShotsService.listShotsApiV1StudioShotsGet({
-          chapterId,
-          page: 1,
-          pageSize: 100,
-          order: 'index',
-          isDesc: false,
-        }),
+      const [arr, runtimeRes, structure] = await Promise.all([
+        readChapterShots(chapterId),
         StudioShotsService.listShotRuntimeSummaryApiV1StudioShotsRuntimeSummaryGet({
           chapterId,
         }),
+        projectId ? readGraphState(projectId, chapterId) : Promise.resolve(null),
       ])
-      const arr = res.data?.items ?? []
+      setGraphState(structure)
+      if (projectId) {
+        try { setHasPendingStructure(Boolean(pendingGraphAction(projectId, chapterId))) }
+        catch { setHasPendingStructure(true) }
+      }
       const runtimeItems: ShotRuntimeSummaryRead[] = runtimeRes.data ?? []
       setShotRuntimeMap(
         Object.fromEntries(
@@ -650,16 +679,13 @@ const ChapterStudio: React.FC = () => {
           ]),
         ),
       )
-      // 给分镜补充一些“工作台态”的展示字段（后续可由后端返回）
+      // Preserve backend facts; do not fabricate failure or music flags from list position.
       const enriched: StudioShot[] = arr
         .slice()
         .sort((a, b) => a.index - b.index)
-        .map((s, idx) => ({
+        .map((s) => ({
           ...s,
-          hidden: hiddenIds.has(s.id),
-          hasProblem: idx === 4,
-          hasSpeech: false,
-          hasMusic: idx % 3 !== 0,
+          hidden: hiddenStateRef.current.ids.has(s.id),
         }))
 
       setShots(enriched)
@@ -868,6 +894,9 @@ const ChapterStudio: React.FC = () => {
         setShotDetail(detail)
         lastSavedDetailRef.current = detail
         setDialogLines(dialogs)
+        setShots(previous => previous.map(shot => shot.id === selectedShotId ? {
+          ...shot, hasSpeech: dialogs.length > 0, hasMusic: Boolean(detail?.has_bgm),
+        } : shot))
         setFrameImages(frames)
         setSceneLinks(scenes)
         setActorImageLinks(actors)
@@ -1298,6 +1327,7 @@ const ChapterStudio: React.FC = () => {
   }
 
   const generateFrameImageTask = async () => {
+    if (!LEGACY_GENERATION_AVAILABLE) { message.warning(LEGACY_GENERATION_REASON); return }
     if (!selectedShotId) return
     const target =
       (frameTab === 'head' && frameImages.find((x) => x.frame_type === 'first')) ||
@@ -1562,7 +1592,7 @@ const ChapterStudio: React.FC = () => {
       v.removeEventListener('timeupdate', onTimeUpdate)
       v.removeEventListener('loadedmetadata', onLoaded)
     }
-  }, [selectedShotId])
+  }, [selectedShotId, currentPreviewVideoUrl])
 
   useEffect(() => {
     const v = videoRef.current
@@ -1578,8 +1608,15 @@ const ChapterStudio: React.FC = () => {
 
   useEffect(() => {
     const v = videoRef.current
+    setVideoReady(false)
+    setVideoDuration(0)
+    setVideoTime(0)
+    setVideoError('')
     if (!v || !currentPreviewVideoUrl) return
     v.load()
+    v.defaultPlaybackRate = playbackRate
+    v.playbackRate = playbackRate
+    v.loop = loopCurrent
     void v.play().catch(() => {
       // 浏览器策略可能阻止自动播放，保留静默失败
     })
@@ -1600,8 +1637,8 @@ const ChapterStudio: React.FC = () => {
       if (key === ' ') {
         e.preventDefault()
         const v = videoRef.current
-        if (!v) return
-        if (v.paused) void v.play()
+        if (!v || !currentPreviewVideoUrl || !videoReady) return
+        if (v.paused) void v.play().catch(() => message.error('无法播放当前视频，请检查媒体文件。'))
         else v.pause()
         return
       }
@@ -1629,38 +1666,17 @@ const ChapterStudio: React.FC = () => {
         return
       }
 
-      if (key === 'm') {
-        e.preventDefault()
-        if (selectedShotIds.length < 2) {
-          message.info('请先多选至少 2 个分镜再合并')
-          return
-        }
-        Modal.confirm({
-          title: `合并 ${selectedShotIds.length} 个分镜？`,
-          content: '将它们合并为一个新的分镜（Mock 行为）。',
-          okText: '合并',
-          cancelText: '取消',
-          onOk: () => {
-            message.success('已合并（Mock）')
-          },
-        })
-      }
+      if (key === 'm') { e.preventDefault(); openMergeConfirmation() }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [selectedShotId, selectedShotIds.length, shots, setPrefs])
+  }, [selectedShotId, selectedShotIds, shots, setPrefs, currentPreviewVideoUrl, videoReady, structuralActionLoading, hasPendingStructure, projectId, chapterId])
 
   const statusTag = (status: ShotStatus | undefined) => {
     const s = status ?? 'pending'
     const map = { pending: 'default', generating: 'processing', ready: 'success' } as const
     const text = { pending: '待确认', generating: '生成中', ready: '已就绪' } as const
     return <Tag color={map[s]}>{text[s]}</Tag>
-  }
-
-  const statusDotClass = (status: ShotStatus | undefined) => {
-    if (status === 'generating') return 'cs-generating'
-    if (status === 'ready') return 'cs-ready'
-    return 'cs-pending'
   }
 
   const getShotReadinessFlags = useCallback((shot: StudioShot) => {
@@ -1701,14 +1717,14 @@ const ChapterStudio: React.FC = () => {
           ? '已标记无需提取，等待系统完成流程状态同步'
           : '请先完成信息提取确认'
       }
-      return '镜头已具备视频生成前置条件'
+      return '信息已确认，视频生成条件请查看准备度检查'
     },
     [getShotReadinessFlags, shotRuntimeMap],
   )
 
   const chapterTitle = useMemo(() => {
     if (!chapter) return '章节生成工作台'
-    return `第${chapter.index}章 · ${chapter.title.replace(/^第\d+[集章：:\s]*/g, '').trim() || chapter.title}`
+    return `第${chapter.index}章 / ${chapter.title.replace(/^第\d+[集章：:\s]*/g, '').trim() || chapter.title}`
   }, [chapter])
 
   const filteredShots = useMemo(() => {
@@ -1766,57 +1782,56 @@ const ChapterStudio: React.FC = () => {
     lastSelectedIndexRef.current = indexInFiltered
   }
 
-  const matchesFilter = (s: StudioShot, f: ShotFilter) => {
-    const flags = getShotReadinessFlags(s)
-    switch (f) {
-      case 'pendingConfirm':
-        return flags.isPendingConfirm
-      case 'generating':
-        return flags.isGenerating
-      case 'ready':
-        return flags.isReady
-      case 'hidden':
-        return Boolean(s.hidden)
-      case 'problem':
-        return !s.hidden && flags.hasProblem
-      default:
-        return true
+  /** Save a graph command only while its original chapter is still active. */
+  const runStructuralAction = async (operation: () => Promise<ShotGraphResult>, success: string, scope = `${projectId}:${chapterId}`) => {
+    if (structureScopeRef.current !== scope || structuralLockRef.current) return
+    structuralLockRef.current = true
+    setStructuralActionLoading(true)
+    try {
+      const result = await operation()
+      if (structureScopeRef.current !== scope) return
+      await loadShots()
+      if (structureScopeRef.current !== scope) return
+      const identity = result.receipt.result_shot_id
+      if (identity && result.graph.shots.some(shot => shot.id === identity)) {
+        setSelectedShotIds([identity]); setSelectedShotId(identity)
+      }
+      message.success(result.replayed ? '原结构请求已核对，未重复执行；保存收据已恢复。' : success)
+    } catch (error) {
+      if (structureScopeRef.current === scope) {
+        message.error(studioActionError(error, '镜头结构操作未完成。'))
+        await loadShots()
+      }
+    } finally {
+      structuralLockRef.current = false
+      if (structureScopeRef.current === scope) setStructuralActionLoading(false)
     }
   }
 
+  /** Move actual chapter identities with one CAS transaction, preserving unfiltered sibling order. */
   const reorderWithinFilter = (sourceId: string, destId: string) => {
-    if (sourceId === destId) return
-    setShots((prev) => {
-      const ordered = prev.slice().sort((a, b) => a.index - b.index)
-      const subset = ordered.filter((s) => matchesFilter(s, filter))
-      const sourceIndex = subset.findIndex((s) => s.id === sourceId)
-      const destIndex = subset.findIndex((s) => s.id === destId)
-      if (sourceIndex === -1 || destIndex === -1) return prev
-      const movedSubset = reorder(subset, sourceIndex, destIndex)
-      const movedQueue = [...movedSubset]
-      const replaced = ordered.map((s) => (matchesFilter(s, filter) ? (movedQueue.shift() as StudioShot) : s))
-      const next = replaced.map((s, idx) => ({ ...s, index: idx + 1 }))
+    if (!projectId || !chapterId || sourceId === destId || structuralActionLoading || hasPendingStructure) return
+    const current = shots.map(shot => shot.id)
+    const from = current.indexOf(sourceId), to = current.indexOf(destId)
+    if (from < 0 || to < 0) return
+    const order = [...current]
+    order.splice(to, 0, order.splice(from, 1)[0])
+    const scope = `${projectId}:${chapterId}`
+    Modal.confirm({ title: '保存新的镜头顺序？', content: STRUCTURAL_EDIT_HINT, okText: '原子保存顺序', cancelText: '取消',
+      onOk: () => runStructuralAction(() => saveGraphAction(projectId, chapterId, current, { action: 'reorder', ordered_shot_ids: order }), '完整镜头顺序已保存。', scope) })
+  }
 
-      // 后台同步排序（不阻塞 UI）
-      const beforeMap = new Map(prev.map((s) => [s.id, s.index]))
-      void (async () => {
-        try {
-          const changed = next.filter((s) => beforeMap.get(s.id) !== s.index)
-          await Promise.all(
-            changed.map((s) =>
-              StudioShotsService.updateShotApiV1StudioShotsShotIdPatch({
-                shotId: s.id,
-                requestBody: { index: s.index },
-              }),
-            ),
-          )
-        } catch {
-          message.error('同步排序失败')
-        }
-      })()
-
-      return next
-    })
+  /** Merge only an explicitly confirmed adjacent selection; the server checks source/history protection. */
+  const openMergeConfirmation = () => {
+    if (!projectId || !chapterId || structuralActionLoading || hasPendingStructure) return
+    const selected = shots.filter(shot => selectedShotIds.includes(shot.id))
+    const positions = selected.map(shot => shots.findIndex(item => item.id === shot.id))
+    if (selected.length < 2 || selected.length > 50 || positions.some((position, index) => position !== positions[0] + index)) {
+      message.warning('请选择2至50个连续相邻的镜头进行合并。'); return
+    }
+    const current = shots.map(shot => shot.id), scope = `${projectId}:${chapterId}`
+    Modal.confirm({ title: `合并这 ${selected.length} 个镜头？`, content: <div><p>{selected.map(shot => shot.title).join(' → ')}</p><p>{MERGE_HINT}</p><p>对白与资产会合并；摄影参数沿用首个镜头，首/关键帧取最前可用引用，尾帧取最后引用。其他原帧保留于收据，原文件不删除。可下载完整资料供人工重建，暂不自动撤回。</p></div>, okText: '合并并保存收据', cancelText: '取消',
+      onOk: () => runStructuralAction(() => saveGraphAction(projectId, chapterId, current, { action: 'merge', source_shot_ids: selected.map(shot => shot.id), title: '合并分镜' }), '相邻镜头已合并为待确认资料；原始准备资料收据已保存。', scope) })
   }
 
   const beginResize = (type: 'left' | 'right', e: React.PointerEvent) => {
@@ -1871,24 +1886,110 @@ const ChapterStudio: React.FC = () => {
     setIsResizing(false)
   }
 
+  /** Persist a prepared copy, or atomically insert and shift every occupied sibling position. */
+  const createShotFromAction = async (shot: StudioShot, kind: 'copy' | 'insert') => {
+    if (!projectId || !chapterId || structuralActionLoading || hasPendingStructure) return
+    if (kind === 'insert') {
+      await runStructuralAction(() => saveGraphAction(projectId, chapterId, shots.map(item => item.id), { action: 'insert', after_shot_id: shot.id, title: '新分镜' }), '新镜头和完整顺序已原子保存，请在编辑页准备并确认。')
+      return
+    }
+    if (structuralLockRef.current) return
+    structuralLockRef.current = true
+    setStructuralActionLoading(true)
+    try {
+      const created = await copySavedShot(shot, projectId)
+      await loadShots()
+      setSelectedShotIds([created.id])
+      setSelectedShotId(created.id)
+      message.success('副本已保存到章节末尾，生成任务和采用结果未复制；请在编辑页确认。')
+    } catch (error) {
+      message.error(studioActionError(error, '未能完成镜头操作，请刷新检查。'))
+      await loadShots()
+    } finally { structuralLockRef.current = false; setStructuralActionLoading(false) }
+  }
+
+  /** Save actual player pixels as a referenced keyframe, retaining the prior file. */
+  const openCapturePreview = async () => {
+    const video = videoRef.current
+    const shotId = selectedShotId
+    if (!video || !shotId || !projectId || !chapterId || !shotDetail || capturing || !videoReady) return
+    setCapturing(true)
+    video.pause()
+    try {
+      const time = video.currentTime
+      const frameWidth = video.videoWidth
+      const frameHeight = video.videoHeight
+      const blob = await capturePreviewPng(video)
+      const preview = URL.createObjectURL(blob)
+      const videoFileId = currentPreviewVideoFileId
+      Modal.confirm({
+        title: `保存“${selectedShot?.title ?? ''}”的当前画面？`, okText: '保存关键帧', cancelText: '取消',
+        content: <div><img src={preview} alt={`当前视频 ${time.toFixed(3)} 秒的实际画面`} style={{ width: '100%', maxHeight: 240, objectFit: 'contain' }} /><p>视频时间 {time.toFixed(3)} 秒。这是当前视频的截图，不是模型新生成图片；保存后替换本镜头关键帧关联，原文件仍保留。</p></div>,
+        afterClose: () => { URL.revokeObjectURL(preview); setCapturing(false) },
+        onOk: async () => {
+          if (activeShotIdRef.current !== shotId) { message.warning('镜头已切换，未保存截图。'); throw new Error('镜头已切换') }
+          let fileId: string | null = null
+          let attached = false
+          try {
+            const uploaded = await StudioFilesService.uploadFileApiApiV1StudioFilesUploadPost({
+              name: `${selectedShot?.title ?? '分镜'} / 截帧 ${time.toFixed(3)} 秒`,
+              formData: {
+                // The generated binary-form DTO uses string; its runtime appends the actual File.
+                file: new File([blob], `capture-${shotId}-${Math.round(time * 1000000)}.png`, { type: 'image/png' }) as unknown as string,
+                project_id: projectId, chapter_id: chapterId, shot_id: shotId, usage_kind: 'shot_frame',
+                source_ref: `preview_capture:${videoFileId ?? 'video'}:${Math.round(time * 1000000)}`,
+              },
+            })
+            fileId = uploaded.data?.id ?? null
+            if (!fileId) throw new Error('服务未返回已保存图片。')
+            const current = await StudioShotFrameImagesService.listShotFrameImagesApiV1StudioShotFrameImagesGet({ shotDetailId: shotId, page: 1, pageSize: 100 })
+            const slot = current.data?.items.find(frame => frame.frame_type === 'key')
+            if (slot) await StudioShotFrameImagesService.updateShotFrameImageApiV1StudioShotFrameImagesImageIdPatch({ imageId: slot.id, requestBody: { file_id: fileId, width: frameWidth, height: frameHeight, format: 'png' } })
+            else await StudioShotFrameImagesService.createShotFrameImageApiV1StudioShotFrameImagesPost({ requestBody: { shot_detail_id: shotId, frame_type: 'key', file_id: fileId, width: frameWidth, height: frameHeight, format: 'png' } })
+            attached = true
+            if (activeShotIdRef.current === shotId) { setFrameTab('keyframes'); await refreshShotFrameImages() }
+            message.success('实际截图及关键帧关联已保存，原文件保留。')
+          } catch (error) {
+            let remainingUpload = ''
+            if (fileId && !attached) {
+              try { await StudioFilesService.deleteFileApiApiV1StudioFilesFileIdDelete({ fileId }) }
+              catch { remainingUpload = ` 图片未能自动清理，请在文件列表检查 ${fileId}。` }
+            }
+            message.error(studioActionError(error, '截帧未完成，未报告生成成功。') + remainingUpload)
+            throw error
+          }
+        },
+      })
+    } catch (error) { setCapturing(false); message.error(studioActionError(error, '当前视频无法截帧。')) }
+  }
+
   const shotContextMenu = (shot: StudioShot) => ([
     {
       key: 'copy',
       icon: <LinkOutlined />,
       label: '复制分镜',
-      onClick: () => message.success('已复制（Mock）'),
+      disabled: structuralActionLoading || hasPendingStructure,
+      onClick: () => Modal.confirm({ title: '复制已保存的分镜？', content: '将描述、摄影参数、提示词、帧图、对白和已绑定资产复制到章节末尾。新副本保持待确认，不复制生成任务或采用结果。未保存的编辑不会进入副本。', okText: '复制并保存', cancelText: '取消', onOk: () => createShotFromAction(shot, 'copy') }),
     },
     {
       key: 'insert_after',
       icon: <VideoCameraAddOutlined />,
       label: '在后插入新分镜',
-      onClick: () => message.success('已插入（Mock）'),
+      disabled: structuralActionLoading || hasPendingStructure,
+      title: '在当前镜头后插入待确认镜头；后续序号在同一事务中整体后移',
+      onClick: () => createShotFromAction(shot, 'insert'),
     },
+    { key: 'move_up', label: '上移一位', disabled: structuralActionLoading || hasPendingStructure || shots[0]?.id === shot.id,
+      onClick: () => { const index = shots.findIndex(item => item.id === shot.id); if (index > 0) reorderWithinFilter(shot.id, shots[index - 1].id) } },
+    { key: 'move_down', label: '下移一位', disabled: structuralActionLoading || hasPendingStructure || shots[shots.length - 1]?.id === shot.id,
+      onClick: () => { const index = shots.findIndex(item => item.id === shot.id); if (index >= 0 && index < shots.length - 1) reorderWithinFilter(shot.id, shots[index + 1].id) } },
     {
       key: 'transition',
       icon: <ScissorOutlined />,
-      label: '设为转场点',
-      onClick: () => message.success('已设置（Mock）'),
+      label: '在剪辑页设置转场',
+      disabled: !projectId || !chapterId,
+      title: TRANSITION_EDIT_HINT,
+      onClick: () => { if (projectId && chapterId) navigate(`/projects/${projectId}/editor?chapter=${encodeURIComponent(chapterId)}&transition=1`) },
     },
     { type: 'divider' as const },
     {
@@ -1914,9 +2015,7 @@ const ChapterStudio: React.FC = () => {
               await StudioShotsService.deleteShotApiV1StudioShotsShotIdDelete({ shotId: shot.id })
               await loadShots()
               message.success('已删除')
-            } catch {
-              message.error('删除失败')
-            }
+            } catch (error) { message.error(studioActionError(error, '删除分镜失败，请检查引用。')) }
           },
         }),
     },
@@ -1927,16 +2026,9 @@ const ChapterStudio: React.FC = () => {
       key: 'merge',
       icon: <MergeCellsOutlined />,
       label: '合并',
-      disabled: selectedShotIds.length < 2,
-      onClick: () => {
-        if (selectedShotIds.length < 2) return
-        Modal.confirm({
-          title: `合并 ${selectedShotIds.length} 个分镜？`,
-          okText: '合并',
-          cancelText: '取消',
-          onOk: () => message.success('已合并（Mock）'),
-        })
-      },
+      disabled: structuralActionLoading || hasPendingStructure || selectedShotIds.length < 2,
+      title: MERGE_HINT,
+      onClick: openMergeConfirmation,
     },
     {
       key: 'hide',
@@ -1960,9 +2052,8 @@ const ChapterStudio: React.FC = () => {
               await Promise.all(selectedShotIds.map((id) => StudioShotsService.deleteShotApiV1StudioShotsShotIdDelete({ shotId: id })))
               await loadShots()
               message.success('已删除')
-            } catch {
-              message.error('删除失败')
-            }
+            } catch (error) { message.error(studioActionError(error, '部分分镜未能删除，请检查引用。')) }
+            finally { await loadShots() }
           },
         }),
     },
@@ -1995,7 +2086,10 @@ const ChapterStudio: React.FC = () => {
       key: 'generate',
       icon: <ThunderboltOutlined />,
       label: '批量生成',
+      disabled: !LEGACY_GENERATION_AVAILABLE,
+      title: LEGACY_GENERATION_REASON,
       onClick: () => {
+        if (!LEGACY_GENERATION_AVAILABLE) { message.warning(LEGACY_GENERATION_REASON); return }
         if (selectedShotIds.length === 0) return
         Modal.confirm({
           title: `批量生成 ${selectedShotIds.length} 个分镜？`,
@@ -2112,7 +2206,7 @@ const ChapterStudio: React.FC = () => {
           )}
           <Divider type="vertical" />
           <div className="min-w-0">
-            <div className="font-medium text-gray-900 truncate">{chapterTitle}</div>
+            <div className="cs-topbar-title text-gray-900 truncate">{chapterTitle}</div>
             <div className="text-xs text-gray-500">
               {saving ? (
                 <span className="inline-flex items-center gap-1">
@@ -2172,11 +2266,13 @@ const ChapterStudio: React.FC = () => {
             <div className="cs-group-title mb-0 flex items-center gap-2 shrink-0">
               <FileTextOutlined /> 分镜列表
             </div>
-            <div className="overflow-x-auto min-w-0 -mx-1 px-1">
-              <Segmented
+            <div className="cs-shot-filters min-w-0">
+              <Radio.Group
                 size="small"
+                optionType="button"
+                buttonStyle="solid"
                 value={filter}
-                onChange={(v) => setFilter(v as ShotFilter)}
+                onChange={(event) => setFilter(event.target.value as ShotFilter)}
                 options={[
                   { label: `全部 ${shotFilterCounts.all}`, value: 'all' },
                   { label: `待确认 ${shotFilterCounts.pendingConfirm}`, value: 'pendingConfirm' },
@@ -2209,8 +2305,10 @@ const ChapterStudio: React.FC = () => {
           )}
 
           <div className="cs-left-scroll px-3 pb-3">
+            {hasPendingStructure && projectId && chapterId && <Alert className="mb-2" type="warning" showIcon message="上次结构操作结果待核对" description="原请求已保留。核对会安全回放同一请求，不重复插入或合并。" action={<Space direction="vertical"><Button size="small" disabled={structuralActionLoading} onClick={() => void runStructuralAction(() => recoverGraphAction(projectId, chapterId), '原请求已核对。')}>核对上次结构操作</Button><Button size="small" disabled={structuralActionLoading} onClick={() => Modal.confirm({ title: '放弃本地恢复标识？', content: '这不会撤回服务器上可能已完成的操作。请先刷新核对镜头和收据，再决定是否放弃。', onOk: () => { try { discardGraphAction(projectId, chapterId); setHasPendingStructure(false) } catch { message.error('无法清除浏览器恢复标识') } } })}>放弃恢复标识</Button></Space>} />}
+            {!!graphState?.receipts.length && projectId && <details className="mb-2 text-xs" data-testid="shot-graph-receipts"><summary>结构操作收据（最近 {graphState.receipts.length} 条）</summary><p>完整原始准备资料可供人工重建；不恢复采用或生成资格。</p>{graphState.receipts.map(receipt => <Button key={receipt.id} type="link" size="small" onClick={() => void downloadGraphReceipt(projectId, receipt.id).catch(error => message.error(studioActionError(error, '下载结构资料失败')))}>下载{({ reorder: '重排', insert: '插入', merge: '合并' } as Record<string, string>)[receipt.action] ?? receipt.action}前资料 · 修订{receipt.revision}</Button>)}</details>}
             {loadingShots ? (
-              <div className="text-gray-500 text-center py-4">加载中...</div>
+              <div className="text-gray-500 text-center py-4">加载中…</div>
             ) : (
               <div>
                 {filteredShots.map((s, i) => {
@@ -2224,7 +2322,9 @@ const ChapterStudio: React.FC = () => {
                   return (
                     <div
                       key={s.id}
-                      draggable
+                      data-shot-id={s.id}
+                      draggable={!structuralActionLoading && !hasPendingStructure}
+                      title={STRUCTURAL_EDIT_HINT}
                       onDragStart={(e) => {
                         setDraggingShotId(s.id)
                         setDragOverShotId(null)
@@ -2253,7 +2353,7 @@ const ChapterStudio: React.FC = () => {
                       }}
                       style={{
                         opacity: isDragging ? 0.92 : 1,
-                        outline: isDragOver ? '2px dashed var(--ant-color-primary)' : 'none',
+                        outline: isDragOver ? '2px dashed var(--color-accent)' : 'none',
                         borderRadius: 8,
                       }}
                     >
@@ -2278,6 +2378,17 @@ const ChapterStudio: React.FC = () => {
                             style={{
                               opacity: s.hidden ? 0.55 : 1,
                             }}
+                            role="button"
+                            tabIndex={0}
+                            aria-pressed={isSelected}
+                            onKeyDown={(event) => {
+                              // Keep keyboard activation on the row itself so nested inputs keep their own keys.
+                              if (event.target !== event.currentTarget) return
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault()
+                                event.currentTarget.click()
+                              }
+                            }}
                             onClick={(e) => handleSelectShot(s.id, i, e)}
                             onDoubleClick={() => {
                               setEditingTitleId(s.id)
@@ -2285,12 +2396,11 @@ const ChapterStudio: React.FC = () => {
                             }}
                           >
                             <div className="flex gap-2">
-                            <div className="w-16 h-10 rounded bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-400 text-xs overflow-hidden">
+                            <div className="cs-shot-thumbnail overflow-hidden">
                               <span>16:9</span>
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className={`cs-dot ${statusDotClass(s.status)}`} />
                                 <span className="text-xs text-gray-500 shrink-0">
                                   {String(s.index).padStart(2, '0')}
                                 </span>
@@ -2302,12 +2412,12 @@ const ChapterStudio: React.FC = () => {
                                     onChange={(ev) => setEditingTitleValue(ev.target.value)}
                                     onBlur={() => {
                                       const nextTitle = editingTitleValue.trim()
-                                      setShots((prev) => prev.map((x) => (x.id === s.id ? { ...x, title: nextTitle || x.title } : x)))
                                       if (nextTitle && nextTitle !== s.title) {
                                         void StudioShotsService.updateShotApiV1StudioShotsShotIdPatch({
                                           shotId: s.id,
                                           requestBody: { title: nextTitle },
-                                        }).catch(() => message.error('保存标题失败'))
+                                        }).then(response => { if (response.data) patchShotInList(s.id, response.data) })
+                                          .catch(error => { message.error(studioActionError(error, '保存标题失败')); void loadShots() })
                                       }
                                       setEditingTitleId(null)
                                     }}
@@ -2327,7 +2437,7 @@ const ChapterStudio: React.FC = () => {
                                 )}
                               </div>
                               <div className="text-xs text-gray-500 mt-1 truncate">
-                                {shotDetail?.movement ? `${CAMERA_MOVEMENT_OPTIONS.find((x) => x.value === shotDetail.movement)?.label ?? shotDetail.movement} · ` : ''}
+                                {shotDetail?.movement ? `${CAMERA_MOVEMENT_OPTIONS.find((x) => x.value === shotDetail.movement)?.label ?? shotDetail.movement} / ` : ''}
                                 {((shotDurations[s.id] ?? shotDetail?.duration ?? 0) || 0).toFixed(1)}s
                               </div>
                               <div className="cs-shot-progress mt-1">
@@ -2400,7 +2510,7 @@ const ChapterStudio: React.FC = () => {
                 <span className="font-medium">主预览区</span>
                 {selectedShot && (
                   <span className="text-xs text-gray-500 truncate">
-                    当前分镜：{String(selectedShot.index).padStart(2, '0')} · {selectedShot.title}
+                    当前分镜：{String(selectedShot.index).padStart(2, '0')} / {selectedShot.title}
                   </span>
                 )}
               </div>
@@ -2408,12 +2518,12 @@ const ChapterStudio: React.FC = () => {
             extra={
               <Space size="small">
                 {showPreviewMinimizeButton && (
-                  <Tooltip title="最小化预览（占位）">
-                    <Button size="small" icon={<DoubleRightOutlined />} onClick={() => message.info('最小化预览（Mock）')} />
+                  <Tooltip title="当前工作台尚未提供独立的最小化预览模式">
+                    <Button size="small" icon={<DoubleRightOutlined />} disabled />
                   </Tooltip>
                 )}
-                <Tooltip title="截取当前帧（Mock）">
-                  <Button size="small" icon={<ScissorOutlined />} onClick={() => message.success('已截取当前帧（Mock）')} />
+                <Tooltip title={videoReady && shotDetail ? '截取实际视频画面并保存为本镜头关键帧' : '请先准备可播放视频及镜头详情'}>
+                  <Button size="small" aria-label="截取当前帧" icon={<ScissorOutlined />} disabled={!videoReady || !shotDetail || capturing} loading={capturing} onClick={() => void openCapturePreview()} />
                 </Tooltip>
                 <Tooltip title={currentPreviewVideoFileId ? '下载当前预览视频' : '暂无可下载视频'}>
                   <Button
@@ -2431,7 +2541,7 @@ const ChapterStudio: React.FC = () => {
             className="cs-preview-card flex-1 min-h-0"
             bodyStyle={{ height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 12 }}
           >
-            <div className="flex items-center justify-between gap-2">
+            <div className="cs-preview-toolbar flex items-center justify-between gap-2">
               {showPreviewFrameSegmented ? (
                 <Segmented
                   size="small"
@@ -2474,7 +2584,9 @@ const ChapterStudio: React.FC = () => {
                     <Radio.Button value={FRAME_FILE_TAG_ADOPT}>采用</Radio.Button>
                     <Radio.Button value={FRAME_FILE_TAG_ABANDON}>废弃</Radio.Button>
                   </Radio.Group>
-                  <Select
+                  {!currentFrameFileId ? (
+                    <Input size="small" disabled style={{ minWidth: 160, maxWidth: 220 }} placeholder="自定义标签" />
+                  ) : <Select
                     mode="tags"
                     size="small"
                     style={{ minWidth: 160, maxWidth: 220 }}
@@ -2488,11 +2600,11 @@ const ChapterStudio: React.FC = () => {
                         currentFrameFileTags.find((t) => t === FRAME_FILE_TAG_ADOPT || t === FRAME_FILE_TAG_ABANDON) ?? null
                       void updateCurrentFrameFileTags(keep ? [keep, ...base] : base)
                     }}
-                  />
+                  />}
                 </Space>
                 <Tooltip title="当前镜头数据">
                   <Tag className="m-0">
-                    帧图 {frameImages.length} · 关联 {sceneLinks.length + actorImageLinks.length + propLinks.length + costumeLinks.length}
+                    帧图 {frameImages.length} / 关联 {sceneLinks.length + actorImageLinks.length + propLinks.length + costumeLinks.length}
                   </Tag>
                 </Tooltip>
               </Space>
@@ -2501,8 +2613,8 @@ const ChapterStudio: React.FC = () => {
             <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-8 pr-1">
               <div className="relative">
                 <div className="cs-player-shell">
-                  <div className="aspect-video bg-black rounded overflow-hidden flex items-center justify-center">
-                  {!previewVideoFileId && adoptedTake?.provenance === 'user_import' && <Tag className="absolute top-2 left-2 z-10" color="blue">当前采用 · 用户导入片段</Tag>}
+                  <div className="cs-video-stage aspect-video rounded overflow-hidden flex items-center justify-center">
+                  {!previewVideoFileId && adoptedTake?.provenance === 'user_import' && <Tag className="absolute top-2 left-2 z-10" color="blue">当前采用 / 用户导入片段</Tag>}
                   <video
                     ref={videoRef}
                     className="w-full h-full object-contain"
@@ -2510,39 +2622,49 @@ const ChapterStudio: React.FC = () => {
                     muted
                     playsInline
                     preload="metadata"
+                    crossOrigin="anonymous"
+                    onLoadedData={() => { setVideoReady(true); setVideoError('') }}
+                    onError={() => { setVideoReady(false); setVideoError('视频无法读取或解码，请检查素材文件是否完整。') }}
+                    onEmptied={() => setVideoReady(false)}
+                    poster={!adoptedMediaId ? resolveAssetUrl(currentFrameFileId) : undefined}
                     src={currentPreviewVideoUrl || undefined}
                   />
                   {!selectedShot && (
-                    <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                    <div className="cs-stage-placeholder absolute inset-0 flex items-center justify-center">
                       请选择分镜
                     </div>
                   )}
-                  {selectedShot && !currentPreviewVideoUrl && selectedShot.status !== 'ready' && (
+                  {selectedShot && !currentPreviewVideoUrl && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Badge
                         status={shotRuntimeMap[selectedShot.id]?.has_active_tasks ? 'processing' : 'default'}
-                        text={shotRuntimeMap[selectedShot.id]?.has_active_tasks ? '生成中…' : '未生成'}
+                        text={shotRuntimeMap[selectedShot.id]?.has_active_tasks ? '生成中…' : '暂无预览视频'}
                       />
                     </div>
                   )}
+                  {currentPreviewVideoUrl && videoError && <div className="cs-stage-placeholder absolute inset-0 flex items-center justify-center p-4" role="alert">{videoError}</div>}
                   </div>
                 </div>
 
                 {/* 播放控制条 */}
-                <div className="mt-2 flex items-center gap-2">
+                <div className="cs-playback-bar mt-2 flex items-center gap-2">
                   <Button
                     size="small"
                     icon={<CaretLeftOutlined />}
-                    onClick={() => message.info('帧退（Mock）')}
+                    aria-label="向后步进1/30秒"
+                    title="按预览时间向后步进1/30秒，不代表原片精确帧率"
+                    disabled={!videoReady}
+                    onClick={() => { const next = stepPreview(videoRef.current, -1); if (next !== null) setVideoTime(next) }}
                   />
                   <Button
                     size="small"
                     type="primary"
                     icon={isPlaying ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+                    disabled={!videoReady}
                     onClick={() => {
                       const v = videoRef.current
                       if (!v) return
-                      if (v.paused) void v.play()
+                      if (v.paused) void v.play().catch(() => message.error('无法播放当前视频，请检查媒体文件。'))
                       else v.pause()
                     }}
                   >
@@ -2551,11 +2673,15 @@ const ChapterStudio: React.FC = () => {
                   <Button
                     size="small"
                     icon={<CaretRightOutlined />}
-                    onClick={() => message.info('帧进（Mock）')}
+                    aria-label="向前步进1/30秒"
+                    title="按预览时间向前步进1/30秒，不代表原片精确帧率"
+                    disabled={!videoReady}
+                    onClick={() => { const next = stepPreview(videoRef.current, 1); if (next !== null) setVideoTime(next) }}
                   />
                   <div className="flex-1 min-w-0">
                     <Slider
                       tooltip={{ formatter: null }}
+                      disabled={!videoReady}
                       min={0}
                       max={Math.max(1, videoDuration || shotDetail?.duration || (selectedShotId ? shotDurations[selectedShotId] : 0) || 1)}
                       value={videoTime}
@@ -2567,7 +2693,7 @@ const ChapterStudio: React.FC = () => {
                       }}
                     />
                   </div>
-                  <div className="text-xs text-gray-400 w-[110px] text-right">
+                  <div className="cs-timecode text-xs text-gray-500 w-[110px] text-right">
                     {videoTime.toFixed(1)} / {Math.max(videoDuration || 0, shotDetail?.duration || (selectedShotId ? shotDurations[selectedShotId] : 0) || 0).toFixed(1)}s
                   </div>
                 </div>
@@ -2581,7 +2707,8 @@ const ChapterStudio: React.FC = () => {
                       {subtitleLines.map((l, idx) => {
                         const active = idx === activeSubtitleIndex
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={l.key}
                             className="cs-sub-line text-sm cursor-pointer"
                             style={{ opacity: active ? 1 : 0.6, fontWeight: active ? 600 : 400 }}
@@ -2594,7 +2721,7 @@ const ChapterStudio: React.FC = () => {
                           >
                             <span style={{ opacity: 0.9 }}>{l.role}：</span>
                             <span>{l.text}</span>
-                          </div>
+                          </button>
                         )
                       })}
                     </div>
@@ -2606,8 +2733,7 @@ const ChapterStudio: React.FC = () => {
             {/* 章节级时间轴（可折叠，固定在底部不参与滚动） */}
             {showChapterTimeline && (
               <div
-                className="rounded border border-solid border-gray-200 flex-shrink-0 min-h-0 flex flex-col"
-                style={{ background: 'var(--ant-color-bg-container)' }}
+                className="cs-timeline flex-shrink-0 min-h-0 flex flex-col"
               >
                 <div className="px-3 py-2 flex items-center justify-between flex-shrink-0">
                   <div className="text-sm font-medium">章节时间轴</div>
@@ -2629,21 +2755,24 @@ const ChapterStudio: React.FC = () => {
                         .map((s) => {
                           const active = s.id === selectedShotId
                           return (
-                            <div
+                            <button
+                              type="button"
                               key={s.id}
-                              className="shrink-0 cursor-pointer rounded"
+                              aria-pressed={active}
+                              aria-label={`${String(s.index).padStart(2, '0')} / ${s.title}`}
+                              className="cs-timeline-clip shrink-0 cursor-pointer rounded"
                               style={{
                                 width: clamp(18 + ((shotDurations[s.id] ?? 1) || 1) * 6, 24, 96),
-                                height: 14,
+                                height: 24,
                                 background:
                                   shotRuntimeMap[s.id]?.has_active_tasks
-                                    ? 'rgba(59,130,246,0.45)'
+                                    ? 'var(--color-accent)'
                                     : s.status === 'ready'
-                                    ? 'rgba(34,197,94,0.45)'
-                                    : 'rgba(156,163,175,0.45)',
-                                outline: active ? '2px solid var(--ant-color-primary)' : '1px solid rgba(0,0,0,0.06)',
+                                    ? 'var(--color-success)'
+                                    : 'var(--color-rule-2)',
+                                outline: active ? '2px solid var(--color-accent)' : '1px solid var(--color-rule)',
                               }}
-                              title={`${String(s.index).padStart(2, '0')} · ${s.title}`}
+                              title={`${String(s.index).padStart(2, '0')} / ${s.title}`}
                               onClick={() => setSelectedShotId(s.id)}
                             />
                           )
@@ -2687,6 +2816,7 @@ const ChapterStudio: React.FC = () => {
               }}
             >
               <Inspector
+                generationBlockedReason={generationBlockedReason}
                 projectId={projectId}
                 chapterId={chapterId}
                 projectVisualStyle={projectVisualStyle}
@@ -2727,13 +2857,14 @@ const ChapterStudio: React.FC = () => {
             </Sider>
 
             {!prefs.inspectorOpen && (
-              <div
+              <button
+                type="button"
                 className="cs-right-strip"
                 onClick={() => setPrefs((p) => ({ ...p, inspectorOpen: true }))}
                 title="展开属性面板（P / Ctrl/Cmd+I）"
               >
                 <span>属性</span>
-              </div>
+              </button>
             )}
           </>
         ) : (
@@ -2741,13 +2872,13 @@ const ChapterStudio: React.FC = () => {
             {/* 覆盖模式：右侧抽屉覆盖中央 */}
             {prefs.inspectorOpen && (
               <div
-                className="absolute top-0 right-0 h-full"
+                className="cs-inspector-overlay absolute top-0 right-0 h-full"
                 style={{
                   width: prefs.rightWidth,
-                  background: '#f9fafc',
-                  borderLeft: '2px solid #cbd5e1',
+                  background: 'var(--color-paper-2)',
+                  borderLeft: '2px solid var(--color-rule-2)',
                   zIndex: 20,
-                  boxShadow: '-4px 0 12px rgba(0,0,0,0.06)',
+                  boxShadow: 'none',
                   display: 'flex',
                   flexDirection: 'row',
                 }}
@@ -2761,6 +2892,7 @@ const ChapterStudio: React.FC = () => {
                 />
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <Inspector
+                    generationBlockedReason={generationBlockedReason}
                     projectId={projectId}
                     chapterId={chapterId}
                     projectVisualStyle={projectVisualStyle}
@@ -2857,7 +2989,7 @@ const ChapterStudio: React.FC = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="text-sm font-medium truncate">
-                          {String(shot.index).padStart(2, '0')} · {shot.title}
+                          {String(shot.index).padStart(2, '0')} / {shot.title}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
                           {error
@@ -2876,7 +3008,7 @@ const ChapterStudio: React.FC = () => {
                         {(readiness?.checks ?? []).map((check) => (
                           <Tooltip key={check.key} title={check.message}>
                             <Tag color={check.ok ? 'green' : 'default'}>
-                              {check.ok ? '通过' : '未通过'} · {check.key}
+                              {check.ok ? '通过' : '未通过'} / {check.key}
                             </Tag>
                           </Tooltip>
                         ))}
@@ -2905,6 +3037,7 @@ const ChapterStudio: React.FC = () => {
 export default ChapterStudio
 
 function Inspector(props: {
+  generationBlockedReason: string
   projectId?: string
   chapterId?: string
   projectVisualStyle: '现实' | '动漫'
@@ -2944,6 +3077,7 @@ function Inspector(props: {
   onRefreshShotFrameImages?: () => Promise<void>
 }) {
   const {
+    generationBlockedReason,
     projectId,
     chapterId,
     projectVisualStyle,
@@ -3690,7 +3824,7 @@ function Inspector(props: {
       minute: '2-digit',
       second: '2-digit',
     })
-    return `${shotExtractStatus.message} · ${time}`
+    return `${shotExtractStatus.message} / ${time}`
   }, [shotExtractStatus])
 
   const goToShotEditForAssets = useCallback(() => {
@@ -4713,7 +4847,7 @@ function Inspector(props: {
         <div className="min-w-0">
           <div className="font-medium truncate">分镜生成面板</div>
           <div className="text-xs text-gray-500 truncate">
-            {selectedShot ? `${String(selectedShot.index).padStart(2, '0')} · ${selectedShot.title}` : '未选择分镜'}
+            {selectedShot ? `${String(selectedShot.index).padStart(2, '0')} / ${selectedShot.title}` : '未选择分镜'}
           </div>
         </div>
         <Space size="small">
@@ -4724,8 +4858,9 @@ function Inspector(props: {
       </div>
 
       <div className="cs-inspector flex-1 min-h-0 overflow-auto">
+        <Alert type="info" showIcon message="可继续手工编辑与准备" description={generationBlockedReason} className="mb-3" />
         <Tabs
-          tabPosition="left"
+          tabPosition="top"
           activeKey={inspectorTabKey}
           onChange={(activeKey) => setInspectorTabKey(activeKey as InspectorTabKey)}
           items={(() => {
@@ -4847,7 +4982,7 @@ function Inspector(props: {
                               }}
                               disabled={cameraUpdating}
                             />
-                            <div className="mt-1 text-[11px] text-gray-400">
+                            <div className="mt-1 text-xs text-gray-400">
                               当前生效：{resolveVideoRatioForRequest() || '未设置'}
                             </div>
                           </div>
@@ -5068,7 +5203,7 @@ function Inspector(props: {
                             <Button size="small" type="link" onClick={() => updateCardState(ft, { modalOpen: true })}>
                               更多
                             </Button>
-                            <Button size="small" type="primary" loading={st.loading} onClick={() => void generateKeyframeCard(ft)}>
+                            <Button size="small" type="primary" disabled={!LEGACY_GENERATION_AVAILABLE} title={generationBlockedReason} loading={st.loading} onClick={() => void generateKeyframeCard(ft)}>
                               生成
                             </Button>
                           </Space>
@@ -5427,7 +5562,7 @@ function Inspector(props: {
                         />
                         {audioMode === 'prompt' && <TextArea rows={3} placeholder="配乐提示词（支持多版本）…" />}
                         {audioMode === 'upload' && (
-                          <Button block icon={<UploadOutlined />}>
+                          <Button block icon={<UploadOutlined />} disabled title="当前剪辑计划尚未提供配乐轨保存与混音接口">
                             上传音频
                           </Button>
                         )}
@@ -5439,8 +5574,8 @@ function Inspector(props: {
                         <SoundOutlined /> 音效
                       </div>
                       <div className="space-y-3">
-                        <Button block icon={<UploadOutlined />}>
-                          添加一条音效（Mock）
+                        <Button block icon={<UploadOutlined />} disabled title="当前剪辑计划尚未提供音效轨保存与混音接口">
+                          添加一条音效
                         </Button>
                       </div>
                     </div>
@@ -5523,7 +5658,7 @@ function Inspector(props: {
                       <ThunderboltOutlined /> 生成
                     </div>
                     <Space wrap>
-                      <Button type="primary" icon={<VideoCameraOutlined />} loading={videoPromptPreviewSubmitting || videoTaskPolling} onClick={() => void openVideoPromptPreview()}>
+                      <Button type="primary" icon={<VideoCameraOutlined />} disabled={!LEGACY_GENERATION_AVAILABLE} title={generationBlockedReason} loading={videoPromptPreviewSubmitting || videoTaskPolling} onClick={() => void openVideoPromptPreview()}>
                         生成视频
                       </Button>
                       {videoTaskStatus ? <span className="text-xs text-gray-500">任务状态：{videoTaskStatus}</span> : null}
@@ -5624,7 +5759,7 @@ function Inspector(props: {
                 >
                   取消
                 </Button>
-                <Button type="primary" loading={keyframePromptActionLoading} onClick={() => void confirmGenerateKeyframeWithPrompt()}>
+                <Button type="primary" disabled={!LEGACY_GENERATION_AVAILABLE} title={generationBlockedReason} loading={keyframePromptActionLoading} onClick={() => void confirmGenerateKeyframeWithPrompt()}>
                   生成
                 </Button>
               </Space>
@@ -5724,14 +5859,14 @@ function Inspector(props: {
                               <Image
                                 width={72}
                                 height={72}
-                                style={{ objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }}
+                                style={{ objectFit: 'cover', borderRadius: 8, border: '1px solid var(--color-rule)' }}
                                 src={buildFileDownloadUrl(fid)}
                               />
                             </Tooltip>
                             <div className="mt-1">
                               <Tag color="blue">{`图${index + 1}`}</Tag>
                             </div>
-                            <div className="truncate text-[11px] text-gray-700">
+                            <div className="truncate text-xs text-gray-700">
                               {shotLinkedAssetNameByFileId.get(fid) ?? fid}
                             </div>
                             <div className="mt-1 flex gap-1">
@@ -5778,6 +5913,8 @@ function Inspector(props: {
                       size="small"
                       type={hasBasePrompt ? 'default' : 'primary'}
                       loading={keyframePromptActionLoading}
+                      disabled={!LEGACY_GENERATION_AVAILABLE}
+                      title={generationBlockedReason}
                       onClick={() => void regenerateKeyframePrompt()}
                     >
                       AI生成
@@ -5848,7 +5985,7 @@ function Inspector(props: {
                             parsedDirectorCommandSummary.length > 0
                               ? parsedDirectorCommandSummary
                                   .slice(0, 2)
-                                  .map((item) => `${item.level === 'must' ? '必须' : '优先'} · ${item.text}`)
+                                  .map((item) => `${item.level === 'must' ? '必须' : '优先'} / ${item.text}`)
                               : keyframeGuidanceSummary.slice(0, 2)
                           )
                           : keyframeGuidanceSummary
@@ -5866,13 +6003,13 @@ function Inspector(props: {
                             <div className="font-medium text-slate-800">当前帧消费的动作阶段</div>
                             {debugSelectedActionBeatPhase && debugSelectedActionBeatText ? (
                               <Tag color="purple">
-                                {`${debugSelectedActionBeatPhase} · ${debugSelectedActionBeatText}`}
+                                {`${debugSelectedActionBeatPhase} / ${debugSelectedActionBeatText}`}
                               </Tag>
                             ) : null}
                           </div>
                           <div className="mt-2 flex flex-wrap gap-2">
                             {actionBeatPhaseTags.map((item, index) => (
-                              <Tooltip key={`${item.phaseLabel}:${index}:${item.text}`} title={`${item.phaseLabel} · ${item.text}`}>
+                              <Tooltip key={`${item.phaseLabel}:${index}:${item.text}`} title={`${item.phaseLabel} / ${item.text}`}>
                                 <Tag
                                   color={
                                     item.phaseLabel === '触发'
@@ -5884,7 +6021,7 @@ function Inspector(props: {
                                   className="max-w-[240px] overflow-hidden"
                                 >
                                   <span className="inline-block max-w-[200px] truncate align-bottom">
-                                    {item.phaseLabel} · {item.text}
+                                    {item.phaseLabel} / {item.text}
                                   </span>
                                 </Tag>
                               </Tooltip>
@@ -5899,13 +6036,13 @@ function Inspector(props: {
                               <div className="font-medium">高优先级导演指令</div>
                               <div className="mt-2 flex flex-wrap gap-2">
                                 {parsedDirectorCommandSummary.map((item, index) => (
-                                  <Tooltip key={`${item.level}:${index}:${item.text}`} title={`${item.level === 'must' ? '必须' : '优先'} · ${item.text}`}>
+                                  <Tooltip key={`${item.level}:${index}:${item.text}`} title={`${item.level === 'must' ? '必须' : '优先'} / ${item.text}`}>
                                     <Tag
                                       color={item.level === 'must' ? 'red' : 'blue'}
                                       className="max-w-[240px] overflow-hidden"
                                     >
                                       <span className="inline-block max-w-[200px] truncate align-bottom">
-                                        {item.level === 'must' ? '必须' : '优先'} · {item.text}
+                                        {item.level === 'must' ? '必须' : '优先'} / {item.text}
                                       </span>
                                     </Tag>
                                   </Tooltip>
@@ -5989,13 +6126,13 @@ function Inspector(props: {
                                           : 'green'
                                     }
                                   >
-                                    {`${item.phaseLabel} · ${item.text}`}
+                                    {`${item.phaseLabel} / ${item.text}`}
                                   </Tag>
                                 ))}
                               </div>
                               {debugSelectedActionBeatPhase || debugSelectedActionBeatText ? (
                                 <div className="mt-2 text-slate-700">
-                                  {`当前帧优先消费：${[debugSelectedActionBeatPhase, debugSelectedActionBeatText].filter(Boolean).join(' · ')}`}
+                                  {`当前帧优先消费：${[debugSelectedActionBeatPhase, debugSelectedActionBeatText].filter(Boolean).join(' / ')}`}
                                 </div>
                               ) : null}
                             </div>
@@ -6276,6 +6413,7 @@ function Inspector(props: {
             setVideoPromptPreviewOpen(false)
           }}
           okText="生成"
+          okButtonProps={{ disabled: !LEGACY_GENERATION_AVAILABLE, title: LEGACY_GENERATION_REASON }}
           cancelText="取消"
           onOk={() => void submitVideoGeneration()}
           confirmLoading={videoPromptPreviewSubmitting}
@@ -6292,7 +6430,7 @@ function Inspector(props: {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-medium text-slate-700">镜头连续性上下文</div>
-                    <div className="mt-1 text-[11px] leading-5 text-slate-500">
+                    <div className="mt-1 text-xs leading-5 text-slate-500">
                       这些上下文会参与视频模板渲染和最终提示词补强，默认先展示摘要，需要时再展开细节。
                     </div>
                   </div>
@@ -6336,7 +6474,7 @@ function Inspector(props: {
                             }
                           >
                             {item.phase
-                              ? `${item.phase === 'trigger' ? '触发' : item.phase === 'peak' ? '峰值' : '收束'} · ${item.text}`
+                              ? `${item.phase === 'trigger' ? '触发' : item.phase === 'peak' ? '峰值' : '收束'} / ${item.text}`
                               : item.text}
                           </Tag>
                         ))}

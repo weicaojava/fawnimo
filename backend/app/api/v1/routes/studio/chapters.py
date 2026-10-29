@@ -22,6 +22,8 @@ from app.services.common import (
     require_entity,
 )
 from app.schemas.studio.projects import ChapterCreate, ChapterRead, ChapterUpdate
+from app.schemas.studio.chapter_text_history import ChapterTextHistoryRead, ChapterTextRestore, ChapterTextSave, ChapterTextState
+from app.services.studio import chapter_text_history
 
 router = APIRouter()
 
@@ -34,7 +36,7 @@ CHAPTER_ORDER_FIELDS = {"index", "title", "created_at", "updated_at", "storyboar
     summary="章节列表（分页）",
 )
 async def list_chapters(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
     project_id: str | None = Query(None, description="按项目过滤"),
     q: str | None = Query(None, description="关键字，过滤 title/summary"),
     order: str | None = Query(None, description="排序字段"),
@@ -86,7 +88,7 @@ async def list_chapters(
 )
 async def create_chapter(
     body: ChapterCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ChapterRead]:
     await ensure_not_exists(
         db,
@@ -102,6 +104,7 @@ async def create_chapter(
         status_code=400,
     )
     obj = await create_and_refresh(db, Chapter(**body.model_dump()))
+    await chapter_text_history.record_initial(db, obj)
     return created_response(ChapterRead.model_validate(obj))
 
 
@@ -112,7 +115,7 @@ async def create_chapter(
 )
 async def get_chapter(
     chapter_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ChapterRead]:
     obj = await get_or_404(db, Chapter, chapter_id, detail=entity_not_found("Chapter"))
     count_stmt = select(func.count(Shot.id)).where(Shot.chapter_id == chapter_id)
@@ -129,9 +132,9 @@ async def get_chapter(
 async def update_chapter(
     chapter_id: str,
     body: ChapterUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ChapterRead]:
-    obj = await get_or_404(db, Chapter, chapter_id, detail=entity_not_found("Chapter"))
+    obj = await chapter_text_history.chapter_for_edit(db, chapter_id)
     update = body.model_dump(exclude_unset=True)
     if "project_id" in update:
         await require_entity(
@@ -141,9 +144,30 @@ async def update_chapter(
             detail=entity_not_found("Project"),
             status_code=400,
         )
+    text_update = {key: update.pop(key) for key in ('raw_text', 'condensed_text') if key in update}
+    if text_update:
+        await chapter_text_history.save_fields(db, obj, text_update, origin='edit')
     patch_model(obj, update)
     await flush_and_refresh(db, obj)
     return success_response(ChapterRead.model_validate(obj))
+
+
+@router.get('/{chapter_id}/text-history', response_model=ApiResponse[ChapterTextHistoryRead], summary='读取章节真实文本历史')
+async def list_chapter_text_history(chapter_id: str, db: AsyncSession = Depends(get_db, scope='function'), page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=30)):
+    """Return only persisted revisions; current legacy text is not presented as invented history."""
+    return success_response(await chapter_text_history.list_history(db, chapter_id, page, page_size))
+
+
+@router.post('/{chapter_id}/text-history', response_model=ApiResponse[ChapterTextState], summary='保存章节文本新修订')
+async def save_chapter_text_revision(chapter_id: str, body: ChapterTextSave, db: AsyncSession = Depends(get_db, scope='function')):
+    """Save at the visible revision, preserving both history and unsaved conflict recovery."""
+    return success_response(await chapter_text_history.save_text(db, chapter_id, body))
+
+
+@router.post('/{chapter_id}/text-history/{revision}/restore', response_model=ApiResponse[ChapterTextState], summary='恢复章节历史为新修订')
+async def restore_chapter_text_revision(chapter_id: str, revision: int, body: ChapterTextRestore, db: AsyncSession = Depends(get_db, scope='function')):
+    """Restore a revision from this chapter without deleting subsequent history."""
+    return success_response(await chapter_text_history.restore_text(db, chapter_id, revision, body))
 
 
 @router.delete(
@@ -153,7 +177,7 @@ async def update_chapter(
 )
 async def delete_chapter(
     chapter_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[None]:
     await delete_if_exists(db, Chapter, chapter_id)
     return empty_response()

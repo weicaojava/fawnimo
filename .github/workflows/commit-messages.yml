@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   check:
+    if: github.repository == 'Forget-C/Jellyfish'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

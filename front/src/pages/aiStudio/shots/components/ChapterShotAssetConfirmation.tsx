@@ -86,7 +86,7 @@ export function ChapterShotAssetConfirmation({
     const footer =
       asset.status === 'new' ? (
         <div className="flex items-center justify-between gap-2">
-          <div className="text-[11px] text-gray-500 truncate">
+          <div className="text-xs text-gray-500 truncate">
             {existence
               ? existence.linked_to_project
                 ? '项目内可关联'
@@ -113,7 +113,7 @@ export function ChapterShotAssetConfirmation({
           </div>
         </div>
       ) : (
-        <div className="text-[11px] text-gray-500">当前镜头已关联</div>
+        <div className="text-xs text-gray-500">当前镜头已关联</div>
       )
     return (
       <div key={`${asset.kind}:${asset.name}`} className="col-span-12 md:col-span-6 xl:col-span-3 2xl:col-span-2">
@@ -161,7 +161,7 @@ export function ChapterShotAssetConfirmation({
     const candidateVisible = expanded ? candidateItems : candidateItems.slice(0, 6)
     const hiddenCount = Math.max(0, linkedItems.length + candidateItems.length - linkedVisible.length - candidateVisible.length)
     return (
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+      <div className="production-asset-group space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="text-xs text-gray-600 font-medium">
             {titleLabel}（{items.length}）
@@ -180,7 +180,7 @@ export function ChapterShotAssetConfirmation({
           <div className="space-y-3">
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[11px] font-medium text-slate-600">当前已关联（{linkedItems.length}）</div>
+                <div className="text-xs font-medium text-slate-600">当前已关联（{linkedItems.length}）</div>
                 {linkedItems.length > 0 ? <Tag color="blue">当前状态</Tag> : null}
               </div>
               {linkedItems.length === 0 ? (
@@ -196,7 +196,7 @@ export function ChapterShotAssetConfirmation({
 
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[11px] font-medium text-slate-600">待确认候选（{candidateItems.length}）</div>
+                <div className="text-xs font-medium text-slate-600">待确认候选（{candidateItems.length}）</div>
                 {candidateItems.length > 0 ? <Tag color="magenta">待确认</Tag> : null}
               </div>
               {candidateItems.length === 0 ? (
@@ -216,11 +216,11 @@ export function ChapterShotAssetConfirmation({
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-slate-200 bg-white/80 px-4 py-4">
+    <div className="production-form-section space-y-4">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-900 px-1.5 text-[11px] font-semibold text-white">
+            <span className="production-step-index inline-flex min-w-5 items-center justify-center px-1.5 text-xs font-semibold">
               2.1
             </span>
             <div className="text-sm font-medium text-slate-900">资产候选确认</div>
@@ -228,7 +228,7 @@ export function ChapterShotAssetConfirmation({
               {assetStatus.text}
             </Tag>
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">这里处理系统提取出的场景、角色、道具和服装候选。</div>
+          <div className="text-xs text-slate-500 mt-1">这里处理系统提取出的场景、角色、道具和服装候选。</div>
         </div>
       </div>
       <div className="space-y-4">

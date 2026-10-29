@@ -1,0 +1,112 @@
+{
+  "date": "2026-10-29",
+  "scope": "feature register integrity and generated document consistency only",
+  "status": "passed",
+  "checks": [
+    {
+      "name": "valid_register",
+      "passed": true
+    },
+    {
+      "name": "duplicate_feature_id",
+      "passed": true
+    },
+    {
+      "name": "unknown_requirement",
+      "passed": true
+    },
+    {
+      "name": "dependency_cycle",
+      "passed": true
+    },
+    {
+      "name": "unknown_dependency",
+      "passed": true
+    },
+    {
+      "name": "missing_code",
+      "passed": true
+    },
+    {
+      "name": "path_traversal",
+      "passed": true
+    },
+    {
+      "name": "absolute_private_path",
+      "passed": true
+    },
+    {
+      "name": "unscoped_evidence",
+      "passed": true
+    },
+    {
+      "name": "model_qualification_without_live_evidence",
+      "passed": true
+    },
+    {
+      "name": "software_qualification_without_current_evidence",
+      "passed": true
+    },
+    {
+      "name": "planned_feature_cannot_be_accepted",
+      "passed": true
+    },
+    {
+      "name": "planned_feature_cannot_be_deployed",
+      "passed": true
+    },
+    {
+      "name": "public_deployment_without_evidence",
+      "passed": true
+    },
+    {
+      "name": "public_deployment_rejects_loopback",
+      "passed": true
+    },
+    {
+      "name": "public_deployment_rejects_private_ip",
+      "passed": true
+    },
+    {
+      "name": "public_deployment_rejects_localhost",
+      "passed": true
+    },
+    {
+      "name": "public_deployment_rejects_local_domain",
+      "passed": true
+    },
+    {
+      "name": "public_deployment_rejects_embedded_credentials",
+      "passed": true
+    },
+    {
+      "name": "register_receipt_cannot_qualify_application",
+      "passed": true
+    },
+    {
+      "name": "generated_views_current",
+      "passed": true
+    },
+    {
+      "name": "generated_drift_rejected",
+      "passed": true
+    },
+    {
+      "name": "restored_views_current",
+      "passed": true
+    }
+  ],
+  "passed": 23,
+  "failed": 0,
+  "groups": 15,
+  "features": 64,
+  "source_sha256": "ac4e17194e3a837d5d73860b3297591d7e6f18a7ba408c7ed09e9030a0bc186c",
+  "generator_sha256": "3a2178f2ca3d5b4e09b295f0830b8a5dd6c8814caad56d04814eb2ac335200f2",
+  "command": "python scripts/features_check.py",
+  "application_qualified": false,
+  "model_qualified": false,
+  "deployment_qualified": false,
+  "external_model_calls": 0,
+  "private_database_access": false,
+  "independent_review": "pending"
+}

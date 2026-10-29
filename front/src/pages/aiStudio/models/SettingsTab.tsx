@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Alert, Card, Form, Select, InputNumber, Button, message } from 'antd'
+import { Alert, Form, Select, InputNumber, Button, Skeleton, message } from 'antd'
 import { LlmService } from '../../../services/generated/services/LlmService'
 import type { ModelRead, ModelSettingsRead } from '../../../services/generated'
 
+/** Group default model choices and runtime parameters without changing the saved settings contract. */
 export default function SettingsTab() {
   const [settings, setSettings] = useState<ModelSettingsRead | null>(null)
   const [models, setModels] = useState<ModelRead[]>([])
@@ -69,15 +70,21 @@ export default function SettingsTab() {
   const videoModels = models.filter((m) => m.category === 'video')
 
   return (
-    <div className="flex-1 overflow-auto p-6 bg-gray-50">
-      <Card title="全局默认模型与参数" className="max-w-2xl" loading={loading}>
+    <div className="library-model-settings flex-1 overflow-auto">
+      <section className="library-panel library-settings-panel">
+        <header className="library-panel-heading">
+          <h2 className="library-section-title">全局默认模型与参数</h2>
+        </header>
+        <Skeleton loading={loading} active paragraph={{ rows: 8 }} className="p-6">
+        <Form form={form} layout="vertical" onFinish={handleSaveSettings}>
         <Alert
           type="info"
           showIcon
           className="mb-4"
           message="默认模型仅在本页面统一维护，模型列表页不再提供“设为默认”操作。"
         />
-        <Form form={form} layout="vertical" onFinish={handleSaveSettings}>
+          <section className="library-form-group">
+            <h3 className="library-section-title">默认模型</h3>
           <Form.Item name="default_text_model_id" label="默认文本生成模型">
             <Select
               allowClear
@@ -99,6 +106,9 @@ export default function SettingsTab() {
               options={videoModels.map((m) => ({ label: m.name, value: m.id }))}
             />
           </Form.Item>
+          </section>
+          <section className="library-form-group">
+            <h3 className="library-section-title">运行参数</h3>
           <Form.Item name="api_timeout" label="API 超时（秒）">
             <InputNumber min={5} max={300} className="w-full" />
           </Form.Item>
@@ -112,11 +122,13 @@ export default function SettingsTab() {
               ]}
             />
           </Form.Item>
+          </section>
           <Button type="primary" htmlType="submit" loading={settingsSaving}>
             保存设置
           </Button>
         </Form>
-      </Card>
+        </Skeleton>
+      </section>
     </div>
   )
 }

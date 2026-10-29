@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Alert,
   Button,
   Card,
   Col,
@@ -18,6 +19,8 @@ import {
 } from 'antd'
 import { ArrowLeftOutlined, CloseCircleOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons'
 import { FilmService, ScriptProcessingService } from '../../../../services/generated'
+import { useGenerationAvailability } from '../../../../hooks/useGenerationAvailability'
+import AssetImageGenerationPanel from './AssetImageGenerationPanel'
 import type { TaskStatus } from '../../../../services/generated'
 import { listTaskLinksNormalized } from '../../../../services/filmTaskLinks'
 import { buildFileDownloadUrl } from '../utils'
@@ -31,6 +34,7 @@ import { useTaskPageContext } from '../../components/taskPageContext'
 import { TASK_COPY } from '../../components/taskCopy'
 import { useLocation } from 'react-router-dom'
 import { useGenerationDraft } from '../../hooks/useGenerationDraft'
+import './LibraryPages.css'
 import {
   CHARACTER_PORTRAIT_ANALYSIS_RELATION_TYPE,
   COSTUME_INFO_ANALYSIS_RELATION_TYPE,
@@ -156,6 +160,7 @@ function getAssetNavigateRelationType(relationType: string): string | null {
   return null
 }
 
+/** Preserve asset preparation and image workflows within the shared themed editor. */
 export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseAssetImage>({
   assetId,
   missingAssetIdText,
@@ -171,6 +176,17 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
   createGenerationTask,
   onNavigate,
 }: AssetEditPageBaseProps<TAsset, TImage>) {
+  const scope = `${relationType}:${assetId ?? ''}`
+  const currentScope = useRef(scope)
+  currentScope.current = scope
+  const mounted = useRef(false)
+  const loadSequence = useRef(0)
+  const loadedScope = useRef('')
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false; loadSequence.current += 1 }
+  }, [])
+  const generation = useGenerationAvailability()
   const { options: projectStyleOptions, defaultVisualStyle, getDefaultStyle } = useProjectStyleOptions()
   const taskCopy = TASK_COPY.smartDetect
   const location = useLocation()
@@ -207,6 +223,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
     initialBase: { prompt: '' },
     initialContext: { imageId: null, images: [] },
     derive: async ({ base, context }) => {
+      if (!generation.available) throw new Error(generation.message)
       if (!assetId || !context.imageId) {
         throw new Error('asset image slot is required')
       }
@@ -217,6 +234,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
       }
     },
     submit: async ({ context, derived }) => {
+      if (!generation.available) throw new Error(generation.message)
       if (!assetId || !context.imageId) {
         throw new Error('asset image slot is required')
       }
@@ -292,10 +310,11 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
   )
   const smartDetectBusy = smartDetectLoading || !!smartDetectTask
 
-  const ensureImageSlots = useCallback(async (targetViewCount: number) => {
+  const ensureImageSlots = useCallback(async (targetViewCount: number, stillCurrent: () => boolean) => {
     if (!assetId) return []
 
     let current = await listImages(assetId)
+    if (!stillCurrent()) return []
 
     const byAngle = new Map<AssetViewAngle, TImage>()
     current.forEach((img) => {
@@ -308,14 +327,17 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
     let created = false
 
     for (const angle of requiredAngles) {
+      if (!stillCurrent()) return []
       if (!byAngle.get(angle)) {
         await createImageSlot(assetId, angle)
+        if (!stillCurrent()) return []
         created = true
       }
     }
 
     if (created) {
       current = await listImages(assetId)
+      if (!stillCurrent()) return []
     }
 
     return current
@@ -323,10 +345,20 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
 
   const loadData = useCallback(async () => {
     if (!assetId) return
+    const loadScope = `${relationType}:${assetId}`
+    if (!mounted.current || currentScope.current !== loadScope) return
+    const ticket = ++loadSequence.current
+    /** Reject results, slot work and messages from a superseded load, route or unmounted editor. */
+    const stillCurrent = () => mounted.current && currentScope.current === loadScope && loadSequence.current === ticket
 
+    if (loadedScope.current !== loadScope) {
+      loadedScope.current = loadScope
+      setAsset(null); setImages([])
+    }
     setLoading(true)
     try {
       const nextAsset = await getAsset(assetId)
+      if (!stillCurrent()) return
       if (!nextAsset) {
         message.error(`未找到${assetDisplayName}资产`)
         onNavigate(backTo, true)
@@ -346,14 +378,15 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
       const targetCount = clampViewCount(nextAsset.view_count)
       setFormViewCount(targetCount)
 
-      const imageRows = await ensureImageSlots(targetCount)
+      const imageRows = await ensureImageSlots(targetCount, stillCurrent)
+      if (!stillCurrent()) return
       setImages(imageRows)
     } catch {
-      message.error(`加载${assetDisplayName}资产失败`)
+      if (stillCurrent()) message.error(`加载${assetDisplayName}资产失败`)
     } finally {
-      setLoading(false)
+      if (stillCurrent()) setLoading(false)
     }
-  }, [assetId, assetDisplayName, backTo, defaultVisualStyle, ensureImageSlots, getAsset, getDefaultStyle, onNavigate])
+  }, [assetId, assetDisplayName, backTo, defaultVisualStyle, ensureImageSlots, getAsset, getDefaultStyle, onNavigate, relationType])
 
   useEffect(() => {
     void loadData()
@@ -408,6 +441,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
   }
 
   const handleSmartDetectMissing = async () => {
+    if (!generation.available) { message.info(generation.message); return }
     if (!assetId) return
     if (!smartDetectRelationEntityId) return
 
@@ -559,6 +593,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
   })
 
   const openPromptPreview = async (image: TImage) => {
+    if (!generation.available) { message.info(generation.message); return }
     if (!assetId) return
 
     try {
@@ -589,6 +624,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
   }
 
   const confirmGenerateWithPrompt = async () => {
+    if (!generation.available) { message.info(generation.message); return }
     if (!assetId || !promptPreviewImage) return
     const prompt = (promptPreviewDraft || '').trim()
     if (!prompt) {
@@ -732,21 +768,21 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
 
   if (!assetId) {
     return (
-      <Card>
+      <Card className="library-page">
         <Empty description={missingAssetIdText} />
       </Card>
     )
   }
 
   return (
-    <div className="space-y-4 h-full overflow-auto">
-      <Card>
+    <div className="library-page library-asset-edit h-full overflow-auto">
+      <header className="library-page-header">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Space>
+          <Space className="library-asset-heading">
             <Button icon={<ArrowLeftOutlined />} onClick={() => onNavigate(backTo)}>
               返回{assetDisplayName}资产
             </Button>
-            <Typography.Title level={5} style={{ margin: 0 }}>
+            <Typography.Title className="library-page-title" level={1} style={{ margin: 0 }}>
               {assetDisplayName}资产编辑
             </Typography.Title>
             {asset?.id ? <Tag>{asset.id}</Tag> : null}
@@ -755,9 +791,14 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
             刷新
           </Button>
         </div>
-      </Card>
+      </header>
+
+      {!generation.available && <Alert className="mb-4" type="info" showIcon message="原生成入口与智能检测尚未接通" description="演员、服装、场景和道具可使用下方“文本生成图片”独立流程；手工编辑、上传、历史图片选择与保存仍可使用。" />}
+      {asset && asset.id === assetId && images.length > 0 && ['actor_image', 'costume_image', 'scene_image', 'prop_image'].includes(relationType) && <AssetImageGenerationPanel key={assetId} kind={relationType.replace('_image', '') as 'actor' | 'costume' | 'scene' | 'prop'} assetId={assetId!} initialPrompt={`${asset.name}\n${asset.description ?? ''}`} onAdopted={() => void loadData()} />}
 
       <Collapse
+        className="library-asset-sections"
+        ghost
         defaultActiveKey={['base', 'views']}
         items={[
           {
@@ -768,14 +809,14 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
                 <Spin />
               </div>
             ) : (
-              <div className="space-y-3">
-                <div>
-                  <div className="text-gray-600 text-sm mb-1">名称</div>
-                  <Input value={formName} onChange={(e) => setFormName(e.target.value)} disabled={smartDetectBusy || savingBase} />
+              <div className="library-asset-base-grid">
+                <div className="library-field-span">
+                  <label htmlFor={`asset-${assetId}-name`} className="block library-secondary text-sm mb-1">名称</label>
+                  <Input id={`asset-${assetId}-name`} value={formName} onChange={(e) => setFormName(e.target.value)} disabled={smartDetectBusy || savingBase} />
                 </div>
-                <div>
+                <div className="library-field-span">
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <div className="text-gray-600 text-sm">描述</div>
+                      <label htmlFor={`asset-${assetId}-description`} className="library-secondary text-sm">描述</label>
                       {relationType === 'actor_image' ||
                       relationType === 'scene_image' ||
                       relationType === 'prop_image' ||
@@ -786,7 +827,8 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
                             size="small"
                             onClick={() => void handleSmartDetectMissing()}
                             loading={smartDetectLoading}
-                            disabled={Boolean(loading) || !!smartDetectTask}
+                            disabled={Boolean(loading) || !!smartDetectTask || !generation.available}
+                            title={!generation.available ? generation.message : undefined}
                           >
                             {smartDetectTask ? '检测中' : '智能检测'}
                           </Button>
@@ -805,6 +847,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
                       ) : null}
                     </div>
                   <Input.TextArea
+                    id={`asset-${assetId}-description`}
                     rows={4}
                     value={formDesc}
                     onChange={(e) => setFormDesc(e.target.value)}
@@ -812,12 +855,14 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
                   />
                 </div>
                 <div>
-                  <div className="text-gray-600 text-sm mb-1">标签（逗号分隔）</div>
-                  <Input value={formTags} onChange={(e) => setFormTags(e.target.value)} disabled={smartDetectBusy || savingBase} />
+                  <label htmlFor={`asset-${assetId}-tags`} className="block library-secondary text-sm mb-1">标签（逗号分隔）</label>
+                  <Input id={`asset-${assetId}-tags`} value={formTags} onChange={(e) => setFormTags(e.target.value)} disabled={smartDetectBusy || savingBase} />
                 </div>
                 <div>
-                  <div className="text-gray-600 text-sm mb-1">镜头数（仅可增加，最大 4）</div>
+                  <label htmlFor={`asset-${assetId}-views`} className="block library-secondary text-sm mb-1">镜头数（仅可增加，最大 4）</label>
                   <InputNumber
+                    id={`asset-${assetId}-views`}
+                    className="w-full"
                     min={minViewCount}
                     max={4}
                     precision={0}
@@ -826,8 +871,8 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
                     disabled={smartDetectBusy || savingBase}
                   />
                 </div>
-                <div>
-                  <div className="text-gray-600 text-sm mb-1">视觉风格</div>
+                <div className="library-field-span">
+                  <div className="library-secondary text-sm mb-1">视觉风格</div>
                   <ProjectVisualStyleAndStyleFields
                     disabled={smartDetectBusy || savingBase}
                     visual_style={formVisualStyle}
@@ -839,7 +884,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
                     }}
                   />
                 </div>
-                <Button type="primary" onClick={() => void handleSaveBaseInfo()} loading={savingBase || smartDetectLoading}>
+                <Button className="library-field-span" type="primary" onClick={() => void handleSaveBaseInfo()} loading={savingBase || smartDetectLoading}>
                   保存基础信息
                 </Button>
               </div>
@@ -865,7 +910,8 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
                           <Button
                             type="primary"
                             size="small"
-                            disabled={!slot.image}
+                            disabled={!slot.image || !generation.available}
+                            title={!generation.available ? generation.message : undefined}
                             loading={Boolean(slot.image && generatingByImageId[slot.image.id])}
                             onClick={() => slot.image && void openPromptPreview(slot.image)}
                           >
@@ -891,6 +937,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
       />
 
       <Modal
+        className="library-dialog"
         title="历史生成图片"
         open={historyOpen}
         onCancel={() => {
@@ -938,6 +985,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
       </Modal>
 
       <Modal
+        className="library-dialog"
         title="提示词内容预览"
         open={promptPreviewOpen}
         onCancel={() => {
@@ -947,6 +995,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
         okText="生成"
         cancelText="取消"
         confirmLoading={Boolean(promptPreviewImage && generatingByImageId[promptPreviewImage.id])}
+        okButtonProps={{ disabled: !generation.available, title: !generation.available ? generation.message : undefined }}
         onOk={() => void confirmGenerateWithPrompt()}
         destroyOnClose
         width={900}
@@ -958,9 +1007,9 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
         ) : (
           <div className="space-y-3">
             <div>
-              <div className="text-xs text-gray-500 mb-2">关联图片（参考图）</div>
+              <div className="text-xs library-muted mb-2">关联图片（参考图）</div>
               {promptPreviewRefFileIds.length === 0 ? (
-                <div className="text-xs text-gray-400">暂无关联图片</div>
+                <div className="text-xs library-muted">暂无关联图片</div>
               ) : (
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   <Image.PreviewGroup>
@@ -978,7 +1027,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
               )}
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-2">提示词（可编辑）</div>
+              <div className="text-xs library-muted mb-2">提示词（可编辑）</div>
               <Input.TextArea
                 rows={10}
                 value={promptPreviewDraft}
@@ -991,6 +1040,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
       </Modal>
 
       <Modal
+        className="library-dialog"
         title="智能检测：缺失信息"
         open={smartDetectOpen}
         onCancel={() => setSmartDetectOpen(false)}
@@ -1006,14 +1056,14 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
           <div className="space-y-4">
             <div className="space-y-2">
               {smartDetectIssues.length === 0 ? (
-                <div className="text-sm text-gray-600">未发现缺失信息。</div>
+                <div className="text-sm library-secondary">未发现缺失信息。</div>
               ) : (
-                <div className="text-sm text-gray-600">发现 {smartDetectIssues.length} 项可能缺失信息（建议参考下面优化后的描述）：</div>
+                <div className="text-sm library-secondary">发现 {smartDetectIssues.length} 项可能缺失信息（建议参考下面优化后的描述）：</div>
               )}
               {smartDetectIssues.length > 0 ? (
                 <div className="space-y-2">
                   {smartDetectIssues.map((it, idx) => (
-                    <div key={`${idx}_${it}`} className="text-sm text-gray-800">
+                    <div key={`${idx}_${it}`} className="text-sm library-ink">
                       {idx + 1}. {it}
                     </div>
                   ))}
@@ -1022,7 +1072,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
             </div>
 
             <div>
-              <div className="text-xs text-gray-500 mb-2">优化后的描述（可直接填入）</div>
+              <div className="text-xs library-muted mb-2">优化后的描述（可直接填入）</div>
               <Input.TextArea rows={6} value={smartDetectOptimizedDesc} readOnly />
             </div>
 

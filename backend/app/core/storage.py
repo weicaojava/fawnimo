@@ -1,8 +1,8 @@
-"""统一的对象存储封装（目前以 S3 兼容为主）。
+"""统一的本地/S3对象存储封装。
 
 设计目标：
 - 提供上传 / 下载 / 列表 / 详情 等基础能力；
-- 尽量不绑定具体云厂商，只依赖 S3 兼容协议；
+- 未配置云存储时使用私有本地目录，显式配置的 S3 保持兼容协议；
 - 在 FastAPI 异步环境下，避免阻塞事件循环：通过 anyio 在线程池中调用 boto3。
 """
 
@@ -19,9 +19,14 @@ from botocore.exceptions import ClientError
 from app.config import settings
 
 
+def uses_local_storage() -> bool:
+    """Keep explicit S3 configuration while allowing account-free local workspaces."""
+    return settings.storage_backend == "local" or (settings.storage_backend == "auto" and not settings.s3_bucket_name)
+
+
 @dataclass
 class StoredFileInfo:
-    """文件基础信息（供调用方在路由层自行封装为 Pydantic schema）。"""
+    """File metadata; local URLs are assigned through the owning file-ID API service."""
 
     key: str
     url: str
@@ -70,13 +75,17 @@ def _build_public_url(key: str) -> str:
 
 
 def init_storage() -> None:
-    """初始化对象存储（例如创建 bucket）。
+    """初始化当前存储后端：本地目录或 S3 bucket。
 
     说明：
     - 若 bucket 已存在则直接返回；
     - 若无权限/配置错误会抛出异常，便于在部署时尽早失败；
     - 对于部分 S3 兼容服务（MinIO 等），CreateBucket 的参数可能不同，这里尽量兼容常见情形。
     """
+    if uses_local_storage():
+        from pathlib import Path
+        Path(settings.local_storage_root).mkdir(parents=True, exist_ok=True)
+        return
     client = _build_s3_client()
     bucket = settings.s3_bucket_name
     if not bucket:
@@ -117,7 +126,7 @@ async def upload_file(
     content_type: str | None = None,
     extra_args: dict[str, Any] | None = None,
 ) -> StoredFileInfo:
-    """上传文件到 S3。
+    """上传文件到私有本地目录或已配置的 S3。
 
     参数：
     - key：逻辑 key（不需要带 base_path，会自动拼接）；
@@ -126,6 +135,9 @@ async def upload_file(
     - extra_args：透传给 boto3 的 ExtraArgs，如 {"ACL": "public-read"}。
     """
 
+    if uses_local_storage():
+        from app.core import local_storage
+        return StoredFileInfo(**await to_thread.run_sync(local_storage.upload, key, data, content_type))
     client = _build_s3_client()
     bucket = settings.s3_bucket_name
     if bucket is None:
@@ -152,7 +164,10 @@ async def upload_file(
 
 
 async def download_file(*, key: str) -> bytes:
-    """下载文件内容（整个对象读入内存）。"""
+    """Read actual object bytes; the local backend enforces its configured size limit."""
+    if uses_local_storage():
+        from app.core import local_storage
+        return await to_thread.run_sync(local_storage.download, key)
     client = _build_s3_client()
     bucket = settings.s3_bucket_name
     if bucket is None:
@@ -170,6 +185,9 @@ async def download_file(*, key: str) -> bytes:
 
 async def get_file_info(*, key: str) -> StoredFileInfo:
     """获取文件元信息（不下载内容）。"""
+    if uses_local_storage():
+        from app.core import local_storage
+        return StoredFileInfo(**await to_thread.run_sync(local_storage.info, key))
     client = _build_s3_client()
     bucket = settings.s3_bucket_name
     if bucket is None:
@@ -198,7 +216,10 @@ async def get_file_info(*, key: str) -> StoredFileInfo:
 
 
 async def list_files(*, prefix: str = "") -> list[StoredFileInfo]:
-    """根据前缀列出文件（最多一页，若需翻页可扩展）。"""
+    """List logical objects by prefix (bounded local results or one configured S3 page)."""
+    if uses_local_storage():
+        from app.core import local_storage
+        return [StoredFileInfo(**item) for item in await to_thread.run_sync(local_storage.list_objects, prefix)]
     client = _build_s3_client()
     bucket = settings.s3_bucket_name
     if bucket is None:
@@ -230,6 +251,10 @@ async def list_files(*, prefix: str = "") -> list[StoredFileInfo]:
 
 async def delete_file(*, key: str) -> None:
     """删除文件。"""
+    if uses_local_storage():
+        from app.core import local_storage
+        await to_thread.run_sync(local_storage.delete, key)
+        return
     client = _build_s3_client()
     bucket = settings.s3_bucket_name
     if bucket is None:

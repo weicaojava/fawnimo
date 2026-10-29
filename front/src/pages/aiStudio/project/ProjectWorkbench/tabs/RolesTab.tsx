@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Card, Button, Empty, Modal, Input, message, Space, Select, Pagination } from 'antd'
+import { Button, Empty, Modal, Input, message, Space, Select, Pagination } from 'antd'
+import { ProjectSection } from '../../ProjectSection'
 import { EditOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
@@ -56,6 +57,7 @@ function notifyShotAssetCreatedAndLinked(payload: {
   }
 }
 
+/** Keep existing collection actions in a readable project workspace. */
 export function RolesTab() {
   const { options: projectStyleOptions, defaultVisualStyle, getDefaultStyle } = useProjectStyleOptions()
   const navigate = useNavigate()
@@ -334,9 +336,10 @@ export function RolesTab() {
   }
 
   return (
-    <div className="h-full overflow-auto">
-      <Card
+    <div className="project-asset-tab">
+      <ProjectSection
         title="项目角色"
+        loading={loading}
         extra={
           <Space>
             <Button type="primary" icon={<PlusOutlined />} onClick={openNormalRoleCreate}>
@@ -411,7 +414,7 @@ export function RolesTab() {
                       演员：{actor?.name ?? c.actor_id}
                     </div>
                     <div className="text-xs text-gray-500 truncate">
-                      服装：{costume?.name ?? (c.costume_id ?? '—')}
+                      服装：{costume?.name ?? (c.costume_id ?? '未关联')}
                     </div>
                   </div>
                 }
@@ -433,7 +436,7 @@ export function RolesTab() {
             </div>
           </div>
         )}
-      </Card>
+      </ProjectSection>
 
       <Modal
         title="新建角色"

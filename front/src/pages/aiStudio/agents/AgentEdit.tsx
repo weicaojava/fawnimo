@@ -1,313 +1,142 @@
-import React, { useEffect, useState } from 'react'
-import {
-  Layout,
-  Button,
-  Input,
-  Select,
-  Space,
-  Tabs,
-  InputNumber,
-  Slider,
-  message,
-} from 'antd'
-import {
-  ArrowLeftOutlined,
-  SaveOutlined,
-  ThunderboltOutlined,
-  HistoryOutlined,
-  PlayCircleOutlined,
-  PlusOutlined,
-  SettingOutlined,
-} from '@ant-design/icons'
-import { useParams, useNavigate } from 'react-router-dom'
-import api from '../../../services/aiStudioApi'
-import type { Agent, AgentTypeKey } from '../../../mocks/data'
+import { useEffect, useState } from 'react'
+import { Alert, Button, Input, InputNumber, List, Modal, Select, Slider, Space, Tag, message } from 'antd'
+import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, DownloadOutlined, HistoryOutlined, PlusOutlined, SaveOutlined, ThunderboltOutlined } from '@ant-design/icons'
+import { useNavigate, useParams } from 'react-router-dom'
+import { AgentsService } from '../../../services/generated'
+import type { AgentConfigRead, AgentConfigCreate, AgentConfigRevisionRead, AgentNode } from '../../../services/generated'
+import { agentError, downloadAgentConfig } from './agentConfigIO'
+import AgentRunsPanel from './AgentRunsPanel'
+import '../assets/components/LibraryPages.css'
 
-const AGENT_TYPES: { value: AgentTypeKey; label: string }[] = [
-  { value: 'plot', label: '剧情提取' },
-  { value: 'character', label: '角色提取' },
-  { value: 'scene', label: '场景提取' },
-  { value: 'prop', label: '道具提取' },
-  { value: 'other', label: '其他类型' },
-]
+const TYPES: { value: AgentConfigRead['type']; label: string }[] = [{ value: 'plot', label: '剧情提取' }, { value: 'character', label: '角色提取' }, { value: 'scene', label: '场景提取' }, { value: 'prop', label: '道具提取' }, { value: 'other', label: '其他类型' }]
 
+/** Persist every exposed Agent setting and real workflow revision without simulated execution. */
 export default function AgentEdit() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [agent, setAgent] = useState<Agent | null>(null)
+  const [draft, setDraft] = useState<AgentConfigRead | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [testing, setTesting] = useState(false)
-  const [editName, setEditName] = useState('')
-  const [editType, setEditType] = useState<AgentTypeKey>('plot')
-  const [editDesc, setEditDesc] = useState('')
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
-  const [testInput, setTestInput] = useState('')
-  const [testOutput, setTestOutput] = useState('')
-  const [testLogs, setTestLogs] = useState<string[]>([])
-  const [testPanelCollapsed, setTestPanelCollapsed] = useState(false)
-  const [promptDraft, setPromptDraft] = useState('')
-  const [temperature, setTemperature] = useState(0.7)
-  const [topP, setTopP] = useState(0.9)
-  const [testTab, setTestTab] = useState<'output' | 'history'>('output')
+  const [error, setError] = useState('')
+  const [dirty, setDirty] = useState(false)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>('llm1')
+  const [history, setHistory] = useState<AgentConfigRevisionRead[]>([])
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
 
+  /** Load saved fields as returned, rather than replacing the prompt with a preset value. */
   const load = async () => {
     if (!id) return
-    setLoading(true)
+    setLoading(true); setError('')
     try {
-      const a = await api.agents.get(id)
-      setAgent(a)
-      setEditName(a.name)
-      setEditType(a.type)
-      setEditDesc(a.description)
-      setPromptDraft('从以下剧本中提取主线剧情，输出结构化 JSON。')
-    } catch {
-      message.error('加载 Agent 失败')
-      navigate('/agents')
-    } finally {
-      setLoading(false)
-    }
+      const response = await AgentsService.getAgentConfig({ agentId: id })
+      if (!response.data) throw new Error()
+      setDraft(response.data); setDirty(false)
+      setSelectedNodeId(response.data.workflow?.find(node => node.type === 'llm')?.id ?? null)
+    } catch (failure) { setError(agentError(failure, '加载 Agent 配置失败')) }
+    finally { setLoading(false) }
+  }
+  useEffect(() => { void load() }, [id])
+  useEffect(() => { if (draft && window.location.hash === '#agent-execution') document.getElementById('agent-execution')?.scrollIntoView({ block: 'start' }) }, [draft?.id])
+
+  /** Keep editable form fields together so each save persists a complete validated draft. */
+  const change = (values: Partial<AgentConfigRead>) => { setDraft(previous => previous ? { ...previous, ...values } : null); setDirty(true) }
+  const selectedNode = draft?.workflow?.find(node => node.id === selectedNodeId)
+
+  /** Update a selected node without discarding sibling nodes or global Agent defaults. */
+  const changeNode = (values: Partial<AgentNode>) => {
+    if (!draft || !selectedNodeId) return
+    change({ workflow: draft.workflow?.map(node => node.id === selectedNodeId ? { ...node, ...values } : node) })
   }
 
-  useEffect(() => {
-    void load()
-  }, [id])
-
-  const handleSave = async () => {
-    if (!id) return
+  /** Submit saved fields with the displayed version to avoid overwriting another editor. */
+  const save = async (restored?: AgentConfigCreate) => {
+    if (!id || !draft) return
+    if (!draft.name.trim() && !restored) { message.warning('请输入名称'); return }
     setSaving(true)
     try {
-      await api.agents.update(id, {
-        name: editName.trim(),
-        type: editType,
-        description: editDesc.trim(),
-      })
-      message.success('保存成功')
-      setAgent((prev) => (prev ? { ...prev, name: editName, type: editType, description: editDesc } : null))
-    } catch {
-      message.error('保存失败')
-    } finally {
-      setSaving(false)
-    }
+      const body = restored ?? { name: draft.name.trim(), type: draft.type, description: draft.description, is_default: draft.is_default, is_favorite: draft.is_favorite, prompt: draft.prompt, temperature: draft.temperature, top_p: draft.top_p, parameters: draft.parameters, workflow: draft.workflow }
+      const response = await AgentsService.updateAgentConfig({ agentId: id, requestBody: { ...body, expected_version: draft.version } })
+      if (!response.data) throw new Error()
+      setDraft(response.data); setDirty(false); setHistoryOpen(false); message.success('配置已保存')
+    } catch (failure) { message.error(agentError(failure, '保存失败，修改仍保留在当前表单')) }
+    finally { setSaving(false) }
   }
 
-  const handleRunTest = async () => {
-    setTesting(true)
-    setTestLogs([])
-    setTestOutput('')
-    try {
-      setTestLogs((l) => [...l, '[INFO] 开始执行...', '[INFO] 调用 LLM 节点...'])
-      await new Promise((r) => setTimeout(r, 1200))
-      setTestLogs((l) => [...l, '[OK] 提取完成'])
-      setTestOutput(
-        JSON.stringify(
-          {
-            plot_points: ['开场：出租屋争吵', '发展：身份证丢失', '高潮：雨夜寻找'],
-            summary: '基于剧本提取的主线剧情摘要。',
-          },
-          null,
-          2
-        )
-      )
-    } catch {
-      setTestLogs((l) => [...l, '[ERROR] 执行失败'])
-      message.error('测试执行失败')
-    } finally {
-      setTesting(false)
-    }
+  /** Inspect actual stored revisions, leaving unsaved edits intact until an explicit restore. */
+  const openHistory = async () => {
+    if (!id) return
+    setHistoryOpen(true); setHistoryLoading(true)
+    try { const response = await AgentsService.listAgentConfigRevisions({ agentId: id }); setHistory(response.data ?? []) }
+    catch (failure) { message.error(agentError(failure, '加载版本历史失败')) }
+    finally { setHistoryLoading(false) }
   }
 
-  // 简易工作流占位节点（后续可替换为 React Flow）
-  const workflowNodes = [
-    { id: 'start', label: '开始', type: 'start' },
-    { id: 'llm1', label: 'LLM 提取', type: 'llm' },
-    { id: 'end', label: '结束', type: 'end' },
-  ]
-
-  if (loading || !agent) {
-    return (
-      <div className="flex items-center justify-center h-full text-gray-500">
-        {loading ? '加载中...' : null}
-      </div>
-    )
+  /** Insert a real editable LLM node before the fixed ending, within the server's node limit. */
+  const addNode = () => {
+    if (!draft) return
+    const workflow = draft.workflow ?? []
+    if (workflow.length >= 32) { message.warning('最多支持 32 个节点'); return }
+    const node: AgentNode = { id: crypto.randomUUID(), type: 'llm', label: `LLM 提取 ${workflow.length - 1}`, prompt: '', temperature: draft.temperature ?? .7, top_p: draft.top_p ?? .9 }
+    change({ workflow: [...workflow.slice(0, -1), node, workflow[workflow.length - 1]] })
+    setSelectedNodeId(node.id)
   }
 
-  return (
-    <Layout className="h-full flex flex-col" style={{ minHeight: 0 }}>
-      {/* 顶部工具栏 */}
-      <div className="flex-shrink-0 flex flex-wrap items-center gap-2 px-4 py-2 border-b border-gray-200 bg-white">
-        <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/agents')}>
-          返回列表
-        </Button>
-        <Input
-          value={editName}
-          onChange={(e) => setEditName(e.target.value)}
-          className="font-medium w-48"
-          placeholder="Agent 名称"
-        />
-        <Select
-          value={editType}
-          onChange={setEditType}
-          options={AGENT_TYPES}
-          style={{ width: 140 }}
-        />
-        <Space className="ml-auto">
-          <Button icon={<HistoryOutlined />}>版本管理</Button>
-          <Button icon={<ThunderboltOutlined />} loading={testing} onClick={() => void handleRunTest()}>
-            测试
-          </Button>
-          <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={() => void handleSave()}>
-            保存
-          </Button>
+  /** Reorder intermediate nodes while keeping start and end at their required positions. */
+  const moveNode = (direction: number) => {
+    if (!draft || !selectedNode) return
+    const workflow = [...(draft.workflow ?? [])]
+    const index = workflow.findIndex(node => node.id === selectedNodeId)
+    const next = index + direction
+    if (index <= 0 || index >= workflow.length - 1 || next <= 0 || next >= workflow.length - 1) return
+    ;[workflow[index], workflow[next]] = [workflow[next], workflow[index]]
+    change({ workflow })
+  }
+
+  /** Download the latest saved configuration, making unsaved-form behavior explicit. */
+  const exportConfig = async () => {
+    if (!id || !draft) return
+    try { const response = await AgentsService.exportAgentConfig({ agentId: id }); if (!response.data) throw new Error(); downloadAgentConfig(response.data, draft.name) }
+    catch (failure) { message.error(agentError(failure, '导出失败')) }
+  }
+
+  if (loading) return <div className="library-page">加载中…</div>
+  if (!draft) return <div className="library-page"><Alert type="error" message={error || 'Agent 配置不存在'} action={<Button onClick={() => void load()}>重试</Button>} /><Button onClick={() => navigate('/agents')}>返回列表</Button></div>
+
+  return <div className="library-page library-management library-agent-editor">
+    <header className="library-management-header">
+      <div className="flex items-center justify-between gap-4 flex-wrap"><h1 className="library-page-title">{draft.name}</h1><Space wrap><Tag>已保存版本 {draft.version}</Tag>{dirty && <Tag color="orange">有未保存修改</Tag>}</Space></div>
+    </header>
+    <div className="library-editor-toolbar"><Space wrap>
+      <Button icon={<ArrowLeftOutlined />} onClick={() => dirty ? Modal.confirm({ title: '离开前放弃未保存修改？', onOk: () => navigate('/agents') }) : navigate('/agents')}>返回列表</Button>
+      <Button icon={<HistoryOutlined />} onClick={() => void openHistory()}>版本管理</Button>
+      <Button icon={<DownloadOutlined />} onClick={() => void exportConfig()} title={dirty ? '导出当前已保存版本，不包含未保存修改' : '导出已保存配置'}>导出配置</Button>
+      <Button icon={<CopyOutlined />} onClick={() => Modal.confirm({ title: '复制当前已保存版本？', content: '未保存修改不会包含在副本中。', onOk: async () => { try { const response = await AgentsService.copyAgentConfig({ agentId: id! }); if (response.data) navigate(`/agents/${response.data.id}/edit`) } catch (failure) { message.error(agentError(failure, '复制失败')) } } })}>复制配置</Button>
+      <Button icon={<ThunderboltOutlined />} onClick={() => document.getElementById('agent-execution')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>执行与记录</Button>
+      <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={() => void save()}>保存</Button>
+    </Space></div>
+    <Alert className="library-notice" type="info" showIcon message="配置编辑与真实执行分别操作" description="先保存配置，再在下方选择文本模型并确认执行。执行记录包含每个节点的真实输入输出；未配置模型时仍可保存与管理配置。" />
+    <div className="library-data-region">
+      <section className="library-form-group"><h2 className="library-section-title">基础配置</h2><Space direction="vertical" className="w-full" size="middle">
+        <label htmlFor="agent-name">名称</label><Input id="agent-name" value={draft.name} maxLength={255} onChange={event => change({ name: event.target.value })} />
+        <label htmlFor="agent-type">类型</label><Select id="agent-type" className="w-full" value={draft.type} options={TYPES} onChange={type => change({ type })} />
+        <label htmlFor="agent-description">描述</label><Input.TextArea id="agent-description" value={draft.description} maxLength={8000} rows={2} onChange={event => change({ description: event.target.value })} />
+        <label htmlFor="agent-prompt">Agent 提示词</label><Input.TextArea id="agent-prompt" aria-label="Agent 提示词" value={draft.prompt} maxLength={64000} rows={5} onChange={event => change({ prompt: event.target.value })} />
+        <label>新增节点默认温度 {draft.temperature}</label><Slider aria-label="默认温度" min={0} max={2} step={.1} value={draft.temperature} onChange={temperature => change({ temperature })} />
+        <label>新增节点默认 Top-P {draft.top_p}</label><Slider aria-label="默认 Top-P" min={0} max={1} step={.05} value={draft.top_p} onChange={top_p => change({ top_p })} />
+        {draft.type === 'plot' && <label>主线保留阈值 <InputNumber aria-label="主线保留阈值" min={0} max={1} step={.1} value={draft.parameters?.plot_threshold ?? .5} onChange={value => value !== null && change({ parameters: { ...draft.parameters, plot_threshold: value } })} /></label>}
+        {draft.type === 'character' && <label>角色数量上限 <InputNumber aria-label="角色数量上限" min={1} max={100} value={draft.parameters?.character_limit ?? 20} onChange={value => value !== null && change({ parameters: { ...draft.parameters, character_limit: value } })} /></label>}
+      </Space></section>
+      <section className="library-form-group"><div className="flex items-center justify-between gap-4 flex-wrap"><h2 className="library-section-title">工作流配置</h2><Button icon={<PlusOutlined />} onClick={addNode}>添加节点</Button></div>
+        <Space direction="vertical" className="w-full" size="middle">
+          <Space wrap>{draft.workflow?.map((node, index) => <Button key={node.id} className="library-workflow-node" aria-pressed={selectedNodeId === node.id} onClick={() => setSelectedNodeId(node.id)}>{index + 1}. {node.label}</Button>)}</Space>
+          {selectedNode && <Space direction="vertical" className="w-full" size="middle"><label htmlFor="agent-node-label">节点名称</label><Input id="agent-node-label" maxLength={80} value={selectedNode.label} onChange={event => changeNode({ label: event.target.value })} />
+            {selectedNode.type === 'llm' && <><label htmlFor="agent-node-prompt">节点提示词</label><Input.TextArea id="agent-node-prompt" aria-label="节点提示词" rows={5} maxLength={32000} value={selectedNode.prompt} onChange={event => changeNode({ prompt: event.target.value })} /><label>节点温度 {selectedNode.temperature}</label><Slider aria-label="节点温度" min={0} max={2} step={.1} value={selectedNode.temperature} onChange={temperature => changeNode({ temperature })} /><label>节点 Top-P {selectedNode.top_p}</label><Slider aria-label="节点 Top-P" min={0} max={1} step={.05} value={selectedNode.top_p} onChange={top_p => changeNode({ top_p })} /><Space><Button onClick={() => moveNode(-1)}>上移</Button><Button onClick={() => moveNode(1)}>下移</Button><Button danger icon={<DeleteOutlined />} onClick={() => { change({ workflow: draft.workflow?.filter(node => node.id !== selectedNode.id) }); setSelectedNodeId(null) }}>删除节点</Button></Space></>}
+          </Space>}
         </Space>
-      </div>
-
-      {/* 双栏：工作流 + 属性 */}
-      <Layout className="flex-1 min-h-0 flex-row overflow-hidden">
-        {/* 左侧：工作流编辑器占位 */}
-        <div className="flex-1 min-w-0 overflow-auto p-4 bg-gray-50 border-r border-gray-200">
-          <div className="text-sm text-gray-500 mb-2">工作流编排（可接入 React Flow）</div>
-          <div className="relative rounded-lg border-2 border-dashed border-gray-300 bg-white p-6 min-h-[320px]">
-            <div className="flex flex-col items-center gap-4">
-              {workflowNodes.map((node, i) => (
-                <React.Fragment key={node.id}>
-                  <div
-                    className={`px-4 py-2 rounded-lg border-2 cursor-pointer transition-colors ${
-                      selectedNodeId === node.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-300 bg-white hover:border-gray-400'
-                    }`}
-                    onClick={() => setSelectedNodeId(selectedNodeId === node.id ? null : node.id)}
-                  >
-                    <span className="font-medium">{node.label}</span>
-                    <span className="ml-2 text-xs text-gray-400">({node.type})</span>
-                  </div>
-                  {i < workflowNodes.length - 1 && (
-                    <div className="w-0.5 h-6 bg-gray-300" />
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-            <div className="absolute bottom-3 right-3 flex gap-2">
-              <Button size="small" icon={<PlusOutlined />}>
-                添加节点
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* 右侧：节点属性配置 */}
-        <div className="w-96 flex-shrink-0 overflow-auto border-l border-gray-200 bg-white">
-          <div className="p-4 border-b border-gray-100 font-medium flex items-center gap-2">
-            <SettingOutlined />
-            节点属性
-          </div>
-          <div className="p-4 space-y-4">
-            {selectedNodeId ? (
-              <>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">提示词</label>
-                  <Input.TextArea
-                    rows={6}
-                    value={promptDraft}
-                    onChange={(e) => setPromptDraft(e.target.value)}
-                    placeholder="输入系统提示词..."
-                    className="font-mono text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">温度 (Temperature)</label>
-                  <Slider min={0} max={2} step={0.1} value={temperature} onChange={setTemperature} />
-                  <span className="text-xs text-gray-400">{temperature}</span>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Top-P</label>
-                  <Slider min={0} max={1} step={0.05} value={topP} onChange={setTopP} />
-                  <span className="text-xs text-gray-400">{topP}</span>
-                </div>
-                {agent.type === 'plot' && (
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">主线保留阈值</label>
-                    <InputNumber min={0} max={1} step={0.1} defaultValue={0.5} className="w-full" />
-                  </div>
-                )}
-                {agent.type === 'character' && (
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">角色数量上限</label>
-                    <InputNumber min={1} max={100} defaultValue={20} className="w-full" />
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-gray-500 text-sm">在左侧点击节点以编辑属性</div>
-            )}
-          </div>
-        </div>
-      </Layout>
-
-      {/* 底部测试区 */}
-      <div
-        className="flex-shrink-0 border-t border-gray-200 bg-white flex flex-col"
-        style={{ height: testPanelCollapsed ? 48 : 280 }}
-      >
-        <div
-          className="flex items-center justify-between px-4 py-2 border-b border-gray-100 cursor-pointer"
-          onClick={() => setTestPanelCollapsed(!testPanelCollapsed)}
-        >
-          <Space>
-            <PlayCircleOutlined />
-            <span className="font-medium">测试区</span>
-          </Space>
-          <Button type="text" size="small">
-            {testPanelCollapsed ? '展开' : '收起'}
-          </Button>
-        </div>
-        {!testPanelCollapsed && (
-          <div className="flex-1 min-h-0 flex overflow-hidden">
-            <div className="w-1/2 flex flex-col border-r border-gray-100 p-3">
-              <div className="text-sm text-gray-500 mb-1">输入（剧本片段 / JSON）</div>
-              <Input.TextArea
-                placeholder="粘贴剧本或测试数据..."
-                value={testInput}
-                onChange={(e) => setTestInput(e.target.value)}
-                className="flex-1 font-mono text-sm resize-none"
-                rows={6}
-              />
-              <Button type="primary" icon={<ThunderboltOutlined />} loading={testing} className="mt-2" onClick={() => void handleRunTest()}>
-                运行
-              </Button>
-            </div>
-            <div className="w-1/2 flex flex-col overflow-hidden p-3">
-              <Tabs
-                activeKey={testTab}
-                onChange={(k) => setTestTab(k as 'output' | 'history')}
-                size="small"
-                items={[
-                  { key: 'output', label: '输出' },
-                  { key: 'history', label: '历史记录' },
-                ]}
-              />
-              {testTab === 'output' && (
-                <>
-                  <div className="text-xs text-gray-500 mb-1 overflow-auto flex-1 font-mono whitespace-pre-wrap bg-gray-50 p-2 rounded">
-                    {testLogs.length > 0 && (
-                      <div className="mb-2 text-gray-600">
-                        {testLogs.map((line, i) => (
-                          <div key={i}>{line}</div>
-                        ))}
-                      </div>
-                    )}
-                    {testOutput || '运行后在此显示结果'}
-                  </div>
-                </>
-              )}
-              {testTab === 'history' && (
-                <div className="text-gray-500 text-sm flex-1 overflow-auto">暂无历史测试记录</div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </Layout>
-  )
+      </section>
+      <AgentRunsPanel key={draft.id} agent={draft} dirty={dirty} />
+    </div>
+    <Modal open={historyOpen} title="已保存版本" onCancel={() => setHistoryOpen(false)} footer={null}><List loading={historyLoading} dataSource={history} renderItem={revision => <List.Item actions={[<Button key="restore" disabled={revision.version === draft.version || saving} onClick={() => Modal.confirm({ title: `恢复版本 ${revision.version} 的配置？`, content: '将创建新的保存版本，既有历史保留；当前未保存修改会被替换。', onOk: () => save(revision.document) })}>恢复此版</Button>]}><List.Item.Meta title={`版本 ${revision.version}`} description={new Date(revision.saved_at).toLocaleString()} /></List.Item>} /></Modal>
+  </div>
 }

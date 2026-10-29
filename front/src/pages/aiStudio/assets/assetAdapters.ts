@@ -14,6 +14,19 @@ type UpdateImagePayload = {
   format?: string | null
 }
 
+const pendingEmptySlots = new Map<string, Promise<void>>()
+
+/** Share one identity-only slot initialization across concurrent StrictMode mounts of the same asset. */
+function ensureEmptyImageSlot(kind: 'actor' | 'character' | 'scene' | 'prop' | 'costume', assetId: string, angle: string): Promise<void> {
+  const key = JSON.stringify([kind, assetId, 'LOW', angle])
+  const prior = pendingEmptySlots.get(key)
+  if (prior) return prior
+  const request = StudioEntitiesApi.createImage(kind, assetId, { view_angle: angle }).then(() => undefined)
+  pendingEmptySlots.set(key, request)
+  void request.finally(() => { if (pendingEmptySlots.get(key) === request) pendingEmptySlots.delete(key) }).catch(() => {})
+  return request
+}
+
 function normalizeUpdateImagePayload(payload: UpdateImagePayload): UpdateImagePayload {
   return {
     ...payload,
@@ -40,7 +53,7 @@ export const assetAdapters = {
       return (res.data?.items ?? []) as any[]
     },
     createImageSlot: async (id: string, angle) => {
-      await StudioEntitiesApi.createImage('character', id, { view_angle: angle })
+      await ensureEmptyImageSlot('character', id, angle)
     },
     updateImage: async (id: string, imageId: number, payload) => {
       await StudioEntitiesApi.updateImage('character', id, imageId, normalizeUpdateImagePayload(payload))
@@ -82,7 +95,7 @@ export const assetAdapters = {
       return (res.data?.items ?? []) as any[]
     },
     createImageSlot: async (id: string, angle) => {
-      await StudioEntitiesApi.createImage('actor', id, { view_angle: angle })
+      await ensureEmptyImageSlot('actor', id, angle)
     },
     updateImage: async (id: string, imageId: number, payload) => {
       await StudioEntitiesApi.updateImage('actor', id, imageId, normalizeUpdateImagePayload(payload))
@@ -124,7 +137,7 @@ export const assetAdapters = {
       return (res.data?.items ?? []) as any[]
     },
     createImageSlot: async (id: string, angle) => {
-      await StudioEntitiesApi.createImage('scene', id, { view_angle: angle })
+      await ensureEmptyImageSlot('scene', id, angle)
     },
     updateImage: async (id: string, imageId: number, payload) => {
       await StudioEntitiesApi.updateImage('scene', id, imageId, normalizeUpdateImagePayload(payload))
@@ -168,7 +181,7 @@ export const assetAdapters = {
       return (res.data?.items ?? []) as any[]
     },
     createImageSlot: async (id: string, angle) => {
-      await StudioEntitiesApi.createImage('prop', id, { view_angle: angle })
+      await ensureEmptyImageSlot('prop', id, angle)
     },
     updateImage: async (id: string, imageId: number, payload) => {
       await StudioEntitiesApi.updateImage('prop', id, imageId, normalizeUpdateImagePayload(payload))
@@ -212,7 +225,7 @@ export const assetAdapters = {
       return (res.data?.items ?? []) as any[]
     },
     createImageSlot: async (id: string, angle) => {
-      await StudioEntitiesApi.createImage('costume', id, { view_angle: angle })
+      await ensureEmptyImageSlot('costume', id, angle)
     },
     updateImage: async (id: string, imageId: number, payload) => {
       await StudioEntitiesApi.updateImage('costume', id, imageId, normalizeUpdateImagePayload(payload))

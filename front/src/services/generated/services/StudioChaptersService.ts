@@ -3,9 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResponse_ChapterRead_ } from '../models/ApiResponse_ChapterRead_';
+import type { ApiResponse_ChapterTextHistoryRead_ } from '../models/ApiResponse_ChapterTextHistoryRead_';
+import type { ApiResponse_ChapterTextState_ } from '../models/ApiResponse_ChapterTextState_';
 import type { ApiResponse_NoneType_ } from '../models/ApiResponse_NoneType_';
 import type { ApiResponse_PaginatedData_ChapterRead__ } from '../models/ApiResponse_PaginatedData_ChapterRead__';
 import type { ChapterCreate } from '../models/ChapterCreate';
+import type { ChapterTextRestore } from '../models/ChapterTextRestore';
+import type { ChapterTextSave } from '../models/ChapterTextSave';
 import type { ChapterUpdate } from '../models/ChapterUpdate';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -141,6 +145,91 @@ export class StudioChaptersService {
             path: {
                 'chapter_id': chapterId,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * 读取章节真实文本历史
+     * Return only persisted revisions; current legacy text is not presented as invented history.
+     * @returns ApiResponse_ChapterTextHistoryRead_ Successful Response
+     * @throws ApiError
+     */
+    public static listChapterTextHistoryApiV1StudioChaptersChapterIdTextHistoryGet({
+        chapterId,
+        page = 1,
+        pageSize = 20,
+    }: {
+        chapterId: string,
+        page?: number,
+        pageSize?: number,
+    }): CancelablePromise<ApiResponse_ChapterTextHistoryRead_> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/studio/chapters/{chapter_id}/text-history',
+            path: {
+                'chapter_id': chapterId,
+            },
+            query: {
+                'page': page,
+                'page_size': pageSize,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * 保存章节文本新修订
+     * Save at the visible revision, preserving both history and unsaved conflict recovery.
+     * @returns ApiResponse_ChapterTextState_ Successful Response
+     * @throws ApiError
+     */
+    public static saveChapterTextRevisionApiV1StudioChaptersChapterIdTextHistoryPost({
+        chapterId,
+        requestBody,
+    }: {
+        chapterId: string,
+        requestBody: ChapterTextSave,
+    }): CancelablePromise<ApiResponse_ChapterTextState_> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/studio/chapters/{chapter_id}/text-history',
+            path: {
+                'chapter_id': chapterId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * 恢复章节历史为新修订
+     * Restore a revision from this chapter without deleting subsequent history.
+     * @returns ApiResponse_ChapterTextState_ Successful Response
+     * @throws ApiError
+     */
+    public static restoreChapterTextRevisionApiV1StudioChaptersChapterIdTextHistoryRevisionRestorePost({
+        chapterId,
+        revision,
+        requestBody,
+    }: {
+        chapterId: string,
+        revision: number,
+        requestBody: ChapterTextRestore,
+    }): CancelablePromise<ApiResponse_ChapterTextState_> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/studio/chapters/{chapter_id}/text-history/{revision}/restore',
+            path: {
+                'chapter_id': chapterId,
+                'revision': revision,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

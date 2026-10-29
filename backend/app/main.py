@@ -43,7 +43,7 @@ async def http_exception_handler(request: Request, exc: Exception) -> JSONRespon
         code = 500
         message = "Internal server error"
     body = ApiResponse[None](code=code, message=message, data=None, meta=None).model_dump()
-    return JSONResponse(status_code=code, content=body)
+    return JSONResponse(status_code=code, content=body, headers=exc.headers if isinstance(exc, HTTPException) else None)
 
 
 async def validation_exception_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -94,20 +94,52 @@ async def lifespan(app: FastAPI):
         from app.core.db import async_session_maker
         local_export_worker=LocalExportWorker(async_session_maker,settings.production_probe_executable)
     app.state.local_export_worker=local_export_worker
+    transition_export_worker = None
+    if local_export_worker is not None:
+        from app.core.db import async_session_maker
+        from app.services.editing.transition_exports import TransitionExportWorker
+        transition_export_worker = TransitionExportWorker(async_session_maker, settings.production_probe_executable)
+    app.state.transition_export_worker = transition_export_worker
     # Add the inert catalog only after migration checks succeed. Respect even an
     # explicitly injected None, and remove only the runtime this lifespan owns.
     owns_preparation_runtime=not hasattr(app.state,'execution_runtime')
     if owns_preparation_runtime:
         from app.core.db import async_session_maker
         from app.services.worker.seedance25_runtime import build_preparation_runtime
-        app.state.execution_runtime=build_preparation_runtime(async_session_maker)
+        from app.services.worker.workspace_video_runtime import build_workspace_video_runtime
+        configured_runtime, setup = build_workspace_video_runtime(async_session_maker, settings.video_runtime_config)
+        app.state.workspace_video_setup = setup
+        app.state.execution_runtime=configured_runtime or build_preparation_runtime(async_session_maker)
     runtime=getattr(app.state,'execution_runtime',None)
+    from app.core.db import async_session_maker
+    from app.services.agent_execution import AgentExecutionRuntime
+    agent_execution_runtime = AgentExecutionRuntime(async_session_maker)
+    app.state.agent_execution_runtime = agent_execution_runtime
+    from app.services.asset_image_generation import AssetImageGenerationRuntime
+    asset_image_generation_runtime = AssetImageGenerationRuntime(async_session_maker)
+    app.state.asset_image_generation_runtime = asset_image_generation_runtime
+    from app.services.video_understanding.runtime import UnderstandingWorker
+    understanding_worker = UnderstandingWorker(async_session_maker, settings.production_probe_executable,
+        enabled=settings.video_understanding_enabled, allow_remote=settings.video_understanding_allow_remote)
+    app.state.understanding_worker = understanding_worker
     try:
         if runtime is not None:await runtime.start()
+        await agent_execution_runtime.start()
+        await asset_image_generation_runtime.start()
+        await understanding_worker.start()
         if reverse_scanner is not None:await reverse_scanner.start()
         if local_export_worker is not None:await local_export_worker.start()
+        if transition_export_worker is not None:await transition_export_worker.start()
         yield
     finally:
+        await asset_image_generation_runtime.stop()
+        app.state.asset_image_generation_runtime = None
+        if transition_export_worker is not None:await transition_export_worker.stop()
+        app.state.transition_export_worker = None
+        await understanding_worker.stop()
+        app.state.understanding_worker = None
+        await agent_execution_runtime.stop()
+        app.state.agent_execution_runtime = None
         if local_export_worker is not None:await local_export_worker.stop()
         app.state.local_export_worker=None
         if reverse_scanner is not None:await reverse_scanner.stop()
@@ -124,6 +156,13 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+if settings.workspace_id is not None:
+    from app.core.workspace_boundary import TenantBoundaryMiddleware
+    if not settings.workspace_internal_token:
+        raise RuntimeError('Tenant processes require a gateway-owned internal token')
+    app.add_middleware(TenantBoundaryMiddleware, workspace_id=settings.workspace_id,
+                       internal_token=settings.workspace_internal_token)
 
 # 统一错误响应格式：{ code, message, data: null }
 app.add_exception_handler(RequestValidationError, validation_exception_handler)

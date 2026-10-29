@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Alert,
   Layout,
@@ -14,6 +15,7 @@ import {
   Modal,
   Form,
   Select,
+  Switch,
   message,
   Tooltip,
   Empty,
@@ -33,6 +35,7 @@ import {
   ThunderboltOutlined,
 } from '@ant-design/icons'
 import { LlmService } from '../../../services/generated/services/LlmService'
+import ModelConnectionTestModal from './ModelConnectionTestModal'
 import type {
   ModelRead,
   ModelCategoryKey,
@@ -47,22 +50,38 @@ import {
   categoryLabelMap,
   categoryColorMap,
   SORT_OPTIONS,
+  initialManagementView,
 } from './constants'
 
+/** Browse model configuration while keeping generation qualification explicitly unverified. */
 export default function ModelsTab() {
+  const [searchParams] = useSearchParams()
+  const requestedModel = searchParams.get('connectionModel')
+  const requestedRun = searchParams.get('connectionRun')
   const [providers, setProviders] = useState<ProviderRead[]>([])
   const [supportedProviders, setSupportedProviders] = useState<ProviderSupportedRead[]>([])
   const [models, setModels] = useState<ModelRead[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<'updated' | 'name' | 'category'>('updated')
-  const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
+  const [viewMode, setViewMode] = useState<'table' | 'card'>(initialManagementView)
   const [selectedModel, setSelectedModel] = useState<ModelRead | null>(null)
   const [detailPanelOpen, setDetailPanelOpen] = useState(false)
   const [treeCollapsed, setTreeCollapsed] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<ModelCategoryKey | null>(null)
   const [modelModalOpen, setModelModalOpen] = useState(false)
   const [modelEditing, setModelEditing] = useState<ModelRead | null>(null)
+  const [testModel, setTestModel] = useState<ModelRead | null>(null)
+  useEffect(() => {
+    if (!requestedModel) return
+    let active = true
+    void LlmService.getModelApiV1LlmModelsModelIdGet({ modelId: requestedModel }).then(response => {
+      if (!active) return
+      if (!response.data || response.data.category !== 'text') { message.warning('此回跳入口仅查看文本模型连接测试，不会发起图片或视频生成'); return }
+      setTestModel(response.data)
+    }).catch(() => { if (active) message.warning('未找到回跳指定的模型；没有发起连接测试') })
+    return () => { active = false }
+  }, [requestedModel])
   const [providerOptionsLoading, setProviderOptionsLoading] = useState(true)
   const [form] = Form.useForm()
   const selectedFormCategory = Form.useWatch<ModelCategoryKey | undefined>('category', form)
@@ -185,10 +204,18 @@ export default function ModelsTab() {
       try {
         if (values.params && String(values.params).trim())
           params = JSON.parse(String(values.params))
+        if (!params || typeof params !== 'object' || Array.isArray(params)) throw new Error('Object required')
       } catch {
-        message.error('参数格式需为合法 JSON')
+        message.error('参数格式需为合法 JSON 对象，原参数尚未更改')
         return
       }
+      if (values.category === 'image' && values.local_image_generation) {
+        if (providers.find(provider => provider.id === values.provider_id)?.name.trim().toLowerCase() !== 'openai') {
+          message.error('本机单张图片生成需要配置 OpenAI-compatible 供应商；当前供应商协议不受支持')
+          return
+        }
+        params.asset_image_protocol = 'openai_b64_v1'
+      } else delete params.asset_image_protocol
       if (modelEditing) {
         await LlmService.updateModelApiV1LlmModelsModelIdPatch({
           modelId: modelEditing.id,
@@ -256,10 +283,11 @@ export default function ModelsTab() {
         provider_id: m.provider_id,
         description: m.description,
         params: JSON.stringify(m.params ?? {}, null, 2),
+        local_image_generation: m.params?.asset_image_protocol === 'openai_b64_v1',
       })
     } else {
       form.resetFields()
-      form.setFieldsValue({ category: 'text' })
+      form.setFieldsValue({ category: 'text', local_image_generation: false })
     }
     setModelModalOpen(true)
   }
@@ -274,6 +302,7 @@ export default function ModelsTab() {
       provider_id: source.provider_id,
       description: source.description ?? '',
       params: JSON.stringify(source.params ?? {}, null, 2),
+      local_image_generation: source.params?.asset_image_protocol === 'openai_b64_v1',
     })
     setModelModalOpen(true)
   }
@@ -283,6 +312,8 @@ export default function ModelsTab() {
       title: '名称',
       dataIndex: 'name',
       key: 'name',
+      width: 180,
+      fixed: 'left',
       ellipsis: true,
       render: (n) => <Space>{n}</Space>,
     },
@@ -292,7 +323,7 @@ export default function ModelsTab() {
       key: 'category',
       width: 100,
       render: (c: ModelCategoryKey) => (
-        <Tag color={categoryColorMap[c]}>{categoryLabelMap[c]}</Tag>
+        <Tag className="library-category-tag" color={categoryColorMap[c]}>{categoryLabelMap[c]}</Tag>
       ),
     },
     {
@@ -332,7 +363,7 @@ export default function ModelsTab() {
     {
       title: '操作',
       key: 'action',
-      width: 112,
+      width: 144,
       fixed: 'right',
       align: 'center',
       render: (_, record) => (
@@ -342,6 +373,7 @@ export default function ModelsTab() {
               type="text"
               size="small"
               className={TABLE_ACTION_BTN_EDIT_CLASS}
+              aria-label="编辑模型"
               icon={<EditOutlined />}
               onClick={(e) => {
                 e.stopPropagation()
@@ -349,14 +381,15 @@ export default function ModelsTab() {
               }}
             />
           </Tooltip>
-          <Tooltip title="模型测试尚未接入，生成资格尚未验证">
+          <Tooltip title={record.category === 'text' ? '查看历史或确认一次真实短文本连接测试' : '图片与视频生成资格需在对应生成流程验收'}>
             <span><Button
               type="text"
               size="small"
-              disabled
-              aria-label="模型生成资格尚未验证"
+              disabled={record.category !== 'text'}
+              aria-label={record.category === 'text' ? `连接测试 ${record.name}` : '模型生成资格尚未验证'}
               className={TABLE_ACTION_BTN_TEST_CLASS}
               icon={<ThunderboltOutlined />}
+              onClick={event => { event.stopPropagation(); setTestModel(record) }}
             /></span>
           </Tooltip>
           <Dropdown
@@ -390,6 +423,7 @@ export default function ModelsTab() {
                 type="text"
                 size="small"
                 className={TABLE_ACTION_BTN_MORE_CLASS}
+                aria-label="更多模型操作"
                 icon={<MenuOutlined />}
                 onClick={(e) => e.stopPropagation()}
               />
@@ -403,10 +437,10 @@ export default function ModelsTab() {
   return (
     <>
       {/* Model records and defaults must not imply a successful provider test. */}
-      <Alert type="info" showIcon message="模型生成资格尚未验证" description="本页仅维护模型配置，测试生成尚未接入。保存模型、选择默认模型或读取任务列表成功都不能证明真实生成资格。" className="flex-shrink-0" />
-      <div className="flex-shrink-0 px-4 py-2 border-b border-gray-100 bg-white flex flex-wrap items-center justify-between gap-2">
+      <Alert type="info" showIcon message="模型配置与文本连接测试" description="文本模型可确认发送一次最多 8 tokens 的真实连接测试，并保留结果。连接成功只证明文本 HTTP 响应；模型质量、图片与视频生成资格需分别验收。" className="library-notice flex-shrink-0" />
+      <div className="library-management-toolbar">
         <div className="flex items-center gap-2">
-          <span className="text-gray-600 text-sm">共 {models.length} 个模型</span>
+          <span className="library-secondary text-sm">共 {models.length} 个模型</span>
         </div>
         <Space wrap>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => openModelModal()}>
@@ -414,6 +448,7 @@ export default function ModelsTab() {
           </Button>
           <Input
             placeholder="搜索名称/类型"
+            aria-label="搜索模型名称或类型"
             allowClear
             className="w-48"
             value={search}
@@ -435,26 +470,28 @@ export default function ModelsTab() {
         </Space>
       </div>
 
-      <Layout className="flex-1 min-h-0 flex-row overflow-hidden">
+      <Layout className="library-split flex-1 min-h-0 flex-row overflow-hidden">
         <div
-          className="flex-shrink-0 border-r border-gray-200 bg-white overflow-auto"
+          className="library-filter-panel"
           style={{ width: treeCollapsed ? 48 : 200 }}
         >
           {treeCollapsed ? (
             <Button
               type="text"
               icon={<RightOutlined />}
+              aria-label="展开模型筛选"
               onClick={() => setTreeCollapsed(false)}
               className="w-full rounded-none"
             />
           ) : (
             <>
-              <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-700">筛选</span>
+              <div className="flex items-center justify-between px-3 py-2 border-b library-rule">
+                <span className="text-sm font-medium library-secondary">筛选</span>
                 <Button
                   type="text"
                   size="small"
                   icon={<RightOutlined rotate={180} />}
+                  aria-label="收起模型筛选"
                   onClick={() => setTreeCollapsed(true)}
                 />
               </div>
@@ -470,24 +507,28 @@ export default function ModelsTab() {
           )}
         </div>
 
-        <div className="flex-1 min-w-0 overflow-auto p-4 bg-gray-50">
-          <div className="flex justify-end gap-1 mb-2">
+        <div className="library-data-region">
+          <div className="library-view-switch" role="group" aria-label="模型显示方式">
             <Button
               type={viewMode === 'table' ? 'primary' : 'default'}
               size="small"
               icon={<UnorderedListOutlined />}
+              aria-label="列表视图"
+              aria-pressed={viewMode === 'table'}
               onClick={() => setViewMode('table')}
             />
             <Button
               type={viewMode === 'card' ? 'primary' : 'default'}
               size="small"
               icon={<AppstoreOutlined />}
+              aria-label="卡片视图"
+              aria-pressed={viewMode === 'card'}
               onClick={() => setViewMode('card')}
             />
           </div>
 
           {modelList.length === 0 ? (
-            <Card>
+            <div className="library-empty">
               <Empty
                 description={
                   models.length === 0 ? '暂无模型，请先添加供应商再添加模型' : '无匹配结果'
@@ -499,9 +540,9 @@ export default function ModelsTab() {
                   </Button>
                 )}
               </Empty>
-            </Card>
+            </div>
           ) : viewMode === 'table' ? (
-            <Card>
+            <div className="library-table-wrap">
               <Table<ModelRead>
                 rowKey="id"
                 loading={loading}
@@ -510,26 +551,46 @@ export default function ModelsTab() {
                 scroll={{ x: 1024 }}
                 pagination={{ pageSize: 20 }}
                 onRow={(record) => ({
+                  tabIndex: 0,
+                  'aria-label': `查看模型${record.name}详情`,
                   onClick: () => {
                     setSelectedModel(record)
                     setDetailPanelOpen(true)
+                  },
+                  onKeyDown: (event) => {
+                    // Keep the existing pointer action available from the keyboard.
+                    if (event.target === event.currentTarget && event.key === 'Enter') {
+                      setSelectedModel(record)
+                      setDetailPanelOpen(true)
+                    }
                   },
                   style: { cursor: 'pointer' },
                 })}
                 size="small"
               />
-            </Card>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="library-card-grid">
               {modelList.map((m) => (
                 <Card
                   key={m.id}
                   hoverable
-                  className="cursor-pointer"
+                  className="library-record-card cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`查看模型${m.name}详情`}
                   style={{ minHeight: 220 }}
                   onClick={() => {
                     setSelectedModel(m)
                     setDetailPanelOpen(true)
+                  }}
+                  onKeyDown={(event) => {
+                    // Keep the existing pointer action available from the keyboard.
+                    if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                      event.preventDefault()
+                      setSelectedModel(m)
+                      setDetailPanelOpen(true)
+                    }
                   }}
                   actions={[
                     <Button
@@ -544,8 +605,8 @@ export default function ModelsTab() {
                     >
                       编辑
                     </Button>,
-                    <Button key="test" type="text" size="small" disabled icon={<ThunderboltOutlined />} title="模型测试尚未接入，生成资格尚未验证">
-                      未验证
+                    <Button key="test" type="text" size="small" disabled={m.category !== 'text'} icon={<ThunderboltOutlined />} title={m.category === 'text' ? '查看历史或发送一次短文本连接测试' : '图片与视频生成资格需分别验收'} onClick={event => { event.stopPropagation(); setTestModel(m) }}>
+                      {m.category === 'text' ? '连接测试' : '生成未验证'}
                     </Button>,
                     <Dropdown
                       key="more"
@@ -581,15 +642,15 @@ export default function ModelsTab() {
                   ]}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <Tag color={categoryColorMap[m.category]}>{categoryLabelMap[m.category]}</Tag>
+                    <Tag className="library-category-tag" color={categoryColorMap[m.category]}>{categoryLabelMap[m.category]}</Tag>
                   </div>
                   <div className="font-medium mb-1">{m.name}</div>
-                  <div className="text-gray-500 text-sm mb-1">
+                  <div className="library-muted text-sm mb-1">
                     供应商：{getProviderName(m.provider_id)}
                   </div>
-                  <div className="text-gray-500 text-sm line-clamp-2 mb-2">{m.description || '—'}</div>
+                  <div className="library-muted text-sm line-clamp-2 mb-2">{m.description || '—'}</div>
                   {m.created_by && (
-                    <span className="text-xs text-gray-400">创建：{m.created_by}</span>
+                    <span className="text-xs library-muted">创建：{m.created_by}</span>
                   )}
                 </Card>
               ))}
@@ -599,10 +660,10 @@ export default function ModelsTab() {
 
         {selectedModel && isLargeScreen && (
           <div
-            className="flex-shrink-0 overflow-auto border-l border-gray-200 bg-white"
+            className="library-detail-panel"
             style={{ width: '36%', minWidth: 320 }}
           >
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="p-4 border-b library-rule flex items-center justify-between">
               <span className="font-medium">详情</span>
               <Button
                 type="link"
@@ -617,22 +678,22 @@ export default function ModelsTab() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <div className="text-sm text-gray-500 mb-1">名称</div>
+                <div className="text-sm library-muted mb-1">名称</div>
                 <div className="font-medium">{selectedModel.name}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500 mb-1">类别</div>
-                <Tag color={categoryColorMap[selectedModel.category]}>
+                <div className="text-sm library-muted mb-1">类别</div>
+                <Tag className="library-category-tag" color={categoryColorMap[selectedModel.category]}>
                   {categoryLabelMap[selectedModel.category]}
                 </Tag>
               </div>
               <div>
-                <div className="text-sm text-gray-500 mb-1">关联供应商</div>
+                <div className="text-sm library-muted mb-1">关联供应商</div>
                 <div>{getProviderName(selectedModel.provider_id)}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500 mb-1">描述</div>
-                <div className="text-gray-700 text-sm">{selectedModel.description || '—'}</div>
+                <div className="text-sm library-muted mb-1">描述</div>
+                <div className="library-secondary text-sm">{selectedModel.description || '—'}</div>
               </div>
               <Space>
                 <Button
@@ -642,7 +703,7 @@ export default function ModelsTab() {
                 >
                   编辑
                 </Button>
-                <Button disabled icon={<ThunderboltOutlined />} title="模型测试尚未接入，生成资格尚未验证">生成资格未验证</Button>
+                <Button disabled={selectedModel.category !== 'text'} icon={<ThunderboltOutlined />} onClick={() => setTestModel(selectedModel)} title={selectedModel.category !== 'text' ? '图片与视频生成资格需分别验收' : undefined}>{selectedModel.category === 'text' ? '连接测试' : '生成资格未验证'}</Button>
               </Space>
             </div>
           </div>
@@ -650,6 +711,7 @@ export default function ModelsTab() {
 
         {selectedModel && !isLargeScreen && (
           <Drawer
+            className="library-dialog"
             title="详情"
             placement="right"
             open={detailPanelOpen}
@@ -658,12 +720,12 @@ export default function ModelsTab() {
           >
             <div className="space-y-4">
               <div>
-                <div className="text-sm text-gray-500 mb-1">名称</div>
+                <div className="text-sm library-muted mb-1">名称</div>
                 <div className="font-medium">{selectedModel.name}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500 mb-1">类别</div>
-                <Tag color={categoryColorMap[selectedModel.category]}>
+                <div className="text-sm library-muted mb-1">类别</div>
+                <Tag className="library-category-tag" color={categoryColorMap[selectedModel.category]}>
                   {categoryLabelMap[selectedModel.category]}
                 </Tag>
               </div>
@@ -675,14 +737,16 @@ export default function ModelsTab() {
                 >
                   编辑
                 </Button>
-                <Button disabled icon={<ThunderboltOutlined />} title="模型测试尚未接入，生成资格尚未验证">生成资格未验证</Button>
+                <Button disabled={selectedModel.category !== 'text'} icon={<ThunderboltOutlined />} onClick={() => setTestModel(selectedModel)} title={selectedModel.category !== 'text' ? '图片与视频生成资格需分别验收' : undefined}>{selectedModel.category === 'text' ? '连接测试' : '生成资格未验证'}</Button>
               </Space>
             </div>
           </Drawer>
         )}
       </Layout>
 
+      <ModelConnectionTestModal key={testModel?.id ?? 'no-test'} model={testModel} requestedRun={testModel?.id === requestedModel ? requestedRun : undefined} onClose={() => setTestModel(null)} />
       <Modal
+        className="library-dialog"
         title={modelEditing ? '编辑模型' : '添加模型'}
         open={modelModalOpen}
         onCancel={() => {
@@ -731,6 +795,7 @@ export default function ModelsTab() {
               message={unsupportedProviderWarning}
             />
           )}
+          {selectedFormCategory === 'image' && <><Form.Item name="local_image_generation" label="用于本机单张图片生成" valuePropName="checked"><Switch aria-label="用于本机单张图片生成" /></Form.Item><Alert className="mb-4" type="info" showIcon message="单张文本生图，返回图片内容" description="仅兼容支持此协议的 OpenAI-compatible 图片供应商。不接受只返回图片网址的响应，不发送人物参考图；打开开关与保存配置不会测试或调用模型。" /></>}
           <Form.Item name="params" label="参数（JSON）">
             <Input.TextArea rows={3} placeholder='{"max_tokens": 4096, "temperature": 0.7}' />
           </Form.Item>

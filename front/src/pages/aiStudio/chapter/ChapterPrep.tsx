@@ -1,3 +1,5 @@
+import { workspaceStorage } from '../../../services/workspaceContext'
+import './production.css'
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   Badge,
@@ -122,7 +124,7 @@ function extractMock(text: string): ExtractResults {
     title:
       i === 2 ? '两人对峙' :
         i === 5 ? '门口停顿' :
-          `段落推进 · ${i + 1}`,
+          `段落推进 / ${i + 1}`,
     preview:
       i === 0 ? '夜色下的老旧小区，路灯昏黄，情绪压着。' :
         i === 1 ? '出租屋内风扇吱呀作响，欠条摊在桌上。' :
@@ -291,7 +293,7 @@ const ChapterPrep: React.FC = () => {
   useEffect(() => {
     if (!projectId) return
     try {
-      const raw = window.localStorage.getItem(entitiesStorageKey(projectId))
+      const raw = workspaceStorage.getItem(entitiesStorageKey(projectId))
       const parsed = raw ? (JSON.parse(raw) as ExistingEntities) : null
       if (parsed && typeof parsed === 'object') {
         setExistingEntities({
@@ -308,7 +310,7 @@ const ChapterPrep: React.FC = () => {
   useEffect(() => {
     if (!projectId) return
     try {
-      window.localStorage.setItem(entitiesStorageKey(projectId), JSON.stringify(existingEntities))
+      workspaceStorage.setItem(entitiesStorageKey(projectId), JSON.stringify(existingEntities))
     } catch {
       // ignore
     }
@@ -612,13 +614,10 @@ const ChapterPrep: React.FC = () => {
   )
 
   return (
-    <Layout style={{ height: '100%', minHeight: 0, background: '#eef2f7' }}>
+    <Layout className="production-page" style={{ height: '100%', minHeight: 0 }}>
       <Header
+        className="production-page-header"
         style={{
-          padding: '0 16px',
-          background: '#fff',
-          borderBottom: '1px solid #e2e8f0',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
           display: 'flex',
           alignItems: 'center',
           gap: 12,
@@ -650,11 +649,11 @@ const ChapterPrep: React.FC = () => {
             />
           ) : (
             <div
-              className="font-medium text-gray-900 truncate cursor-pointer"
+              className="production-page-title font-medium text-gray-900 truncate cursor-pointer"
               title="双击编辑标题"
               onDoubleClick={() => setTitleEditing(true)}
             >
-              {chapter ? `第${chapter.index}章 · ${titleValue || chapter.title}` : '章节编辑'}
+              {chapter ? `第${chapter.index}章 / ${titleValue || chapter.title}` : '章节编辑'}
             </div>
           )}
           <div className="text-xs text-gray-500 flex items-center gap-1">
@@ -664,20 +663,20 @@ const ChapterPrep: React.FC = () => {
       </Header>
 
       <Content
+        className="production-page-content"
         style={{
-          padding: 16,
           minHeight: 0,
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
         }}
       >
-        <Card size="small" className="mb-3">
+        <Card size="small" className="production-stepper mb-3">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <Steps
               current={activeStep}
               onChange={setActiveStep}
-              className="flex-1 min-w-[520px]"
+              className="flex-1 min-w-0"
               items={[
                 { title: '智能提取' },
                 { title: '场景生成' },
@@ -724,9 +723,10 @@ const ChapterPrep: React.FC = () => {
             </Card>
 
             {/* 左导航 + 右详情 */}
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 12, overflow: 'hidden' }}>
+            <div className="production-workgrid" style={{ flex: 1, minHeight: 0, display: 'flex', gap: 12, overflow: 'hidden' }}>
               {/* 左侧导航 */}
               <Card
+                className="production-shot-rail"
                 style={{ width: 340, minWidth: 280, maxWidth: 420, height: '100%', overflow: 'hidden', flexShrink: 0 }}
                 bodyStyle={{ padding: 12, height: '100%', minHeight: 0, overflow: 'auto' }}
               >
@@ -764,12 +764,12 @@ const ChapterPrep: React.FC = () => {
                                 cursor: 'pointer',
                                 borderRadius: 10,
                                 padding: '8px 10px',
-                                background: selectedKind === 'storyboards' && selectedId === it.id ? 'rgba(59,130,246,0.10)' : undefined,
+                                background: selectedKind === 'storyboards' && selectedId === it.id ? 'var(--color-accent-soft)' : undefined,
                               }}
                             >
                               <div className="min-w-0">
                                 <div className="text-sm font-medium truncate">
-                                  {String(it.index).padStart(2, '0')} · {it.title}
+                                  {String(it.index).padStart(2, '0')} / {it.title}
                                 </div>
                                 <div className="text-xs text-gray-500 truncate">{it.preview}</div>
                               </div>
@@ -798,7 +798,7 @@ const ChapterPrep: React.FC = () => {
                                 cursor: 'pointer',
                                 borderRadius: 10,
                                 padding: '8px 10px',
-                                background: selectedKind === 'roles' && selectedId === it.id ? 'rgba(59,130,246,0.10)' : undefined,
+                                background: selectedKind === 'roles' && selectedId === it.id ? 'var(--color-accent-soft)' : undefined,
                               }}
                             >
                               <div className="min-w-0">
@@ -830,12 +830,12 @@ const ChapterPrep: React.FC = () => {
                                 cursor: 'pointer',
                                 borderRadius: 10,
                                 padding: '8px 10px',
-                                background: selectedKind === 'scenes' && selectedId === it.id ? 'rgba(59,130,246,0.10)' : undefined,
+                                background: selectedKind === 'scenes' && selectedId === it.id ? 'var(--color-accent-soft)' : undefined,
                               }}
                             >
                               <div className="min-w-0">
                                 <div className="text-sm font-medium truncate">{it.name}</div>
-                                <div className="text-xs text-gray-500 truncate">{it.indoorOutdoor} · {it.time}</div>
+                                <div className="text-xs text-gray-500 truncate">{it.indoorOutdoor} / {it.time}</div>
                               </div>
                             </List.Item>
                           )}
@@ -862,12 +862,12 @@ const ChapterPrep: React.FC = () => {
                                 cursor: 'pointer',
                                 borderRadius: 10,
                                 padding: '8px 10px',
-                                background: selectedKind === 'props' && selectedId === it.id ? 'rgba(59,130,246,0.10)' : undefined,
+                                background: selectedKind === 'props' && selectedId === it.id ? 'var(--color-accent-soft)' : undefined,
                               }}
                             >
                               <div className="min-w-0">
                                 <div className="text-sm font-medium truncate">{it.name}</div>
-                                <div className="text-xs text-gray-500 truncate">出现 {it.count} 次{it.key ? ' · 关键道具' : ''}</div>
+                                <div className="text-xs text-gray-500 truncate">出现 {it.count} 次{it.key ? ' / 关键道具' : ''}</div>
                               </div>
                             </List.Item>
                           )}
@@ -879,7 +879,7 @@ const ChapterPrep: React.FC = () => {
               </Card>
 
               {/* 右侧详情 */}
-              <Card style={{ flex: 1, minWidth: 0, height: '100%', overflow: 'hidden' }} bodyStyle={{ padding: 12, height: '100%', minHeight: 0, overflow: 'auto' }}>
+              <Card className="production-detail-panel" style={{ flex: 1, minWidth: 0, height: '100%', overflow: 'hidden' }} bodyStyle={{ padding: 12, height: '100%', minHeight: 0, overflow: 'auto' }}>
                 {selectedKind === 'storyboards' && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -892,7 +892,7 @@ const ChapterPrep: React.FC = () => {
                     {selectedStoryboard ? (
                       <Card size="small">
                         <div className="text-base font-semibold">
-                          {String(selectedStoryboard.index).padStart(2, '0')} · {selectedStoryboard.title}
+                          {String(selectedStoryboard.index).padStart(2, '0')} / {selectedStoryboard.title}
                           {selectedStoryboard.isTransition && <Tag color="purple" className="ml-2">转场点</Tag>}
                         </div>
                         <Divider />
@@ -957,7 +957,7 @@ const ChapterPrep: React.FC = () => {
                     {selectedScene ? (
                       <Card size="small">
                         <div className="text-base font-semibold">{selectedScene.name}</div>
-                        <div className="text-sm text-gray-500 mt-1">{selectedScene.indoorOutdoor} · {selectedScene.time}</div>
+                        <div className="text-sm text-gray-500 mt-1">{selectedScene.indoorOutdoor} / {selectedScene.time}</div>
                         <Divider />
                         <div className="flex flex-wrap gap-2">
                           {selectedScene.keywords.map((k) => <Tag key={k} color="blue">{k}</Tag>)}
@@ -1412,7 +1412,7 @@ const ChapterPrep: React.FC = () => {
                               <Checkbox value={it.name}>
                                 <span className="font-medium">{it.name}</span>
                                 <span className="text-xs text-gray-500 ml-2">
-                                  {it.indoorOutdoor} · {it.time}
+                                  {it.indoorOutdoor} / {it.time}
                                 </span>
                               </Checkbox>
                               {existed ? <Tag color="default">已存在</Tag> : <Tag color="green">新</Tag>}
@@ -1457,7 +1457,7 @@ const ChapterPrep: React.FC = () => {
                               <Checkbox value={it.name}>
                                 <span className="font-medium">{it.name}</span>
                                 <span className="text-xs text-gray-500 ml-2">
-                                  出现 {it.count} 次{it.key ? ' · 关键道具' : ''}
+                                  出现 {it.count} 次{it.key ? ' / 关键道具' : ''}
                                 </span>
                               </Checkbox>
                               {existed ? <Tag color="default">已存在</Tag> : <Tag color="green">新</Tag>}
@@ -1478,4 +1478,3 @@ const ChapterPrep: React.FC = () => {
 }
 
 export default ChapterPrep
-

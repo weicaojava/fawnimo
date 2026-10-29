@@ -4,9 +4,7 @@ import {
   Input,
   Button,
   Progress,
-  Statistic,
-  Row,
-  Col,
+  Skeleton,
   Modal,
   Form,
   Select,
@@ -16,6 +14,7 @@ import {
   Space,
   Tag,
   Popconfirm,
+  Alert,
 } from 'antd'
 import {
   PlusOutlined,
@@ -35,6 +34,9 @@ import {
   type ProjectVisualStyleChoice,
 } from './ProjectVisualStyleAndStyleFields'
 import { useProjectStyleOptions } from './useProjectStyleOptions'
+import { ProjectStageTrack } from './ProjectSection'
+import { DemoStarter } from '../../../identity/DemoStarter'
+import './project-studio.css'
 import { getChapterPreparationState } from './ProjectWorkbench/chapterPreparation'
 import { ensureHasShotsBeforeShooting } from './ProjectWorkbench/ensureHasShotsBeforeShooting'
 import { getChapterShotsPath, getChapterStudioPath } from './ProjectWorkbench/routes'
@@ -57,12 +59,25 @@ type ProjectFlowStatsMap = Record<string, ProjectFlowStats>
 type ProjectView = Project & {
   visualStyle?: ProjectVisualStyleChoice
   defaultVideoRatio?: string | null
+  createdAt?: string
 }
 
+/** Display persisted timestamps and leave absent or invalid historical values visibly unknown. */
+function formatProjectUpdatedAt(value: string): string {
+  const date = new Date(value)
+  if (!value || !Number.isFinite(date.getTime())) return '时间未提供'
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  })
+}
+
+/** Keep project discovery and its existing production actions together in one readable studio. */
 const ProjectLobby: React.FC = () => {
   const navigate = useNavigate()
   const [projects, setProjects] = useState<ProjectView[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [filterTab, setFilterTab] = useState<FilterTab>('all')
@@ -93,11 +108,6 @@ const ProjectLobby: React.FC = () => {
       return typeof v === 'number' && Number.isFinite(v) ? v : 0
     }
 
-    const updatedAt =
-      (typeof stats.updated_at === 'string' && stats.updated_at) ||
-      (typeof stats.updatedAt === 'string' && stats.updatedAt) ||
-      new Date().toISOString()
-
     return {
       id: p.id,
       name: p.name,
@@ -112,7 +122,8 @@ const ProjectLobby: React.FC = () => {
         scenes: getNum('scenes'),
         props: getNum('props'),
       },
-      updatedAt,
+      updatedAt: p.updated_at,
+      createdAt: p.created_at,
       visualStyle: (p.visual_style as ProjectVisualStyleChoice | undefined) ?? '现实',
       defaultVideoRatio: p.default_video_ratio ?? null,
     }
@@ -125,21 +136,41 @@ const ProjectLobby: React.FC = () => {
     return `p_${Date.now()}_${Math.random().toString(16).slice(2)}`
   }
 
+  /** Read every server page before enabling local search/sort so older projects remain discoverable. */
   const load = async () => {
     setLoading(true)
+    setLoadError(null)
     try {
       if (useMock) {
         setProjects(mockProjects)
       } else {
-        const res = await StudioProjectsService.listProjectsApiV1StudioProjectsGet({
-          page: 1,
-          pageSize: 10,
-        })
-        const items = res.data?.items ?? []
+        const items: ProjectRead[] = []
+        const seen = new Set<string>()
+        let page = 1
+        let maxPage = 1
+        let total = 0
+        do {
+          const res = await StudioProjectsService.listProjectsApiV1StudioProjectsGet({
+            order: 'updated_at', isDesc: true, page, pageSize: 100,
+          })
+          if (!res.data) throw new Error('项目列表未返回分页数据')
+          const data = res.data
+          if (page === 1) total = data.pagination.total
+          if (data.pagination.total !== total) throw new Error('项目列表在加载时发生变化，请重试')
+          maxPage = data.pagination.max_page
+          for (const project of data.items) {
+            if (seen.has(project.id)) throw new Error('项目排序在加载时发生变化，请重试')
+            seen.add(project.id)
+            items.push(project)
+          }
+          if (!data.items.length && items.length < total) throw new Error('项目列表分页不完整，请重试')
+          page += 1
+        } while (page <= maxPage)
+        if (items.length !== total) throw new Error('项目列表分页不完整，请重试')
         setProjects(items.map(toUIProject))
       }
-    } catch {
-      setProjects(useMock ? mockProjects : [])
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : '项目列表加载失败')
     } finally {
       setLoading(false)
     }
@@ -253,7 +284,7 @@ const ProjectLobby: React.FC = () => {
                   rawText: chapter.raw_text ?? '',
                   storyboardCount: chapter.shot_count ?? chapter.storyboard_count ?? 0,
                   status: chapter.status ?? 'draft',
-                  updatedAt: new Date().toISOString(),
+                  updatedAt: '',
                 })),
               ),
               items.map((chapter) => ({
@@ -265,7 +296,7 @@ const ProjectLobby: React.FC = () => {
                 rawText: chapter.raw_text ?? '',
                 storyboardCount: chapter.shot_count ?? chapter.storyboard_count ?? 0,
                 status: chapter.status ?? 'draft',
-                updatedAt: new Date().toISOString(),
+                updatedAt: '',
               })),
             ] as const
           }),
@@ -322,14 +353,15 @@ const ProjectLobby: React.FC = () => {
         av = a.stats.chapters
         bv = b.stats.chapters
       } else if (sortKey === 'createdAt') {
-        av = a.id
-        bv = b.id
+        av = a.createdAt ? Date.parse(a.createdAt) : Number.NEGATIVE_INFINITY
+        bv = b.createdAt ? Date.parse(b.createdAt) : Number.NEGATIVE_INFINITY
       } else {
-        av = a.updatedAt
-        bv = b.updatedAt
+        av = a.updatedAt ? Date.parse(a.updatedAt) : Number.NEGATIVE_INFINITY
+        bv = b.updatedAt ? Date.parse(b.updatedAt) : Number.NEGATIVE_INFINITY
       }
 
       if (typeof av === 'number' && typeof bv === 'number') {
+        if (av === bv) return a.id.localeCompare(b.id)
         return sortOrder === 'asc' ? av - bv : bv - av
       }
       const res = String(av).localeCompare(String(bv))
@@ -483,9 +515,9 @@ const ProjectLobby: React.FC = () => {
 
   const renderStatusTag = (p: ProjectView) => {
     const status = getProjectStatus(p)
-    if (status === 'completed') return <Tag color="green" className="mr-0 text-[11px] leading-4">已完成</Tag>
-    if (status === 'draft') return <Tag color="default" className="mr-0 text-[11px] leading-4">草稿</Tag>
-    return <Tag color="orange" className="mr-0 text-[11px] leading-4">进行中</Tag>
+    if (status === 'completed') return <Tag color="green" className="mr-0 text-xs leading-4">已完成</Tag>
+    if (status === 'draft') return <Tag color="default" className="mr-0 text-xs leading-4">草稿</Tag>
+    return <Tag color="orange" className="mr-0 text-xs leading-4">进行中</Tag>
   }
 
   const handlePrimaryAction = (project: ProjectView, stageSummary?: ProjectStageSummary) => {
@@ -521,41 +553,17 @@ const ProjectLobby: React.FC = () => {
     })
   }
 
-  /**
-   * 根据项目 ID 生成稳定的浅色渐变背景，避免深色背景。
-   */
-  const getLightGradientByProjectId = (id: string): string => {
-    const gradients = [
-      'from-sky-100 via-sky-50 to-white',
-      'from-emerald-100 via-emerald-50 to-white',
-      'from-indigo-100 via-indigo-50 to-white',
-      'from-amber-100 via-amber-50 to-white',
-      'from-rose-100 via-rose-50 to-white',
-      'from-violet-100 via-violet-50 to-white',
-      'from-teal-100 via-teal-50 to-white',
-    ]
-
-    let hash = 0
-    for (let i = 0; i < id.length; i += 1) {
-      hash = (hash * 31 + id.charCodeAt(i)) >>> 0
-    }
-
-    const index = hash % gradients.length
-    return gradients[index]
-  }
-
   const selectedProject = filteredSorted.find((p) => p.id === selectedProjectId) ?? filteredSorted[0]
 
+  /** Compose each real project as a production slate while retaining every project action. */
   const renderCard = (p: ProjectView) => {
     const status = getProjectStatus(p)
     const stageSummary = projectStageMap[p.id]
     const flowStats = projectFlowStatsMap[p.id]
     const isCompact = viewMode === 'compact'
-    const isLarge = viewMode === 'large'
-    const mainActionLabel = stageSummary?.nextActionLabel ?? (status === 'completed' ? '继续剪辑' : p.progress > 0 ? '继续拍摄' : '进入项目')
-
-    const isSelected = selectedProject && selectedProject.id === p.id
+    const isSelected = selectedProject?.id === p.id
     const isChecked = selectedIds.includes(p.id)
+    const mainActionLabel = stageSummary?.nextActionLabel ?? (status === 'completed' ? '继续剪辑' : p.progress > 0 ? '继续拍摄' : '进入项目')
 
     return (
       <Card
@@ -563,394 +571,227 @@ const ProjectLobby: React.FC = () => {
         hoverable
         loading={loading}
         size="small"
-        className={`h-full cursor-pointer transition-all duration-200 ${
-          isSelected ? 'ring-2 ring-indigo-500 ring-offset-1' : 'hover:shadow-lg'
-        }`}
-        bodyStyle={{ padding: '10px' }}
+        className={`project-tile project-tile--${viewMode}${isSelected ? ' is-selected' : ''}`}
+        tabIndex={0}
+        aria-label={p.name}
         onClick={() => {
           handleSelectProject(p.id)
-          if (!multiSelectMode) {
-            navigate(`/projects/${p.id}`)
+          if (!multiSelectMode) navigate(`/projects/${p.id}`)
+        }}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            handleSelectProject(p.id)
+            if (multiSelectMode) handleToggleSelect(p.id, !isChecked)
+            else navigate(`/projects/${p.id}`)
           }
         }}
+        onFocus={() => handleSelectProject(p.id)}
         onMouseEnter={() => handleSelectProject(p.id)}
       >
-        <div
-          className={`relative mb-1.5 rounded bg-gradient-to-r ${getLightGradientByProjectId(
-            p.id,
-          )} text-gray-900 p-2 overflow-hidden`}
-        >
-          <div className="flex justify-between items-start gap-2">
-            <div className="min-w-0">
-              <div className="text-xs text-gray-500 mb-0.5">{p.style}</div>
-              <div className={`${isCompact ? 'text-sm' : 'text-base'} font-semibold truncate text-gray-900`}>
-                {p.name}
-              </div>
-              <div className="text-[10px] text-gray-500 truncate">
-                {p.updatedAt}
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              {renderStatusTag(p)}
-              {multiSelectMode && (
-                <input
-                  type="checkbox"
-                  className="cursor-pointer"
-                  checked={isChecked}
-                  onChange={(e) => {
-                    e.stopPropagation()
-                    handleToggleSelect(p.id, e.target.checked)
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-
-        {!isCompact && (
-          <p className={`text-gray-600 text-xs mb-1.5 ${isLarge ? 'line-clamp-2 min-h-[2rem]' : 'line-clamp-1 min-h-0'}`}>
-            {p.description}
-          </p>
-        )}
-
-        <div className={`mb-1.5 rounded border border-gray-100 bg-gray-50 ${isCompact ? 'px-2 py-1' : 'px-2 py-1.5'}`}>
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] text-gray-500">当前阶段</span>
-            <Tag color={stageSummary?.stageColor ?? 'default'} className="mr-0 text-[11px] leading-4">
-              {stageSummary?.stageText ?? '待推进'}
-            </Tag>
-          </div>
-          <div className={`mt-1 text-[11px] text-gray-600 ${isLarge ? 'line-clamp-2 min-h-[2rem]' : 'line-clamp-1 min-h-0'}`}>
-            {stageSummary?.nextActionHint ?? '进入项目工作台后继续推进主流程'}
-          </div>
-          {isCompact ? (
-            <div className="mt-1 text-[11px] text-gray-500 truncate">
-              下一步：{stageSummary?.nextActionLabel ?? '进入项目'}
-            </div>
-          ) : (
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              <Tag bordered={false} color="gold" className="mr-0 text-[11px]">
-                待确认 {flowStats?.pendingConfirmShots ?? 0}
-              </Tag>
-              <Tag bordered={false} color="green" className="mr-0 text-[11px]">
-                已就绪 {flowStats?.readyShots ?? 0}
-              </Tag>
-              <Tag bordered={false} color="processing" className="mr-0 text-[11px]">
-                生成中 {flowStats?.generatingShots ?? 0}
-              </Tag>
-            </div>
-          )}
-        </div>
-
-        {!isCompact && (
-          <div className="mb-1.5">
-            <div className="flex justify-between text-[11px] mb-0.5 text-gray-500">
-              <span>进度</span>
-              <span>{p.progress}%</span>
-            </div>
-            <Progress
-              percent={p.progress}
-              size="small"
-              showInfo={false}
-              strokeColor={{ from: '#6366f1', to: '#a855f7' }}
-            />
-          </div>
-        )}
-
-        {isLarge ? (
-          <Row gutter={6} className="mb-1.5">
-            <Col span={6}>
-              <Statistic title={<span className="text-[11px]">章节</span>} value={p.stats.chapters} valueStyle={{ fontSize: '13px' }} />
-            </Col>
-            <Col span={6}>
-              <Statistic title={<span className="text-[11px]">角色</span>} value={p.stats.roles} valueStyle={{ fontSize: '13px' }} />
-            </Col>
-            <Col span={6}>
-              <Statistic title={<span className="text-[11px]">场景</span>} value={p.stats.scenes} valueStyle={{ fontSize: '13px' }} />
-            </Col>
-            <Col span={6}>
-              <Statistic title={<span className="text-[11px]">道具</span>} value={p.stats.props} valueStyle={{ fontSize: '13px' }} />
-            </Col>
-          </Row>
-        ) : (
-          <div className="mb-1.5 text-[11px] text-gray-500 truncate">
-            章 {p.stats.chapters} · 角 {p.stats.roles} · 场 {p.stats.scenes} · 道 {p.stats.props}
-          </div>
-        )}
-
-        <div className={`mt-1 border-t border-gray-100 flex items-center justify-between gap-1 ${isCompact ? 'pt-1' : 'pt-1.5'}`}>
-          <span className="text-[11px] text-gray-500 truncate">{p.updatedAt}</span>
-          <Space size="small" onClick={(e) => e.stopPropagation()}>
-            <Button
-              type="primary"
-              size="small"
-              icon={<EnterOutlined />}
-              onClick={() => handlePrimaryAction(p, stageSummary)}
-              className="text-[11px]"
-            >
-              {isCompact ? '进入' : mainActionLabel}
-            </Button>
-            {!isCompact && (
-              <>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<EditOutlined />}
-                  onClick={(e) => handleOpenEdit(e, p)}
-                  className="text-[11px]"
-                />
-                <Popconfirm
-                  title="确定删除该项目？"
-                  description="删除后无法恢复，相关章节与素材将不再关联。"
-                  onConfirm={() => handleDelete(p.id)}
-                  okText="删除"
-                  cancelText="取消"
-                  okButtonProps={{ danger: true }}
-                >
-                  <Button type="text" size="small" danger icon={<DeleteOutlined />} className="text-[11px]" />
-                </Popconfirm>
-              </>
+        <div className="project-tile-header">
+          <h2 className="project-tile-title">{p.name}</h2>
+          <Space size="small">
+            {renderStatusTag(p)}
+            {multiSelectMode && (
+              <input
+                type="checkbox"
+                className="project-tile-check"
+                aria-label={`选择项目${p.name}`}
+                checked={isChecked}
+                onChange={(e) => {
+                  e.stopPropagation()
+                  handleToggleSelect(p.id, e.target.checked)
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
             )}
           </Space>
+        </div>
+        <div className="project-tile-meta">
+          <span>{p.style}</span>
+          <time dateTime={p.updatedAt} title={p.updatedAt}>{formatProjectUpdatedAt(p.updatedAt)}</time>
+        </div>
+        {!isCompact && p.description && <p className="project-tile-description">{p.description}</p>}
+
+        <ProjectStageTrack stage={stageSummary?.key} />
+        <div className="project-stage-summary">
+          <span>当前阶段</span>
+          <Tag color={stageSummary?.stageColor ?? 'default'}>{stageSummary?.stageText ?? '待推进'}</Tag>
+        </div>
+        <p className="project-stage-hint">
+          {stageSummary?.nextActionHint ?? '进入项目工作台后继续推进主流程'}
+        </p>
+        {isCompact ? (
+          <p className="project-stage-hint">下一步：{stageSummary?.nextActionLabel ?? '进入项目'}</p>
+        ) : (
+          <div className="project-shot-counts">
+            <span>待确认 <b>{flowStats?.pendingConfirmShots ?? 0}</b></span>
+            <span>已就绪 <b>{flowStats?.readyShots ?? 0}</b></span>
+            <span>生成中 <b>{flowStats?.generatingShots ?? 0}</b></span>
+          </div>
+        )}
+
+        {!isCompact && (
+          <div className="project-progress">
+            <div className="project-progress-label"><span>进度</span><span>{p.progress}%</span></div>
+            <Progress percent={p.progress} size="small" showInfo={false} strokeColor="var(--color-accent)" />
+          </div>
+        )}
+        <dl className="project-metric-row">
+          <div><dt>章节</dt><dd>{p.stats.chapters}</dd></div>
+          <div><dt>角色</dt><dd>{p.stats.roles}</dd></div>
+          <div><dt>场景</dt><dd>{p.stats.scenes}</dd></div>
+          <div><dt>道具</dt><dd>{p.stats.props}</dd></div>
+        </dl>
+        <div className="project-tile-footer" onClick={(e) => e.stopPropagation()}>
+          <Button type="primary" icon={<EnterOutlined />} onClick={() => handlePrimaryAction(p, stageSummary)}>
+            {isCompact ? '进入' : mainActionLabel}
+          </Button>
+          {!isCompact && (
+            <Space size="small">
+              <Button type="text" icon={<EditOutlined />} aria-label={`编辑项目${p.name}`} onClick={(e) => handleOpenEdit(e, p)} />
+              <Popconfirm
+                title="确定删除该项目？"
+                description="删除后无法恢复，相关章节与素材将不再关联。"
+                onConfirm={() => handleDelete(p.id)}
+                okText="删除"
+                cancelText="取消"
+                okButtonProps={{ danger: true }}
+              >
+                <Button type="text" danger icon={<DeleteOutlined />} aria-label={`删除项目${p.name}`} />
+              </Popconfirm>
+            </Space>
+          )}
         </div>
       </Card>
     )
   }
 
   return (
-    <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
-      <div className="flex-shrink-0 space-y-2 pb-2">
-      <div className="sticky top-0 z-10 pb-1.5 bg-gradient-to-b from-[rgba(249,250,251,0.96)] to-[rgba(249,250,251,0.9)] backdrop-blur">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Space wrap size="small" className="flex-1 min-w-[240px]">
-            <Input.Search
-              placeholder="搜索项目名称或描述"
-              allowClear
-              size="small"
-              className="w-64 max-w-full"
-              onSearch={setSearch}
-              onChange={(e) => setSearch(e.target.value)}
+    <div className="project-lobby" data-testid="project-lobby">
+      <header className="project-page-heading">
+        <div className="project-title-with-count">
+          <h1>短剧项目</h1>
+          <span>{loading ? '加载中…' : `${projects.length} 个项目`}</span>
+        </div>
+        <Space wrap>
+          <Button
+            type={multiSelectMode ? 'primary' : 'default'}
+            onClick={() => {
+              setMultiSelectMode((prev) => !prev)
+              setSelectedIds([])
+            }}
+          >批量</Button>
+          {multiSelectMode && (
+            <Popconfirm
+              title="批量删除项目"
+              description="确定删除选中的所有项目？该操作不可恢复。"
+              onConfirm={handleBatchDelete}
+              okText="删除"
+              cancelText="取消"
+              okButtonProps={{ danger: true }}
+              disabled={!selectedIds.length}
+            >
+              <Button danger disabled={!selectedIds.length}>删除选中</Button>
+            </Popconfirm>
+          )}
+          <DemoStarter />
+          <Button icon={<PlusOutlined />} onClick={handleOpenCreate}>新建项目</Button>
+        </Space>
+      </header>
+
+      {loadError && <Alert type="error" showIcon message="项目列表加载失败" description={loadError}
+        action={<Button size="small" onClick={() => void load()}>重试</Button>} />}
+
+      <div className="project-lobby-toolbar">
+        <Input.Search
+          placeholder="搜索项目名称或描述"
+          aria-label="搜索项目名称或描述"
+          allowClear
+          className="project-lobby-search"
+          onSearch={setSearch}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="project-toolbar-options">
+          <div className="project-toolbar-group">
+            <span className="project-toolbar-label">排序</span>
+            <Select
+              aria-label="项目排序"
+              value={sortKey}
+              style={{ width: 128 }}
+              onChange={(value: SortKey) => setSortKey(value)}
+              options={[
+                { label: '最近更新', value: 'updatedAt' },
+                { label: '创建时间', value: 'createdAt' },
+                { label: '名称 A-Z', value: 'name' },
+                { label: '章节数量', value: 'chapters' },
+              ]}
             />
-            <Space size="small" wrap>
-              <Button
-                type={filterTab === 'all' ? 'primary' : 'text'}
-                size="small"
-                className="text-[11px]"
-                onClick={() => setFilterTab('all')}
-              >
-                全部
-              </Button>
-              <Button
-                type={filterTab === 'editRaw' ? 'primary' : 'text'}
-                size="small"
-                className="text-[11px]"
-                onClick={() => setFilterTab('editRaw')}
-              >
-                待补原文
-              </Button>
-              <Button
-                type={filterTab === 'extractShots' ? 'primary' : 'text'}
-                size="small"
-                className="text-[11px]"
-                onClick={() => setFilterTab('extractShots')}
-              >
-                待提取分镜
-              </Button>
-              <Button
-                type={filterTab === 'prepareShots' ? 'primary' : 'text'}
-                size="small"
-                className="text-[11px]"
-                onClick={() => setFilterTab('prepareShots')}
-              >
-                待准备镜头
-              </Button>
-              <Button
-                type={filterTab === 'generating' ? 'primary' : 'text'}
-                size="small"
-                className="text-[11px]"
-                onClick={() => setFilterTab('generating')}
-              >
-                生成中
-              </Button>
-              <Button
-                type={filterTab === 'ready' ? 'primary' : 'text'}
-                size="small"
-                className="text-[11px]"
-                onClick={() => setFilterTab('ready')}
-              >
-                可继续推进
-              </Button>
-            </Space>
-          </Space>
-
-            <Space size="small" wrap>
-            <Space size="small">
-              <span className="text-xs text-gray-500">排序</span>
-              <Select
-                size="small"
-                value={sortKey}
-                style={{ width: 128 }}
-                onChange={(value: SortKey) => setSortKey(value)}
-                options={[
-                  { label: '最近更新', value: 'updatedAt' },
-                  { label: '名称 A-Z', value: 'name' },
-                  { label: '章节数量', value: 'chapters' },
-                ]}
-              />
-              <Button
-                size="small"
-                type="text"
-                className="text-[11px]"
-                onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-              >
-                {sortOrder === 'asc' ? '↑' : '↓'}
-              </Button>
-            </Space>
-
-            <Space size="small">
-              <span className="text-xs text-gray-500">视图</span>
-              <Button
-                size="small"
-                type={viewMode === 'grid' ? 'primary' : 'text'}
-                icon={<AppstoreOutlined />}
-                onClick={() => setViewMode('grid')}
-              />
-              <Button
-                size="small"
-                type={viewMode === 'compact' ? 'primary' : 'text'}
-                icon={<BarsOutlined />}
-                onClick={() => setViewMode('compact')}
-              />
-              <Button
-                size="small"
-                type={viewMode === 'large' ? 'primary' : 'text'}
-                icon={<UnorderedListOutlined />}
-                onClick={() => setViewMode('large')}
-              />
-            </Space>
-
-            <Space size="small">
-              <Button
-                size="small"
-                type={multiSelectMode ? 'primary' : 'text'}
-                className="text-[11px]"
-                onClick={() => {
-                  setMultiSelectMode((prev) => !prev)
-                  setSelectedIds([])
-                }}
-              >
-                批量
-              </Button>
-              {multiSelectMode && (
-                <Popconfirm
-                  title="批量删除项目"
-                  description="确定删除选中的所有项目？该操作不可恢复。"
-                  onConfirm={handleBatchDelete}
-                  okText="删除"
-                  cancelText="取消"
-                  okButtonProps={{ danger: true }}
-                  disabled={!selectedIds.length}
-                >
-                  <Button size="small" danger disabled={!selectedIds.length} className="text-[11px]">
-                    删除选中
-                  </Button>
-                </Popconfirm>
-              )}
-            </Space>
-
-            <Button type="primary" size="small" className="text-[11px]" icon={<PlusOutlined />} onClick={handleOpenCreate}>
-              新建项目
-            </Button>
-          </Space>
+            <Button
+              type="text"
+              aria-label={sortOrder === 'asc' ? '改为降序' : '改为升序'}
+              onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+            >{sortOrder === 'asc' ? '↑' : '↓'}</Button>
+          </div>
+          <div className="project-toolbar-group">
+            <span className="project-toolbar-label">视图</span>
+            <Button type="text" className={`project-view-button${viewMode === 'grid' ? ' is-active' : ''}`} aria-label="卡片视图" aria-pressed={viewMode === 'grid'} icon={<AppstoreOutlined />} onClick={() => setViewMode('grid')} />
+            <Button type="text" className={`project-view-button${viewMode === 'compact' ? ' is-active' : ''}`} aria-label="紧凑视图" aria-pressed={viewMode === 'compact'} icon={<BarsOutlined />} onClick={() => setViewMode('compact')} />
+            <Button type="text" className={`project-view-button${viewMode === 'large' ? ' is-active' : ''}`} aria-label="大卡片视图" aria-pressed={viewMode === 'large'} icon={<UnorderedListOutlined />} onClick={() => setViewMode('large')} />
+          </div>
         </div>
       </div>
-      </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
-      <Row gutter={12}>
-        <Col xs={24} lg={18}>
-          <Row gutter={viewMode === 'compact' ? [8, 8] : viewMode === 'large' ? [14, 14] : [12, 12]}>
-            {!loading && filteredSorted.length === 0 && (
-              <Col span={24}>
-                <Card>
-                  <div className="text-center text-gray-500 py-8 text-sm">
-                    {search ? '没有匹配的项目' : '暂无项目，点击「新建项目」开始'}
-                  </div>
-                </Card>
-              </Col>
-            )}
-            {filteredSorted.map((p) => (
-              <Col
-                key={p.id}
-                xs={24}
-                sm={viewMode === 'compact' ? 12 : viewMode === 'grid' ? 12 : 24}
-                md={viewMode === 'compact' ? 8 : viewMode === 'grid' ? 8 : 24}
-                lg={viewMode === 'compact' ? 6 : viewMode === 'grid' ? 6 : 24}
-                xl={viewMode === 'compact' ? 4 : viewMode === 'grid' ? 6 : 24}
-              >
-                {renderCard(p)}
-              </Col>
-            ))}
-          </Row>
-        </Col>
+      <nav className="project-filter-rail" aria-label="项目制作阶段筛选">
+        <button type="button" className="project-filter-button" aria-pressed={filterTab === 'all'} onClick={() => setFilterTab('all')}>全部</button>
+        <button type="button" className="project-filter-button" aria-pressed={filterTab === 'editRaw'} onClick={() => setFilterTab('editRaw')}>待补原文</button>
+        <button type="button" className="project-filter-button" aria-pressed={filterTab === 'extractShots'} onClick={() => setFilterTab('extractShots')}>待提取分镜</button>
+        <button type="button" className="project-filter-button" aria-pressed={filterTab === 'prepareShots'} onClick={() => setFilterTab('prepareShots')}>待准备镜头</button>
+        <button type="button" className="project-filter-button" aria-pressed={filterTab === 'generating'} onClick={() => setFilterTab('generating')}>生成中</button>
+        <button type="button" className="project-filter-button" aria-pressed={filterTab === 'ready'} onClick={() => setFilterTab('ready')}>可继续推进</button>
+      </nav>
 
-        <Col xs={24} lg={6} className="flex-shrink-0">
-          <div className="h-full">
-            <Card
-              size="small"
-              title="项目速览"
-              className="mb-1.5"
-              bodyStyle={{ padding: '10px' }}
-              headStyle={{ minHeight: 36, paddingInline: 10 }}
-            >
-              {selectedProject ? (
-                <div className="space-y-2">
-                  <div>
-                    <div className="text-[11px] text-gray-500 mb-0.5">项目名称</div>
-                    <div className="font-medium">{selectedProject.name}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-gray-500 mb-0.5">简介</div>
-                    <div className="text-xs text-gray-600 line-clamp-2">
-                      {selectedProject.description || '暂无描述'}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-gray-500">
-                    <span>视频风格：{selectedProject.style}</span>
-                    <span>种子：{selectedProject.seed}</span>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-gray-500 mb-0.5">进度</div>
-                    <Progress
-                      percent={selectedProject.progress}
-                      size="small"
-                      strokeColor={{ from: '#6366f1', to: '#22c55e' }}
-                    />
-                  </div>
-                  <div className="text-[11px] text-gray-500">
-                    章 {selectedProject.stats.chapters} · 角 {selectedProject.stats.roles} · 场 {selectedProject.stats.scenes} · 道 {selectedProject.stats.props}
-                  </div>
-                  <Button
-                    type="primary"
-                    block
-                    size="small"
-                    icon={<EnterOutlined />}
-                    onClick={() => navigate(`/projects/${selectedProject.id}`)}
-                    className="text-[11px]"
-                  >
-                    进入章节工作台
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-gray-500 text-sm py-6 text-center">
-                  将鼠标悬停在项目卡片上查看详情
-                </div>
-              )}
-            </Card>
-          </div>
-        </Col>
-      </Row>
+      <div className="project-lobby-body">
+        <div className={`project-tile-grid project-tile-grid--${viewMode}`} aria-busy={loading}>
+          {loading && Array.from({ length: 4 }, (_, index) => (
+            <div className="project-tile--loading" key={index}><Skeleton title={{ width: '65%' }} paragraph={{ rows: 5 }} /></div>
+          ))}
+          {!loading && !loadError && filteredSorted.length === 0 && (
+            <div className="project-empty-state">
+              <p>{search ? '没有匹配的项目' : '暂无项目，点击「新建项目」开始'}</p>
+              {!search && <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate}>新建项目</Button>}
+            </div>
+          )}
+          {!loading && filteredSorted.map(renderCard)}
+        </div>
+
+        <aside className="project-quick-view" aria-label="项目速览">
+          <h2>项目速览</h2>
+          {selectedProject ? (
+            <>
+              <h3 className="project-quick-title">{selectedProject.name}</h3>
+              <p className="project-quick-description">{selectedProject.description || '暂无描述'}</p>
+              <dl className="project-quick-details">
+                <div><dt>视频风格</dt><dd>{selectedProject.style}</dd></div>
+                <div><dt>种子</dt><dd>{selectedProject.seed}</dd></div>
+                <div><dt>更新时间</dt><dd><time dateTime={selectedProject.updatedAt} title={selectedProject.updatedAt}>{formatProjectUpdatedAt(selectedProject.updatedAt)}</time></dd></div>
+              </dl>
+              <div className="project-progress-label"><span>进度</span><span>{selectedProject.progress}%</span></div>
+              <Progress percent={selectedProject.progress} size="small" showInfo={false} strokeColor="var(--color-accent)" />
+              <dl className="project-metric-row">
+                <div><dt>章节</dt><dd>{selectedProject.stats.chapters}</dd></div>
+                <div><dt>角色</dt><dd>{selectedProject.stats.roles}</dd></div>
+                <div><dt>场景</dt><dd>{selectedProject.stats.scenes}</dd></div>
+                <div><dt>道具</dt><dd>{selectedProject.stats.props}</dd></div>
+              </dl>
+              <Button type="primary" block icon={<EnterOutlined />} onClick={() => navigate(`/projects/${selectedProject.id}`)}>进入章节工作台</Button>
+            </>
+          ) : (
+            <p className="project-quick-description">将鼠标悬停在项目卡片上查看详情</p>
+          )}
+        </aside>
       </div>
 
       <Modal

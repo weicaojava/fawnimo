@@ -9,26 +9,30 @@ import './index.css'
 import './i18n'
 import './services/openapi'
 import { useAppStore } from './store/useAppStore'
+import { useThemeStore, watchThemePreference } from './theme/useThemeStore'
+import { createAntdTheme } from './theme/antdTheme'
+import { IdentityGate } from './identity/IdentityGate'
 
+/** Provide the same active palette to normal and statically portalled Ant Design UI. */
 const RootApp: React.FC = () => {
   const language = useAppStore((state) => state.language)
+  const mode = useThemeStore((state) => state.mode)
+  const appTheme = React.useMemo(() => createAntdTheme(mode), [mode])
   const antdLocale = language === 'en-US' ? enUS : zhCN
+  React.useEffect(() => watchThemePreference(), [])
+  React.useLayoutEffect(() => { ConfigProvider.config({ theme: appTheme }) }, [appTheme])
 
   return (
     <ConfigProvider
       locale={antdLocale}
-      theme={{
-        token: {
-          colorPrimary: '#1677ff',
-          borderRadius: 6,
-        },
-      }}
+      theme={appTheme}
     >
-      <App />
+      <IdentityGate><App /></IdentityGate>
     </ConfigProvider>
   )
 }
 
+/** Keep an actionable error message visible even if a route fails to render. */
 class AppErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean; error: Error | null }
@@ -42,9 +46,9 @@ class AppErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError && this.state.error) {
       return (
-        <div style={{ padding: 24, fontFamily: 'sans-serif' }}>
+        <div style={{ padding: 24, fontFamily: 'var(--font-body)' }}>
           <h2>页面加载出错</h2>
-          <pre style={{ color: '#c00', overflow: 'auto' }}>
+          <pre style={{ color: 'var(--color-error)', overflow: 'auto' }}>
             {this.state.error.message}
           </pre>
         </div>
@@ -54,6 +58,7 @@ class AppErrorBoundary extends React.Component<
   }
 }
 
+/** Mount promptly without making the optional mock worker block the application. */
 function renderApp() {
   const root = document.getElementById('root')
   if (!root) return
@@ -69,6 +74,7 @@ function renderApp() {
 // 先立即渲染，避免 MSW 启动阻塞导致白屏
 renderApp()
 
+/** Start local mocks only when explicitly enabled for this frontend build. */
 async function enableMocking() {
   if (import.meta.env.VITE_USE_MOCK !== 'true') {
     return
@@ -82,4 +88,3 @@ async function enableMocking() {
 }
 
 void enableMocking()
-

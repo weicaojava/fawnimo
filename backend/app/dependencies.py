@@ -11,7 +11,7 @@ from app.services.llm.resolver import build_default_text_llm
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """提供异步数据库会话。"""
+    """Provide one transaction; route dependencies use function scope to commit before success."""
     async with async_session_maker() as session:
         try:
             yield session
@@ -23,11 +23,11 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
-async def get_llm(db: AsyncSession = Depends(get_db)) -> BaseChatModel:
+async def get_llm(db: AsyncSession = Depends(get_db, scope='function')) -> BaseChatModel:
     """提供默认文本 LLM（ChatOpenAI）。"""
     return await build_default_text_llm(db, thinking=True)
 
-async def get_nothinking_llm(db: AsyncSession = Depends(get_db)) -> BaseChatModel:
+async def get_nothinking_llm(db: AsyncSession = Depends(get_db, scope='function')) -> BaseChatModel:
     """提供默认文本 LLM（ChatOpenAI，禁用 thinking）。"""
     return await build_default_text_llm(db, thinking=False)
 

@@ -1,0 +1,73 @@
+{
+  "stage": "deployment_preparation",
+  "software_configuration_checks": [
+    {
+      "name": "compose_parses",
+      "passed": true
+    },
+    {
+      "name": "separate_persistent_volumes",
+      "passed": true
+    },
+    {
+      "name": "separate_images",
+      "passed": true
+    },
+    {
+      "name": "separate_ports",
+      "passed": true
+    },
+    {
+      "name": "loopback_only_ports",
+      "passed": true
+    },
+    {
+      "name": "unprivileged_runtime",
+      "passed": true
+    },
+    {
+      "name": "readonly_code",
+      "passed": true
+    },
+    {
+      "name": "resource_bounds",
+      "passed": true
+    },
+    {
+      "name": "explicit_profiles",
+      "passed": true
+    },
+    {
+      "name": "secure_cookie_default",
+      "passed": true
+    },
+    {
+      "name": "explicit_public_origin",
+      "passed": true
+    },
+    {
+      "name": "ffmpeg_in_runtime",
+      "passed": true
+    },
+    {
+      "name": "same_origin_frontend",
+      "passed": true
+    },
+    {
+      "name": "no_upstream_image_name",
+      "passed": true
+    }
+  ],
+  "passed": 14,
+  "failed": 0,
+  "docker_client_available": true,
+  "docker_engine_available": false,
+  "docker_engine_failure": "Previously attempted desktop-linux engine named pipe is unavailable",
+  "image_built": false,
+  "container_runtime_verified": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "limits": [
+    "Static configuration checks only; image, runtime, persistence, limits and public reachability remain unverified."
+  ]
+}

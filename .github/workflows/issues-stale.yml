@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   stale:
+    if: github.repository == 'Forget-C/Jellyfish'
     runs-on: ubuntu-latest
     steps:
       - name: Mark stale issues and close inactive ones

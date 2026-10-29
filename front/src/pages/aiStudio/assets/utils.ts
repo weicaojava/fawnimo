@@ -1,4 +1,5 @@
 import { OpenAPI } from '../../../services/generated'
+import { workspaceMediaUrl } from '../../../services/workspaceContext'
 
 function tryExtractFileIdFromUrl(value: string): string | null {
   try {
@@ -11,6 +12,7 @@ function tryExtractFileIdFromUrl(value: string): string | null {
   return null
 }
 
+/** Resolve private relative media against the configured API, preserving valid same-origin mode. */
 export function resolveAssetUrl(value?: string | null): string | undefined {
   if (!value) return undefined
   const trimmed = value.trim()
@@ -19,7 +21,7 @@ export function resolveAssetUrl(value?: string | null): string | undefined {
   if (/^(?:[a-z][a-z\d+\-.]*:)?\/\//i.test(trimmed) || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
     const fileId = tryExtractFileIdFromUrl(trimmed)
     if (fileId) return buildFileDownloadUrl(fileId)
-    return trimmed
+    return workspaceMediaUrl(trimmed)
   }
 
   // 后端有些缩略图字段可能直接返回 file_id（不包含 / 或 :）。
@@ -29,12 +31,7 @@ export function resolveAssetUrl(value?: string | null): string | undefined {
   }
 
   try {
-    const fallbackBase =
-      window.__ENV?.BACKEND_URL ||
-      import.meta.env.VITE_BACKEND_URL ||
-      import.meta.env.VITE_API_BASE_URL ||
-      'http://localhost:8000'
-    return new URL(trimmed, OpenAPI.BASE || fallbackBase).toString()
+    return workspaceMediaUrl(new URL(trimmed, OpenAPI.BASE || window.location.origin).toString())
   } catch {
     return trimmed
   }

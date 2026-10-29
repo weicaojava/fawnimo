@@ -51,7 +51,7 @@ export function ChapterStudioVideoReadinessPanel({
             {(videoReadiness.checks ?? []).map((check) => (
               <Tooltip key={check.key} title={check.message}>
                 <Tag color={check.ok ? 'green' : 'default'}>
-                  {check.ok ? '通过' : '未通过'} · {check.key}
+                  {check.ok ? '通过' : '未通过'} / {check.key}
                 </Tag>
               </Tooltip>
             ))}

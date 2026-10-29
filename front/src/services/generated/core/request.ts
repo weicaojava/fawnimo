@@ -1,3 +1,4 @@
+/** Application-owned generated-client request template; preserve binary downloads as Blob. */
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
@@ -229,6 +230,7 @@ export const getResponseHeader = (response: Response, responseHeader?: string): 
     return undefined;
 };
 
+/** Preserve JSON errors and text streams while keeping media/archive response bytes intact. */
 export const getResponseBody = async (response: Response): Promise<any> => {
     if (response.status !== 204) {
         try {
@@ -238,8 +240,10 @@ export const getResponseBody = async (response: Response): Promise<any> => {
                 const isJSON = jsonTypes.some(type => contentType.toLowerCase().startsWith(type));
                 if (isJSON) {
                     return await response.json();
-                } else {
+                } else if (contentType.toLowerCase().startsWith('text/') || /^(application\/(xml|javascript|x-www-form-urlencoded))/i.test(contentType)) {
                     return await response.text();
+                } else {
+                    return await response.blob();
                 }
             }
         } catch (error) {

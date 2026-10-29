@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_db
@@ -21,13 +22,21 @@ from app.services.studio.files import (
 router = APIRouter()
 
 
+@router.get('/export-bundle', response_class=Response, operation_id='export_file_bundle', responses={200: {'content': {'application/zip': {'schema': {'type': 'string', 'format': 'binary'}}}}})
+async def export_files_bundle(file_ids: list[str] = Query(..., min_length=1, max_length=20), db: AsyncSession = Depends(get_db, scope='function')):
+    """Download a real bounded ZIP only after every selected stored file is verified."""
+    from app.services.studio.file_exports import export_file_bundle
+    payload = await export_file_bundle(db, file_ids)
+    return Response(content=payload, media_type='application/zip', headers={'Content-Disposition': 'attachment; filename="jellyfish-files.zip"'})
+
+
 @router.get(
     "",
     response_model=ApiResponse[PaginatedData[FileRead]],
     summary="文件列表（分页）",
 )
 async def list_files_api(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
     q: str | None = Query(None, description="关键字，过滤 name"),
     order: str | None = Query(None),
     is_desc: bool = Query(False),
@@ -81,7 +90,7 @@ async def list_files_api(
 async def upload_file_api(
     file: UploadFile = File(..., description="要上传的二进制文件"),
     name: str | None = None,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
     project_id: str | None = Form(None, description="可选：写入 file_usages 的项目 ID"),
     chapter_id: str | None = Form(None),
     shot_id: str | None = Form(None),
@@ -107,9 +116,10 @@ async def upload_file_api(
 )
 async def download_file_api(
     file_id: str,
-    db: AsyncSession = Depends(get_db),
+    request: Request,
+    db: AsyncSession = Depends(get_db, scope='function'),
 ):
-    return await build_download_response(db, file_id=file_id)
+    return await build_download_response(db, file_id=file_id, range_header=request.headers.get('range'))
 
 
 @router.get(
@@ -119,7 +129,7 @@ async def download_file_api(
 )
 async def get_file_storage_info_api(
     file_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[dict]:
     return success_response(await get_storage_info(db, file_id=file_id))
 
@@ -131,7 +141,7 @@ async def get_file_storage_info_api(
 )
 async def get_file_detail(
     file_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[FileDetailRead]:
     return success_response(await get_file_detail_service(db, file_id=file_id))
 
@@ -144,7 +154,7 @@ async def get_file_detail(
 async def update_file_meta(
     file_id: str,
     body: FileUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[FileRead]:
     obj = await update_file_meta_service(db, file_id=file_id, body=body)
     return success_response(FileRead.model_validate(obj))
@@ -157,7 +167,7 @@ async def update_file_meta(
 )
 async def delete_file_api(
     file_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[None]:
     await delete_file(db, file_id=file_id)
     return empty_response()

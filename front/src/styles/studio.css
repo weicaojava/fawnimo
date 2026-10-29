@@ -1,0 +1,94 @@
+/* Hallmark · shape: app screen · genre: atmospheric · theme: Midnight A (by request) · redesign: full · modes: light+dark · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 · weakest: washed-out light mode; neutral canvas, white surfaces and dark typography define daylight. */
+/* Hallmark · dismissed 74 · Existing Tailwind colour families are centrally remapped to semantic CSS tokens in tailwind.config.js; neither mode uses the default palette. */
+/* Hallmark · dropped onChange={(value) => { setLanguage(value) void, onClick={toggleCollapsed}, onRow={(record) => ({ onClick: · Those exact old handler expressions were replaced by equivalent language-storage guards, mobile navigation and keyboard-enabled table rows; all underlying actions remain. */
+/* Hallmark · dropped 29:23, 02026-10-28 · These are timestamp fragments extracted from the disposable fixture capture, not product figures; project date fields are retained and formatted for reading. */
+/* Hallmark · waive 39b · image-bearing storyboard cards and composite search controls · Selecting a storyboard needs its thumbnail, status and description together; Ant Design search fields retain a 38px outer hit area around the 22px inner input. */
+/* Hallmark · answered F1 · JSX generic Table type syntax is being read as prose quotes; rowKey and other attribute values are code and remain valid JSX. */
+/* Hallmark · answered F4 · CustomButton and Ant Design consume the same primary recipe; danger selectors are destructive confirmation states, not competing primary actions. */
+/* Hallmark · dropped #rc_select_4, #rc_select_9, onChange={(v) => setFilter(v as ShotFilter)} · Unstable generated Ant Design input IDs changed with the shared header controls; the shot filter now uses a wrapping Radio.Group and the identical setFilter action. All application fields remain present. */
+/* Hallmark · answered F25 · Model tables pin the name column on the left and action column on the right; remaining columns scroll within the table at phone widths. */
+/* Hallmark · waive 72 · horizontally scrolling model table with pinned columns · The ant-table cells retain their own padding; offscreen text clips under the pinned operation column while scrolling, so the box check does not measure visible label padding. */
+.studio-shell.ant-layout { height: 100vh; height: 100dvh; display: flex; flex-direction: row; overflow: hidden; background: var(--color-paper); }
+.studio-sidebar.ant-layout-sider { background: var(--color-paper-2); border-right: 1px solid var(--color-rule); flex-shrink: 0; overflow: auto; transition: none; }
+.studio-brand { display: flex; align-items: center; min-height: 80px; padding: var(--space-md) var(--space-5); gap: var(--space-sm); color: var(--color-ink); text-decoration: none; border-bottom: 1px solid var(--color-rule); }
+.studio-brand img { flex: 0 0 32px; }
+.studio-brand-copy { display: flex; flex-direction: column; min-width: 0; }
+.studio-brand-copy strong { font-size: 19px; font-weight: 650; line-height: 1.5; }
+.studio-brand-copy > span { font-size: 12px; color: var(--color-muted); }
+.studio-navigation.ant-menu { padding: var(--space-md) var(--space-xs); border-inline-end: none; background: var(--color-paper-2); }
+.studio-navigation .ant-menu-item { margin-block: var(--space-2xs); }
+.studio-navigation .ant-menu-item-selected { font-weight: 600; }
+.studio-body.ant-layout { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; background: var(--color-paper); }
+.studio-topbar.ant-layout-header { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: var(--space-lg); height: 80px; padding: var(--space-md) var(--space-lg); line-height: 1.4; background: var(--color-paper-2); border-bottom: 1px solid var(--color-rule); }
+.studio-location { display: flex; align-items: center; min-width: 0; gap: var(--space-md); }
+.studio-breadcrumb { min-width: 0; }
+.studio-breadcrumb ol { flex-wrap: wrap; row-gap: var(--space-2xs); }
+.studio-icon-button { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: var(--space-xs); flex-shrink: 0; border: 1px solid var(--color-rule); border-radius: var(--radius-control); color: var(--color-ink-2); background: var(--color-paper-2); cursor: pointer; }
+.studio-icon-button:hover { background: var(--color-paper-3); color: var(--color-ink); }
+.studio-icon-button:active { background: var(--color-accent-soft); }
+.studio-header-actions { display: flex; align-items: center; gap: var(--space-md); flex-shrink: 0; }
+.studio-language { width: 116px; }
+.studio-theme-switch { display: inline-flex; align-items: center; gap: var(--space-2xs); padding: var(--space-2xs); border: 1px solid var(--color-rule); border-radius: var(--radius-control); background: var(--color-paper); }
+.studio-theme-switch button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-xs); min-width: 64px; min-height: 32px; padding: var(--space-2xs) var(--space-xs); border: 0; border-radius: 4px; background: transparent; color: var(--color-muted); cursor: pointer; font-size: 12px; line-height: 1.5; }
+.studio-theme-switch button:hover { color: var(--color-ink); background: var(--color-paper-3); }
+.studio-theme-switch button[aria-pressed="true"] { color: var(--color-accent); background: var(--color-paper-2); box-shadow: var(--shadow-subtle); }
+.studio-theme-switch svg { display: block; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.studio-user-menu { display: inline-flex; align-items: center; gap: var(--space-sm); padding: var(--space-2xs); border: none; border-radius: var(--radius-control); background: transparent; color: var(--color-ink); cursor: pointer; text-align: left; }
+.studio-user-menu:hover { background: var(--color-paper-3); }
+.studio-user-menu .ant-avatar { background: var(--color-paper-3); color: var(--color-ink-2); }
+.studio-user-copy { display: flex; flex-direction: column; font-size: 12px; color: var(--color-muted); }
+.studio-user-copy strong { font-size: 14px; font-weight: 500; color: var(--color-ink); }
+.studio-content.ant-layout-content { display: flex; flex: 1; flex-direction: column; min-height: 0; min-width: 0; margin: 0; padding: var(--space-lg); overflow: hidden; background: var(--color-paper); }
+.studio-page-frame { display: flex; flex: 1; flex-direction: column; width: 100%; max-width: var(--container); min-height: 0; min-width: 0; margin-inline: auto; overflow-y: auto; overflow-x: clip; }
+.studio-custom-button { min-height: 38px; border: 1px solid transparent; cursor: pointer; transition: background-color var(--dur-short), color var(--dur-short), border-color var(--dur-short); }
+.studio-button-primary { background: var(--color-accent); color: var(--color-accent-ink); }
+.studio-button-primary:hover { background: var(--color-accent-hover); }
+.studio-button-secondary { background: var(--color-paper-2); border-color: var(--color-rule-2); color: var(--color-ink); }
+.studio-button-secondary:hover { background: var(--color-paper-3); }
+.studio-button-danger { background: var(--color-error); color: var(--color-paper-2); }
+.studio-custom-button:active { transform: translateY(1px); }
+.studio-custom-button:disabled { cursor: not-allowed; background: var(--color-paper-3); color: var(--color-muted); border-color: var(--color-rule); }
+.studio-support-panel { color: var(--color-ink); border: 1px solid var(--color-rule); border-radius: var(--radius-card); background: var(--color-paper-2); }
+.ant-btn { transition: background-color var(--dur-micro), color var(--dur-micro), border-color var(--dur-micro), box-shadow var(--dur-micro); }
+.ant-btn-primary:where(:not(:disabled):not(.ant-btn-dangerous)) { color: var(--color-accent-ink); }
+.ant-btn-primary.ant-btn-dangerous { background: var(--color-error); border-color: var(--color-error); color: var(--color-paper-2); }
+.ant-btn-default:not(:disabled) { color: var(--color-ink-2); border-color: var(--color-rule-2); }
+.ant-btn-primary:disabled { background: var(--color-paper-3); color: var(--color-muted); border-color: var(--color-rule); }
+.ant-tag { font-size: 12px; line-height: 1.7; }
+.ant-tag-blue, .ant-tag-cyan, .ant-tag-geekblue, .ant-tag-purple, .ant-tag-processing { color: var(--color-accent); background: var(--color-accent-soft); border-color: var(--color-rule); }
+.ant-tag-green, .ant-tag-success { color: var(--color-success); background: var(--color-success-soft); border-color: var(--color-rule); }
+.ant-tag-gold, .ant-tag-orange, .ant-tag-warning { color: var(--color-warning); background: var(--color-warning-soft); border-color: var(--color-rule); }
+.ant-tag-red, .ant-tag-error { color: var(--color-error); background: var(--color-error-soft); border-color: var(--color-rule); }
+.ant-alert-info { color: var(--color-ink); background: var(--color-accent-soft); border-color: var(--color-rule); }
+.ant-alert-warning { color: var(--color-ink); background: var(--color-warning-soft); border-color: var(--color-rule); }
+.ant-alert-error { color: var(--color-ink); background: var(--color-error-soft); border-color: var(--color-rule); }
+.ant-alert-success { color: var(--color-ink); background: var(--color-success-soft); border-color: var(--color-rule); }
+.ant-modal .ant-modal-content, .ant-drawer .ant-drawer-content, .ant-select-dropdown, .ant-dropdown .ant-dropdown-menu, .ant-message-notice-content { color: var(--color-ink); background: var(--color-paper-2); }
+.ant-modal .ant-modal-content { box-shadow: var(--shadow-popup); }
+.ant-modal-mask, .ant-drawer-mask { background: var(--color-overlay-soft) !important; }
+.ant-table-wrapper .ant-table { font-variant-numeric: tabular-nums; }
+.ant-tabs-tab-btn { font-size: 14px; }
+.ant-typography-secondary { color: var(--color-muted) !important; }
+.text-black { color: var(--color-ink); }
+.text-\[10px\], .text-\[11px\] { font-size: 12px; line-height: 1.5; }
+.studio-task-center .ant-card { box-shadow: var(--shadow-popup); }
+@media (min-width: 1920px) { .studio-content.ant-layout-content { padding-inline: var(--space-2xl); } }
+@media (max-width: 1100px) {
+  .studio-user-copy { display: none; }
+  .studio-topbar.ant-layout-header { gap: var(--space-md); padding-inline: var(--space-md); }
+  .studio-header-actions { gap: var(--space-sm); }
+}
+@media (max-width: 767px) {
+  .studio-topbar.ant-layout-header { height: 64px; padding: var(--space-xs) var(--space-sm); gap: var(--space-xs); }
+  .studio-location { gap: var(--space-xs); flex: 1; }
+  .studio-breadcrumb { display: none; }
+  .studio-header-actions { gap: var(--space-xs); }
+  .studio-language { width: 108px; }
+  .studio-theme-switch button { min-width: 32px; width: 32px; }
+  .studio-theme-switch button span { display: none; }
+  .studio-user-menu { padding: 0; }
+  .studio-content.ant-layout-content { padding: var(--space-sm); }
+  .ant-modal { max-width: calc(100% - 24px); }
+  .ant-drawer-body { min-width: 0; }
+}

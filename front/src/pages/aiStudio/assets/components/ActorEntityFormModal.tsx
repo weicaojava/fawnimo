@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Input, InputNumber, Modal, message } from 'antd'
 import { StudioEntitiesApi } from '../../../../services/studioEntities'
 import { ProjectVisualStyleAndStyleFields } from '../../project/ProjectVisualStyleAndStyleFields'
@@ -21,6 +21,7 @@ function normalizeTags(input: string): string[] {
     .filter(Boolean)
 }
 
+/** Retain linked actor creation and editing in a compact, labelled form. */
 export function ActorEntityFormModal({
   open,
   editing,
@@ -38,6 +39,7 @@ export function ActorEntityFormModal({
   onCancel: () => void
   onSuccess: (detail?: { created?: unknown }) => void | Promise<void>
 }) {
+  const fieldPrefix = useId()
   const { options: projectStyleOptions, defaultVisualStyle, getDefaultStyle } = useProjectStyleOptions()
   const [formName, setFormName] = useState('')
   const [formDesc, setFormDesc] = useState('')
@@ -113,31 +115,32 @@ export function ActorEntityFormModal({
 
   return (
     <Modal
+      className="library-dialog"
       title={editing ? '编辑演员' : '新建演员'}
       open={open}
       onCancel={onCancel}
       onOk={handleOk}
       okText={editing ? '保存' : '创建'}
     >
-      <div className="space-y-3">
-        <div>
-          <div className="text-sm text-gray-600 mb-1">名称</div>
-          <Input value={formName} onChange={(e) => setFormName(e.target.value)} />
+      <div className="library-asset-modal-form">
+        <div className="library-field-span">
+          <label htmlFor={`${fieldPrefix}-name`} className="block text-sm library-secondary mb-1">名称</label>
+          <Input id={`${fieldPrefix}-name`} value={formName} onChange={(e) => setFormName(e.target.value)} />
+        </div>
+        <div className="library-field-span">
+          <label htmlFor={`${fieldPrefix}-description`} className="block text-sm library-secondary mb-1">描述</label>
+          <Input.TextArea id={`${fieldPrefix}-description`} rows={3} value={formDesc} onChange={(e) => setFormDesc(e.target.value)} />
         </div>
         <div>
-          <div className="text-sm text-gray-600 mb-1">描述</div>
-          <Input.TextArea rows={3} value={formDesc} onChange={(e) => setFormDesc(e.target.value)} />
+          <label htmlFor={`${fieldPrefix}-tags`} className="block text-sm library-secondary mb-1">标签（逗号分隔）</label>
+          <Input id={`${fieldPrefix}-tags`} value={formTags} onChange={(e) => setFormTags(e.target.value)} />
         </div>
         <div>
-          <div className="text-sm text-gray-600 mb-1">标签（逗号分隔）</div>
-          <Input value={formTags} onChange={(e) => setFormTags(e.target.value)} />
+          <label htmlFor={`${fieldPrefix}-views`} className="block text-sm library-secondary mb-1">视角数（可选）</label>
+          <InputNumber id={`${fieldPrefix}-views`} className="w-full" min={1} max={4} value={formViewCount} onChange={(v) => setFormViewCount(v ?? null)} />
         </div>
-        <div>
-          <div className="text-sm text-gray-600 mb-1">视角数（可选）</div>
-          <InputNumber className="w-full" min={1} max={4} value={formViewCount} onChange={(v) => setFormViewCount(v ?? null)} />
-        </div>
-        <div>
-          <div className="text-sm text-gray-600 mb-1">视觉风格</div>
+        <div className="library-field-span">
+          <div className="text-sm library-secondary mb-1">视觉风格</div>
           <ProjectVisualStyleAndStyleFields
             visual_style={formVisualStyle}
             style={formStyle}

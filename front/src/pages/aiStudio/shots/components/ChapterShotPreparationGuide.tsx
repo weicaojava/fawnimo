@@ -37,10 +37,10 @@ export function ChapterShotPreparationGuide({
 
   return (
     <div
-      className="rounded-xl border px-3 py-2"
+      className="production-preparation-guide border"
       style={{
-        borderColor: statusReady ? '#86efac' : '#cbd5e1',
-        background: statusReady ? '#f0fdf4' : '#f8fafc',
+        borderColor: statusReady ? 'var(--color-success)' : 'var(--color-rule-2)',
+        background: statusReady ? 'var(--color-success-soft)' : 'var(--color-paper-3)',
       }}
     >
       <div className="flex flex-wrap items-center gap-2 justify-between">
@@ -51,7 +51,7 @@ export function ChapterShotPreparationGuide({
             </Tag>
             <span className="text-sm font-medium text-slate-900">{nextStepTitle}</span>
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5">{summaryText}</div>
+          <div className="text-xs text-slate-500 mt-0.5">{summaryText}</div>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -84,29 +84,29 @@ export function ChapterShotPreparationGuide({
             {checklistItems.map((item) => (
               <div
                 key={item.key}
-                className="rounded-lg border px-3 py-2 bg-white/70 min-w-[160px] flex-1"
+                className="production-guide-check border"
                 style={{
                   borderColor:
                     item.tone === 'success'
-                      ? '#86efac'
+                      ? 'var(--color-success)'
                       : item.tone === 'warning'
-                        ? '#fcd34d'
-                        : '#dbeafe',
+                        ? 'var(--color-warning)'
+                        : 'var(--color-accent-soft)',
                   background:
                     item.tone === 'success'
-                      ? '#f0fdf4'
+                      ? 'var(--color-success-soft)'
                       : item.tone === 'warning'
-                        ? '#fffbeb'
-                        : '#f8fafc',
+                        ? 'var(--color-warning-soft)'
+                        : 'var(--color-paper-3)',
                 }}
               >
-                <div className="text-[11px] text-gray-500 mb-1">{item.label}</div>
+                <div className="text-xs text-gray-500 mb-1">{item.label}</div>
                 <div className="text-xs font-medium text-gray-900">{item.text}</div>
               </div>
             ))}
           </div>
 
-          <div className="text-[11px] text-slate-500">{nextStepDescription}</div>
+          <div className="text-xs text-slate-500">{nextStepDescription}</div>
         </div>
       ) : null}
     </div>

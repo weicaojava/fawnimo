@@ -2,11 +2,10 @@
 import asyncio
 import uuid
 import json
-import os
-import signal
 import sys
 from pathlib import Path
 from fastapi import HTTPException
+from app.core.owned_process import run_owned_process
 
 _capacity=asyncio.Semaphore(1)
 MAX_MANUAL=64
@@ -32,20 +31,11 @@ def reserve_cache(directory,cache):
 async def isolated_preview(source,temp,index,ffmpeg,*,deadline=45):
     """Kill and join the trusted decoder subtree on timeout or application cancellation."""
     child=Path(__file__).with_name('frame_preview_child.py')
-    process=await asyncio.create_subprocess_exec(sys.executable,str(child),stdin=asyncio.subprocess.PIPE,stdout=asyncio.subprocess.DEVNULL,stderr=asyncio.subprocess.DEVNULL,start_new_session=os.name!='nt')
     try:
         data={'source':str(source),'output':str(temp),'index':index,'ffmpeg':str(ffmpeg),'deadline':deadline}
-        await asyncio.wait_for(process.communicate(json.dumps(data).encode()),deadline+1)
-        if process.returncode:raise HTTPException(409,'无法读取该原始帧')
+        _stdout,returncode=await run_owned_process([sys.executable,str(child)],json.dumps(data).encode(),timeout=deadline+1)
+        if returncode:raise HTTPException(409,'无法读取该原始帧')
     except asyncio.TimeoutError:raise HTTPException(503,'读取原始帧超时，请稍后重试') from None
-    finally:
-        if process.returncode is None:
-            if os.name=='nt':
-                killer=await asyncio.create_subprocess_exec('taskkill','/PID',str(process.pid),'/T','/F',stdout=asyncio.subprocess.DEVNULL,stderr=asyncio.subprocess.DEVNULL)
-                await killer.wait()
-            else:os.killpg(process.pid,signal.SIGKILL)
-            if process.returncode is None:process.kill()
-            await process.wait()
 
 
 async def original_frame(source,directory,index,ffmpeg):

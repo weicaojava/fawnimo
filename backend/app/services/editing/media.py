@@ -9,6 +9,7 @@ from pathlib import Path
 
 from fastapi import HTTPException
 from app.config import settings
+from app.core.owned_process import run_owned_process
 from app.models.production import ProductionMedia
 from app.services.studio.production_media import media_path
 
@@ -30,7 +31,7 @@ def covers(segments, start_ms: int, end_ms: int) -> bool:
 
 
 async def kill_child(process) -> None:
-    """Immediately terminate and join this private helper and its encoder children."""
+    """Best-effort cleanup for old unowned test processes; production helpers use a process container."""
     if process.returncode is not None:
         return
     if os.name == 'nt':
@@ -54,21 +55,19 @@ async def run_child(parameters: dict, deadline: int = 45) -> dict:
     if deadline not in (45, 120):
         raise ValueError('Unsupported editing process deadline')
     child = Path(__file__).with_name('media_child.py')
-    process = await asyncio.create_subprocess_exec(sys.executable, str(child), stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL, start_new_session=os.name != 'nt')
     try:
-        stdout, _ = await asyncio.wait_for(process.communicate(json.dumps({**parameters, 'deadline': deadline}, ensure_ascii=False).encode()), deadline + 1)
-        if len(stdout) > 2 * 1024 * 1024:
-            raise ValueError('Editing helper exceeded response limit')
+        stdout, returncode = await run_owned_process([sys.executable, str(child)],
+            json.dumps({**parameters, 'deadline': deadline}, ensure_ascii=False).encode(), timeout=deadline + 1)
         result = json.loads(stdout)
-        if process.returncode or not isinstance(result, dict) or result.get('error'):
+        if not isinstance(result, dict):
+            raise ValueError('Local media helper returned an invalid result')
+        if returncode or result.get('error'):
             raise ValueError(result.get('error', 'Local media processing failed'))
         return result
     except asyncio.CancelledError:
         raise
     except (ValueError, OSError, asyncio.TimeoutError, KeyError) as exc:
         raise HTTPException(409, '本地媒体校验或合成失败，素材可能不支持、损坏或超限') from exc
-    finally:
-        await kill_child(process)
 
 
 async def probe_owned(db, project_id: str, media_id: str) -> dict:

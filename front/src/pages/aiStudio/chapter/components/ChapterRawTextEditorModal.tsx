@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Button, Card, Collapse, Empty, Input, List, Modal, Space, Spin, Tag, message } from 'antd'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Alert, Button, Card, Collapse, Empty, Input, List, Modal, Pagination, Space, Spin, Tag, message } from 'antd'
 import {
   CloseCircleOutlined,
   DiffOutlined,
@@ -22,16 +22,27 @@ import { handleTaskResultSafely } from '../../components/taskResultHelpers'
 import { useRelationTaskNotification } from '../../components/taskNotificationHelpers'
 import { useTaskPageContext } from '../../components/taskPageContext'
 import { TASK_COPY } from '../../components/taskCopy'
+import { useGenerationAvailability } from '../../../../hooks/useGenerationAvailability'
 
 type EditorMode = 'raw' | 'condensed' | 'compare'
 
 type HistoryItem = {
   id: string
-  at: number
-  rawText: string
-  condensedText: string
+  revision: number
+  created_at: string
+  raw_text: string
+  condensed_text: string
+  origin: string
+  restored_from_revision?: number | null
 }
 
+/** Keep revision conflicts actionable while retaining the user's unsaved editor text. */
+function historyError(error: unknown, fallback: string): string {
+  const body = (error as { body?: { message?: unknown } })?.body
+  return typeof body?.message === 'string' ? body.message : fallback
+}
+
+/** Edit real chapter text and expose only server-persisted history and restores. */
 export function ChapterRawTextEditorModal({
   open,
   onClose,
@@ -43,6 +54,7 @@ export function ChapterRawTextEditorModal({
   chapterId: string | undefined
   onSaved?: (next: { rawText?: string; condensedText?: string }) => void
 }) {
+  const generation = useGenerationAvailability()
   const consistencyTaskCopy = TASK_COPY.consistencyCheck
   const simplifyTaskCopy = TASK_COPY.scriptSimplify
   const optimizeTaskCopy = TASK_COPY.scriptOptimize
@@ -52,6 +64,17 @@ export function ChapterRawTextEditorModal({
   const [checkingConsistency, setCheckingConsistency] = useState(false)
   const [optimizingScript, setOptimizingScript] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyFailure, setHistoryFailure] = useState('')
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyTotal, setHistoryTotal] = useState(0)
+  const [textRevision, setTextRevision] = useState(0)
+  const [latestHistoryRevision, setLatestHistoryRevision] = useState(0)
+  const [loadFailure, setLoadFailure] = useState('')
+  const [reloadVersion, setReloadVersion] = useState(0)
+  const editorSession = useRef(0)
+  const historyRequest = useRef(0)
 
   const [mode, setMode] = useState<EditorMode>('raw')
   const [rawText, setRawText] = useState('')
@@ -189,14 +212,28 @@ export function ChapterRawTextEditorModal({
   }, [consistencyResult])
 
   useEffect(() => {
-    if (!open) return
-    if (!chapterId) return
+    const token = ++editorSession.current
+    if (!open || !chapterId) return
+    setHistoryOpen(false)
+    setHistoryItems([])
+    setHistoryFailure('')
+    setHistoryLoading(false)
+    setHistoryPage(1)
+    setHistoryTotal(0)
+    setSaving(false)
+    setLoadFailure('')
     setLoading(true)
-    StudioChaptersService.getChapterApiV1StudioChaptersChapterIdGet({ chapterId })
+    StudioChaptersService.listChapterTextHistoryApiV1StudioChaptersChapterIdTextHistoryGet({ chapterId })
       .then((res) => {
+        if (token !== editorSession.current) return
         const data = res.data
+        if (!data) throw new Error('章节文本未返回')
         const nextRaw = data?.raw_text ?? ''
         const nextCondensed = data?.condensed_text ?? ''
+        setTextRevision(data.current_revision)
+        setLatestHistoryRevision(data.current_revision)
+        setHistoryItems(data.items)
+        setHistoryTotal(data.total)
         setRawText(nextRaw)
         setCondensedText(nextCondensed)
         setSavedRawText(nextRaw)
@@ -207,13 +244,40 @@ export function ChapterRawTextEditorModal({
         setCompareCondensed(nextCondensed)
         setConsistencyResult(null)
       })
-      .catch(() => {
-        message.error('加载章节失败')
+      .catch((reason) => {
+        if (token !== editorSession.current) return
+        const explanation = historyError(reason, '加载章节文本与历史失败，请重试')
+        setLoadFailure(explanation)
+        message.error(explanation)
       })
-      .finally(() => setLoading(false))
-  }, [open, chapterId])
+      .finally(() => { if (token === editorSession.current) setLoading(false) })
+    return () => { ++editorSession.current; ++historyRequest.current }
+  }, [open, chapterId, reloadVersion])
+
+  /** Refresh real history without upgrading the revision underlying unsaved editor text. */
+  const loadHistory = async (page = 1) => {
+    if (!chapterId) return
+    const token = editorSession.current
+    const operation = ++historyRequest.current
+    setHistoryLoading(true)
+    setHistoryFailure('')
+    try {
+      const response = await StudioChaptersService.listChapterTextHistoryApiV1StudioChaptersChapterIdTextHistoryGet({ chapterId, page, pageSize: 20 })
+      if (token !== editorSession.current || operation !== historyRequest.current) return
+      if (!response.data) throw new Error('历史记录未返回')
+      setHistoryItems(response.data.items)
+      setHistoryPage(response.data.page)
+      setHistoryTotal(response.data.total)
+      setLatestHistoryRevision(response.data.current_revision)
+    } catch (reason) {
+      if (token === editorSession.current && operation === historyRequest.current) setHistoryFailure(historyError(reason, '读取历史失败，当前编辑内容未改动'))
+    } finally {
+      if (token === editorSession.current && operation === historyRequest.current) setHistoryLoading(false)
+    }
+  }
 
   const handleSmartSimplify = async () => {
+    if (!generation.available) { message.warning(generation.message); return }
     if (!rawText.trim()) {
       message.warning('请先输入原文')
       return
@@ -247,6 +311,7 @@ export function ChapterRawTextEditorModal({
   }
 
   const handleCheckConsistency = async () => {
+    if (!generation.available) { message.warning(generation.message); return }
     const scriptText = rawText.trim()
     if (!scriptText) {
       message.warning('请先输入原文')
@@ -294,6 +359,7 @@ export function ChapterRawTextEditorModal({
   }
 
   const handleOneClickOptimize = async () => {
+    if (!generation.available) { message.warning(generation.message); return }
     const scriptText = rawText.trim()
     if (!scriptText) {
       message.warning('请先输入原文')
@@ -409,69 +475,51 @@ export function ChapterRawTextEditorModal({
   }
 
   const handleViewCondensed = () => {
-    if (!condensedText.trim()) {
+    const nextCondensed = mode === 'compare' ? compareCondensed : condensedText
+    if (!nextCondensed.trim()) {
       message.info('暂无精简内容')
       return
     }
     setMode('condensed')
-    setEditorText(condensedText)
+    setEditorText(nextCondensed)
   }
 
   const handleSave = async (): Promise<boolean> => {
-    if (!chapterId) return false
+    if (!chapterId || saving || loading || loadFailure) return false
+    const token = editorSession.current
     setSaving(true)
     try {
-      if (mode === 'raw') {
-        await StudioChaptersService.updateChapterApiV1StudioChaptersChapterIdPatch({
-          chapterId,
-          requestBody: { raw_text: editorText },
-        })
-        setRawText(editorText)
-        setSavedRawText(editorText)
-        onSaved?.({ rawText: editorText })
-        message.success('原文已保存')
-        return true
-      }
-
-      if (mode === 'condensed') {
-        await StudioChaptersService.updateChapterApiV1StudioChaptersChapterIdPatch({
-          chapterId,
-          requestBody: { condensed_text: editorText },
-        })
-        setCondensedText(editorText)
-        setSavedCondensedText(editorText)
-        onSaved?.({ condensedText: editorText })
-        message.success('精简内容已保存')
-        return true
-      }
-
-      await StudioChaptersService.updateChapterApiV1StudioChaptersChapterIdPatch({
-        chapterId,
-        requestBody: { raw_text: compareRaw, condensed_text: compareCondensed },
-      })
-      setRawText(compareRaw)
-      setCondensedText(compareCondensed)
-      setSavedRawText(compareRaw)
-      setSavedCondensedText(compareCondensed)
-      onSaved?.({ rawText: compareRaw, condensedText: compareCondensed })
-      message.success('已保存')
+      // Both buffers remain editable across modes; save them together before closing the editor.
+      const requestBody = { expected_revision: textRevision,
+        raw_text: mode === 'compare' ? compareRaw : rawText,
+        condensed_text: mode === 'compare' ? compareCondensed : condensedText }
+      const response = await StudioChaptersService.saveChapterTextRevisionApiV1StudioChaptersChapterIdTextHistoryPost({ chapterId, requestBody })
+      if (token !== editorSession.current) return false
+      const data = response.data
+      if (!data) throw new Error('保存未返回修订')
+      setTextRevision(data.current_revision)
+      setLatestHistoryRevision(data.current_revision)
+      setRawText(data.raw_text); setSavedRawText(data.raw_text); setCompareRaw(data.raw_text)
+      setCondensedText(data.condensed_text); setSavedCondensedText(data.condensed_text); setCompareCondensed(data.condensed_text)
+      onSaved?.({ rawText: data.raw_text, condensedText: data.condensed_text })
+      message.success('章节文本已保存')
       return true
-    } catch {
-      message.error('保存失败')
+    } catch (reason) {
+      if (token === editorSession.current) message.error(historyError(reason, '保存失败；当前编辑内容仍保留'))
       return false
     } finally {
-      setSaving(false)
+      if (token === editorSession.current) setSaving(false)
     }
   }
 
   const hasUnsavedChanges = useMemo(() => {
-    if (mode === 'compare') return compareRaw !== savedRawText || compareCondensed !== savedCondensedText
-    if (mode === 'raw') return editorText !== savedRawText
-    return editorText !== savedCondensedText
-  }, [compareCondensed, compareRaw, editorText, mode, savedCondensedText, savedRawText])
+    const activeRaw = mode === 'compare' ? compareRaw : rawText
+    const activeCondensed = mode === 'compare' ? compareCondensed : condensedText
+    return activeRaw !== savedRawText || activeCondensed !== savedCondensedText
+  }, [compareCondensed, compareRaw, condensedText, mode, rawText, savedCondensedText, savedRawText])
 
   const handleRequestClose = () => {
-    if (actionsLoading) return
+    if (actionsLoading || saving) return
     if (!hasUnsavedChanges) {
       onClose()
       return
@@ -491,23 +539,39 @@ export function ChapterRawTextEditorModal({
     })
   }
 
-  const mockHistory: HistoryItem[] = useMemo(
-    () => [
-      {
-        id: 'h-1',
-        at: Date.now() - 1000 * 60 * 60 * 2,
-        rawText: '【原文】示例版本 1（预置数据）',
-        condensedText: '【精简】示例版本 1（预置数据）',
+  /** Restore only after explicit acknowledgement; history remains append-only and CAS protected. */
+  const restoreHistory = (item: HistoryItem) => {
+    if (!chapterId || saving || historyLoading) return
+    const token = editorSession.current
+    Modal.confirm({
+      title: `恢复修订 ${item.revision} 为新修订？`,
+      content: hasUnsavedChanges ? '当前未保存的编辑将被替换，请先确认已经保存或复制。已有历史记录会完整保留。' : '恢复会另存一个新修订，已有历史记录会完整保留。',
+      okText: '恢复为新修订', cancelText: '取消',
+      onOk: async () => {
+        if (token !== editorSession.current) return
+        setSaving(true)
+        setHistoryFailure('')
+        try {
+          const response = await StudioChaptersService.restoreChapterTextRevisionApiV1StudioChaptersChapterIdTextHistoryRevisionRestorePost({ chapterId, revision: item.revision, requestBody: { expected_revision: textRevision } })
+          if (token !== editorSession.current) return
+          const data = response.data
+          if (!data) throw new Error('恢复未返回新修订')
+          setRawText(data.raw_text); setCondensedText(data.condensed_text)
+          setSavedRawText(data.raw_text); setSavedCondensedText(data.condensed_text)
+          setCompareRaw(data.raw_text); setCompareCondensed(data.condensed_text)
+          setEditorText(mode === 'condensed' ? data.condensed_text : data.raw_text)
+          setTextRevision(data.current_revision); setLatestHistoryRevision(data.current_revision)
+          onSaved?.({ rawText: data.raw_text, condensedText: data.condensed_text })
+          message.success(`已恢复为修订 ${data.current_revision}`)
+          await loadHistory()
+        } catch (reason) {
+          if (token === editorSession.current) setHistoryFailure(historyError(reason, '恢复失败；当前编辑内容未改动'))
+        } finally {
+          if (token === editorSession.current) setSaving(false)
+        }
       },
-      {
-        id: 'h-2',
-        at: Date.now() - 1000 * 60 * 22,
-        rawText: '【原文】示例版本 2（预置数据）',
-        condensedText: '【精简】示例版本 2（预置数据）',
-      },
-    ],
-    [],
-  )
+    })
+  }
 
   return (
     <>
@@ -521,14 +585,15 @@ export function ChapterRawTextEditorModal({
               <Tag color="default">{paragraphCount} 段</Tag>
             </div>
             <Space size="small">
-              <Button size="small" type="primary" icon={<SaveOutlined />} loading={actionsLoading || saving} disabled={actionsLoading} onClick={() => void handleSave()}>
+              <Button size="small" type="primary" icon={<SaveOutlined />} loading={actionsLoading || saving} disabled={actionsLoading || loading || !!loadFailure} onClick={() => void handleSave()}>
                 保存
               </Button>
               <Button
                 size="small"
                 icon={<ReloadOutlined />}
                 loading={checkingConsistency || !!consistencyTask}
-                disabled={actionsLoading || !!consistencyTask}
+                disabled={actionsLoading || saving || loading || !!loadFailure || !!consistencyTask || !generation.available}
+                title={!generation.available ? generation.message : undefined}
                 onClick={() => void handleCheckConsistency()}
               >
                 {consistencyTask ? '检查中' : '角色混淆检查'}
@@ -548,7 +613,8 @@ export function ChapterRawTextEditorModal({
                 size="small"
                 icon={<ThunderboltOutlined />}
                 loading={extracting || !!simplifyTask}
-                disabled={actionsLoading || !!simplifyTask}
+                disabled={actionsLoading || saving || loading || !!loadFailure || !!simplifyTask || !generation.available}
+                title={!generation.available ? generation.message : undefined}
                 onClick={() => void handleSmartSimplify()}
               >
                 {simplifyTask ? '精简中' : '智能精简'}
@@ -565,7 +631,7 @@ export function ChapterRawTextEditorModal({
                 </Button>
               ) : null}
               {mode === 'condensed' ? (
-                <Button size="small" icon={<ReloadOutlined />} loading={actionsLoading} disabled={actionsLoading} onClick={handleBackToRaw}>
+                <Button size="small" icon={<ReloadOutlined />} loading={actionsLoading} disabled={actionsLoading || saving || loading || !!loadFailure} onClick={handleBackToRaw}>
                   回到原文
                 </Button>
               ) : (
@@ -573,7 +639,7 @@ export function ChapterRawTextEditorModal({
                   size="small"
                   icon={<ReloadOutlined />}
                   loading={actionsLoading}
-                  disabled={actionsLoading || !condensedText.trim()}
+                  disabled={actionsLoading || saving || loading || !!loadFailure || !(mode === 'compare' ? compareCondensed : condensedText).trim()}
                   onClick={handleViewCondensed}
                 >
                   查看精简
@@ -583,12 +649,12 @@ export function ChapterRawTextEditorModal({
                 size="small"
                 icon={<DiffOutlined />}
                 loading={actionsLoading}
-                disabled={actionsLoading}
+                disabled={actionsLoading || saving || loading || !!loadFailure}
                 type={mode === 'compare' ? 'primary' : 'default'}
                 onClick={() => {
                   if (mode === 'compare') {
                     setMode('raw')
-                    setEditorText(rawText)
+                    setEditorText(compareRaw)
                     return
                   }
                   setCompareRaw(rawText)
@@ -598,7 +664,7 @@ export function ChapterRawTextEditorModal({
               >
                 对比模式
               </Button>
-              <Button size="small" icon={<HistoryOutlined />} loading={actionsLoading} disabled={actionsLoading} onClick={() => setHistoryOpen(true)}>
+              <Button size="small" icon={<HistoryOutlined />} loading={actionsLoading} disabled={actionsLoading || loading || saving || !!loadFailure} onClick={() => { setHistoryOpen(true); void loadHistory() }}>
                 版本历史
               </Button>
             </Space>
@@ -610,7 +676,7 @@ export function ChapterRawTextEditorModal({
         }}
         width={900}
         footer={
-          <Button type="primary" loading={actionsLoading} disabled={actionsLoading} onClick={handleRequestClose}>
+          <Button type="primary" loading={actionsLoading || saving} disabled={actionsLoading || saving} onClick={handleRequestClose}>
             关闭
           </Button>
         }
@@ -619,30 +685,31 @@ export function ChapterRawTextEditorModal({
           body: { maxHeight: '70vh', overflow: 'auto', paddingTop: 12 },
         }}
       >
+        {!generation.available && <Alert className="mb-3" type="info" showIcon message={generation.message} description="原文编辑、保存和真实版本历史可继续使用。" />}
         {loading ? (
           <div className="flex justify-center items-center py-10">
             <Spin />
           </div>
-        ) : mode === 'compare' ? (
+        ) : loadFailure ? <Alert type="error" showIcon message={loadFailure} action={<Button onClick={() => setReloadVersion(value => value + 1)}>重新加载</Button>} /> : mode === 'compare' ? (
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col">
               <div className="text-xs text-gray-500 mb-2">原文</div>
               <Input.TextArea
                 value={compareRaw}
-                onChange={(e) => setCompareRaw(e.target.value)}
+                onChange={(e) => { setCompareRaw(e.target.value); setRawText(e.target.value) }}
                 rows={14}
-                disabled={actionsLoading}
-                style={{ resize: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}
+                disabled={actionsLoading || saving}
+                style={{ resize: 'none', fontFamily: 'var(--font-mono)' }}
               />
             </div>
             <div className="flex flex-col">
               <div className="text-xs text-gray-500 mb-2">精简内容</div>
               <Input.TextArea
                 value={compareCondensed}
-                onChange={(e) => setCompareCondensed(e.target.value)}
+                onChange={(e) => { setCompareCondensed(e.target.value); setCondensedText(e.target.value) }}
                 rows={14}
-                disabled={actionsLoading}
-                style={{ resize: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}
+                disabled={actionsLoading || saving}
+                style={{ resize: 'none', fontFamily: 'var(--font-mono)' }}
               />
             </div>
           </div>
@@ -656,10 +723,10 @@ export function ChapterRawTextEditorModal({
                 if (mode === 'raw') setRawText(v)
                 if (mode === 'condensed') setCondensedText(v)
               }}
-            disabled={actionsLoading}
+              disabled={actionsLoading || saving}
               placeholder={mode === 'raw' ? '编辑章节原文…' : '编辑精简内容…'}
               rows={16}
-              style={{ resize: 'none', background: '#fdfdfd' }}
+              style={{ resize: 'none', background: 'var(--color-paper)' }}
             />
             {consistencyResult ? (
               <Card
@@ -676,7 +743,8 @@ export function ChapterRawTextEditorModal({
                       type="primary"
                       icon={<ThunderboltOutlined />}
                       loading={optimizingScript || !!optimizeTask}
-                      disabled={actionsLoading || !!optimizeTask}
+                      disabled={actionsLoading || saving || loading || !!loadFailure || !!optimizeTask || !generation.available}
+                      title={!generation.available ? generation.message : undefined}
                       onClick={() => void handleOneClickOptimize()}
                     >
                       {optimizeTask ? '优化中' : '一键优化'}
@@ -750,35 +818,38 @@ export function ChapterRawTextEditorModal({
         }
         styles={{ body: { maxHeight: '70vh', overflow: 'auto' } }}
       >
-        {/* TODO: 历史版本接口未接入，当前为预置数据；后续接入后按时间线渲染即可 */}
-        <div className="text-xs text-gray-500 mb-3">内容默认折叠，仅展示时间线节点。</div>
+        <div className="text-xs text-gray-500 mb-3">仅显示实际保存的修订。恢复会创建新修订，保留后续历史。</div>
+        {historyFailure && <Alert className="mb-3" type="error" showIcon message={historyFailure} action={<Button disabled={historyLoading || saving} onClick={() => void loadHistory(historyPage)}>重试读取</Button>} />}
+        {latestHistoryRevision !== textRevision && <Alert className="mb-3" type="warning" showIcon message={`服务器已有修订 ${latestHistoryRevision}，当前编辑基于修订 ${textRevision}；未覆盖你的编辑。请先保留编辑内容，再重新打开章节。`} />}
+        <Spin spinning={historyLoading}>
+        {!historyLoading && !historyItems.length && !historyFailure && <Empty description="暂无保存历史；首次保存会保留当前文本作为初始修订。" />}
         <div className="space-y-3">
-          {mockHistory.map((h) => (
+          {historyItems.map((h) => (
             <div key={h.id} className="border border-gray-200 rounded-lg p-3 bg-white">
-              <div className="text-sm font-medium mb-2">{new Date(h.at).toLocaleString()}</div>
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-2"><Space wrap><strong>修订 {h.revision}</strong><span>{new Date(h.created_at).toLocaleString()}</span><Tag>{h.origin === 'restore' ? `恢复自修订 ${h.restored_from_revision}` : h.origin === 'initial' ? '初始记录' : '编辑保存'}</Tag>{h.revision === latestHistoryRevision && <Tag color="blue">当前版本</Tag>}</Space><Button disabled={saving || historyLoading || h.revision === latestHistoryRevision} onClick={() => restoreHistory(h)}>恢复为新修订</Button></div>
               <Collapse
                 items={[
                   {
                     key: 'content',
                     label: '展开查看内容',
                     children: (
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <div className="text-xs text-gray-500 mb-2">原文内容</div>
                           <Input.TextArea
-                            value={h.rawText}
+                            value={h.raw_text}
                             readOnly
                             rows={8}
-                            style={{ resize: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}
+                            style={{ resize: 'none', fontFamily: 'var(--font-mono)' }}
                           />
                         </div>
                         <div>
                           <div className="text-xs text-gray-500 mb-2">精简内容</div>
                           <Input.TextArea
-                            value={h.condensedText}
+                            value={h.condensed_text}
                             readOnly
                             rows={8}
-                            style={{ resize: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}
+                            style={{ resize: 'none', fontFamily: 'var(--font-mono)' }}
                           />
                         </div>
                       </div>
@@ -789,6 +860,8 @@ export function ChapterRawTextEditorModal({
             </div>
           ))}
         </div>
+        </Spin>
+        {historyTotal > 20 && <Pagination className="mt-4" current={historyPage} pageSize={20} total={historyTotal} showSizeChanger={false} onChange={page => void loadHistory(page)} />}
       </Modal>
     </>
   )

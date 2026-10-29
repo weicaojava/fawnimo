@@ -18,6 +18,7 @@ type DisplayImageCardProps = {
   imageHeightClassName?: string
 }
 
+/** Render an asset image and its original actions with keyboard-accessible preview. */
 export function DisplayImageCard({
   title,
   imageUrl,
@@ -51,13 +52,24 @@ export function DisplayImageCard({
   }
 
   const displayUrl = imgError ? undefined : imageUrl
+  const interactive = Boolean(onImageClick || (enablePreview && displayUrl))
 
   return (
     <>
-      <Card title={title} extra={extra} actions={actions} size={size} hoverable={hoverable}>
+      <Card className="library-image-card" title={title} extra={extra} actions={actions} size={size} hoverable={hoverable}>
         <div
-          className={`${imageHeightClassName} rounded-md border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 text-sm overflow-hidden ${(onImageClick || (enablePreview && displayUrl)) ? 'cursor-pointer' : ''}`}
+          className={`${imageHeightClassName} library-image-stage flex items-center justify-center text-sm overflow-hidden`}
+          role={interactive ? 'button' : undefined}
+          tabIndex={interactive ? 0 : undefined}
+          aria-label={interactive ? `预览${imageAlt}` : undefined}
           onClick={handleImageClick}
+          onKeyDown={(event) => {
+            // Keep the existing pointer action available from the keyboard.
+            if (interactive && (event.key === 'Enter' || event.key === ' ')) {
+              event.preventDefault()
+              handleImageClick()
+            }
+          }}
         >
           {displayUrl ? (
             <img
@@ -75,11 +87,10 @@ export function DisplayImageCard({
       </Card>
 
       <Modal title={imageAlt} open={previewOpen} onCancel={() => setPreviewOpen(false)} footer={null} width={960}>
-        <div className="w-full flex justify-center bg-gray-50 rounded-md overflow-hidden">
+        <div className="library-media-preview w-full flex justify-center overflow-hidden">
           {displayUrl ? <img src={displayUrl} alt={imageAlt} className="max-h-[75vh] object-contain" /> : null}
         </div>
       </Modal>
     </>
   )
 }
-

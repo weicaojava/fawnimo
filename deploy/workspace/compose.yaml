@@ -1,0 +1,48 @@
+name: ai-video-workspace
+
+x-studio-runtime: &studio-runtime
+  build:
+    context: ../..
+    dockerfile: deploy/workspace/Dockerfile
+  init: true
+  restart: unless-stopped
+  read_only: true
+  user: "10001:10001"
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  pids_limit: 256
+  cpus: 2
+  mem_limit: 4g
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=268435456
+  stop_grace_period: 45s
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  stable:
+    <<: *studio-runtime
+    profiles: [stable]
+    image: ai-video-workspace-stable:${STABLE_IMAGE_TAG:-unreleased}
+    command: ["python", "run_controlplane.py", "--root", "/data", "--host", "0.0.0.0", "--port", "8000", "--frontend", "/app/front/dist", "--probe", "/usr/bin/ffmpeg", "--public-origin", "${STABLE_PUBLIC_ORIGIN:-https://studio.invalid}"]
+    ports:
+      - "127.0.0.1:${STABLE_PORT:-18080}:8000"
+    volumes:
+      - stable-data:/data
+
+  preview:
+    <<: *studio-runtime
+    profiles: [preview]
+    image: ai-video-workspace-preview:${PREVIEW_IMAGE_TAG:-unreleased}
+    command: ["python", "run_controlplane.py", "--root", "/data", "--host", "0.0.0.0", "--port", "8000", "--frontend", "/app/front/dist", "--probe", "/usr/bin/ffmpeg", "--public-origin", "${PREVIEW_PUBLIC_ORIGIN:-https://preview.invalid}"]
+    ports:
+      - "127.0.0.1:${PREVIEW_PORT:-18081}:8000"
+    volumes:
+      - preview-data:/data
+
+volumes:
+  stable-data:
+  preview-data:

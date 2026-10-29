@@ -1,5 +1,7 @@
+import '../chapter/production.css'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  Alert,
   Button,
   Card,
   Divider,
@@ -31,6 +33,7 @@ import {
 } from '@ant-design/icons'
 import type { ShotRead, ShotRuntimeSummaryRead, ShotStatus } from '../../../services/generated'
 import { ScriptProcessingService, StudioChaptersService, StudioShotsService } from '../../../services/generated'
+import { useGenerationAvailability } from '../../../hooks/useGenerationAvailability'
 import { executeAsyncTaskCreate, executeTaskCancel } from '../components/taskActionHelpers'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { getChapterShotEditPath, getChapterShotsPath, getChapterStudioPath } from '../project/ProjectWorkbench/routes'
@@ -56,10 +59,11 @@ function getErrorMessage(e: unknown) {
   return '请求失败'
 }
 
+/** Label information confirmation in Chinese without treating it as video-generation readiness. */
 function statusTag(status?: ShotStatus) {
-  if (!status) return <span className="text-gray-400">—</span>
+  if (!status) return <span className="text-gray-400">暂无</span>
   const color = status === 'ready' ? 'success' : 'default'
-  return <Tag color={color}>{status}</Tag>
+  return <Tag color={color}>{status === 'ready' ? '信息已确认' : '信息待确认'}</Tag>
 }
 
 type ShotPreparationState = {
@@ -103,6 +107,7 @@ function getShotPreparationState(shot: ShotRead, runtime?: ShotRuntimeState): Sh
 }
 
 export function ChapterShotsPage() {
+  const generation = useGenerationAvailability()
   const taskCopy = TASK_COPY.chapterDivision
   const navigate = useNavigate()
   const { projectId, chapterId } = useParams<{ projectId: string; chapterId: string }>()
@@ -279,6 +284,7 @@ export function ChapterShotsPage() {
   }, [chapterId, closeCreate, createForm, shots])
 
   const handleOneClickExtract = useCallback(async () => {
+    if (!generation.available) { message.info(generation.message); return }
     if (!chapterId) return
     const scriptText = (chapterCondensedText || chapterRawText).trim()
     if (!scriptText) {
@@ -307,7 +313,7 @@ export function ChapterShotsPage() {
     } finally {
       setExtracting(false)
     }
-  }, [chapterCondensedText, chapterId, chapterRawText])
+  }, [chapterCondensedText, chapterId, chapterRawText, generation.available, generation.message])
 
   const handleCancelChapterDivisionTask = useCallback(async () => {
     if (!chapterDivisionTask) return
@@ -443,7 +449,7 @@ export function ChapterShotsPage() {
           return (
             <div className="space-y-1">
               <Tag color={state.color}>{state.text}</Tag>
-              <div className="text-[11px] text-gray-500 leading-5">{state.hint}</div>
+              <div className="text-xs text-gray-500 leading-5">{state.hint}</div>
             </div>
           )
         },
@@ -524,13 +530,10 @@ export function ChapterShotsPage() {
   }
 
   return (
-    <Layout style={{ height: '100%', minHeight: 0, background: '#eef2f7' }}>
+    <Layout className="production-page" style={{ height: '100%', minHeight: 0 }}>
       <Header
+        className="production-page-header"
         style={{
-          padding: '0 16px',
-          background: '#fff',
-          borderBottom: '1px solid #e2e8f0',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
           display: 'flex',
           alignItems: 'center',
           gap: 12,
@@ -547,10 +550,10 @@ export function ChapterShotsPage() {
         <div className="min-w-0 flex-1 overflow-hidden">
           <Typography.Text
             strong
-            className="truncate block"
+            className="production-page-title truncate block"
             style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           >
-            {chapterIndex !== null ? `第${chapterIndex}章 · ${chapterTitle || '未命名'}` : chapterTitle || '章节'}
+            {chapterIndex !== null ? `第${chapterIndex}章 / ${chapterTitle || '未命名'}` : chapterTitle || '章节'}
           </Typography.Text>
           <Typography.Text
             type="secondary"
@@ -579,10 +582,11 @@ export function ChapterShotsPage() {
           </Space>
         ) : null}
       </Header>
+      {!generation.available && <Alert className="mx-4 my-3" type="info" showIcon message={generation.message} description="自动提取分镜暂不可用；可以手工创建、编辑、保存分镜，并继续整理已有素材。" />}
 
       <Content
+        className="production-page-content"
         style={{
-          padding: 16,
           minHeight: 0,
           overflow: 'hidden',
           display: 'flex',
@@ -590,6 +594,7 @@ export function ChapterShotsPage() {
         }}
       >
         <Card
+          className="production-sheet"
           title={
             <div className="flex flex-wrap items-center gap-3">
               <span>分镜</span>
@@ -630,7 +635,7 @@ export function ChapterShotsPage() {
               ) : null}
               <Tooltip
                 title={
-                  chapterDivisionTask
+                  !generation.available ? generation.message : chapterDivisionTask
                     ? '当前章节已有分镜提取任务在运行'
                     : shots.length > 0
                       ? '已存在分镜时不允许同步分镜，需先清空分镜'
@@ -642,7 +647,8 @@ export function ChapterShotsPage() {
                     type={shots.length === 0 ? 'primary' : 'default'}
                     icon={<ScissorOutlined />}
                     loading={extracting}
-                    disabled={extracting || shots.length > 0 || !!chapterDivisionTask}
+                    disabled={extracting || shots.length > 0 || !!chapterDivisionTask || !generation.available}
+                    title={!generation.available ? generation.message : undefined}
                     onClick={() => void handleOneClickExtract()}
                   >
                     {chapterDivisionTask ? '分镜提取中' : shots.length === 0 ? '一键提取分镜' : '重新提取需先清空分镜'}

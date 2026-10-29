@@ -46,11 +46,19 @@ async def migrate_production() -> None:
         for table in ['project_actor_links','project_scene_links','project_prop_links','project_costume_links']:
             conditions[table] = "(NEW.chapter_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM chapters WHERE id=NEW.chapter_id AND project_id=NEW.project_id)) OR (NEW.shot_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM shots s JOIN chapters c ON c.id=s.chapter_id WHERE s.id=NEW.shot_id AND c.project_id=NEW.project_id AND (NEW.chapter_id IS NULL OR NEW.chapter_id=c.id)))"
         for table,field in [('actor_images','actor_id'),('scene_images','scene_id'),('prop_images','prop_id'),('costume_images','costume_id')]:
-            conditions[table]=f"EXISTS(SELECT 1 FROM production_media m WHERE m.id=NEW.file_id AND NOT EXISTS(SELECT 1 FROM production_assets a WHERE a.entity_id=NEW.{field} AND a.project_id=m.project_id))"
+            # Actors and costumes are global legacy identities. Their project links,
+            # rather than character/appearance version entity IDs, own the image scope.
+            owned=f"EXISTS(SELECT 1 FROM production_assets a WHERE a.entity_id=NEW.{field} AND a.project_id=m.project_id)"
+            if table in {'actor_images','costume_images'}:
+                links='project_actor_links' if table=='actor_images' else 'project_costume_links'
+                owned+=f" OR EXISTS(SELECT 1 FROM {links} l WHERE l.{field}=NEW.{field} AND l.project_id=m.project_id)"
+            conditions[table]=f"EXISTS(SELECT 1 FROM production_media m WHERE m.id=NEW.file_id AND NOT ({owned}))"
         for table, condition in conditions.items():
             if (await conn.execute(text(f"SELECT 1 FROM {table} candidate WHERE {condition.replace('NEW.','candidate.')} LIMIT 1"))).first() is not None:
                 raise RuntimeError(f'Existing inconsistent project scope in {table}; migration refused')
             for action in ['INSERT','UPDATE']:
+                if table in {'actor_images','costume_images'}:
+                    await conn.execute(text(f'DROP TRIGGER IF EXISTS {table}_scope_{action.lower()}'))
                 await conn.execute(text(f"CREATE TRIGGER IF NOT EXISTS {table}_scope_{action.lower()} BEFORE {action} ON {table} WHEN {condition} BEGIN SELECT RAISE(ABORT, 'Cross-project reference rejected'); END"))
         await conn.execute(text("CREATE TRIGGER IF NOT EXISTS take_versions_frozen_set BEFORE INSERT ON production_take_versions WHEN NOT EXISTS(SELECT 1 FROM production_takes t,json_each(t.version_ids) v WHERE t.id=NEW.take_id AND v.value=NEW.version_id) BEGIN SELECT RAISE(ABORT, 'Take version set is frozen'); END"))
         await conn.execute(text("CREATE TRIGGER IF NOT EXISTS version_media_frozen_set BEFORE INSERT ON production_version_media WHEN NOT EXISTS(SELECT 1 FROM production_asset_versions v,json_each(v.payload,'$.media_ids') m WHERE v.id=NEW.version_id AND m.value=NEW.media_id) BEGIN SELECT RAISE(ABORT, 'Version media set is frozen'); END"))

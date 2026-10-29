@@ -1,629 +1,156 @@
-import React, { useEffect, useState, useMemo } from 'react'
-import {
-  Layout,
-  Tabs,
-  Input,
-  Button,
-  Table,
-  Tag,
-  Space,
-  Tree,
-  Drawer,
-  Card,
-  Dropdown,
-  Modal,
-  message,
-  Tooltip,
-  Empty,
-  Grid,
-} from 'antd'
-import type { TableColumnsType } from 'antd'
-import {
-  PlusOutlined,
-  SearchOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  StarOutlined,
-  StarFilled,
-  CopyOutlined,
-  ExportOutlined,
-  MenuOutlined,
-  AppstoreOutlined,
-  UnorderedListOutlined,
-  DownOutlined,
-  RightOutlined,
-  ThunderboltOutlined,
-} from '@ant-design/icons'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { Alert, Button, Card, Descriptions, Drawer, Dropdown, Empty, Input, Modal, Select, Space, Table, Tabs, Tag, message } from 'antd'
+import { AppstoreOutlined, CopyOutlined, DeleteOutlined, EditOutlined, ExportOutlined, HeartOutlined, ImportOutlined, PlusOutlined, StarOutlined, UnorderedListOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import api from '../../../services/aiStudioApi'
-import type { Agent, AgentTypeKey } from '../../../mocks/data'
+import { AgentsService } from '../../../services/generated'
+import type { AgentConfigRead as Agent, AgentConfigExport_Input as AgentConfigExport } from '../../../services/generated'
+import { agentError, downloadAgentConfig } from './agentConfigIO'
+import '../assets/components/LibraryPages.css'
 
-const AGENT_TYPES: { key: AgentTypeKey; label: string; color: string }[] = [
-  { key: 'plot', label: '剧情提取', color: 'blue' },
-  { key: 'character', label: '角色提取', color: 'green' },
-  { key: 'scene', label: '场景提取', color: 'orange' },
-  { key: 'prop', label: '道具提取', color: 'purple' },
-  { key: 'other', label: '其他类型', color: 'default' },
-]
+type AgentType = Agent['type']
+const TYPES: { value: AgentType; label: string }[] = [{ value: 'plot', label: '剧情提取' }, { value: 'character', label: '角色提取' }, { value: 'scene', label: '场景提取' }, { value: 'prop', label: '道具提取' }, { value: 'other', label: '其他类型' }]
+/** Reuse the same category labels in filters, records and details. */
+const typeName = (type: AgentType) => TYPES.find(item => item.value === type)?.label ?? type
 
-const typeLabelMap = Object.fromEntries(AGENT_TYPES.map((t) => [t.key, t.label]))
-const typeColorMap = Object.fromEntries(AGENT_TYPES.map((t) => [t.key, t.color]))
-
-const SORT_OPTIONS = [
-  { value: 'updated', label: '最近更新' },
-  { value: 'name', label: '名称' },
-]
-
+/** Manage real saved Agent configurations while keeping unavailable model execution explicit. */
 export default function AgentManagement() {
   const navigate = useNavigate()
+  const importInput = useRef<HTMLInputElement>(null)
   const [agents, setAgents] = useState<Agent[]>([])
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<string>('all')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<'updated' | 'name'>('updated')
-  const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
-  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
-  const [detailPanelOpen, setDetailPanelOpen] = useState(false)
-  const [treeCollapsed, setTreeCollapsed] = useState(false)
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
-  const [createModalOpen, setCreateModalOpen] = useState(false)
-  const [createName, setCreateName] = useState('')
-  const [createType, setCreateType] = useState<AgentTypeKey>('plot')
-  const [createDesc, setCreateDesc] = useState('')
-  const [createLoading, setCreateLoading] = useState(false)
-  const [typeFilter, setTypeFilter] = useState<AgentTypeKey | null>(null)
-  const { lg } = Grid.useBreakpoint()
-  const isLargeScreen = lg ?? false
+  const [filter, setFilter] = useState('all')
+  const [sort, setSort] = useState('updated')
+  const [view, setView] = useState<'table' | 'card'>(() => window.matchMedia('(max-width:640px)').matches ? 'card' : 'table')
+  const [selected, setSelected] = useState<React.Key[]>([])
+  const [detail, setDetail] = useState<Agent | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [name, setName] = useState('')
+  const [type, setType] = useState<AgentType>('plot')
+  const [description, setDescription] = useState('')
 
+  /** Read all configuration pages so local filters and totals refer to actual stored records. */
   const load = async () => {
     setLoading(true)
+    setError('')
     try {
-      const list = await api.agents.list()
-      setAgents(Array.isArray(list) ? list : [])
-    } catch {
-      message.error('加载 Agent 列表失败')
-    } finally {
-      setLoading(false)
-    }
+      const all: Agent[] = []
+      let page = 1
+      let total = 0
+      do {
+        const response = await AgentsService.listAgentConfigs({ page, pageSize: 100 })
+        const items = response.data?.items ?? []
+        total = response.data?.pagination.total ?? 0
+        all.push(...items)
+        if (!items.length) break
+        page += 1
+      } while (all.length < total)
+      setAgents(all)
+      setDetail(previous => previous ? all.find(item => item.id === previous.id) ?? null : null)
+      setSelected(previous => previous.filter(id => all.some(item => item.id === id)))
+    } catch (failure) { setError(agentError(failure, '加载 Agent 配置失败')) }
+    finally { setLoading(false) }
   }
+  useEffect(() => { void load() }, [])
 
-  useEffect(() => {
-    void load()
-  }, [])
+  const filtered = useMemo(() => agents.filter(agent => (filter === 'all' || (filter === 'favorites' ? agent.is_favorite : agent.type === filter)) && (!search || [agent.name, agent.description, typeName(agent.type), agent.created_by].some(value => (value ?? '').toLowerCase().includes(search.toLowerCase())))).sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name) : b.updated_at.localeCompare(a.updated_at)), [agents, search, filter, sort])
 
-  const filteredList = useMemo(() => {
-    let list = agents
-    // 左侧树选中时以树为准，否则用 Tab
-    if (typeFilter) {
-      list = list.filter((a) => a.type === typeFilter)
-    } else if (activeTab !== 'all') {
-      list = list.filter((a) => a.type === activeTab)
-    }
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      list = list.filter(
-        (a) =>
-          a.name.toLowerCase().includes(q) ||
-          typeLabelMap[a.type]?.toLowerCase().includes(q) ||
-          a.description.toLowerCase().includes(q) ||
-          a.createdBy.toLowerCase().includes(q)
-      )
-    }
-    if (sortBy === 'name') {
-      list = [...list].sort((a, b) => a.name.localeCompare(b.name))
-    } else {
-      list = [...list].sort(
-        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      )
-    }
-    return list
-  }, [agents, activeTab, typeFilter, search, sortBy])
-
-  const typeCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: agents.length }
-    AGENT_TYPES.forEach((t) => {
-      counts[t.key] = agents.filter((a) => a.type === t.key).length
-    })
-    return counts
-  }, [agents])
-
-  const treeData = useMemo(
-    () =>
-      AGENT_TYPES.map((t) => ({
-        key: t.key,
-        title: `${t.label} (${typeCounts[t.key] ?? 0})`,
-        isLeaf: true,
-      })),
-    [typeCounts]
-  )
-
-  const handleRowClick = (record: Agent) => {
-    setSelectedAgent(record)
-    setDetailPanelOpen(true)
-  }
-
-  const handleSetDefault = async (agent: Agent) => {
+  /** Create a real stored draft and navigate only when the server returns its identity. */
+  const create = async () => {
+    if (!name.trim()) { message.warning('请输入 Agent 名称'); return }
+    setSaving(true)
     try {
-      await api.agents.update(agent.id, { isDefault: true })
-      message.success('已设为默认')
-      void load()
-      if (selectedAgent?.id === agent.id) setSelectedAgent({ ...agent, isDefault: true })
-    } catch {
-      message.error('设置失败')
-    }
+      const response = await AgentsService.createAgentConfig({ requestBody: { name: name.trim(), type, description: description.trim() } })
+      if (!response.data) throw new Error('Missing created configuration')
+      setCreating(false); setName(''); setDescription('')
+      navigate(`/agents/${response.data.id}/edit`)
+    } catch (failure) { message.error(agentError(failure, '创建失败')) }
+    finally { setSaving(false) }
   }
 
-  const handleBatchDelete = () => {
-    Modal.confirm({
-      title: '批量删除',
-      content: `确定删除选中的 ${selectedRowKeys.length} 个 Agent？`,
-      okText: '删除',
-      okType: 'danger',
-      onOk: async () => {
-        for (const id of selectedRowKeys) {
-          await api.agents.delete(String(id))
-        }
-        message.success('已删除')
-        setSelectedRowKeys([])
-        void load()
-        setDetailPanelOpen(false)
-        setSelectedAgent(null)
-      },
-    })
+  /** Persist favorites and one default per type, guarded by the displayed saved version. */
+  const updateFlag = async (agent: Agent, field: 'is_default' | 'is_favorite', value: boolean) => {
+    try { await AgentsService.updateAgentConfig({ agentId: agent.id, requestBody: { [field]: value, expected_version: agent.version } }); await load() }
+    catch (failure) { message.error(agentError(failure, '修改失败，请刷新重试')) }
   }
 
-  const handleCreate = async () => {
-    if (!createName.trim()) {
-      message.warning('请输入 Agent 名称')
-      return
-    }
-    setCreateLoading(true)
+  /** Confirm destructive changes and report partial batch failures without false success. */
+  const remove = (ids: string[]) => Modal.confirm({ title: ids.length === 1 ? '删除 Agent 配置？' : `删除 ${ids.length} 个 Agent 配置？`, content: '删除后该配置及其版本历史将移除，其他配置不会受影响。', okText: '删除', cancelText: '取消', okButtonProps: { danger: true }, onOk: async () => {
+    try { for (const id of ids) await AgentsService.deleteAgentConfig({ agentId: id }); await load(); message.success('配置已删除') }
+    catch (failure) { await load(); message.error(agentError(failure, '删除未全部完成，请检查剩余配置')) }
+  } })
+
+  /** Copy exact saved settings into an independently editable non-default configuration. */
+  const copy = async (agent: Agent) => {
+    try { await AgentsService.copyAgentConfig({ agentId: agent.id }); await load(); message.success('已创建副本') }
+    catch (failure) { message.error(agentError(failure, '复制失败')) }
+  }
+
+  /** Download only the portable payload returned after successful backend validation. */
+  const exportConfig = async (agent: Agent) => {
+    try { const response = await AgentsService.exportAgentConfig({ agentId: agent.id }); if (!response.data) throw new Error(); downloadAgentConfig(response.data, agent.name) }
+    catch (failure) { message.error(agentError(failure, '导出失败')) }
+  }
+
+  /** Validate imports through the typed API and keep existing defaults unchanged. */
+  const importConfig = async (file?: File) => {
+    if (!file) return
+    setImporting(true)
     try {
-      const created = await api.agents.create({
-        name: createName.trim(),
-        type: createType,
-        description: createDesc.trim(),
-      })
-      message.success('创建成功')
-      setCreateModalOpen(false)
-      setCreateName('')
-      setCreateDesc('')
-      navigate(`/agents/${created.id}/edit`)
-      void load()
-    } catch {
-      message.error('创建失败')
-    } finally {
-      setCreateLoading(false)
-    }
+      if (file.size > 524288) throw new Error('Import exceeds limit')
+      await AgentsService.importAgentConfig({ requestBody: JSON.parse(await file.text()) as AgentConfigExport })
+      await load(); message.success('配置已导入')
+    } catch (failure) { message.error(agentError(failure, '导入失败，请选择不超过 512 KiB 的有效 Agent 配置 JSON')) }
+    finally { setImporting(false); if (importInput.current) importInput.current.value = '' }
   }
 
-  const handleDelete = (agent: Agent, e: React.MouseEvent) => {
-    e.stopPropagation()
-    Modal.confirm({
-      title: '删除 Agent',
-      content: `确定删除「${agent.name}」？`,
-      okText: '删除',
-      okType: 'danger',
-      onOk: async () => {
-        await api.agents.delete(agent.id)
-        message.success('已删除')
-        if (selectedAgent?.id === agent.id) {
-          setDetailPanelOpen(false)
-          setSelectedAgent(null)
-        }
-        void load()
-      },
-    })
-  }
+  /** Offer the same persistent actions in table rows, cards and the detail drawer. */
+  const actions = (agent: Agent) => <Space wrap size="small">
+    <Button icon={<EditOutlined />} onClick={() => navigate(`/agents/${agent.id}/edit`)}>编辑</Button>
+    <Button onClick={() => navigate(`/agents/${agent.id}/edit#agent-execution`)}>执行与记录</Button>
+    <Dropdown trigger={['click']} menu={{ items: [
+      { key: 'copy', label: '复制', icon: <CopyOutlined />, onClick: () => void copy(agent) },
+      { key: 'export', label: '导出配置', icon: <ExportOutlined />, onClick: () => void exportConfig(agent) },
+      { key: 'favorite', label: agent.is_favorite ? '取消收藏' : '收藏', icon: <HeartOutlined />, onClick: () => void updateFlag(agent, 'is_favorite', !agent.is_favorite) },
+      { key: 'default', label: agent.is_default ? '已为本类型默认' : '设为本类型默认', disabled: agent.is_default, icon: <StarOutlined />, onClick: () => Modal.confirm({ title: '替换该类型的默认 Agent？', content: '只修改配置选择，不会执行模型。', onOk: () => updateFlag(agent, 'is_default', true) }) },
+      { key: 'delete', label: '删除', danger: true, icon: <DeleteOutlined />, onClick: () => remove([agent.id]) },
+    ] }}><Button aria-label={`更多 ${agent.name} 操作`}>更多</Button></Dropdown>
+  </Space>
 
-  const tableColumns: TableColumnsType<Agent> = [
-    {
-      title: '名称',
-      dataIndex: 'name',
-      key: 'name',
-      ellipsis: true,
-      render: (name, record) => (
-        <Space>
-          {record.isDefault && (
-            <StarFilled style={{ color: '#faad14' }} title="默认" />
-          )}
-          <span>{name}</span>
-        </Space>
-      ),
-    },
-    {
-      title: '类型',
-      dataIndex: 'type',
-      key: 'type',
-      width: 110,
-      render: (type: AgentTypeKey) => (
-        <Tag color={typeColorMap[type] ?? 'default'}>{typeLabelMap[type] ?? type}</Tag>
-      ),
-    },
-    {
-      title: '描述',
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: true,
-      render: (desc: string) => (
-        <Tooltip title={desc}>
-          <span>{desc || '—'}</span>
-        </Tooltip>
-      ),
-    },
-    {
-      title: '默认',
-      dataIndex: 'isDefault',
-      key: 'isDefault',
-      width: 70,
-      render: (isDefault: boolean, record) =>
-        isDefault ? (
-          <StarFilled style={{ color: '#faad14' }} />
-        ) : (
-          <StarOutlined
-            className="text-gray-400 hover:text-amber-500"
-            onClick={(e) => {
-              e.stopPropagation()
-              Modal.confirm({
-                title: '设为默认',
-                content: '此操作将替换当前该类型的默认 Agent。',
-                onOk: () => handleSetDefault(record),
-              })
-            }}
-          />
-        ),
-    },
-    {
-      title: '版本',
-      key: 'version',
-      width: 140,
-      render: (_, record) => `${record.version} (更新于 ${record.updatedAt})`,
-    },
-    {
-      title: '创建者/更新',
-      key: 'creator',
-      width: 120,
-      render: (_, record) => `${record.updatedBy} / ${record.updatedAt}`,
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 180,
-      render: (_, record) => (
-        <Space size="small" onClick={(e) => e.stopPropagation()}>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => navigate(`/agents/${record.id}/edit`)}>
-            编辑
-          </Button>
-          <Button type="link" size="small" icon={<ThunderboltOutlined />} onClick={() => navigate(`/agents/${record.id}/edit?test=1`)}>
-            测试
-          </Button>
-          <Dropdown
-            menu={{
-              items: [
-                { key: 'copy', label: '复制', icon: <CopyOutlined /> },
-                { key: 'export', label: '导出', icon: <ExportOutlined /> },
-                { type: 'divider' },
-                {
-                  key: 'delete',
-                  label: '删除',
-                  danger: true,
-                  icon: <DeleteOutlined />,
-                  onClick: () => handleDelete(record, { stopPropagation: () => {} } as unknown as React.MouseEvent),
-                },
-              ],
-            }}
-            trigger={['click']}
-          >
-            <Button type="link" size="small" icon={<MenuOutlined />} />
-          </Dropdown>
-        </Space>
-      ),
-    },
-  ]
-
-  return (
-    <Layout className="h-full flex flex-col" style={{ minHeight: 0 }}>
-      {/* 顶部区域 */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 bg-white space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-gray-800">Agent管理</span>
-            <span className="text-gray-500 text-sm">· 总计 {agents.length} 个 Agent</span>
-          </div>
-          <Space wrap>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalOpen(true)}>
-              创建新 Agent
-            </Button>
-            <Input
-              placeholder="按名称/类型/创建者搜索"
-              prefix={<SearchOutlined className="text-gray-400" />}
-              allowClear
-              className="w-52"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <Dropdown
-              menu={{
-                items: SORT_OPTIONS.map((o) => ({
-                  key: o.value,
-                  label: o.label,
-                  onClick: () => setSortBy(o.value as 'updated' | 'name'),
-                })),
-              }}
-            >
-              <Button icon={<DownOutlined />}>排序：{SORT_OPTIONS.find((s) => s.value === sortBy)?.label}</Button>
-            </Dropdown>
-          </Space>
-        </div>
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          size="small"
-          items={[
-            { key: 'all', label: `全部 (${typeCounts.all})` },
-            ...AGENT_TYPES.map((t) => ({
-              key: t.key,
-              label: `${t.label} (${typeCounts[t.key]})`,
-            })),
-          ]}
-        />
-      </div>
-
-      {/* 主体：左侧树 + 列表 + 右侧面板 */}
-      <Layout className="flex-1 min-h-0 flex-row overflow-hidden">
-        {/* 左侧类型树 */}
-        <div
-          className="flex-shrink-0 border-r border-gray-200 bg-white overflow-auto"
-          style={{ width: treeCollapsed ? 48 : 200 }}
-        >
-          {treeCollapsed ? (
-            <Button
-              type="text"
-              icon={<RightOutlined />}
-              onClick={() => setTreeCollapsed(false)}
-              className="w-full rounded-none"
-            />
-          ) : (
-            <>
-              <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-700">类型筛选</span>
-                <Button type="text" size="small" icon={<RightOutlined rotate={180} />} onClick={() => setTreeCollapsed(true)} />
-              </div>
-              <Tree
-                selectedKeys={typeFilter ? [typeFilter] : []}
-                treeData={treeData}
-                showLine
-                blockNode
-                expandAction="click"
-                onSelect={([key]) => setTypeFilter(key ? (key as AgentTypeKey) : null)}
-                className="py-2"
-              />
-            </>
-          )}
-        </div>
-
-        {/* 列表区 */}
-        <div className="flex-1 min-w-0 overflow-auto p-4 bg-gray-50">
-          <div className="flex justify-end gap-1 mb-2">
-            <Button
-              type={viewMode === 'table' ? 'primary' : 'default'}
-              size="small"
-              icon={<UnorderedListOutlined />}
-              onClick={() => setViewMode('table')}
-            />
-            <Button
-              type={viewMode === 'card' ? 'primary' : 'default'}
-              size="small"
-              icon={<AppstoreOutlined />}
-              onClick={() => setViewMode('card')}
-            />
-          </div>
-
-          {filteredList.length === 0 ? (
-            <Card>
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={agents.length === 0 ? '暂无 Agent，点击「创建新 Agent」开始' : '无匹配结果'}
-              >
-                {agents.length === 0 && (
-                  <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalOpen(true)}>
-                    创建第一个 Agent
-                  </Button>
-                )}
-              </Empty>
-            </Card>
-          ) : viewMode === 'table' ? (
-            <Card className="mb-4">
-              {selectedRowKeys.length > 0 && (
-                <div className="mb-3 flex items-center gap-2 flex-wrap">
-                  <span className="text-gray-500 text-sm">已选 {selectedRowKeys.length} 项</span>
-                  <Button size="small" danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>
-                    批量删除
-                  </Button>
-                </div>
-              )}
-              <Table<Agent>
-                rowKey="id"
-                loading={loading}
-                columns={tableColumns}
-                dataSource={filteredList}
-                pagination={{ pageSize: 20, showSizeChanger: true }}
-                rowSelection={{
-                  selectedRowKeys,
-                  onChange: (keys) => setSelectedRowKeys(keys as React.Key[]),
-                }}
-                onRow={(record) => ({
-                  onClick: () => handleRowClick(record),
-                  style: { cursor: 'pointer' },
-                })}
-                size="small"
-              />
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredList.map((agent) => (
-                <Card
-                  key={agent.id}
-                  hoverable
-                  className="cursor-pointer transition-shadow"
-                  style={{ minHeight: 220 }}
-                  onClick={() => handleRowClick(agent)}
-                  actions={[
-                    <Button key="edit" type="text" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); navigate(`/agents/${agent.id}/edit`) }}>编辑</Button>,
-                    <Button key="test" type="text" size="small" icon={<ThunderboltOutlined />} onClick={(e) => { e.stopPropagation(); navigate(`/agents/${agent.id}/edit?test=1`) }}>测试</Button>,
-                    <Dropdown
-                      key="more"
-                      menu={{
-                        items: [
-                          { key: 'copy', label: '复制', icon: <CopyOutlined /> },
-                          { key: 'export', label: '导出', icon: <ExportOutlined /> },
-                          {
-                            key: 'delete',
-                            label: '删除',
-                            danger: true,
-                            icon: <DeleteOutlined />,
-                            onClick: () => handleDelete(agent, { stopPropagation: () => {} } as unknown as React.MouseEvent),
-                          },
-                        ],
-                      }}
-                      trigger={['click']}
-                    >
-                      <Button type="text" size="small" icon={<MenuOutlined />} onClick={(e) => e.stopPropagation()}>更多</Button>
-                    </Dropdown>,
-                  ]}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <Tag color={typeColorMap[agent.type]}>{typeLabelMap[agent.type]}</Tag>
-                    {agent.isDefault && <StarFilled style={{ color: '#faad14' }} />}
-                  </div>
-                  <div className="font-medium text-gray-900 mb-1 truncate" title={agent.name}>
-                    {agent.name}
-                  </div>
-                  <div className="text-gray-500 text-sm line-clamp-2 mb-2" title={agent.description}>
-                    {agent.description || '—'}
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {agent.version} · 更新：{agent.updatedAt}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* 右侧详情：桌面为侧栏，移动端为 Drawer */}
-        {selectedAgent && isLargeScreen && (
-            <div className="flex-shrink-0 overflow-auto border-l border-gray-200 bg-white" style={{ width: '36%', minWidth: 320 }}>
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                <span className="font-medium">Agent 详情</span>
-                <Button type="link" size="small" onClick={() => { setSelectedAgent(null); setDetailPanelOpen(false) }}>收起</Button>
-              </div>
-              <div className="p-4 space-y-4">
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">名称</div>
-                  <div className="font-medium">{selectedAgent.name}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">类型</div>
-                  <Tag color={typeColorMap[selectedAgent.type]}>{typeLabelMap[selectedAgent.type]}</Tag>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">描述</div>
-                  <div className="text-gray-700 text-sm">{selectedAgent.description || '—'}</div>
-                </div>
-                <div className="text-sm text-gray-500">
-                  版本 {selectedAgent.version} · 更新于 {selectedAgent.updatedAt} · {selectedAgent.updatedBy}
-                </div>
-                <Space>
-                  <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/agents/${selectedAgent.id}/edit`)}>
-                    编辑
-                  </Button>
-                  <Button icon={<ThunderboltOutlined />} onClick={() => navigate(`/agents/${selectedAgent.id}/edit?test=1`)}>
-                    快速测试
-                  </Button>
-                </Space>
-              </div>
-            </div>
-        )}
-        {selectedAgent && !isLargeScreen && (
-            <Drawer
-              title="Agent 详情"
-              placement="right"
-              open={detailPanelOpen}
-              onClose={() => setDetailPanelOpen(false)}
-              width="min(100%, 400px)"
-            >
-              <div className="space-y-4">
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">名称</div>
-                  <div className="font-medium">{selectedAgent.name}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">类型</div>
-                  <Tag color={typeColorMap[selectedAgent.type]}>{typeLabelMap[selectedAgent.type]}</Tag>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 mb-1">描述</div>
-                  <div className="text-gray-700 text-sm">{selectedAgent.description || '—'}</div>
-                </div>
-                <Space>
-                  <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/agents/${selectedAgent.id}/edit`)}>
-                    编辑
-                  </Button>
-                  <Button icon={<ThunderboltOutlined />} onClick={() => navigate(`/agents/${selectedAgent.id}/edit?test=1`)}>
-                    快速测试
-                  </Button>
-                </Space>
-              </div>
-            </Drawer>
-        )}
-      </Layout>
-
-      {/* 创建 Agent 弹窗 */}
-      <Modal
-        title="创建新 Agent"
-        open={createModalOpen}
-        onCancel={() => setCreateModalOpen(false)}
-        onOk={() => void handleCreate()}
-        confirmLoading={createLoading}
-        okText="创建"
-        width={480}
-      >
-        <div className="space-y-4 pt-2">
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">名称</label>
-            <Input
-              placeholder="例如：剧情提取Agent v2.1"
-              value={createName}
-              onChange={(e) => setCreateName(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">类型</label>
-            <Space wrap>
-              {AGENT_TYPES.map((t) => (
-                <Tag
-                  key={t.key}
-                  color={createType === t.key ? t.color : 'default'}
-                  className="cursor-pointer"
-                  onClick={() => setCreateType(t.key)}
-                >
-                  {t.label}
-                </Tag>
-              ))}
-            </Space>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">描述（选填）</label>
-            <Input.TextArea
-              rows={3}
-              placeholder="简要描述该 Agent 的用途"
-              value={createDesc}
-              onChange={(e) => setCreateDesc(e.target.value)}
-            />
-          </div>
-        </div>
-      </Modal>
-    </Layout>
-  )
+  return <div className="library-page library-management">
+    <header className="library-management-header">
+      <div className="flex items-center justify-between gap-4 flex-wrap"><h1 className="library-page-title">Agent 管理</h1><Space wrap>
+        <input hidden ref={importInput} type="file" accept=".json,application/json" aria-label="导入 Agent 配置文件" onChange={event => void importConfig(event.target.files?.[0])} />
+        <Button icon={<ImportOutlined />} loading={importing} onClick={() => importInput.current?.click()}>导入配置</Button>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>创建新 Agent</Button>
+      </Space></div>
+      <Tabs activeKey={filter} onChange={setFilter} items={[{ key: 'all', label: `全部 ${agents.length}` }, { key: 'favorites', label: '收藏' }, ...TYPES.map(item => ({ key: item.value, label: item.label }))]} />
+    </header>
+    <Alert className="library-notice" type="info" showIcon message="Agent 配置与真实执行记录" description="编辑、复制、收藏、导入导出和版本历史均写入本地数据库。进入“执行与记录”后选择文本模型并确认调用；未配置模型时会明确提示原因。" />
+    {error && <Alert type="error" showIcon message={error} action={<Button onClick={() => void load()}>重试</Button>} />}
+    <div className="library-management-toolbar"><Space wrap>
+      <Input.Search value={search} onChange={event => setSearch(event.target.value)} placeholder="按名称、类型或创建者搜索" aria-label="搜索 Agent" allowClear />
+      <Select aria-label="Agent 排序" value={sort} onChange={setSort} options={[{ value: 'updated', label: '最近更新' }, { value: 'name', label: '名称' }]} />
+      <Button icon={<UnorderedListOutlined />} aria-label="列表视图" aria-pressed={view === 'table'} onClick={() => setView('table')} />
+      <Button icon={<AppstoreOutlined />} aria-label="卡片视图" aria-pressed={view === 'card'} onClick={() => setView('card')} />
+      <Button danger icon={<DeleteOutlined />} disabled={!selected.length} onClick={() => remove(selected.map(String))}>批量删除</Button>
+      <Button onClick={() => void load()} loading={loading}>刷新</Button>
+    </Space></div>
+    <div className="library-data-region">
+      {view === 'table' ? <Table<Agent> rowKey="id" loading={loading} dataSource={filtered} scroll={{ x: 1100 }} rowSelection={{ selectedRowKeys: selected, onChange: setSelected }} onRow={agent => ({ tabIndex: 0, onClick: () => setDetail(agent), onKeyDown: event => { if (event.target === event.currentTarget && event.key === 'Enter') setDetail(agent) } })} columns={[
+        { title: '名称', dataIndex: 'name', key: 'name', width: 220, render: (value, agent) => <Space wrap><span>{value}</span>{agent.is_default && <Tag>默认</Tag>}{agent.is_favorite && <Tag>已收藏</Tag>}</Space> },
+        { title: '类型', dataIndex: 'type', key: 'type', width: 130, render: typeName },
+        { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true },
+        { title: '版本', dataIndex: 'version', key: 'version', width: 80 },
+        { title: '更新时间', dataIndex: 'updated_at', key: 'updated', width: 190, render: value => new Date(value).toLocaleString() },
+        { title: '操作', key: 'actions', width: 280, render: (_, agent) => <div onClick={event => event.stopPropagation()}>{actions(agent)}</div> },
+      ]} /> : <div className="library-card-grid">{filtered.map(agent => <Card key={agent.id} className="library-record-card" title={<Button type="link" onClick={() => setDetail(agent)}>{agent.name}</Button>} extra={agent.is_favorite && <Tag>已收藏</Tag>}><Space direction="vertical"><div><Tag>{typeName(agent.type)}</Tag>{agent.is_default && <Tag>默认</Tag>}</div><p>{agent.description || '暂无描述'}</p><p className="library-muted">版本 {agent.version}，{new Date(agent.updated_at).toLocaleString()}</p>{actions(agent)}</Space></Card>)}</div>}
+      {!loading && !filtered.length && <Empty description="暂无 Agent 配置" />}
+    </div>
+    <Drawer open={!!detail} title={detail?.name} onClose={() => setDetail(null)} width={480}>{detail && <Space direction="vertical" className="w-full" size="large"><Descriptions column={1} items={[{ key: 'type', label: '类型', children: typeName(detail.type) }, { key: 'description', label: '描述', children: detail.description || '暂无描述' }, { key: 'version', label: '版本', children: detail.version }, { key: 'creator', label: '创建者', children: detail.created_by }, { key: 'updated', label: '更新时间', children: new Date(detail.updated_at).toLocaleString() }]} />{actions(detail)}</Space>}</Drawer>
+    <Modal open={creating} title="创建新 Agent" onCancel={() => setCreating(false)} onOk={() => void create()} confirmLoading={saving} okText="创建" cancelText="取消"><Space direction="vertical" className="w-full" size="middle"><label htmlFor="agent-create-name">名称</label><Input id="agent-create-name" value={name} onChange={event => setName(event.target.value)} maxLength={255} /><label htmlFor="agent-create-type">类型</label><Select id="agent-create-type" className="w-full" value={type} onChange={setType} options={TYPES} /><label htmlFor="agent-create-description">描述</label><Input.TextArea id="agent-create-description" value={description} onChange={event => setDescription(event.target.value)} maxLength={8000} rows={3} /></Space></Modal>
+  </div>
 }

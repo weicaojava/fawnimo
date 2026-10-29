@@ -24,6 +24,7 @@ concurrency:
 
 jobs:
   pylint:
+    if: github.repository == 'Forget-C/Jellyfish'
     runs-on: ubuntu-latest
     defaults:
       run:

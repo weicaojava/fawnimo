@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Card, Tabs } from 'antd'
+import { Tabs } from 'antd'
 import { useSearchParams } from 'react-router-dom'
 import { ActorsTab } from './tabs/ActorsTab'
 import { ScenesTab } from './tabs/ScenesTab'
 import { PropsTab } from './tabs/PropsTab'
 import { CostumesTab } from './tabs/CostumesTab'
+import './components/LibraryPages.css'
 
 const TAB_PARAM = 'tab'
 type AssetTabKey = 'actor' | 'scene' | 'prop' | 'costume'
@@ -13,6 +14,7 @@ function isValidTab(tab: string | null): tab is AssetTabKey {
   return tab === 'actor' || tab === 'scene' || tab === 'prop' || tab === 'costume'
 }
 
+/** Present the shared asset archive while retaining its URL-backed type selection. */
 const AssetManager = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabFromUrl = searchParams.get(TAB_PARAM)
@@ -46,9 +48,12 @@ const AssetManager = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
+    <div className="library-page library-asset-library">
+      <header className="library-page-header">
+        <h1 className="library-page-title">资产管理</h1>
+      </header>
         <Tabs
+          className="library-asset-tabs"
           activeKey={activeTab}
           onChange={(k) => {
             if (isValidTab(k)) setTabInUrl(k)
@@ -60,7 +65,6 @@ const AssetManager = () => {
             { key: 'costume', label: '服装', children: <CostumesTab /> },
           ]}
         />
-      </Card>
     </div>
   )
 }

@@ -18,6 +18,7 @@ concurrency:
 
 jobs:
   build-backend:
+    if: github.repository == 'Forget-C/Jellyfish'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -57,6 +58,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-front:
+    if: github.repository == 'Forget-C/Jellyfish'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

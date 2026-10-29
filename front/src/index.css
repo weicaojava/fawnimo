@@ -1,9 +1,14 @@
+/* Hallmark · shape: app screen · genre: atmospheric · theme: Midnight A (by request) · redesign: full · modes: light+dark · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 · weakest: light surfaces; independent neutral elevations improve hierarchy. */
+@import './styles/tokens.css';
+@import './styles/base.css';
+@import './styles/studio.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   height: 100%;
 }
 
@@ -22,9 +27,8 @@ body {
 } */
 
 code {
-  background-color: #f5f5f5;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: 'Courier New', monospace;
+  background-color: var(--color-code-bg);
+  padding: var(--space-2xs) var(--space-xs);
+  border-radius: var(--radius-control);
+  font-family: var(--font-mono);
 }
-

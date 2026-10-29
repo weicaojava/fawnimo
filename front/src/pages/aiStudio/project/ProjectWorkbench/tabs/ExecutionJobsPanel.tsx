@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Button, Card, Empty, Popconfirm, Space, Table, Tag, message } from 'antd'
+import { Alert, Button, Empty, Popconfirm, Space, Table, Tag, message } from 'antd'
+import { ProjectSection } from '../../ProjectSection'
 import { ExecutionService as E } from '../../../../../services/generated'
 import type { ExecutionRead, RuntimeRead } from '../../../../../services/generated'
+import { VideoRuntimeSetupPanel } from './VideoRuntimeSetupPanel'
 
 /** Inspect existing durable jobs without offering submission or worker controls. */
 export function ExecutionJobsPanel({ projectId }: { projectId: string }) {
@@ -40,7 +42,8 @@ export function ExecutionJobsPanel({ projectId }: { projectId: string }) {
     finally { setBusy(false) }
   }
 
-  return <Card title="执行任务" extra={<Button loading={loading} disabled={busy} onClick={() => void load()}>刷新任务</Button>}>
+  return <ProjectSection title="执行任务" extra={<Button loading={loading} disabled={busy} onClick={() => void load()}>刷新任务</Button>}>
+    <VideoRuntimeSetupPanel key={projectId} projectId={projectId} onSaved={() => void load()} />
     <Alert className="mb-3" type="info" showIcon message="此处仅管理已有任务" description={`${availability?.message ?? '正在检查生成服务状态'}。恢复只继续原任务的查询或接收，取消请求需等服务确认。`} />
     {error && <Alert className="mb-3" type="error" message={error} />}
     <Table<ExecutionRead> rowKey="id" loading={loading} dataSource={jobs} pagination={false} scroll={{ x: 600 }} locale={{ emptyText: <Empty description="本工程暂无执行任务" /> }} columns={[
@@ -54,5 +57,5 @@ export function ExecutionJobsPanel({ projectId }: { projectId: string }) {
       </Space> },
     ]} />
     <Space className="mt-3"><Button disabled={offset === 0 || loading || busy} onClick={() => setOffset(value => Math.max(0, value - 50))}>上一页</Button><span>第 {offset / 50 + 1} 页</span><Button disabled={jobs.length < 50 || loading || busy} onClick={() => setOffset(value => value + 50)}>下一页</Button></Space>
-  </Card>
+  </ProjectSection>
 }

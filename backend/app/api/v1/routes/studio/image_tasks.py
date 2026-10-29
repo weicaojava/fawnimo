@@ -179,7 +179,7 @@ async def _load_frame_render_guidance(
 async def create_actor_image_generation_task(
     actor_id: str,
     body: StudioImageTaskRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[TaskCreated]:
     """为指定演员创建图片生成任务，并通过 `GenerationTaskLink` 关联。"""
     prompt = (body.prompt or "").strip()
@@ -217,7 +217,7 @@ async def create_actor_image_generation_task(
 async def render_actor_image_prompt(
     actor_id: str,
     body: StudioImageTaskRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[RenderedPromptResponse]:
     base = await _build_actor_image_base_draft_service(
         db,
@@ -239,7 +239,7 @@ async def create_asset_image_generation_task(
     asset_type: str,
     asset_id: str,
     body: StudioImageTaskRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[TaskCreated]:
     """为道具/场景/服装创建图片生成任务。
 
@@ -285,7 +285,7 @@ async def render_asset_image_prompt(
     asset_type: str,
     asset_id: str,
     body: StudioImageTaskRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[RenderedPromptResponse]:
     base = await _build_asset_image_base_draft_service(
         db,
@@ -307,7 +307,7 @@ async def render_asset_image_prompt(
 async def create_character_image_generation_task(
     character_id: str,
     body: StudioImageTaskRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[TaskCreated]:
     """为角色创建图片生成任务（对应 CharacterImage 业务）。
 
@@ -349,7 +349,7 @@ async def create_character_image_generation_task(
 async def render_character_image_prompt(
     character_id: str,
     body: StudioImageTaskRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[RenderedPromptResponse]:
     base = await _build_character_image_base_draft_service(
         db,
@@ -370,7 +370,7 @@ async def render_character_image_prompt(
 async def create_shot_frame_image_generation_task(
     shot_id: str,
     body: ShotFrameImageTaskRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[TaskCreated]:
     """为镜头分镜帧图片生成任务（基于 `shot_id + frame_type` 自动定位数据）。"""
     prompt = (body.prompt or "").strip()
@@ -460,7 +460,7 @@ async def create_shot_frame_image_generation_task(
 async def render_shot_frame_prompt(
     shot_id: str,
     body: ShotFramePromptRenderRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[RenderedShotFramePromptRead]:
     prompt = (body.prompt or "").strip()
     if not prompt:

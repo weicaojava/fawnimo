@@ -23,11 +23,13 @@ import { getChapterShotsPath, getChapterStudioPath, getProjectEditorPath } from 
 import { useProject, useChapters } from './hooks/useProjectData'
 import { ensureHasShotsBeforeShooting } from './ensureHasShotsBeforeShooting'
 import { getChapterPreparationState } from './chapterPreparation'
+import '../project-studio.css'
 
 const TAB_PARAM = 'tab'
 const CREATE_PARAM = 'create'
 const EDIT_PARAM = 'edit'
 
+/** Present project navigation and recommended production actions without changing their URL state. */
 const ProjectWorkbench: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
@@ -36,7 +38,7 @@ const ProjectWorkbench: React.FC = () => {
   const resolvedTab: TabKey =
     tabFromUrl !== null && isTabKey(tabFromUrl) ? tabFromUrl : DEFAULT_TAB
 
-  const { project, loading: projectLoading } = useProject(projectId)
+  const { project, loading: projectLoading, refresh } = useProject(projectId)
   const { chapters } = useChapters(projectId)
   const [activeTab, setActiveTab] = useState<TabKey>(() => resolvedTab)
 
@@ -183,28 +185,14 @@ const ProjectWorkbench: React.FC = () => {
   }
 
   return (
-    <div className="h-full min-h-0 flex flex-col">
-      <div
-        className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm"
-        style={{ margin: -5, marginBottom: 0, padding: '16px 24px' }}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100">
-          <Tabs
-            activeKey={activeTab}
-            onChange={(k) => setTabInUrl(k as TabKey)}
-            size="middle"
-            className="project-workbench-tabs flex-1 min-w-0"
-            items={TAB_CONFIG.map(({ key, label, icon }) => ({
-              key,
-              label: (
-                <span className="flex items-center gap-1.5">
-                  {icon}
-                  {label}
-                </span>
-              ),
-            }))}
-          />
-          <Space size="small" wrap className="shrink-0">
+    <div className="project-workbench" data-testid="project-workbench">
+      <header className="project-workbench-header">
+        <div className="project-workbench-title-row">
+          <div className="project-workbench-title">
+            <h1>{project?.name ?? '项目工作台'}</h1>
+            {project?.description && <p className="project-workbench-description">{project.description}</p>}
+          </div>
+          <Space size="small" wrap className="project-workbench-actions">
             <Button
               type="primary"
               icon={primaryCta.icon}
@@ -220,15 +208,20 @@ const ProjectWorkbench: React.FC = () => {
             </Dropdown>
           </Space>
         </div>
-        <div className="mt-2 text-xs text-gray-500">
-          {primaryCta.hint}
-        </div>
-      </div>
+        <p className="project-workbench-hint">{primaryCta.hint}</p>
+        <Tabs
+          activeKey={activeTab}
+          onChange={(k) => setTabInUrl(k as TabKey)}
+          size="middle"
+          className="project-workbench-tabs"
+          items={TAB_CONFIG.map(({ key, label, icon }) => ({
+            key,
+            label: <span>{icon}{label}</span>,
+          }))}
+        />
+      </header>
 
-      <div
-        className="pt-4 animate-fadeIn flex-1 min-h-0 overflow-hidden"
-        style={{ animation: 'fadeIn 0.25s ease-out' }}
-      >
+      <div className="project-workbench-content" data-active-tab={activeTab}>
         {activeTab === 'dashboard' && <DashboardTab onSelectTab={setTabInUrl} />}
         {activeTab === 'production' && <ProductionTab />}
 
@@ -241,7 +234,7 @@ const ProjectWorkbench: React.FC = () => {
         {activeTab === 'costumes' && <CostumesTab />}
         {activeTab === 'files' && <FilesTab />}
         {activeTab === 'edit' && <EditTab />}
-        {activeTab === 'settings' && <SettingsTab />}
+        {activeTab === 'settings' && <SettingsTab onSaved={refresh} />}
       </div>
     </div>
   )

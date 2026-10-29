@@ -115,7 +115,7 @@ export function ChapterStudioReadinessDiagnosisPanel({
                 type="circle"
                 size={68}
                 percent={promptAssetReadiness.percent}
-                strokeColor={promptAssetReadiness.hasMissing ? '#f59e0b' : '#10b981'}
+                strokeColor={promptAssetReadiness.hasMissing ? 'var(--color-warning)' : 'var(--color-success)'}
               />
             </div>
           </div>

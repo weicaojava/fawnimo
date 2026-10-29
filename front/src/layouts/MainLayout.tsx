@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react'
-import { Layout, Menu, theme, Dropdown, Space, Avatar, Select, Breadcrumb } from 'antd'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Layout, Menu, Dropdown, Avatar, Select, Breadcrumb, Drawer, Grid } from 'antd'
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -15,14 +15,22 @@ import { useAppStore } from '../store/useAppStore'
 import { useTranslation } from 'react-i18next'
 import { TaskCenter } from '../pages/aiStudio/components/TaskCenter'
 import { TaskRuntimeProvider } from '../pages/aiStudio/components/TaskRuntimeProvider'
+import { ThemeSwitch } from '../theme/ThemeSwitch'
+import { useIdentity } from '../identity/IdentityGate'
+import { IdentityService } from '../services/generated'
 
 const { Header, Sider, Content } = Layout
 
+/** Keep production tools in one responsive shell with a shared appearance preference. */
 const MainLayout: React.FC = () => {
   const { t, i18n } = useTranslation('layout')
   const location = useLocation()
   const navigate = useNavigate()
-  const { token } = theme.useToken()
+  const identity = useIdentity()
+  const screens = Grid.useBreakpoint()
+  const isMobile = screens.md === false
+  const [mobileOpen, setMobileOpen] = useState(false)
+  useEffect(() => { setMobileOpen(false) }, [location.pathname])
 
   const collapsed = useAppStore((state) => state.siderCollapsed)
   const toggleCollapsed = useAppStore((state) => state.toggleSider)
@@ -121,6 +129,16 @@ const MainLayout: React.FC = () => {
       label: <Link to="/models">模型管理</Link>,
     },
     {
+      key: 'files',
+      icon: <FolderOutlined />,
+      label: <Link to="/files">文件管理</Link>,
+    },
+    {
+      key: 'agents',
+      icon: <ApiOutlined />,
+      label: <Link to="/agents">Agent 管理</Link>,
+    },
+    {
       key: 'settings',
       icon: <SettingOutlined />,
       label: <Link to="/settings">{t('menu.settings')}</Link>,
@@ -140,96 +158,55 @@ const MainLayout: React.FC = () => {
       key: 'logout',
       label: t('user.logout'),
       onClick: () => {
-        // 这里保留占位，实际项目中可接入登录逻辑
+        if (identity) void IdentityService.logoutApiV1IdentityLogoutPost().then(() => window.location.replace('/projects'))
       },
     },
   ]
 
+  /** Render the same real navigation in the desktop rail and the mobile drawer. */
+  const navigation = (compact: boolean) => (
+    <>
+      <Link to="/projects" className="studio-brand" aria-label="Fawnimo 鹿帧 项目列表">
+        <img src="/fawnimo.svg" alt="" width={32} height={32} />
+        {!compact && <span className="studio-brand-copy"><strong>{t('title')}</strong><span>{t('subtitle')}</span></span>}
+      </Link>
+      <Menu mode="inline" selectedKeys={selectedKeys} items={menuItems} className="studio-navigation" />
+    </>
+  )
+
   return (
-    <Layout
-      style={{
-        height: '100vh',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'row',
-      }}
-    >
-      <Sider
-        trigger={null}
-        collapsible
-        collapsed={collapsed}
-        width={220}
-        style={{
-          flexShrink: 0,
-          background: token.colorBgContainer,
-          borderRight: `1px solid ${token.colorBorderSecondary}`,
-          overflow: 'auto',
-        }}
-      >
-        <div className="flex items-center h-16 px-4 border-b border-solid" style={{ borderColor: token.colorBorderSecondary }}>
-          <Link to="/projects" className="flex items-center gap-2 min-w-0">
-            <img src="/logo.svg" alt="Jellyfish" className="w-8 h-8 shrink-0" />
-            {!collapsed && (
-              <div className="min-w-0">
-                <div className="text-base font-semibold text-gray-900 truncate">
-                  {t('title')}
-                </div>
-                <div className="text-xs text-gray-500 truncate">
-                  {t('subtitle')}
-                </div>
-              </div>
-            )}
-          </Link>
-        </div>
+    <Layout className="studio-shell">
+      {!isMobile && (
+        <Sider trigger={null} collapsible collapsed={collapsed} width={216} collapsedWidth={76} className="studio-sidebar" aria-label="主要导航">
+          {navigation(collapsed)}
+        </Sider>
+      )}
+      <Drawer open={isMobile && mobileOpen} onClose={() => setMobileOpen(false)} placement="left" width={248} className="studio-mobile-navigation" title="工作台导航" bodyStyle={{ padding: 0 }}>
+        {navigation(false)}
+      </Drawer>
 
-        <Menu
-          mode="inline"
-          selectedKeys={selectedKeys}
-          items={menuItems}
-          style={{ borderRight: 'none', paddingTop: 8 }}
-        />
-      </Sider>
+      <Layout className="studio-body">
+        <Header className="studio-topbar">
+          <div className="studio-location">
+            <button type="button" className="studio-icon-button" aria-label={isMobile ? '打开导航' : collapsed ? '展开导航' : '收起导航'} aria-expanded={isMobile ? mobileOpen : !collapsed} onClick={() => isMobile ? setMobileOpen(true) : toggleCollapsed()}>
+              {collapsed || isMobile ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            </button>
+            <Breadcrumb items={breadcrumbItems} className="studio-breadcrumb" />
+          </div>
 
-      <Layout
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0,
-        }}
-      >
-        <Header
-          className="flex items-center justify-between px-4"
-          style={{
-            flexShrink: 0,
-            background: token.colorBgContainer,
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          }}
-        >
-          <Space size="middle" className="flex-1 min-w-0">
-            <span
-              className="cursor-pointer text-xl shrink-0"
-              onClick={toggleCollapsed}
-            >
-              {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            </span>
-            <Breadcrumb
-              items={breadcrumbItems}
-              className="hidden sm:block"
-              style={{ lineHeight: '32px' }}
-            />
-          </Space>
-
-          <Space size="middle">
+          <div className="studio-header-actions">
+            {identity && identity.workspaces.length > 1 && <Select aria-label="工作空间" value={identity.workspace_id}
+              options={identity.workspaces.map(item => ({ value: item.id, label: item.name }))}
+              onChange={(workspace_id) => { void IdentityService.switchApiV1IdentitySwitchPost({ requestBody: { workspace_id } }).then(() => window.location.replace('/projects')) }} />}
+            <ThemeSwitch />
             <Select
-              size="small"
+              aria-label="界面语言"
+              className="studio-language"
               value={language}
-              style={{ width: 120 }}
               onChange={(value) => {
                 setLanguage(value)
                 void i18n.changeLanguage(value)
-                window.localStorage.setItem('jellyfish_language', value)
+                try { window.localStorage.setItem('jellyfish_language', value) } catch { /* Keep the language usable without storage. */ }
                 document.documentElement.lang = value === 'en-US' ? 'en' : 'zh-CN'
               }}
               options={[
@@ -244,31 +221,17 @@ const MainLayout: React.FC = () => {
               }}
               placement="bottomRight"
             >
-              <div className="flex items-center gap-2 cursor-pointer">
+              <button type="button" className="studio-user-menu" aria-label={t('user.profile')}>
                 <Avatar size={32} icon={<UserOutlined />} />
-                <div className="hidden md:flex flex-col leading-tight">
-                  <span className="text-sm font-medium text-gray-800">{user.name}</span>
-                  <span className="text-xs text-gray-500">{user.role}</span>
-                </div>
-              </div>
+                <span className="studio-user-copy"><strong>{user.name}</strong><span>{user.role}</span></span>
+              </button>
             </Dropdown>
-          </Space>
+          </div>
         </Header>
 
         <TaskRuntimeProvider>
-          <Content
-            style={{
-              margin: 0,
-              padding: 5,
-              background: token.colorBgLayout,
-              flex: 1,
-              minHeight: 0,
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div className="w-full h-full min-h-0 overflow-hidden flex flex-col">
+          <Content className="studio-content">
+            <div className="studio-page-frame">
               <Outlet />
             </div>
           </Content>

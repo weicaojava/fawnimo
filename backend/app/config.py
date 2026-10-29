@@ -1,7 +1,11 @@
 """应用配置，从环境变量加载。"""
 
 import json
+import os
 from pathlib import Path
+from typing import Literal
+
+from pydantic import Field
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -12,14 +16,14 @@ ENV_FILE = BACKEND_ROOT / ".env"
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=str(ENV_FILE),
+        env_file=None if os.environ.get('JELLYFISH_SKIP_ENV_FILE') == '1' else str(ENV_FILE),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
     )
 
     # App
-    app_name: str = "Jellyfish API"
+    app_name: str = "Fawnimo API"
     debug: bool = False
 
     # API
@@ -27,6 +31,9 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./jellyfish.db"
+    # A tenant process is permanently bound to one server-owned database and root.
+    workspace_id: str | None = Field(None, pattern=r'^ws_[a-f0-9]{32}$')
+    workspace_internal_token: str | None = None
 
     # Redis / Celery Broker
     redis_host: str = "localhost"
@@ -51,6 +58,11 @@ class Settings(BaseSettings):
             return []
         return [x.strip() for x in s.split(",") if x.strip()]
 
+    # Private local file storage is usable without a cloud account. Auto retains configured S3.
+    storage_backend: Literal["auto", "local", "s3"] = "auto"
+    local_storage_root: str = str(BACKEND_ROOT / "local-files")
+    local_storage_max_bytes: int = Field(64 * 1024 * 1024, ge=1)
+
     # S3 / 对象存储（用于素材文件）
     s3_endpoint_url: str | None = None
     s3_region_name: str | None = None
@@ -68,6 +80,11 @@ class Settings(BaseSettings):
     reverse_analysis_enabled: bool = True
     editing_export_enabled: bool = True
     reverse_media_allowed_hosts: str = ""
+    # Explicit server-owned video execution configuration; omitted means preparation only.
+    video_runtime_config: str | None = None
+    # Understanding jobs are explicit and local by default; remote calls need server opt-in.
+    video_understanding_enabled: bool = True
+    video_understanding_allow_remote: bool = False
 
     def model_post_init(self, __context: object) -> None:
         if not self.celery_broker_url or not str(self.celery_broker_url).strip():

@@ -1,4 +1,5 @@
-import { Badge, Button, Card, Empty, Progress, Segmented, Select, Tag } from 'antd'
+import { workspaceStorage } from '../../../services/workspaceContext'
+import { Alert, Badge, Button, Card, Empty, Progress, Segmented, Select, Tag } from 'antd'
 import {
   ArrowLeftOutlined,
   ArrowRightOutlined,
@@ -16,6 +17,7 @@ import {
   useTaskUiStore,
 } from './taskUiStore'
 import { useResolvedTaskCenterTasks } from './taskCenterMeta'
+import { useWorkspaceTasks } from '../../../hooks/useWorkspaceTasks'
 
 const TASK_CENTER_OPEN_STORAGE_KEY = 'jellyfish_task_center_open_v1'
 const TASK_CENTER_POSITION_STORAGE_KEY = 'jellyfish_task_center_position_v1'
@@ -116,11 +118,11 @@ function taskTone(task: TaskUiItem): { color: string; label: string } {
 
 export function TaskCenter() {
   const navigate = useNavigate()
+  const workspace = useWorkspaceTasks()
   const [scopeFilter, setScopeFilter] = useState<'auto' | 'all' | 'current' | 'active' | 'settled'>('auto')
   const [taskKindFilter, setTaskKindFilter] = useState<string | undefined>(undefined)
   const [page, setPage] = useState(1)
   const [buttonPosition, setButtonPosition] = useState(getDefaultButtonPosition)
-  const [dragging, setDragging] = useState(false)
   const open = useTaskUiStore((state) => state.open)
   const setOpen = useTaskUiStore((state) => state.setOpen)
   const toggleOpen = useTaskUiStore((state) => state.toggleOpen)
@@ -128,6 +130,9 @@ export function TaskCenter() {
   const optimisticItems = useTaskUiStore((state) => state.optimisticItems)
   const contextScopes = useTaskUiStore((state) => state.contextScopes)
   const cancelTask = useTaskUiStore((state) => state.cancelTask)
+  const serverReadError = useTaskUiStore((state) => state.serverReadError)
+  const serverRefreshing = useTaskUiStore((state) => state.serverRefreshing)
+  const requestServerRefresh = useTaskUiStore((state) => state.requestServerRefresh)
   const dragStateRef = useRef<{
     pointerId: number
     offsetX: number
@@ -139,8 +144,8 @@ export function TaskCenter() {
     if (typeof window === 'undefined') return
     const defaultPosition = getDefaultButtonPosition()
     try {
-      setOpen(window.localStorage.getItem(TASK_CENTER_OPEN_STORAGE_KEY) === '1')
-      const rawPosition = window.localStorage.getItem(TASK_CENTER_POSITION_STORAGE_KEY)
+      setOpen(workspaceStorage.getItem(TASK_CENTER_OPEN_STORAGE_KEY) === '1')
+      const rawPosition = workspaceStorage.getItem(TASK_CENTER_POSITION_STORAGE_KEY)
       if (!rawPosition) {
         setButtonPosition(defaultPosition)
         return
@@ -157,12 +162,12 @@ export function TaskCenter() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    window.localStorage.setItem(TASK_CENTER_OPEN_STORAGE_KEY, open ? '1' : '0')
+    try { workspaceStorage.setItem(TASK_CENTER_OPEN_STORAGE_KEY, open ? '1' : '0') } catch { /* The panel works for this session without storage. */ }
   }, [open])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    window.localStorage.setItem(TASK_CENTER_POSITION_STORAGE_KEY, JSON.stringify(buttonPosition))
+    try { workspaceStorage.setItem(TASK_CENTER_POSITION_STORAGE_KEY, JSON.stringify(buttonPosition)) } catch { /* Dragging remains usable without storage. */ }
   }, [buttonPosition])
 
   useEffect(() => {
@@ -179,7 +184,7 @@ export function TaskCenter() {
 
   const tasks = useMemo(
     () =>
-      mergeTaskUiItems(serverItems, optimisticItems).sort((a, b) => {
+      [...mergeTaskUiItems(serverItems, optimisticItems), ...workspace.tasks].sort((a, b) => {
         const activeContexts = flattenPageContexts(contextScopes)
         const priority = (task: TaskUiItem): number => {
           if (isTaskHighlighted(task, activeContexts)) return 4
@@ -190,11 +195,11 @@ export function TaskCenter() {
         }
         const priorityDelta = priority(b) - priority(a)
         if (priorityDelta !== 0) return priorityDelta
-        const aTs = a.startedAtTs ?? 0
-        const bTs = b.startedAtTs ?? 0
+        const aTs = a.startedAtTs ?? a.createdAtTs ?? 0
+        const bTs = b.startedAtTs ?? b.createdAtTs ?? 0
         return bTs - aTs
       }),
-    [contextScopes, optimisticItems, serverItems],
+    [contextScopes, optimisticItems, serverItems, workspace.tasks],
   )
   const activeContexts = useMemo(() => flattenPageContexts(contextScopes), [contextScopes])
   const resolvedTasks = useResolvedTaskCenterTasks(tasks, navigate)
@@ -307,7 +312,6 @@ export function TaskCenter() {
       offsetY: event.clientY - rect.top,
       moved: false,
     }
-    setDragging(true)
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
@@ -325,7 +329,6 @@ export function TaskCenter() {
     if (!drag || drag.pointerId !== event.pointerId) return
     event.currentTarget.releasePointerCapture(event.pointerId)
     setButtonPosition((prev) => snapButtonPosition(prev))
-    setDragging(false)
   }
 
   const handleButtonClick = () => {
@@ -340,12 +343,13 @@ export function TaskCenter() {
 
   return (
     <div
-      className={`fixed z-[1200] pointer-events-none ${dragging ? '' : 'transition-[left,top] duration-200 ease-out'}`}
+      className="fixed z-[1200] pointer-events-none studio-task-center"
+      data-testid="task-center"
       style={{ left: buttonPosition.x, top: buttonPosition.y }}
     >
       {open ? (
         <div
-          className={`fixed pointer-events-auto ${dragging ? '' : 'transition-[left,top] duration-200 ease-out'}`}
+          className="fixed pointer-events-auto"
           style={{ left: panelStyle.left, top: panelStyle.top, width: panelStyle.width }}
         >
           <Card
@@ -360,6 +364,8 @@ export function TaskCenter() {
             bodyStyle={{ maxHeight: 304, overflow: 'auto' }}
           >
             <div className="mb-3 flex flex-col gap-2">
+              {workspace.error && <Alert type="warning" showIcon message={workspace.error} action={<Button size="small" loading={workspace.loading} onClick={workspace.refresh}>重试读取</Button>} />}
+              {serverReadError && <Alert type="warning" showIcon message={serverReadError} action={<Button size="small" loading={serverRefreshing} onClick={() => { requestServerRefresh(); workspace.refresh() }}>重试任务列表</Button>} />}
               <Segmented
                 size="small"
                 value={scopeFilter}
@@ -391,7 +397,7 @@ export function TaskCenter() {
               </div>
             </div>
             {filteredTasks.length === 0 ? (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="当前没有任务记录" />
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={workspace.error || serverReadError ? '任务记录暂时无法更新，请重试读取' : '当前没有任务记录'} />
             ) : (
               <div className="space-y-3">
                 {groupedTasks.map((group) => (
@@ -401,10 +407,13 @@ export function TaskCenter() {
                       const tone = taskTone(task)
                       const elapsed = formatElapsedMs(task.elapsedMs)
                       const startedAt = formatStartedAt(task.startedAtTs)
+                      const createdAt = formatStartedAt(task.createdAtTs)
+                      const progressKnown = task.progressKnown !== false && Number.isFinite(task.progress)
                       const highlighted = isTaskHighlighted(task, activeContexts)
                       return (
                         <div
                           key={task.taskId}
+                          data-task-id={task.taskId}
                           className={`rounded-lg border px-3 py-2 ${
                             highlighted ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'
                           }`}
@@ -412,14 +421,14 @@ export function TaskCenter() {
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <div className="font-medium text-sm truncate">{task.title}</div>
-                              {task.sourceLabel ? <div className="mt-1 text-xs text-gray-500 truncate">{task.sourceLabel}</div> : null}
+                              {task.sourceLabel ? <div className="mt-1 text-xs text-gray-500 truncate" title={task.sourceLabel}>{task.sourceLabel}</div> : null}
                               <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
                                 {highlighted ? <Tag color="blue">当前页面</Tag> : null}
                                 <Tag color={tone.color}>{tone.label}</Tag>
-                                <span>进度 {Math.max(0, Math.min(100, Math.round(task.progress)))}%</span>
+                                {progressKnown && <span>进度 {Math.max(0, Math.min(100, Math.round(task.progress)))}%</span>}
                                 {elapsed ? <span>耗时 {elapsed}</span> : null}
                               </div>
-                              {startedAt ? <div className="mt-1 text-xs text-gray-400">开始于 {startedAt}</div> : null}
+                              {startedAt ? <div className="mt-1 text-xs text-gray-400">开始于 {startedAt}</div> : createdAt ? <div className="mt-1 text-xs text-gray-400">提交于 {createdAt}</div> : null}
                             </div>
                             <div className="flex flex-col gap-2">
                               {task.onNavigate ? (
@@ -444,7 +453,7 @@ export function TaskCenter() {
                                 >
                                   {task.cancelRequested ? '正在取消' : '取消'}
                                 </Button>
-                              ) : task.status === 'pending' || task.status === 'running' || task.status === 'streaming' ? (
+                              ) : task.cancelInTaskCenter !== false && (task.status === 'pending' || task.status === 'running' || task.status === 'streaming') ? (
                                 <Button
                                   size="small"
                                   danger
@@ -456,10 +465,10 @@ export function TaskCenter() {
                                 >
                                   {task.cancelRequested ? '正在取消' : '取消'}
                                 </Button>
-                              ) : null}
+                              ) : task.cancelInTaskCenter === false && ['pending', 'running'].includes(task.status) ? <span className="text-xs text-gray-500">到原页面取消</span> : null}
                             </div>
                           </div>
-                          <Progress
+                          {progressKnown && <Progress
                             percent={Math.max(0, Math.min(100, Math.round(task.progress)))}
                             size="small"
                             status={
@@ -471,7 +480,7 @@ export function TaskCenter() {
                             }
                             showInfo={false}
                             className="mt-2"
-                          />
+                          />}
                         </div>
                       )
                     })}

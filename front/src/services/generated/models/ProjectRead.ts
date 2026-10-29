@@ -4,6 +4,9 @@
 /* eslint-disable */
 import type { ProjectStyle } from './ProjectStyle';
 import type { ProjectVisualStyle } from './ProjectVisualStyle';
+/**
+ * Return persisted project times with an explicit UTC offset, including SQLite reads.
+ */
 export type ProjectRead = {
     /**
      * 项目名称
@@ -42,5 +45,13 @@ export type ProjectRead = {
      */
     stats?: Record<string, any>;
     id: string;
+    /**
+     * 数据库记录的创建时间（UTC）
+     */
+    created_at: string;
+    /**
+     * 数据库记录的最近更新时间（UTC）
+     */
+    updated_at: string;
 };
 

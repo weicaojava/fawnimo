@@ -8,6 +8,7 @@ interface ButtonProps {
   disabled?: boolean
 }
 
+/** Share button states and hit areas without imposing business actions on its callers. */
 const CustomButton: FC<ButtonProps> = ({
   variant = 'primary',
   size = 'md',
@@ -15,12 +16,12 @@ const CustomButton: FC<ButtonProps> = ({
   onClick,
   disabled = false,
 }) => {
-  const baseStyles = 'font-semibold rounded-lg transition-all duration-200'
+  const baseStyles = 'studio-custom-button font-medium rounded-lg'
 
   const variants = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400',
-    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300 disabled:bg-gray-400',
-    danger: 'bg-red-600 text-white hover:bg-red-700 disabled:bg-gray-400',
+    primary: 'studio-button-primary',
+    secondary: 'studio-button-secondary',
+    danger: 'studio-button-danger',
   }
 
   const sizes = {
@@ -31,6 +32,7 @@ const CustomButton: FC<ButtonProps> = ({
 
   return (
     <button
+      type="button"
       className={`${baseStyles} ${variants[variant]} ${sizes[size]}`}
       onClick={onClick}
       disabled={disabled}
@@ -41,4 +43,3 @@ const CustomButton: FC<ButtonProps> = ({
 }
 
 export default CustomButton
-

@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.services.studio.project_summary import project_summaries
 
 from app.api.utils import apply_keyword_filter, apply_order, paginate
 from app.dependencies import get_db
@@ -86,7 +87,7 @@ async def get_project_style_options(
     summary="项目列表（分页）",
 )
 async def list_projects(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
     q: str | None = Query(None, description="关键字，过滤 name/description"),
     order: str | None = Query(None, description="排序字段"),
     is_desc: bool = Query(False, description="是否倒序"),
@@ -97,7 +98,7 @@ async def list_projects(
     stmt = apply_keyword_filter(stmt, q=q, fields=[Project.name, Project.description])
     stmt = apply_order(stmt, model=Project, order=order, is_desc=is_desc, allow_fields=PROJECT_ORDER_FIELDS, default="created_at")
     items, total = await paginate(db, stmt=stmt, page=page, page_size=page_size)
-    return paginated_response([ProjectRead.model_validate(x) for x in items], page=page, page_size=page_size, total=total)
+    return paginated_response(await project_summaries(db, items), page=page, page_size=page_size, total=total)
 
 
 @router.post(
@@ -108,7 +109,7 @@ async def list_projects(
 )
 async def create_project(
     body: ProjectCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ProjectRead]:
     await ensure_not_exists(
         db,
@@ -121,7 +122,7 @@ async def create_project(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     obj = await create_and_refresh(db, Project(**body.model_dump()))
-    return created_response(ProjectRead.model_validate(obj))
+    return created_response((await project_summaries(db, [obj]))[0])
 
 
 @router.get(
@@ -131,10 +132,10 @@ async def create_project(
 )
 async def get_project(
     project_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ProjectRead]:
     obj = await get_or_404(db, Project, project_id, detail=entity_not_found("Project"))
-    return success_response(ProjectRead.model_validate(obj))
+    return success_response((await project_summaries(db, [obj]))[0])
 
 
 @router.patch(
@@ -145,7 +146,7 @@ async def get_project(
 async def update_project(
     project_id: str,
     body: ProjectUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ProjectRead]:
     obj = await get_or_404(db, Project, project_id, detail=entity_not_found("Project"))
     update_data = body.model_dump(exclude_unset=True)
@@ -158,7 +159,7 @@ async def update_project(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     patch_model(obj, update_data)
     await flush_and_refresh(db, obj)
-    return success_response(ProjectRead.model_validate(obj))
+    return success_response((await project_summaries(db, [obj]))[0])
 
 
 @router.delete(
@@ -168,7 +169,7 @@ async def update_project(
 )
 async def delete_project(
     project_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[None]:
     await delete_if_exists(db, Project, project_id)
     return empty_response()

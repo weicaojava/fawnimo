@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Card, Input, Row, Col, Tag, Button, message, Modal, Space, Pagination } from 'antd'
+import { Empty, Input, Row, Col, Tag, Button, message, Modal, Skeleton, Space, Pagination } from 'antd'
 import { EditOutlined, DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useSearchParams } from 'react-router-dom'
 import { resolveAssetUrl } from '../utils'
@@ -29,6 +29,7 @@ type AssetCreatePayload = Record<string, unknown> & {
   thumbnail?: string
 }
 
+/** Share the asset list and editing controls across scenes, props and costumes. */
 export function AssetTypeTab({
   label,
   tabKey,
@@ -200,12 +201,13 @@ export function AssetTypeTab({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <div className="library-toolbar">
         <Input.Search
           placeholder={`搜索${label}名称、描述或标签`}
+          aria-label={`搜索${label}名称、描述或标签`}
           allowClear
-          className="max-w-sm"
+          className="library-search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onSearch={() => {
@@ -223,11 +225,12 @@ export function AssetTypeTab({
         </Space>
       </div>
 
-      <Card loading={loading}>
+      <div className="library-results">
+        <Skeleton loading={loading} active paragraph={{ rows: 6 }}>
         <Row gutter={[16, 16]}>
           {filtered.length === 0 ? (
             <Col span={24}>
-              <div className="text-center text-gray-500 py-8">{search ? '无匹配资产' : '暂无该类资产'}</div>
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={search ? '无匹配资产' : '暂无该类资产'} />
             </Col>
           ) : (
             filtered.map((a) => {
@@ -251,6 +254,7 @@ export function AssetTypeTab({
                       <Button
                         type="text"
                         key="del"
+                        aria-label={`删除${label}${a.name}`}
                         danger
                         icon={<DeleteOutlined />}
                         size="small"
@@ -259,7 +263,7 @@ export function AssetTypeTab({
                     ]}
                     meta={
                       <>
-                        <div className="text-xs text-gray-500 mb-2 line-clamp-2">{a.description || '暂无描述'}</div>
+                        <div className="text-xs library-muted mb-2 line-clamp-2">{a.description || '暂无描述'}</div>
                         <div className="flex flex-wrap gap-1">
                           {typeof a.view_count === 'number' && <Tag color="blue">镜头 {a.view_count}</Tag>}
                           {(a.tags ?? []).slice(0, 3).map((t) => (
@@ -274,8 +278,9 @@ export function AssetTypeTab({
             })
           )}
         </Row>
+        </Skeleton>
 
-        <div className="flex justify-end pt-4">
+        <div className="library-pagination">
           <Pagination
             current={page}
             pageSize={pageSize}
@@ -288,7 +293,7 @@ export function AssetTypeTab({
             }}
           />
         </div>
-      </Card>
+      </div>
 
       <StudioAssetTypeFormModal
         open={editOpen}
@@ -330,7 +335,7 @@ export function AssetTypeTab({
         footer={null}
         width={880}
       >
-        <div className="w-full flex justify-center bg-gray-50 rounded-md overflow-hidden">
+        <div className="library-media-preview w-full flex justify-center overflow-hidden">
           <img src={previewUrl} alt={previewTitle} className="max-h-[70vh] object-contain" />
         </div>
       </Modal>

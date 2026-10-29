@@ -42,8 +42,10 @@ import {
   TABLE_ACTION_BTN_MORE_CLASS,
   TABLE_ACTION_BTN_TEST_CLASS,
   maskUrl,
+  initialManagementView,
 } from './constants'
 
+/** Maintain provider configuration without suggesting that stored credentials have been verified. */
 export default function ProvidersTab() {
   const [providers, setProviders] = useState<ProviderRead[]>([])
   const [supportedSpecs, setSupportedSpecs] = useState<ProviderSupportedRead[]>([])
@@ -51,7 +53,7 @@ export default function ProvidersTab() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<'updated' | 'name'>('updated')
-  const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
+  const [viewMode, setViewMode] = useState<'table' | 'card'>(initialManagementView)
   const [selectedProvider, setSelectedProvider] = useState<ProviderRead | null>(null)
   const [detailPanelOpen, setDetailPanelOpen] = useState(false)
   const [treeCollapsed, setTreeCollapsed] = useState(false)
@@ -234,7 +236,7 @@ export default function ProvidersTab() {
   }
 
   const providerColumns: TableColumnsType<ProviderRead> = [
-    { title: '名称', dataIndex: 'name', key: 'name', ellipsis: true, render: (n) => <Space>{n}</Space> },
+    { title: '名称', dataIndex: 'name', key: 'name', width: 160, fixed: 'left', ellipsis: true, render: (n) => <Space>{n}</Space> },
     {
       title: 'Base URL',
       dataIndex: 'base_url',
@@ -278,7 +280,7 @@ export default function ProvidersTab() {
     {
       title: '操作',
       key: 'action',
-      width: 112,
+      width: 144,
       fixed: 'right',
       align: 'center',
       render: (_, record) => (
@@ -288,6 +290,7 @@ export default function ProvidersTab() {
               type="text"
               size="small"
               className={TABLE_ACTION_BTN_EDIT_CLASS}
+              aria-label="编辑供应商"
               icon={<EditOutlined />}
               onClick={(e) => {
                 e.stopPropagation()
@@ -330,6 +333,7 @@ export default function ProvidersTab() {
                 type="text"
                 size="small"
                 className={TABLE_ACTION_BTN_MORE_CLASS}
+                aria-label="更多供应商操作"
                 icon={<MenuOutlined />}
                 onClick={(e) => e.stopPropagation()}
               />
@@ -343,10 +347,10 @@ export default function ProvidersTab() {
   return (
     <>
       {/* Stored configuration is not evidence of authentication or model qualification. */}
-      <Alert type="info" showIcon message="供应商连接尚未验证" description="本页仅维护配置，连接测试尚未接入。保存配置或修改状态不代表认证成功，也不代表模型具备生成资格。" className="flex-shrink-0" />
-      <div className="flex-shrink-0 px-4 py-2 border-b border-gray-100 bg-white flex flex-wrap items-center justify-between gap-2">
+      <Alert type="info" showIcon message="供应商连接尚未验证" description="本页仅维护配置，连接测试尚未接入。保存配置或修改状态不代表认证成功，也不代表模型具备生成资格。" className="library-notice flex-shrink-0" />
+      <div className="library-management-toolbar">
         <div className="flex items-center gap-2">
-          <span className="text-gray-600 text-sm">共 {providers.length} 个供应商</span>
+          <span className="library-secondary text-sm">共 {providers.length} 个供应商</span>
         </div>
         <Space wrap>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => openProviderModal()}>
@@ -354,6 +358,7 @@ export default function ProvidersTab() {
           </Button>
           <Input
             placeholder="搜索名称/描述"
+            aria-label="搜索供应商名称或描述"
             allowClear
             className="w-48"
             value={search}
@@ -375,52 +380,58 @@ export default function ProvidersTab() {
         </Space>
       </div>
 
-      <Layout className="flex-1 min-h-0 flex-row overflow-hidden">
+      <Layout className="library-split flex-1 min-h-0 flex-row overflow-hidden">
         <div
-          className="flex-shrink-0 border-r border-gray-200 bg-white overflow-auto"
+          className="library-filter-panel"
           style={{ width: treeCollapsed ? 48 : 200 }}
         >
           {treeCollapsed ? (
             <Button
               type="text"
               icon={<RightOutlined />}
+              aria-label="展开筛选面板"
               onClick={() => setTreeCollapsed(false)}
               className="w-full rounded-none"
             />
           ) : (
             <>
-              <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-700">筛选</span>
+              <div className="flex items-center justify-between px-3 py-2 border-b library-rule">
+                <span className="text-sm font-medium library-secondary">筛选</span>
                 <Button
                   type="text"
                   size="small"
                   icon={<RightOutlined rotate={180} />}
+                  aria-label="收起筛选面板"
                   onClick={() => setTreeCollapsed(true)}
                 />
               </div>
-              <div className="p-3 text-sm text-gray-500">点击列表项查看详情</div>
+              <div className="p-3 text-sm library-muted">点击列表项查看详情</div>
             </>
           )}
         </div>
 
-        <div className="flex-1 min-w-0 overflow-auto p-4 bg-gray-50">
-          <div className="flex justify-end gap-1 mb-2">
+        <div className="library-data-region">
+          <div className="library-view-switch" role="group" aria-label="供应商显示方式">
             <Button
               type={viewMode === 'table' ? 'primary' : 'default'}
               size="small"
               icon={<UnorderedListOutlined />}
+              aria-label="列表视图"
+              aria-pressed={viewMode === 'table'}
               onClick={() => setViewMode('table')}
             />
             <Button
               type={viewMode === 'card' ? 'primary' : 'default'}
               size="small"
               icon={<AppstoreOutlined />}
+              aria-label="卡片视图"
+              aria-pressed={viewMode === 'card'}
               onClick={() => setViewMode('card')}
             />
           </div>
 
           {providerList.length === 0 ? (
-            <Card>
+            <div className="library-empty">
               <Empty
                 description={
                   providers.length === 0 ? '暂无供应商，点击「添加供应商」开始' : '无匹配结果'
@@ -432,9 +443,9 @@ export default function ProvidersTab() {
                   </Button>
                 )}
               </Empty>
-            </Card>
+            </div>
           ) : viewMode === 'table' ? (
-            <Card>
+            <div className="library-table-wrap">
               <Table<ProviderRead>
                 rowKey="id"
                 loading={loading}
@@ -443,26 +454,46 @@ export default function ProvidersTab() {
                 scroll={{ x: 1180 }}
                 pagination={{ pageSize: 20 }}
                 onRow={(record) => ({
+                  tabIndex: 0,
+                  'aria-label': `查看供应商${record.name}详情`,
                   onClick: () => {
                     setSelectedProvider(record)
                     setDetailPanelOpen(true)
+                  },
+                  onKeyDown: (event) => {
+                    // Keep the existing pointer action available from the keyboard.
+                    if (event.target === event.currentTarget && event.key === 'Enter') {
+                      setSelectedProvider(record)
+                      setDetailPanelOpen(true)
+                    }
                   },
                   style: { cursor: 'pointer' },
                 })}
                 size="small"
               />
-            </Card>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="library-card-grid">
               {providerList.map((p) => (
                 <Card
                   key={p.id}
                   hoverable
-                  className="cursor-pointer"
+                  className="library-record-card cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`查看供应商${p.name}详情`}
                   style={{ minHeight: 220 }}
                   onClick={() => {
                     setSelectedProvider(p)
                     setDetailPanelOpen(true)
+                  }}
+                  onKeyDown={(event) => {
+                    // Keep the existing pointer action available from the keyboard.
+                    if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                      event.preventDefault()
+                      setSelectedProvider(p)
+                      setDetailPanelOpen(true)
+                    }
                   }}
                   actions={[
                     <Button
@@ -508,16 +539,16 @@ export default function ProvidersTab() {
                   ]}
                 >
                   <div className="font-medium mb-1">{p.name}</div>
-                  <div className="text-gray-500 text-sm mb-1 truncate" title={p.base_url}>
+                  <div className="library-muted text-sm mb-1 truncate" title={p.base_url}>
                     Base URL：{maskUrl(p.base_url)}
                   </div>
-                  <div className="text-gray-500 text-sm mb-1">AK/SK：******** / ********</div>
-                  <div className="text-gray-500 text-sm line-clamp-2 mb-2">{p.description || '—'}</div>
+                  <div className="library-muted text-sm mb-1">AK/SK：******** / ********</div>
+                  <div className="library-muted text-sm line-clamp-2 mb-2">{p.description || '—'}</div>
                   <Tag color={PROVIDER_STATUS_MAP[p.status ?? 'active']?.color}>
                     {PROVIDER_STATUS_MAP[p.status ?? 'active']?.text}
                   </Tag>
                   {p.created_by && (
-                    <span className="text-xs text-gray-400 ml-2">创建：{p.created_by}</span>
+                    <span className="text-xs library-muted ml-2">创建：{p.created_by}</span>
                   )}
                 </Card>
               ))}
@@ -527,10 +558,10 @@ export default function ProvidersTab() {
 
         {selectedProvider && isLargeScreen && (
           <div
-            className="flex-shrink-0 overflow-auto border-l border-gray-200 bg-white"
+            className="library-detail-panel"
             style={{ width: '36%', minWidth: 320 }}
           >
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="p-4 border-b library-rule flex items-center justify-between">
               <span className="font-medium">详情</span>
               <Button
                 type="link"
@@ -545,26 +576,26 @@ export default function ProvidersTab() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <div className="text-sm text-gray-500 mb-1">名称</div>
+                <div className="text-sm library-muted mb-1">名称</div>
                 <div className="font-medium">{selectedProvider.name}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500 mb-1">文本/通用 Base URL</div>
+                <div className="text-sm library-muted mb-1">文本/通用 Base URL</div>
                 <Tooltip title={selectedProvider.base_url}>
                   <span className="text-sm">{maskUrl(selectedProvider.base_url)}</span>
                 </Tooltip>
               </div>
               <div>
-                <div className="text-sm text-gray-500 mb-1">图片 Base URL（可选覆盖）</div>
+                <div className="text-sm library-muted mb-1">图片 Base URL（可选覆盖）</div>
                 <span className="text-sm">{selectedProvider.image_base_url ? maskUrl(selectedProvider.image_base_url) : '回退到文本/通用'}</span>
               </div>
               <div>
-                <div className="text-sm text-gray-500 mb-1">视频 Base URL（可选覆盖）</div>
+                <div className="text-sm library-muted mb-1">视频 Base URL（可选覆盖）</div>
                 <span className="text-sm">{selectedProvider.video_base_url ? maskUrl(selectedProvider.video_base_url) : '回退到文本/通用'}</span>
               </div>
               <div>
-                <div className="text-sm text-gray-500 mb-1">描述</div>
-                <div className="text-gray-700 text-sm">{selectedProvider.description || '—'}</div>
+                <div className="text-sm library-muted mb-1">描述</div>
+                <div className="library-secondary text-sm">{selectedProvider.description || '—'}</div>
               </div>
               <Space>
                 <Button
@@ -588,6 +619,7 @@ export default function ProvidersTab() {
 
         {selectedProvider && !isLargeScreen && (
           <Drawer
+            className="library-dialog"
             title="详情"
             placement="right"
             open={detailPanelOpen}
@@ -596,19 +628,19 @@ export default function ProvidersTab() {
           >
             <div className="space-y-4">
               <div>
-                <div className="text-sm text-gray-500 mb-1">名称</div>
+                <div className="text-sm library-muted mb-1">名称</div>
                 <div className="font-medium">{selectedProvider.name}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500 mb-1">文本/通用 Base URL</div>
+                <div className="text-sm library-muted mb-1">文本/通用 Base URL</div>
                 <span className="text-sm">{maskUrl(selectedProvider.base_url)}</span>
               </div>
               <div>
-                <div className="text-sm text-gray-500 mb-1">图片 Base URL（可选覆盖）</div>
+                <div className="text-sm library-muted mb-1">图片 Base URL（可选覆盖）</div>
                 <span className="text-sm">{selectedProvider.image_base_url ? maskUrl(selectedProvider.image_base_url) : '回退到文本/通用'}</span>
               </div>
               <div>
-                <div className="text-sm text-gray-500 mb-1">视频 Base URL（可选覆盖）</div>
+                <div className="text-sm library-muted mb-1">视频 Base URL（可选覆盖）</div>
                 <span className="text-sm">{selectedProvider.video_base_url ? maskUrl(selectedProvider.video_base_url) : '回退到文本/通用'}</span>
               </div>
               <Space>
@@ -633,6 +665,7 @@ export default function ProvidersTab() {
       </Layout>
 
       <Modal
+        className="library-dialog"
         title={providerEditing ? '编辑供应商' : '添加供应商'}
         open={providerModalOpen}
         onCancel={() => {

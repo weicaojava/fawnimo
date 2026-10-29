@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Card, Empty, Input, Modal, Space, message, Pagination } from 'antd'
+import { Button, Empty, Input, Modal, Space, message, Pagination } from 'antd'
+import { ProjectSection } from '../../ProjectSection'
 import { EditOutlined, LinkOutlined, PlusOutlined } from '@ant-design/icons'
 import { useNavigate, useParams } from 'react-router-dom'
 import { StudioShotLinksService } from '../../../../../services/generated'
@@ -19,6 +20,7 @@ type AssetItemLike = {
   thumbnail?: string
 }
 
+/** Display linked props or costumes in the shared, unboxed project collection layout. */
 function LinkedAssetTab({
   kind,
   projectId,
@@ -180,16 +182,17 @@ function LinkedAssetTab({
   }
 
   return (
-    <div className="h-full overflow-auto">
-      <Card
+    <div className="project-asset-tab">
+      <ProjectSection
         title={`项目${kind === 'prop' ? '道具' : '服装'}`}
+        loading={loading}
         extra={
           <Space>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalOpen(true)}>
               新建
             </Button>
             <Button
-              type="primary"
+              type="default"
               icon={<LinkOutlined />}
               onClick={() => {
                 setSearch('')
@@ -255,7 +258,7 @@ function LinkedAssetTab({
                   }
                   meta={
                     <div className="space-y-1">
-                      <div className="text-xs text-gray-600 line-clamp-2">{asset?.description ?? '—'}</div>
+                      <div className="text-xs text-gray-600 line-clamp-2">{asset?.description ?? '暂无描述'}</div>
                       <div className="text-xs text-gray-500 truncate">{`${kind}_id：${assetId}`}</div>
                     </div>
                   }
@@ -278,7 +281,7 @@ function LinkedAssetTab({
             </div>
           </div>
         )}
-      </Card>
+      </ProjectSection>
 
       <StudioAssetTypeFormModal
         open={createModalOpen}
@@ -322,7 +325,7 @@ function LinkedAssetTab({
         </div>
         <div className="max-h-[60vh] overflow-y-auto">
           {listLoading ? (
-            <div className="py-8 text-center text-gray-500">加载中...</div>
+            <div className="py-8 text-center text-gray-500">加载中…</div>
           ) : available.length === 0 ? (
             <Empty description="暂无可关联资产" />
           ) : (
@@ -333,7 +336,7 @@ function LinkedAssetTab({
                     {resolveAssetUrl(a.thumbnail) ? (
                       <img src={resolveAssetUrl(a.thumbnail)} alt="" className="w-10 h-10 rounded object-cover shrink-0" />
                     ) : (
-                      <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">—</div>
+                      <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">暂无图片</div>
                     )}
                     <div className="min-w-0">
                       <div className="font-medium truncate">{a.name}</div>

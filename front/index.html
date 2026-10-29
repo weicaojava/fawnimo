@@ -2,15 +2,25 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="icon" type="image/svg+xml" href="/fawnimo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Jellyfish</title>
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Apply the saved appearance before the first paint, including when storage is blocked.
+      (() => {
+        let mode;
+        try { mode = localStorage.getItem('jellyfish_theme'); } catch {}
+        document.documentElement.dataset.mode = mode === 'light' || mode === 'dark'
+          ? mode : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      })();
+    </script>
+    <title>Fawnimo 鹿帧</title>
     <!-- runtime env for Docker/Nginx: window.__ENV = { BACKEND_URL: "http://localhost:8000" } -->
     <script src="/env.js"></script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>请启用浏览器的 JavaScript，以使用 Fawnimo 鹿帧短视频工作台。</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

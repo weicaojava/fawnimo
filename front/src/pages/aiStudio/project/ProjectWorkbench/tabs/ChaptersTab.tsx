@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Card, Button, Tag, Space, Table, Empty, Modal, Input, Dropdown, message } from 'antd'
+import { Button, Tag, Space, Table, Empty, Modal, Input, Dropdown, message } from 'antd'
 import type { MenuProps, TableColumnsType } from 'antd'
 import {
   EditOutlined,
@@ -25,6 +25,7 @@ import { TASK_COPY } from '../../../components/taskCopy'
 import { useTaskPageContext } from '../../../components/taskPageContext'
 import { useTaskUiStore } from '../../../components/taskUiStore'
 import { ScriptPreparationPanel } from './ScriptPreparationPanel'
+import { ProjectSection } from '../../ProjectSection'
 import {
   createRelationTaskState,
   upsertRelationTaskStateInMap,
@@ -35,6 +36,7 @@ const { TextArea } = Input
 const CREATE_PARAM = 'create'
 const EDIT_PARAM = 'edit'
 
+/** Preserve chapter preparation actions and URL dialogs in an unboxed production list. */
 export function ChaptersTab() {
   const taskCopy = TASK_COPY.chapterDivision
   const navigate = useNavigate()
@@ -418,7 +420,7 @@ export function ChaptersTab() {
               <Tag color={activeTask.cancelRequested ? 'orange' : 'processing'}>
                 {activeTask.cancelRequested ? '正在取消提取' : '分镜提取中'}
               </Tag>
-              <div className="text-[11px] text-gray-500 leading-5">
+              <div className="text-xs text-gray-500 leading-5">
                 {activeTask.cancelRequested ? '已请求取消，将在当前步骤结束后停止' : '系统正在异步提取当前章节分镜'}
               </div>
             </div>
@@ -428,7 +430,7 @@ export function ChaptersTab() {
         return (
           <div className="space-y-1">
             <Tag color={state.color}>{state.text}</Tag>
-            <div className="text-[11px] text-gray-500 leading-5">{state.hint}</div>
+            <div className="text-xs text-gray-500 leading-5">{state.hint}</div>
           </div>
         )
       },
@@ -521,7 +523,7 @@ export function ChaptersTab() {
   if (chapters.length === 0 && !loading) {
     return (
       <>
-        <Card>
+        <section className="project-empty-state">
           <Empty description="还没有任何章节，立即创建第一章吧" image={Empty.PRESENTED_IMAGE_SIMPLE}>
           <Space>
             <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
@@ -529,7 +531,7 @@ export function ChaptersTab() {
             </Button>
           </Space>
         </Empty>
-        </Card>
+        </section>
         <Modal
           title="新建章节"
           open={createOpen}
@@ -555,7 +557,7 @@ export function ChaptersTab() {
                 placeholder="粘贴文学剧本..."
                 value={createContent}
                 onChange={(e) => setCreateContent(e.target.value)}
-                className="mt-1 font-mono text-sm"
+                className="mt-1 text-sm"
               />
             </div>
           </div>
@@ -567,7 +569,7 @@ export function ChaptersTab() {
   return (
     <>
     <ScriptPreparationPanel key={`script-${projectId}`} projectId={projectId ?? ''} chapters={chapters} />
-    <Card
+    <ProjectSection
       title="章节列表"
       extra={
         <Space>
@@ -583,6 +585,7 @@ export function ChaptersTab() {
         columns={columns}
         dataSource={chapters}
         pagination={{ pageSize: 10 }}
+        scroll={{ x: 1260 }}
         size="small"
       />
 
@@ -626,12 +629,12 @@ export function ChaptersTab() {
               placeholder="粘贴文学剧本..."
               value={createContent}
               onChange={(e) => setCreateContent(e.target.value)}
-              className="mt-1 font-mono text-sm"
+              className="mt-1 text-sm"
             />
           </div>
         </div>
       </Modal>
-    </Card>
+    </ProjectSection>
     </>
   )
 }

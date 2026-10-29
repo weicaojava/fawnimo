@@ -10,7 +10,11 @@ export type TaskUiItem = {
   sourceLabel?: string | null
   status: TaskStatus
   progress: number
+  progressKnown?: boolean
+  cancelInTaskCenter?: boolean
+  currentPage?: boolean
   cancelRequested: boolean
+  createdAtTs?: number | null
   startedAtTs?: number | null
   finishedAtTs?: number | null
   elapsedMs?: number | null
@@ -33,6 +37,11 @@ type TaskUiState = {
   optimisticItems: Record<string, TaskUiItem>
   contextScopes: Record<string, TaskPageContext[]>
   open: boolean
+  serverReadError: string | null
+  serverRefreshing: boolean
+  serverRefreshVersion: number
+  setServerReadState: (error: string | null, loading: boolean) => void
+  requestServerRefresh: () => void
   setServerTasks: (tasks: TaskListItemRead[]) => void
   upsertTask: (task: TaskUiItem) => void
   removeTask: (taskId: string) => void
@@ -59,7 +68,11 @@ export function mergeTaskUiItems(
         resolveTaskSourceLabel(server?.relation_type, server?.relation_entity_id),
       status: server?.status ?? optimistic?.status ?? 'pending',
       progress: server?.progress ?? optimistic?.progress ?? 0,
+      progressKnown: optimistic?.progressKnown,
+      cancelInTaskCenter: optimistic?.cancelInTaskCenter,
+      currentPage: optimistic?.currentPage,
       cancelRequested: !!(server?.cancel_requested ?? optimistic?.cancelRequested),
+      createdAtTs: server?.created_at_ts ?? optimistic?.createdAtTs,
       startedAtTs: server?.started_at_ts ?? optimistic?.startedAtTs,
       finishedAtTs: server?.finished_at_ts ?? optimistic?.finishedAtTs,
       elapsedMs: server?.elapsed_ms ?? optimistic?.elapsedMs,
@@ -80,6 +93,7 @@ export function flattenPageContexts(contextScopes: Record<string, TaskPageContex
 }
 
 export function isTaskHighlighted(task: TaskUiItem, contexts: TaskPageContext[]): boolean {
+  if (task.currentPage) return true
   const matchRelationType = task.navigateRelationType ?? task.relationType
   const matchRelationEntityId =
     task.navigateRelationEntityId ?? task.relationEntityId
@@ -96,6 +110,11 @@ export const useTaskUiStore = create<TaskUiState>((set, get) => ({
   optimisticItems: {},
   contextScopes: {},
   open: false,
+  serverReadError: null,
+  serverRefreshing: false,
+  serverRefreshVersion: 0,
+  setServerReadState: (error, loading) => set(() => ({ serverReadError: error, serverRefreshing: loading })),
+  requestServerRefresh: () => set(state => ({ serverRefreshVersion: state.serverRefreshVersion + 1 })),
   setServerTasks: (tasks) =>
     set(() => ({
       serverItems: Object.fromEntries(tasks.map((task) => [task.task_id, task])),
@@ -129,6 +148,11 @@ export const useTaskUiStore = create<TaskUiState>((set, get) => ({
       return { contextScopes: next }
     }),
   cancelTask: async (taskId) => {
+    // Independent durable jobs have different cancellation contracts; never send their namespaced IDs to Film.
+    if (taskId.startsWith('workspace:')) {
+      message.info('请回任务所属页面查看状态并取消，任务中心不会代发旧任务取消请求。')
+      return
+    }
     const optimisticTask = get().optimisticItems[taskId]
     if (optimisticTask?.onCancel) {
       optimisticTask.onCancel()

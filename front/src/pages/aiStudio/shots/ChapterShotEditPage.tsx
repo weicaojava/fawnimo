@@ -1,6 +1,8 @@
+import '../chapter/production.css'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Badge, Button, Card, Divider, Empty, Layout, List, Modal, Popconfirm, Segmented, Space, Spin, Tabs, Tooltip, Typography, message } from 'antd'
-import { ArrowLeftOutlined, ClearOutlined, CloseCircleOutlined, ReloadOutlined } from '@ant-design/icons'
+import { Alert, Badge, Button, Card, Divider, Empty, Layout, List, Modal, Popconfirm, Segmented, Space, Spin, Tabs, Tooltip, Typography, message } from 'antd'
+import { useGenerationAvailability } from '../../../hooks/useGenerationAvailability'
+import { ArrowLeftOutlined, CheckCircleOutlined, ClearOutlined, CloseCircleOutlined, ReloadOutlined } from '@ant-design/icons'
 import type {
   EntityNameExistenceItem,
   ShotAssetOverviewItem,
@@ -128,18 +130,18 @@ function getExtractionListStatus(shot: ShotRead): {
 } {
   const state = getShotExtractionSummary(shot).state
   if (state === 'skipped') {
-    return { text: '已跳过', background: '#e0f2fe', color: '#075985' }
+    return { text: '已跳过', background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }
   }
   if (state === 'not_extracted') {
-    return { text: '未提取', background: '#fef3c7', color: '#92400e' }
+    return { text: '未提取', background: 'var(--color-warning-soft)', color: 'var(--color-warning)' }
   }
   if (state === 'extracted_empty') {
-    return { text: '已提取无结果', background: '#dbeafe', color: '#1d4ed8' }
+    return { text: '已提取无结果', background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }
   }
   if (state === 'extracted_resolved' || shot.status === 'ready') {
-    return { text: '确认已完成', background: '#dbeafe', color: '#1d4ed8' }
+    return { text: '确认已完成', background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }
   }
-  return { text: '待确认', background: '#fef3c7', color: '#92400e' }
+  return { text: '待确认', background: 'var(--color-warning-soft)', color: 'var(--color-warning)' }
 }
 
 function isPendingExtractionConfirmation(shot: ShotRead): boolean {
@@ -180,6 +182,7 @@ function overviewTypeToAssetKind(kind: ShotAssetOverviewItem['type']): AssetKind
 }
 
 export function ChapterShotEditPage() {
+  const generation = useGenerationAvailability()
   const navigate = useNavigate()
   const { projectId, chapterId, shotId } = useParams<{
     projectId: string
@@ -810,6 +813,7 @@ export function ChapterShotEditPage() {
   )
 
   const extractAssets = useCallback(async () => {
+    if (!generation.available) { message.info(generation.message); return }
     if (!projectId || !chapterId || !shot) return
     if (extractInFlightRef.current) return
     if (notifyExistingTask(extractTask, {
@@ -855,9 +859,10 @@ export function ChapterShotEditPage() {
       setExtractingAssets(false)
       extractInFlightRef.current = false
     }
-  }, [chapterId, extractTask, projectId, shot])
+  }, [chapterId, extractTask, projectId, shot, generation.available, generation.message])
 
   const batchExtractAssets = useCallback(async () => {
+    if (!generation.available) { message.info(generation.message); return }
     if (!projectId || !chapterId || selectedShots.length === 0) return
     if (extractInFlightRef.current) return
     if (notifyExistingTask(extractTask, {
@@ -911,7 +916,7 @@ export function ChapterShotEditPage() {
       setBatchExtractingAssets(false)
       extractInFlightRef.current = false
     }
-  }, [chapterId, extractTask, projectId, selectedShots])
+  }, [chapterId, extractTask, projectId, selectedShots, generation.available, generation.message])
 
   const cancelExtractTask = useCallback(async () => {
     if (!extractTask?.taskId) return
@@ -1313,9 +1318,9 @@ export function ChapterShotEditPage() {
       key: 'basic',
       label: (
         <div className="flex items-center gap-2">
-          <span
-            className="inline-block h-2 w-2 rounded-full"
-            style={{ background: basicInfoReady ? '#22c55e' : '#f59e0b' }}
+          <CheckCircleOutlined
+            aria-label={basicInfoReady ? '基础信息已完成' : '基础信息待完成'}
+            style={{ color: basicInfoReady ? 'var(--color-success)' : 'var(--color-warning)' }}
           />
           <span>1 基础信息</span>
         </div>
@@ -1345,20 +1350,20 @@ export function ChapterShotEditPage() {
       key: 'confirm',
       label: (
         <div className="flex items-center gap-2">
-          <span
-            className="inline-block h-2 w-2 rounded-full"
-            style={{ background: confirmReady ? '#22c55e' : '#f59e0b' }}
+          <CheckCircleOutlined
+            aria-label={confirmReady ? '提取确认已完成' : '提取确认待完成'}
+            style={{ color: confirmReady ? 'var(--color-success)' : 'var(--color-warning)' }}
           />
           <span>2 提取确认</span>
           {pendingConfirmCount > 0 ? <Badge count={pendingConfirmCount} size="small" /> : null}
         </div>
       ),
       children: (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-4 space-y-4">
+        <div className="production-confirm-area space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-sm font-medium text-slate-900">提取确认工作区</div>
-              <div className="text-[11px] text-slate-500 mt-1">
+              <div className="text-xs text-slate-500 mt-1">
                 这里集中处理系统提取出的资产和对白候选，确认完成后当前镜头才能真正进入生成阶段。
               </div>
               <div
@@ -1366,22 +1371,22 @@ export function ChapterShotEditPage() {
                 style={{
                   borderColor:
                     extractionStateMeta.tone === 'green'
-                      ? '#86efac'
+                      ? 'var(--color-success)'
                       : extractionStateMeta.tone === 'blue'
-                        ? '#93c5fd'
-                        : '#fcd34d',
+                        ? 'var(--color-accent)'
+                        : 'var(--color-warning)',
                   background:
                     extractionStateMeta.tone === 'green'
-                      ? '#f0fdf4'
+                      ? 'var(--color-success-soft)'
                       : extractionStateMeta.tone === 'blue'
-                        ? '#eff6ff'
-                        : '#fffbeb',
+                        ? 'var(--color-accent-soft)'
+                        : 'var(--color-warning-soft)',
                   color:
                     extractionStateMeta.tone === 'green'
-                      ? '#166534'
+                      ? 'var(--color-success)'
                       : extractionStateMeta.tone === 'blue'
-                        ? '#1d4ed8'
-                        : '#92400e',
+                        ? 'var(--color-accent)'
+                        : 'var(--color-warning)',
                 }}
               >
                 <div className="font-medium">{extractionStateMeta.title}</div>
@@ -1393,7 +1398,8 @@ export function ChapterShotEditPage() {
                 type="primary"
                 size="small"
                 loading={extractingAssets || extractTaskActive}
-                disabled={extractTaskActive}
+                disabled={extractTaskActive || !generation.available}
+                title={!generation.available ? generation.message : undefined}
                 onClick={() => void extractAssets()}
               >
                 提取并刷新候选
@@ -1474,13 +1480,10 @@ export function ChapterShotEditPage() {
   ] as const
 
   return (
-    <Layout style={{ height: '100%', minHeight: 0, background: '#eef2f7' }}>
+    <Layout className="production-page" style={{ height: '100%', minHeight: 0 }}>
       <Header
+        className="production-page-header"
         style={{
-          padding: '0 16px',
-          background: '#fff',
-          borderBottom: '1px solid #e2e8f0',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
           display: 'flex',
           alignItems: 'center',
           gap: 12,
@@ -1497,10 +1500,10 @@ export function ChapterShotEditPage() {
         <div className="min-w-0 flex-1 overflow-hidden">
           <Typography.Text
             strong
-            className="truncate block"
+            className="production-page-title truncate block"
             style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           >
-            {chapterIndex !== null ? `第${chapterIndex}章 · ${chapterTitle || '未命名'}` : chapterTitle || '章节'}
+            {chapterIndex !== null ? `第${chapterIndex}章 / ${chapterTitle || '未命名'}` : chapterTitle || '章节'}
           </Typography.Text>
           <Typography.Text
             type="secondary"
@@ -1511,10 +1514,11 @@ export function ChapterShotEditPage() {
           </Typography.Text>
         </div>
       </Header>
+      {!generation.available && <Alert className="mx-4 my-3" type="info" showIcon message={generation.message} description="信息提取暂不可用；镜头基础信息、资产关联、手工对白、确认、保存和进入工作室仍可操作。" />}
 
       <Content
+        className="production-page-content"
         style={{
-          padding: 16,
           minHeight: 0,
           overflow: 'hidden',
           display: 'flex',
@@ -1522,6 +1526,7 @@ export function ChapterShotEditPage() {
         }}
       >
         <Card
+          className="production-frame"
           title="分镜准备"
           style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
           bodyStyle={{
@@ -1540,15 +1545,16 @@ export function ChapterShotEditPage() {
           ) : !shot ? (
             <Empty description="无法加载分镜" />
           ) : (
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 12, overflow: 'hidden' }}>
+            <div className="production-workgrid" style={{ flex: 1, minHeight: 0, display: 'flex', gap: 12, overflow: 'hidden' }}>
               <Card
+                className="production-shot-rail"
                 size="small"
                 title={
                   <div className="flex min-w-0 items-center justify-between gap-2">
                     <Space size={8} className="min-w-0 overflow-hidden">
                       <span className="font-medium shrink-0">{`镜头（${shotsSorted.length}）`}</span>
                       {!multiSelectActive ? (
-                        <Space size={4} className="min-w-0 text-[11px] text-slate-500">
+                        <Space size={4} className="min-w-0 text-xs text-slate-500">
                           <ReloadOutlined className="shrink-0" />
                           <span className="truncate" title="Command/Ctrl + 点击多选">
                             Command/Ctrl + 点击多选
@@ -1560,14 +1566,16 @@ export function ChapterShotEditPage() {
                     </Space>
                     {multiSelectActive ? (
                       <Space size={6} className="shrink-0">
-                        <Tooltip title="批量提取并刷新">
+                        <Tooltip title={!generation.available ? generation.message : '批量提取并刷新'}>
                           <Button
                             size="small"
                             type="primary"
                             shape="circle"
                             icon={<ReloadOutlined />}
                             loading={batchExtractingAssets || extractTaskActive}
-                            disabled={extractTaskActive}
+                            disabled={extractTaskActive || !generation.available}
+                            aria-label="批量提取并刷新"
+                            title={!generation.available ? generation.message : undefined}
                             onClick={() => void batchExtractAssets()}
                           />
                         </Tooltip>
@@ -1633,68 +1641,58 @@ export function ChapterShotEditPage() {
                     const itemCompleted = itemBasicReady && !itemActionable
                     return (
                       <List.Item
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={active}
+                        onKeyDown={(event) => {
+                          // Keep keyboard activation on the row itself so nested controls keep their own keys.
+                          if (event.target !== event.currentTarget) return
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            event.currentTarget.click()
+                          }
+                        }}
                         onClick={(e) => handleShotListClick(item.id, e)}
                         style={{
                           cursor: 'pointer',
                           borderRadius: 10,
                           padding: '8px 10px',
-                          background: active
-                            ? itemCompleted
-                              ? 'rgba(34,197,94,0.12)'
-                              : 'rgba(59,130,246,0.10)'
-                            : selected
-                              ? 'rgba(59,130,246,0.06)'
-                            : itemActionable
-                              ? 'rgba(245,158,11,0.06)'
-                              : itemCompleted
-                                ? 'rgba(34,197,94,0.04)'
-                              : undefined,
-                          border: active
-                            ? itemCompleted
-                              ? '1px solid rgba(34,197,94,0.28)'
-                              : '1px solid rgba(59,130,246,0.25)'
-                            : selected
-                              ? '1px solid rgba(59,130,246,0.18)'
-                            : itemActionable
-                              ? '1px solid rgba(245,158,11,0.22)'
-                              : itemCompleted
-                                ? '1px solid rgba(34,197,94,0.16)'
-                              : '1px solid transparent',
-                          boxShadow: active && itemCompleted ? '0 0 0 1px rgba(34,197,94,0.08) inset' : undefined,
+                          background: active || selected ? 'var(--color-accent-soft)' : 'var(--color-paper-2)',
+                          border: active || selected ? '1px solid var(--color-accent)' : '1px solid var(--color-rule)',
                         }}
                       >
                         <div className="min-w-0">
                           <div className="flex items-center justify-between gap-2">
                             <div className="font-medium truncate">
-                              #{item.index} · {item.title?.trim() ? item.title : '未命名镜头'}
+                              #{item.index} / {item.title?.trim() ? item.title : '未命名镜头'}
                             </div>
                             <div className="flex shrink-0 items-center gap-1">
                               {active && itemCompleted ? (
                                 <span
-                                  className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium"
+                                  className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium"
                                   style={{
-                                    background: '#dcfce7',
-                                    color: '#166534',
+                                    background: 'var(--color-success-soft)',
+                                    color: 'var(--color-success)',
                                   }}
                                 >
                                   当前已完成
                                 </span>
                               ) : null}
                               <span
-                                className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium"
+                                className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium"
                                 style={{
                                   background:
                                     itemIssueSummary.tone === 'green'
-                                      ? '#dcfce7'
+                                      ? 'var(--color-success-soft)'
                                       : itemIssueSummary.tone === 'blue'
-                                        ? '#dbeafe'
-                                        : '#fef3c7',
+                                        ? 'var(--color-accent-soft)'
+                                        : 'var(--color-warning-soft)',
                                   color:
                                     itemIssueSummary.tone === 'green'
-                                      ? '#166534'
+                                      ? 'var(--color-success)'
                                       : itemIssueSummary.tone === 'blue'
-                                        ? '#1d4ed8'
-                                        : '#92400e',
+                                        ? 'var(--color-accent)'
+                                        : 'var(--color-warning)',
                                 }}
                               >
                                 {itemIssueSummary.text}
@@ -1704,16 +1702,16 @@ export function ChapterShotEditPage() {
                           <div className="text-xs text-gray-500 truncate">{item.script_excerpt ?? ''}</div>
                           <div className="mt-1 flex flex-wrap items-center gap-1">
                             <span
-                              className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium"
+                              className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium"
                               style={{
-                                background: itemBasicReady ? '#dcfce7' : '#fef3c7',
-                                color: itemBasicReady ? '#166534' : '#92400e',
+                                background: itemBasicReady ? 'var(--color-success-soft)' : 'var(--color-warning-soft)',
+                                color: itemBasicReady ? 'var(--color-success)' : 'var(--color-warning)',
                               }}
                             >
                               {itemBasicReady ? '基础已完成' : '基础待补'}
                             </span>
                             <span
-                              className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium"
+                              className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium"
                               style={{
                                 background: itemConfirmStatus.background,
                                 color: itemConfirmStatus.color,
@@ -1730,6 +1728,7 @@ export function ChapterShotEditPage() {
               </Card>
 
               <Card
+                className="production-detail-panel"
                 size="small"
                 title={
                   <div className="space-y-3 min-w-0">

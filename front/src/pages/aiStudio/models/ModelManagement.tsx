@@ -1,17 +1,23 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Layout, Tabs } from 'antd'
 import ProvidersTab from './ProvidersTab'
 import ModelsTab from './ModelsTab'
 import SettingsTab from './SettingsTab'
+import '../assets/components/LibraryPages.css'
 
+/** Keep provider, model and default settings together in one themed configuration workspace. */
 export default function ModelManagement() {
-  const [activeTab, setActiveTab] = useState<string>('providers')
+  const [searchParams] = useSearchParams()
+  const connectionModel = searchParams.get('connectionModel')
+  const [activeTab, setActiveTab] = useState<string>(() => connectionModel ? 'models' : 'providers')
+  useEffect(() => { if (connectionModel) setActiveTab('models') }, [connectionModel])
 
   return (
-    <Layout className="h-full flex flex-col" style={{ minHeight: 0 }}>
-      <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 bg-white space-y-2">
+    <Layout className="library-page library-management" style={{ minHeight: 0 }}>
+      <div className="library-management-header">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="font-semibold text-gray-800">模型管理</span>
+          <h1 className="library-page-title">模型管理</h1>
         </div>
         <Tabs
           activeKey={activeTab}

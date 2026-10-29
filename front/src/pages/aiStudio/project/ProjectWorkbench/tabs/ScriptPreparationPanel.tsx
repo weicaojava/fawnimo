@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Alert, Button, Card, Checkbox, Collapse, Empty, Form, Input, InputNumber, List, Modal, Select, Space, Tag, message } from 'antd'
+import { Alert, Button, Checkbox, Collapse, Empty, Form, Input, InputNumber, List, Modal, Select, Space, Tag, message } from 'antd'
 import { ScriptPreparationService as S, StudioShotsService } from '../../../../../services/generated'
 import type { ScriptDocument, ScriptRead, ScriptSnapshot, ScriptCatalog } from '../../../../../services/generated'
+import { ProjectSection } from '../../ProjectSection'
 
 type ChapterOption = { id: string; title: string; index: number; rawText?: string }
 type ShotOption = { value: string; label: string }
@@ -197,7 +198,7 @@ export function ScriptPreparationPanel({ projectId, chapters }: { projectId: str
 
   const coverage = displayed?.readiness.coverage
   const changes = displayed?.readiness.requirement_changes ?? []
-  return <Card title="制作剧本与分镜覆盖" className="mb-4" data-testid="script-preparation-panel">
+  return <ProjectSection title="制作剧本与分镜覆盖" className="project-preparation-section" data-testid="script-preparation-panel">
     <Collapse items={[{ key: 'editor', label: '编辑制作剧本，检查每段剧情和对白是否都有镜头', children: <>
       <Alert className="mb-3" type="info" showIcon message="无需账号的剧本准备" description="制作剧本与小说原文分别保存。覆盖检查只核对人工绑定，不代表模型已经生成或剧情已在成片中表达。登记后，请在分镜工作室的镜头执行计划中选择已锁定版本，再逐镜提交。已有任务可继续查询恢复。" />
       {chapterId && <p><Link to={`/projects/${projectId}/chapters/${chapterId}/studio?plan`}>前往镜头执行计划</Link></p>}
@@ -249,5 +250,5 @@ export function ScriptPreparationPanel({ projectId, chapters }: { projectId: str
         <Alert type="info" message="人工准备版本，不代表模型生成或正式M4通过" /><p className="my-3 break-all">校验值：{snapshot?.content_hash}</p><p>角色、场景或镜头资料后续改变时，当前准备检查会提示失配；此历史文件保留原内容。</p>
       </Modal>
     </> }]} />
-  </Card>
+  </ProjectSection>
 }

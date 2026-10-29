@@ -8,6 +8,9 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_db
+from app.core.db import async_session_maker
+from app.core.contracts.shot_graph import ShotGraphRead, ShotGraphWrite, ShotGraphResult, ShotGraphReceiptRead
+from app.services.studio.shot_graph import read_state as read_graph_state, mutate as mutate_graph, read_receipt as read_graph_receipt
 from app.services.studio.shot_assets import (
     create_project_asset_link as create_project_asset_link_service,
     delete_project_asset_link as delete_project_asset_link_service,
@@ -114,13 +117,36 @@ FRAME_IMAGE_ORDER_FIELDS = {"id", "frame_type", "created_at", "updated_at"}
 # ---------- Shot ----------
 
 
+def get_shot_graph_factory():
+    """Keep structural writer transactions application-owned and independently testable."""
+    return async_session_maker
+
+
+@router.get('/graph', response_model=ApiResponse[ShotGraphRead], operation_id='get_shot_graph')
+async def get_shot_graph(project_id: str, chapter_id: str, factory=Depends(get_shot_graph_factory)):
+    """Read complete chapter structure and its exact CAS token before any edit."""
+    return success_response(await read_graph_state(factory, project_id, chapter_id))
+
+
+@router.post('/graph/actions', response_model=ApiResponse[ShotGraphResult], operation_id='mutate_shot_graph')
+async def mutate_shot_graph(body: ShotGraphWrite, factory=Depends(get_shot_graph_factory)):
+    """Atomically reorder, insert or merge without transferring adopted result identities."""
+    return success_response(await mutate_graph(factory, body))
+
+
+@router.get('/graph/receipts/{receipt_id}', response_model=ApiResponse[ShotGraphReceiptRead], operation_id='read_shot_graph_receipt')
+async def read_shot_graph_receipt(receipt_id: str, project_id: str, factory=Depends(get_shot_graph_factory)):
+    """Read the original preparation graph for auditing and manual reconstruction."""
+    return success_response(await read_graph_receipt(factory, project_id, receipt_id))
+
+
 @router.get(
     "",
     response_model=ApiResponse[PaginatedData[ShotRead]],
     summary="镜头列表（分页）",
 )
 async def list_shots(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
     chapter_id: str | None = Query(None, description="按章节过滤"),
     q: str | None = Query(None, description="关键字，过滤 title/script_excerpt"),
     order: str | None = Query(None),
@@ -148,7 +174,7 @@ async def list_shots(
 )
 async def create_shot(
     body: ShotCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotRead]:
     obj = await create_shot_service(db, body=body)
     return created_response(await build_shot_read(db, shot=obj))
@@ -161,7 +187,7 @@ async def create_shot(
 )
 async def list_shot_runtime_summary(
     chapter_id: str = Query(..., description="章节 ID"),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[list[ShotRuntimeSummaryRead]]:
     rows = await list_shot_runtime_summary_by_chapter(db, chapter_id=chapter_id)
     return success_response(rows)
@@ -174,7 +200,7 @@ async def list_shot_runtime_summary(
 )
 async def get_shot_extraction_draft(
     shot_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[StudioScriptExtractionDraft]:
     data = await build_script_extraction_draft_for_shot(db, shot_id)
     return success_response(data)
@@ -187,7 +213,7 @@ async def get_shot_extraction_draft(
 )
 async def get_shot_extracted_candidates(
     shot_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[list[ShotExtractedCandidateRead]]:
     rows = await list_shot_extracted_candidates(db, shot_id=shot_id)
     return success_response([ShotExtractedCandidateRead.model_validate(row) for row in rows])
@@ -200,7 +226,7 @@ async def get_shot_extracted_candidates(
 )
 async def get_shot_extracted_dialogue_candidates(
     shot_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[list[ShotExtractedDialogueCandidateRead]]:
     rows = await list_shot_extracted_dialogue_candidates(db, shot_id=shot_id)
     return success_response([ShotExtractedDialogueCandidateRead.model_validate(row) for row in rows])
@@ -213,7 +239,7 @@ async def get_shot_extracted_dialogue_candidates(
 )
 async def get_shot_assets_overview_api(
     shot_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotAssetsOverviewRead]:
     data = await get_shot_assets_overview(db, shot_id=shot_id)
     return success_response(data)
@@ -226,7 +252,7 @@ async def get_shot_assets_overview_api(
 )
 async def get_shot_preparation_state_api(
     shot_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotPreparationStateRead]:
     data = await build_shot_preparation_state(db, shot_id=shot_id)
     return success_response(data)
@@ -240,7 +266,7 @@ async def get_shot_preparation_state_api(
 async def link_existing_asset_for_preparation_api(
     shot_id: str,
     body: ShotPreparationLinkRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotPreparationMutationResultRead]:
     data = await link_existing_asset_for_preparation(
         db,
@@ -266,7 +292,7 @@ async def link_existing_asset_for_preparation_api(
 async def preview_shot_video_prompt(
     shot_id: str,
     template_id: str | None = Query(None, description="指定视频提示词模板 ID；不传则使用默认模板"),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotVideoPromptPreviewRead]:
     derived = await derive_video_preview(
         db,
@@ -290,7 +316,7 @@ async def preview_shot_video_prompt(
 async def get_shot_video_readiness_api(
     shot_id: str,
     reference_mode: str = Query("text_only", description="参考模式：first/last/key/first_last/first_last_key/text_only"),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotVideoReadinessRead]:
     data = await get_shot_video_readiness(db, shot_id=shot_id, reference_mode=reference_mode)
     return success_response(data)
@@ -304,7 +330,7 @@ async def get_shot_video_readiness_api(
 async def update_shot_skip_extraction(
     shot_id: str,
     body: ShotSkipExtractionUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotPreparationMutationResultRead]:
     shot = await set_skip_extraction(db, shot_id=shot_id, skip=body.skip)
     data = await build_shot_preparation_state(db, shot_id=shot.id)
@@ -328,7 +354,7 @@ async def update_shot_skip_extraction(
 async def link_extracted_candidate(
     candidate_id: int,
     body: ShotExtractedCandidateLinkRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotPreparationMutationResultRead]:
     row = await link_shot_extracted_candidate(
         db,
@@ -351,7 +377,7 @@ async def link_extracted_candidate(
 )
 async def ignore_extracted_candidate(
     candidate_id: int,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotPreparationMutationResultRead]:
     row = await ignore_shot_extracted_candidate(db, candidate_id=candidate_id)
     data = await build_shot_preparation_state(db, shot_id=row.shot_id)
@@ -371,7 +397,7 @@ async def ignore_extracted_candidate(
 async def accept_extracted_dialogue_candidate(
     candidate_id: int,
     body: ShotExtractedDialogueCandidateAcceptRequest | None = None,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotPreparationMutationResultRead]:
     row = await accept_shot_extracted_dialogue_candidate(db, candidate_id=candidate_id, body=body)
     data = await build_shot_preparation_state(db, shot_id=row.shot_id)
@@ -390,7 +416,7 @@ async def accept_extracted_dialogue_candidate(
 )
 async def ignore_extracted_dialogue_candidate(
     candidate_id: int,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotPreparationMutationResultRead]:
     row = await ignore_shot_extracted_dialogue_candidate(db, candidate_id=candidate_id)
     data = await build_shot_preparation_state(db, shot_id=row.shot_id)
@@ -409,7 +435,7 @@ async def ignore_extracted_dialogue_candidate(
 )
 async def get_shot(
     shot_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotRead]:
     obj = await get_shot_service(db, shot_id=shot_id)
     return success_response(await build_shot_read(db, shot=obj))
@@ -423,7 +449,7 @@ async def get_shot(
 async def update_shot(
     shot_id: str,
     body: ShotUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotRead]:
     obj = await update_shot_service(db, shot_id=shot_id, body=body)
     return success_response(await build_shot_read(db, shot=obj))
@@ -436,7 +462,7 @@ async def update_shot(
 )
 async def delete_shot(
     shot_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[None]:
     await delete_shot_service(db, shot_id=shot_id)
     return empty_response()
@@ -449,7 +475,7 @@ async def delete_shot(
 )
 async def list_shot_linked_assets(
     shot_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
 ) -> ApiResponse[PaginatedData[ShotLinkedAssetItem]]:
@@ -470,7 +496,7 @@ async def list_shot_linked_assets(
     summary="镜头细节列表（分页）",
 )
 async def list_shot_details(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
     shot_id: str | None = Query(None, description="按镜头过滤（id 同 shot_id）"),
     order: str | None = Query(None),
     is_desc: bool = Query(False),
@@ -496,7 +522,7 @@ async def list_shot_details(
 )
 async def create_shot_detail(
     body: ShotDetailCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotDetailRead]:
     obj = await create_shot_detail_service(db, body=body)
     return created_response(ShotDetailRead.model_validate(obj))
@@ -509,7 +535,7 @@ async def create_shot_detail(
 )
 async def get_shot_detail(
     shot_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotDetailRead]:
     obj = await get_shot_detail_service(db, shot_id=shot_id)
     return success_response(ShotDetailRead.model_validate(obj))
@@ -523,7 +549,7 @@ async def get_shot_detail(
 async def update_shot_detail(
     shot_id: str,
     body: ShotDetailUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotDetailRead]:
     obj = await update_shot_detail_service(db, shot_id=shot_id, body=body)
     return success_response(ShotDetailRead.model_validate(obj))
@@ -536,7 +562,7 @@ async def update_shot_detail(
 )
 async def delete_shot_detail(
     shot_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[None]:
     await delete_shot_detail_service(db, shot_id=shot_id)
     return empty_response()
@@ -551,7 +577,7 @@ async def delete_shot_detail(
     summary="镜头对话行列表（分页）",
 )
 async def list_shot_dialog_lines(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
     shot_detail_id: str | None = Query(None, description="按镜头细节过滤"),
     q: str | None = Query(None, description="关键字，过滤 text"),
     order: str | None = Query(None),
@@ -579,7 +605,7 @@ async def list_shot_dialog_lines(
 )
 async def create_shot_dialog_line(
     body: ShotDialogLineCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotDialogLineRead]:
     obj = await create_shot_dialog_line_service(db, body=body)
     return created_response(ShotDialogLineRead.model_validate(obj))
@@ -593,7 +619,7 @@ async def create_shot_dialog_line(
 async def update_shot_dialog_line(
     line_id: int,
     body: ShotDialogLineUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotDialogLineRead]:
     obj = await update_shot_dialog_line_service(db, line_id=line_id, body=body)
     return success_response(ShotDialogLineRead.model_validate(obj))
@@ -606,7 +632,7 @@ async def update_shot_dialog_line(
 )
 async def delete_shot_dialog_line(
     line_id: int,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[None]:
     await delete_shot_dialog_line_service(db, line_id=line_id)
     return empty_response()
@@ -621,7 +647,7 @@ async def delete_shot_dialog_line(
     summary="镜头分镜帧图片列表（分页）",
 )
 async def list_shot_frame_images(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
     shot_detail_id: str | None = Query(None, description="按镜头细节过滤"),
     order: str | None = Query(None),
     is_desc: bool = Query(False),
@@ -647,7 +673,7 @@ async def list_shot_frame_images(
 )
 async def create_shot_frame_image(
     body: ShotFrameImageCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotFrameImageRead]:
     obj = await create_shot_frame_image_service(db, body=body)
     return created_response(ShotFrameImageRead.model_validate(obj))
@@ -661,7 +687,7 @@ async def create_shot_frame_image(
 async def update_shot_frame_image(
     image_id: int,
     body: ShotFrameImageUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotFrameImageRead]:
     obj = await update_shot_frame_image_service(db, image_id=image_id, body=body)
     return success_response(ShotFrameImageRead.model_validate(obj))
@@ -674,7 +700,7 @@ async def update_shot_frame_image(
 )
 async def delete_shot_frame_image(
     image_id: int,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[None]:
     await delete_shot_frame_image_service(db, image_id=image_id)
     return empty_response()
@@ -690,7 +716,7 @@ async def delete_shot_frame_image(
 )
 async def list_project_entity_links(
     entity_type: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
     project_id: str | None = Query(None),
     chapter_id: str | None = Query(None),
     shot_id: str | None = Query(None),
@@ -723,7 +749,7 @@ async def list_project_entity_links(
 )
 async def create_project_actor_link(
     body: ProjectAssetLinkCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ProjectActorLinkRead]:
     obj = await create_project_asset_link_service(db, entity_type="actor", body=body)
     return created_response(ProjectActorLinkRead.model_validate(obj))
@@ -737,7 +763,7 @@ async def create_project_actor_link(
 )
 async def delete_project_actor_link(
     link_id: int,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[None]:
     await delete_project_asset_link_service(db, entity_type="actor", link_id=link_id)
     return empty_response()
@@ -751,7 +777,7 @@ async def delete_project_actor_link(
 )
 async def create_project_scene_link(
     body: ProjectAssetLinkCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ProjectSceneLinkRead]:
     obj = await create_project_asset_link_service(db, entity_type="scene", body=body)
     return created_response(ProjectSceneLinkRead.model_validate(obj))
@@ -765,7 +791,7 @@ async def create_project_scene_link(
 )
 async def delete_project_scene_link(
     link_id: int,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[None]:
     await delete_project_asset_link_service(db, entity_type="scene", link_id=link_id)
     return empty_response()
@@ -779,7 +805,7 @@ async def delete_project_scene_link(
 )
 async def create_project_prop_link(
     body: ProjectAssetLinkCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ProjectPropLinkRead]:
     obj = await create_project_asset_link_service(db, entity_type="prop", body=body)
     return created_response(ProjectPropLinkRead.model_validate(obj))
@@ -793,7 +819,7 @@ async def create_project_prop_link(
 )
 async def delete_project_prop_link(
     link_id: int,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[None]:
     await delete_project_asset_link_service(db, entity_type="prop", link_id=link_id)
     return empty_response()
@@ -807,7 +833,7 @@ async def delete_project_prop_link(
 )
 async def create_project_costume_link(
     body: ProjectAssetLinkCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ProjectCostumeLinkRead]:
     obj = await create_project_asset_link_service(db, entity_type="costume", body=body)
     return created_response(ProjectCostumeLinkRead.model_validate(obj))
@@ -820,7 +846,7 @@ async def create_project_costume_link(
 )
 async def delete_project_costume_link(
     link_id: int,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[None]:
     await delete_project_asset_link_service(db, entity_type="costume", link_id=link_id)
     return empty_response()

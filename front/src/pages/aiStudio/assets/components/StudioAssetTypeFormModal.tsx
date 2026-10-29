@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Input, InputNumber, Modal, message } from 'antd'
 import { ProjectVisualStyleAndStyleFields } from '../../project/ProjectVisualStyleAndStyleFields'
 import { useProjectStyleOptions } from '../../project/useProjectStyleOptions'
@@ -73,6 +73,7 @@ export type StudioAssetSavedContext =
   | { type: 'create' }
   | { type: 'update'; id: string; asset: StudioAssetLike }
 
+/** Share the labelled scene, prop and costume form while preserving linked-create context. */
 export function StudioAssetTypeFormModal({
   open,
   label,
@@ -107,6 +108,7 @@ export function StudioAssetTypeFormModal({
   } | null
   onSeedConsumed?: () => void
 }) {
+  const fieldPrefix = useId()
   const { options: projectStyleOptions, defaultVisualStyle, getDefaultStyle } = useProjectStyleOptions()
   void _entityType
   const [formName, setFormName] = useState('')
@@ -211,6 +213,7 @@ export function StudioAssetTypeFormModal({
 
   return (
     <Modal
+      className="library-dialog"
       title={editing ? `编辑${label}` : `新建${label}`}
       open={open}
       onCancel={onCancel}
@@ -218,22 +221,23 @@ export function StudioAssetTypeFormModal({
       okText="保存"
       width={560}
     >
-      <div className="space-y-3">
-        <div>
-          <span className="text-gray-600 text-sm">名称</span>
-          <Input value={formName} onChange={(e) => setFormName(e.target.value)} className="mt-1" />
+      <div className="library-asset-modal-form">
+        <div className="library-field-span">
+          <label htmlFor={`${fieldPrefix}-name`} className="block library-secondary text-sm">名称</label>
+          <Input id={`${fieldPrefix}-name`} value={formName} onChange={(e) => setFormName(e.target.value)} className="mt-1" />
+        </div>
+        <div className="library-field-span">
+          <label htmlFor={`${fieldPrefix}-description`} className="block library-secondary text-sm">描述</label>
+          <Input.TextArea id={`${fieldPrefix}-description`} value={formDesc} onChange={(e) => setFormDesc(e.target.value)} rows={4} className="mt-1" />
         </div>
         <div>
-          <span className="text-gray-600 text-sm">描述</span>
-          <Input.TextArea value={formDesc} onChange={(e) => setFormDesc(e.target.value)} rows={4} className="mt-1" />
+          <label htmlFor={`${fieldPrefix}-tags`} className="block library-secondary text-sm">标签（逗号分隔）</label>
+          <Input id={`${fieldPrefix}-tags`} value={formTags} onChange={(e) => setFormTags(e.target.value)} className="mt-1" />
         </div>
         <div>
-          <span className="text-gray-600 text-sm">标签（逗号分隔）</span>
-          <Input value={formTags} onChange={(e) => setFormTags(e.target.value)} className="mt-1" />
-        </div>
-        <div>
-          <span className="text-gray-600 text-sm">镜头数</span>
+          <label htmlFor={`${fieldPrefix}-views`} className="block library-secondary text-sm">镜头数</label>
           <InputNumber
+            id={`${fieldPrefix}-views`}
             min={0}
             max={4}
             precision={0}
@@ -243,7 +247,7 @@ export function StudioAssetTypeFormModal({
             placeholder="例如 4（最大 4）"
           />
         </div>
-        <div>
+        <div className="library-field-span">
           <ProjectVisualStyleAndStyleFields
             visual_style={formVisualStyle}
             style={formStyle}

@@ -2,6 +2,8 @@
 title: 本地成片导出
 ---
 
+本文的固定硬切profile为v1。独立v2交叉淡化、输出重叠时间与可复用进程树容器见[原子分镜结构与交叉淡化版本](../shot-structure-and-transitions/)。两类历史版本及导出队列保持独立。
+
 `LocalExportWorker`与收费模型执行器独立。`EditExportJob`固定工程、章节、不可变`EditPublication`及其完整hash、请求标识和输出profile。`EditExportProduct`是不可改写的产物回执；`EditExportSlot`在同一SQLite内限制一个活动渲染，并用180秒租约与随机token限制提交。通用`GenerationTask`使用`local_export`类型，关联实际章节，任务中心只展示状态、取消和剪辑页回跳。
 
 新提交先按工程/请求标识查原意图，再完整校验原媒体；不同时间线复用标识409。工具不可用只阻断新的处理，历史ready读取仍可校验下载。草稿当前采用或角色变化不影响历史输出和锁定输入。取消只登记真实导出意图，由worker终止并join实际子进程；旧film取消入口也转交本服务，不能用Celery撤销页面投影假装处理已停止。

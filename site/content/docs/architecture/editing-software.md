@@ -2,6 +2,8 @@
 title: 编辑采用与时间线快照
 ---
 
+本文描述v1采用与固定顺序时间线。现有分镜原子结构编辑、独立交叉淡化v2保存和实际渲染见[原子分镜结构与交叉淡化版本](../shot-structure-and-transitions/)，不会改写这里的历史来源与v1资格规则。
+
 ProductionTake和TakeVersion继续作为不可变采用记录，ShotSelection保存当前指针。新增TakeOrigin固定服务端推导的计划entry、job与完整媒体事实；SelectionCursor和SelectionEvent实现短SQLite事务内CAS、幂等与审计。登记ScriptDraft工程的旧adopt/select入口被阻断，未登记工程保留M2语义。
 
 EditDraft是章级CAS文档，EditPublication冻结完整计划分母、Take来源、资产版本、裁剪、原剧情对白标记、媒体时钟与声轨覆盖。全部整数时间使用源首视频PTS归零后的毫秒半开区间；字幕全章时间为clip累计起点加原标记起点减source_in。媒体hash和完整解码在写锁外执行，短事务复验元数据/stat后冻结。数据库不可变触发器与复合scope约束防止历史被更新或跨工程关联。

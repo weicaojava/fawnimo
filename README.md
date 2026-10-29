@@ -1,254 +1,80 @@
-# Jellyfish — AI Short Drama Studio
+# Fawnimo 鹿帧
 
-<p align="center">
-  <img src="./docs/img/logo.svg" alt="Jellyfish Logo" width="160" />
-</p>
+<p align="center"><img src="./front/public/fawnimo.svg" alt="Fawnimo" width="112" /></p>
 
-<p align="center">
-  <a href="https://www.apache.org/licenses/LICENSE-2.0">
-    <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" />
-  </a>
-  <a href="https://img.shields.io/badge/frontend-React%20%2B%20Vite-61DAFB">
-    <img src="https://img.shields.io/badge/frontend-React%20%2B%20Vite-61DAFB" alt="Frontend" />
-  </a>
-  <a href="https://img.shields.io/badge/backend-FastAPI-009688">
-    <img src="https://img.shields.io/badge/backend-FastAPI-009688" alt="Backend" />
-  </a>
-  <a href="https://github.com/Forget-C/Jellyfish/actions/workflows/deploy-site.yml">
-    <img src="https://github.com/Forget-C/Jellyfish/actions/workflows/deploy-site.yml/badge.svg" alt="Deploy Site" />
-  </a>
-  <a href="https://github.com/Forget-C/Jellyfish/actions/workflows/ghcr-images.yml">
-    <img src="https://github.com/Forget-C/Jellyfish/actions/workflows/ghcr-images.yml/badge.svg" alt="Build and push images" />
-  </a>
-</p>
+An open-source, self-hosted AI short-video workspace, from ideas and scripts to editable storyboards, assets, generation candidates and editing.
 
-<p align="center">
-  <a href="./README.md">English</a> ·
-  <a href="./docs/README.ja.md">日本語</a>
-</p>
+**开源、可自行部署的 AI 短视频工作台。** 短视频制作是主线，短剧与参考视频拆解是能力组成。创意、分镜、演员、服装、场景、道具、提示词、候选和制作记录保持可编辑、可追溯。
 
-An end-to-end production workspace for AI-generated short dramas.  
-From script input to structured storyboarding, consistency management,
-shot preparation, video generation, and export.
+Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继续开发，保留 [Apache-2.0 许可证](LICENSE)、来源与版权记录。现有代码包含上游实现和后续开发成果；完整说明见 [UPSTREAM.md](UPSTREAM.md)。
 
-## 📷 Screenshots
+<!-- features:begin -->
+## 当前开发与验收状态
 
-| Project overview | Asset management |
-| --- | --- |
-| <img src="./docs/img/project.png" alt="Project overview" width="420" /> | <img src="./docs/img/%E8%B5%84%E4%BA%A7%E7%AE%A1%E7%90%86.png" alt="Asset management" width="420" /> |
+本分支继续开发开源AI短视频制作工具，登记15个功能区、64项子功能：41项已实现、8项部分实现、15项待实现。实现、软件验证、真实模型验证和部署分别记录，数量不表示全部验收通过。
 
-## ✨ Core Value
+- [功能总表与代码/入口/验证矩阵](site/content/docs/reference/feature-catalog.md)
+- [逐项验收指南](site/content/docs/guide/feature-acceptance.md)
+- [A–F分阶段开发与验收计划](site/content/docs/plans/platform-delivery.md)
+- [公开路线图](site/content/docs/plans/public-roadmap.md)
+- [单一功能登记源](capabilities/features.json)，检查/生成：`python scripts/features.py --check` / `python scripts/features.py`
 
-- **Connect the full production flow**: Move from script input to storyboard preparation, image/video generation, and task tracking in one place.
-- **Turn AI output into reusable production assets**: Shots, candidate assets, dialogue, prompts, and generation tasks can all be reviewed and reused.
-- **Treat consistency as a first-class problem**: Centralized character, scene, prop, and costume management reduces drift across shots.
-- **Handle long-running generation as trackable tasks**: Text, image, and video jobs all go through one async task system with status, cancel, and recovery.
-- **Build AI capability as infrastructure**: Model management, prompt templates, files, and OpenAPI-based collaboration make the system extensible.
+已交付本机身份、个人空间、A/B账号和可重建文字示例，通过43项新增后端、16项原模式回归和46项实际浏览器检查。B/C阶段仍未整体通过；空间预算、旧数据迁移回退、完整制作示例、社区研发和公网交付待完成。本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
 
-## ✨ Core Capabilities
+代码保留并基于[Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish)继续开发，遵循[现有许可证](LICENSE)，来源和发布边界见[UPSTREAM.md](UPSTREAM.md)。现有代码包含上游、既有改动和AI辅助开发成果，不能宣称全部从零AI原创。仓库里的上游Issues、Actions、Pages与镜像链接属于上游，不是已交付的自有平台。
+<!-- features:end -->
 
-Jellyfish is not just a single “AI image/video” utility. It is a
-production workspace built around:
+## 当前可用范围
 
-- script understanding
-- shot preparation
-- asset consistency
-- generation execution
-- task tracking
+- 项目、章节、分镜、演员、服装、场景、道具、提示词和文件的持久编辑。
+- 独立身份入口、个人空间和固定空间工作进程；旧本地模式保留。
+- 可建立并重新建立的纯自作文字示例，含7镜、21条可编辑提示词，保留旧工程与编辑。
+- 有界顺序文本Agent、图片候选与采用、视频理解候选、视频执行及工程预算等软件协议；新身份空间的生成提交在空间预算验收前保持关闭。
+- 不可变剪辑版本、硬切与交叉淡化、本地FFmpeg渲染和字幕导出；适用范围及验证证据以功能登记为准。
 
-### 1. AI script understanding and storyboard breakdown
+实现、软件验证、真实模型质量和部署是不同状态。当前完整空间隔离矩阵、空间预算、旧数据迁移回退、参考生成与声音扩展、完整成片、社区自动研发和公网稳定/预览平台仍有待完成事项。
 
-- Split chapter scripts into shots
-- Extract characters, scenes, props, costumes, and dialogue
-- Run script optimization, simplification, and consistency checks
-- Support targeted analysis such as character portraits or scene details
+## 本机身份体验
 
-### 2. Shot preparation and confirmation workflow
+先安装Node.js、pnpm 9.15.9、Python 3.11+和FFmpeg，完成前后端依赖安装与前端构建，再使用独立数据目录启动：
 
-The main workflow is:
-
-`script breakdown → shot preparation → candidate confirmation → shot ready → generation workspace`
-
-Preparation currently supports:
-
-- extracting and refreshing shot candidates
-- accepting or ignoring asset candidates
-- accepting or ignoring dialogue candidates
-- linking existing characters, scenes, props, and costumes
-- correcting shot-level basic information
-- using a unified readiness state to decide whether a shot is prepared
-
-### 3. Asset consistency and reuse
-
-The system maintains a shared entity model across:
-
-- characters / actors
-- scenes
-- props
-- costumes
-
-This supports asset reuse across shots and helps stabilize style and identity.
-
-### 4. Shot-level image and video orchestration
-
-Once a shot is `ready`, the generation workspace supports:
-
-- keyframe and reference image management
-- shot-level video prompt preview
-- image and video generation tasks
-- single-shot and batch pre-checks
-- writing generation outputs back into the shot/media system
-
-### 5. Unified async task center
-
-Current task infrastructure supports:
-
-- async text-processing tasks
-- async image and video generation tasks
-- unified task status, result, and elapsed-time tracking
-- task cancellation
-- a global task center with context-aware navigation back to project/chapter/shot
-
-### 6. Model, prompt, and generation infrastructure
-
-Supporting capabilities include:
-
-- multi-provider / multi-model management
-- default model settings by category
-- prompt template management
-- file and generated media management
-- OpenAPI-driven frontend/backend contracts
-
-## 🚀 Feature Overview
-
-### Project and chapter management
-
-- Create and manage projects and chapters
-- Use chapters as the unit for scripts, shots, and generation
-- Provide dashboard-style entry points and aggregated stats
-
-### AI script processing
-
-- Break chapter scripts into shots
-- Extract characters, scenes, props, costumes, and dialogue
-- Support optimization, simplification, and consistency checks
-- Support focused analysis such as character portraits or scene information
-
-### Shot preparation workflow
-
-- Edit shot title, summary, and basic information
-- Refresh extracted asset and dialogue candidates
-- Confirm, ignore, or link candidate items
-- Use preparation state to determine shot readiness
-- Keep “prepared” distinct from “currently generating”
-
-### Asset and entity management
-
-- Manage characters, actors, scenes, props, and costumes
-- Link and reuse them at shot level
-- Manage entity images
-- Check name existence to encourage reuse of existing assets
-
-### Shot generation workspace
-
-- Manage keyframes, reference images, and video prompts
-- Check video readiness before generation
-- Launch image/video generation tasks
-- Support both single-shot and batch generation workflows
-
-### Task center
-
-- View active and recently finished tasks
-- Track status, progress, elapsed time, and results
-- Cancel tasks
-- Jump back to the related project, chapter, or shot
-
-### Model and prompt infrastructure
-
-- Manage providers, models, and default settings
-- Manage prompt templates for images, video, and shots
-- Generate frontend request helpers and types from OpenAPI
-- Provide a stable base for future AI workflow expansion
-
-### File and media management
-
-- Manage uploads and generated outputs
-- Preview, link, and reuse image/video assets
-- Preserve shot and entity context around generated media
-
-## 🎯 Use Cases
-
-- Short / micro-drama creators
-- AI studios producing video content in batches
-- Solo creators exploring vertical drama production
-- Education and training teams making lesson videos
-- Brands and e-commerce teams producing story-driven promos
-
-## 🔁 Frontend OpenAPI client and type generation
-
-Frontend request helpers and types are generated from the backend
-OpenAPI spec. Output directory:
-
-- `front/src/services/generated/`
-
-Cached spec file:
-
-- `front/openapi.json`
-
-With the backend dev server running at `http://127.0.0.1:8000`, run:
-
-```bash
-cd front
-pnpm run openapi:update
-```
-
-## 🐳 Docker Compose
-
-The repository includes a ready-to-run compose setup under
-`deploy/compose/`.
-
-### Ports
-
-- Frontend: `http://localhost:7788`
-- Backend: `http://localhost:8000` (`/docs` for Swagger)
-- MySQL: `localhost:${MYSQL_PORT:-3306}`
-- Redis: `localhost:${REDIS_PORT:-6379}`
-- RustFS: `http://localhost:${RUSTFS_PORT:-9000}`
-
-### Start
-
-```bash
-cp deploy/compose/.env.example deploy/compose/.env
-docker compose --env-file deploy/compose/.env -f deploy/compose/docker-compose.yml up --build
-```
-
-## 🧑‍💻 Local Development
-
-### Backend
-
-```bash
+```sh
 cd backend
-cp .env.example .env
-uv sync
-uv run python migrate_video_dna.py
-uv run python run_local.py
-# Hot reload for development (finite HTTP draining before application cleanup):
-# uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 --timeout-graceful-shutdown 5
+python run_controlplane.py --root ./local-identity --host 127.0.0.1 --port 18000 --frontend ../front/dist --probe /absolute/path/to/ffmpeg --insecure-local-cookie
 ```
 
-### Frontend
+浏览器访问 `http://127.0.0.1:18000/projects`。`--probe` 必须替换成受信FFmpeg的绝对路径。示例 `local-identity/` 已排除版本控制，正式数据根建议放在仓库之外。公网部署保持HTTPS和默认Secure Cookie；纯HTTP参数仅用于回环地址。
 
-```bash
-cd front
-pnpm install
-pnpm dev
+体验账号由维护者离线建立，密码仅写入指定的新私有文件：
+
+```sh
+python run_controlplane.py --root ./local-identity --provision-account demo-a --credential-file /private/path/demo-a.json
 ```
 
-## 📄 License
+个人空间在建立账号时一并创建。账号文件不能进入公开仓库。示例重建会创建全新工程，保留旧示例与编辑，不调用模型；更多操作见[身份与空间体验指南](site/content/docs/guide/workspace-experience.md)。
 
-This project is licensed under [Apache-2.0](./LICENSE).
+旧本地数据继续使用原入口。当前没有通过验收的旧数据认领/迁移工具，不要把旧数据库直接放入新账号目录。
 
-## 💬 Community & Feedback
+## 自行部署
 
-- [GitHub Issues](https://github.com/Forget-C/Jellyfish/issues)
+[工作空间部署准备](deploy/workspace/README.md)提供含静态前端、身份网关、独立空间进程与FFmpeg的单节点方案，稳定与预览使用不同数据卷。当前仅通过静态配置检查，镜像、容器和公网部署尚未完成验收。旧MySQL/Celery Compose与上游镜像配置保留为来源资料，不能替代当前功能的部署验证。
 
+## 开发与功能登记
+
+```sh
+python scripts/features.py --check
+python scripts/features_check.py
+```
+
+功能登记源为[capabilities/features.json](capabilities/features.json)。API变化后运行 `pnpm run openapi:update`，前端使用生成客户端。编码、职责和文档规范见[AGENTS.md](AGENTS.md)。新增证据单独记录，保留历史发布与验收记录。
+
+品牌变更只影响显示名称、图标和文档。数据库、业务编号、原请求标识、旧偏好键和内部包名保持兼容，不因改名重置生成请求。
+
+## 社区与来源
+
+仓库发布后，需求通过本仓库Issues提交。社区需求评估、排期、隔离开发、独立审核、预览和策略发布的服务仍在规划中；现有顺序文本Agent不等同于研发Agent。
+
+- [公开路线图](site/content/docs/plans/public-roadmap.md)
+- [来源与发布边界](UPSTREAM.md)
+- [许可证](LICENSE)
+- [上游日文资料](docs/README.ja.md)，保留其原始产品名称及历史上下文。

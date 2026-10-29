@@ -77,10 +77,10 @@ export function ChapterShotBasicInfoSection({
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm space-y-3">
+    <div className="production-form-section space-y-3">
       <div className="min-w-0">
         <div className="text-sm font-medium text-slate-900">镜头基础信息</div>
-        <div className="text-[11px] text-slate-500 mt-1">先确认标题、摘录和镜头语言默认值，再继续处理系统提取结果。</div>
+        <div className="text-xs text-slate-500 mt-1">先确认标题、摘录和镜头语言默认值，再继续处理系统提取结果。</div>
       </div>
 
       <div className="space-y-3">
@@ -114,11 +114,11 @@ export function ChapterShotBasicInfoSection({
           />
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+        <div className="production-semantic-panel">
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-xs font-medium text-slate-800">镜头语言默认值</div>
-              <div className="mt-1 text-[11px] text-slate-500">这里确认的是镜头语义真值，后续工作室可以微调，但仍然写回同一份分镜详情。</div>
+              <div className="mt-1 text-xs text-slate-500">这里确认的是镜头语义真值，后续工作室可以微调，但仍然写回同一份分镜详情。</div>
             </div>
             <Button type="primary" size="small" loading={semanticSaving} onClick={onSave}>
               保存
@@ -172,7 +172,7 @@ export function ChapterShotBasicInfoSection({
             <div className="mb-2 flex items-center justify-between gap-2">
               <div>
                 <div className="text-xs font-medium text-slate-800">动作拍点</div>
-                <div className="mt-1 text-[11px] text-slate-500">按镜头内部时间顺序保留 2-4 条即可，后续关键帧和视频会优先消费这里的已确认版本。</div>
+                <div className="mt-1 text-xs text-slate-500">按镜头内部时间顺序保留 2-4 条即可，后续关键帧和视频会优先消费这里的已确认版本。</div>
               </div>
               <Button
                 size="small"

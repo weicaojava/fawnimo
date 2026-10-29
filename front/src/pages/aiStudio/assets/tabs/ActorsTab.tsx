@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Card, Empty, Input, Modal, Pagination, Space, Tag, message } from 'antd'
+import { Button, Empty, Input, Modal, Pagination, Skeleton, Space, Tag, message } from 'antd'
 import { DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import { StudioEntitiesApi } from '../../../../services/studioEntities'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -7,6 +7,7 @@ import { resolveAssetUrl } from '../utils'
 import { DisplayImageCard } from '../components/DisplayImageCard'
 import { ActorEntityFormModal, type ActorEntityLike } from '../components/ActorEntityFormModal'
 
+/** Browse and maintain actor assets with the original pagination and linked-create flow. */
 export function ActorsTab() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -104,12 +105,13 @@ export function ActorsTab() {
   }
 
   return (
-    <Card
-      title="演员"
-      extra={
-        <Space>
+    <section aria-label="演员">
+      <div className="library-toolbar">
+        <h2 className="library-section-title">演员</h2>
+        <Space wrap>
           <Input.Search
             placeholder="搜索演员"
+            aria-label="搜索演员"
             allowClear
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -117,7 +119,7 @@ export function ActorsTab() {
               setPage(1)
               void load({ q: v, page: 1 })
             }}
-            style={{ width: 240 }}
+            className="library-actor-search"
           />
           <Button icon={<ReloadOutlined />} onClick={() => void load()}>
             刷新
@@ -126,12 +128,12 @@ export function ActorsTab() {
             新建
           </Button>
         </Space>
-      }
-    >
+      </div>
+      <Skeleton loading={loading} active paragraph={{ rows: 6 }}>
       {filtered.length === 0 && !loading ? (
         <Empty description="暂无演员" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="library-card-grid">
           {filtered.map((a) => (
             <DisplayImageCard
               key={a.id}
@@ -147,6 +149,7 @@ export function ActorsTab() {
                     详情
                   </Button>
                   <Button
+                    aria-label={`删除演员${a.name}`}
                     danger
                     size="small"
                     icon={<DeleteOutlined />}
@@ -172,7 +175,7 @@ export function ActorsTab() {
               }
               meta={
                 <div>
-                  {a.description && <div className="text-xs text-gray-600 line-clamp-2">{a.description}</div>}
+                  {a.description && <div className="text-xs library-secondary line-clamp-2">{a.description}</div>}
                   <div className="mt-2 flex flex-wrap gap-1">
                     {(a.tags ?? []).slice(0, 6).map((t: string) => (
                       <Tag key={t} className="m-0">
@@ -186,8 +189,9 @@ export function ActorsTab() {
           ))}
         </div>
       )}
+      </Skeleton>
 
-      <div className="mt-4 flex justify-end">
+      <div className="library-pagination">
         <Pagination
           current={page}
           pageSize={pageSize}
@@ -217,6 +221,6 @@ export function ActorsTab() {
           setPage(1)
         }}
       />
-    </Card>
+    </section>
   )
 }

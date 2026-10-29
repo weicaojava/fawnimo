@@ -11,8 +11,8 @@
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "preview": "vite preview",
-    "openapi:fetch": "curl -sSf http://127.0.0.1:8000/openapi.json -o ./openapi.json",
-    "openapi:gen": "pnpm exec -- openapi --input ./openapi.json --output ./src/services/generated --client fetch --useOptions --useUnionTypes",
+    "openapi:fetch": "node scripts/fetch-openapi.mjs",
+    "openapi:gen": "pnpm exec -- openapi --input ./openapi.json --output ./src/services/generated --client fetch --useOptions --useUnionTypes --request ./openapi/request.ts",
     "openapi:update": "pnpm run openapi:fetch && pnpm run openapi:gen"
   },
   "dependencies": {

@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import event
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import event, String, CheckConstraint, text
 
 from app.config import settings
 
@@ -67,7 +67,13 @@ async_session_maker = _AsyncSessionMakerProxy(_build_session_maker(engine))
 class Base(DeclarativeBase):
     """所有 ORM 模型的基类。"""
 
-    pass
+    # Single-workspace databases retain raw-SQL compatibility with a fixed default.
+    # Local legacy mode keeps its existing schema until an explicit offline migration.
+    if settings.workspace_id is not None:
+        workspace_id: Mapped[str] = mapped_column(
+            String(35), CheckConstraint("workspace_id = '" + settings.workspace_id + "'"),
+            nullable=False, server_default=text("'" + settings.workspace_id + "'"),
+        )
 
 
 async def init_db() -> None:
@@ -90,6 +96,14 @@ async def init_db() -> None:
     import app.models.editing  # noqa: F401
     import app.models.editing_export  # noqa: F401
     import app.models.video_dna  # noqa: F401
+    import app.models.dna_production  # noqa: F401
+    import app.models.agent_config  # noqa: F401
+    import app.models.chapter_text_history  # noqa: F401
+    import app.models.shot_graph  # noqa: F401
+    import app.models.agent_execution  # noqa: F401
+    import app.models.video_understanding  # noqa: F401
+    import app.models.editing_v2  # noqa: F401
+    import app.models.asset_image_generation  # noqa: F401
 
     async with engine.begin() as conn:
         if engine.dialect.name=='sqlite':
@@ -116,6 +130,14 @@ async def init_db() -> None:
         await migrate_editing_export(engine)
         from app.services.video_dna.schema import migrate_video_dna
         await migrate_video_dna(engine)
+        from app.services.video_understanding.schema import migrate_video_understanding
+        await migrate_video_understanding(engine)
+        from app.services.studio.shot_graph_schema import migrate_shot_graph
+        await migrate_shot_graph(engine)
+        from app.services.editing.transition_schema import migrate_transitions
+        await migrate_transitions(engine)
+        from app.services.asset_image_generation import migrate_asset_image_generation
+        await migrate_asset_image_generation(engine)
 
 
 async def close_db() -> None:

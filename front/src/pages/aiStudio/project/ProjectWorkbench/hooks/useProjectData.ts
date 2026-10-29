@@ -13,16 +13,13 @@ function newId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
 }
 
+/** Preserve the saved project timestamp; aggregate stats are not an authoritative clock. */
 function toUIProject(p: ProjectRead): Project {
   const stats = (p.stats ?? {}) as Record<string, unknown>
   const getNum = (key: string) => {
     const v = stats[key]
     return typeof v === 'number' && Number.isFinite(v) ? v : 0
   }
-  const updatedAt =
-    (typeof stats.updated_at === 'string' && stats.updated_at) ||
-    (typeof stats.updatedAt === 'string' && stats.updatedAt) ||
-    new Date().toISOString()
   return {
     id: p.id,
     name: p.name,
@@ -37,7 +34,7 @@ function toUIProject(p: ProjectRead): Project {
       scenes: getNum('scenes'),
       props: getNum('props'),
     },
-    updatedAt,
+    updatedAt: p.updated_at,
   }
 }
 
@@ -45,6 +42,7 @@ export type Chapter = MockChapter & {
   rawText?: string
 }
 
+/** Adapt saved chapter content without fabricating an update time absent from its current API. */
 function toUIChapter(c: ChapterRead): Chapter {
   return {
     id: c.id,
@@ -55,7 +53,7 @@ function toUIChapter(c: ChapterRead): Chapter {
     rawText: c.raw_text ?? '',
     storyboardCount: c.shot_count ?? c.storyboard_count ?? 0,
     status: c.status ?? 'draft',
-    updatedAt: new Date().toISOString(),
+    updatedAt: '',
   }
 }
 

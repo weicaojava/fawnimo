@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FC, Key } from 'react'
-import { Card, Tree, Input, Row, Col, Tag, Pagination, Button, Modal, Form, Select, Switch, message } from 'antd'
+import { Tree, Input, Tag, Pagination, Button, Modal, Form, Select, Switch, Skeleton, Empty, message } from 'antd'
 import type { DataNode } from 'antd/es/tree'
 import { StudioPromptsService } from '../../../services/generated'
 import type { PromptCategory, PromptTemplateRead } from '../../../services/generated'
+import '../assets/components/LibraryPages.css'
 
 const fallbackCategoryLabels: Record<string, string> = {
   frame_head_image: '首帧图片',
@@ -105,6 +106,7 @@ function getGroupKey(category: string): (typeof groupOrder)[number] {
   return 'other'
 }
 
+/** Keep the template browser and editable prompt text side by side without nested cards. */
 const PromptTemplateManager: FC = () => {
   const [templates, setTemplates] = useState<PromptTemplateRead[]>([])
   const [selected, setSelected] = useState<PromptTemplateRead | null>(null)
@@ -347,16 +349,17 @@ const PromptTemplateManager: FC = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <Card
-        title="提示词模板管理"
-        loading={loading && templates.length === 0}
-        extra={<Button type="primary" onClick={openCreateModal}>添加提示词</Button>}
-      >
+    <div className="library-page">
+      <header className="library-page-header">
+        <h1 className="library-page-title">提示词模板管理</h1>
+        <Button type="primary" onClick={openCreateModal}>添加提示词</Button>
+      </header>
+      <div className="library-toolbar">
         <Input.Search
           placeholder="搜索模板名称或预览"
+          aria-label="搜索模板名称或预览"
           allowClear
-          className="mb-4 max-w-md"
+          className="library-search"
           value={searchText}
           onSearch={handleSearch}
           onChange={(e) => {
@@ -367,17 +370,20 @@ const PromptTemplateManager: FC = () => {
             }
           }}
         />
-        <Row gutter={16}>
-          <Col xs={24} md={10}>
+      </div>
+      <Skeleton loading={loading && templates.length === 0} active paragraph={{ rows: 8 }}>
+        <div className="library-prompt-layout">
+          <aside className="library-prompt-browser" aria-label="提示词分类">
             <Tree
               showLine
               defaultExpandAll
               blockNode
               treeData={treeData}
+              selectedKeys={selected ? [selected.id] : []}
               onSelect={onSelect}
               fieldNames={{ title: 'title', key: 'key', children: 'children' }}
             />
-            <div className="mt-4 flex justify-end">
+            <div className="library-pagination">
               <Pagination
                 current={page}
                 pageSize={PAGE_SIZE}
@@ -386,28 +392,27 @@ const PromptTemplateManager: FC = () => {
                 onChange={handlePageChange}
               />
             </div>
-          </Col>
-          <Col xs={24} md={14}>
+          </aside>
+          <section className="library-prompt-detail" aria-label="模板详情">
             {selected ? (
-              <Card
-                title={selected.name}
-                size="small"
-                extra={(
+              <>
+                <div className="library-panel-heading">
+                  <h2 className="library-section-title">{selected.name}</h2>
                   <div className="flex gap-2">
                     <Button size="small" onClick={() => openEditModal(selected)}>编辑</Button>
                     <Button size="small" danger onClick={() => handleDeleteTemplate(selected)}>
                       删除
                     </Button>
                   </div>
-                )}
-              >
+                </div>
+                <div className="library-prompt-content">
                 <Tag>{categoryLabels[selected.category] || selected.category}</Tag>
-                <p className="text-gray-600 text-sm mt-2">{selected.preview}</p>
-                <pre className="mt-3 p-3 bg-gray-50 rounded text-xs overflow-auto max-h-48">
+                <p className="library-prompt-preview">{selected.preview}</p>
+                <pre className="library-prompt-code">
                   {selected.content}
                 </pre>
                 {selected.variables.length > 0 && (
-                  <div className="mt-2 text-xs text-gray-500">
+                  <div className="mt-2 text-xs library-muted">
                     变量：{selected.variables.join(', ')}
                   </div>
                 )}
@@ -415,19 +420,19 @@ const PromptTemplateManager: FC = () => {
                   {selected.is_system && <Tag color="gold">系统预置</Tag>}
                   {selected.is_default && <Tag color="blue">默认提示词</Tag>}
                 </div>
-              </Card>
-            ) : (
-              <Card>
-                <div className="text-gray-500 text-center py-8">
-                  左侧选择模板查看详情
                 </div>
-              </Card>
+              </>
+            ) : (
+              <div className="library-empty">
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="左侧选择模板查看详情" />
+              </div>
             )}
-          </Col>
-        </Row>
-      </Card>
+          </section>
+        </div>
+      </Skeleton>
 
       <Modal
+        className="library-dialog"
         title={modalMode === 'create' ? '添加提示词' : '编辑提示词'}
         open={formOpen}
         onCancel={() => {

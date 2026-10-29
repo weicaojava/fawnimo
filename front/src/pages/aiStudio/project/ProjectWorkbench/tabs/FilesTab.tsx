@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Button, Card, Checkbox, Col, Empty, Modal, Pagination, Row, Select, Space, Spin, Tag } from 'antd'
+import { Button, Checkbox, Col, Empty, Modal, Pagination, Row, Select, Space, Spin, Tag } from 'antd'
+import { ProjectSection } from '../../ProjectSection'
 import { DownloadOutlined, FileImageOutlined, VideoCameraOutlined } from '@ant-design/icons'
 import { useNavigate, useParams } from 'react-router-dom'
 import { StudioFilesService, StudioShotsService } from '../../../../../services/generated'
@@ -21,6 +22,7 @@ function batchOpenDownloads(urls: string[]) {
   })
 }
 
+/** Keep existing collection actions in a readable project workspace. */
 export function FilesTab() {
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId: string }>()
@@ -128,7 +130,7 @@ export function FilesTab() {
 
   return (
     <>
-      <Card
+      <ProjectSection
         title="项目文件"
         extra={
           <Space wrap>
@@ -252,7 +254,7 @@ export function FilesTab() {
             />
           </div>
         )}
-      </Card>
+      </ProjectSection>
 
       <Modal
         title={previewVideo?.name ?? '视频预览'}

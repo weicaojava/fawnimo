@@ -23,7 +23,7 @@ router = APIRouter()
 )
 async def list_shot_character_links(
     shot_id: str = Query(..., description="镜头 ID"),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[list[ShotCharacterLinkRead]]:
     items = await list_by_shot(db, shot_id=shot_id)
     return success_response([ShotCharacterLinkRead.model_validate(x) for x in items])
@@ -36,7 +36,7 @@ async def list_shot_character_links(
 )
 async def upsert_shot_character_link(
     body: ShotCharacterLinkCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[ShotCharacterLinkRead]:
     try:
         obj = await upsert(db, body=body)

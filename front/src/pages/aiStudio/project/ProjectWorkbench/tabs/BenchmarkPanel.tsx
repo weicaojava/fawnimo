@@ -1,5 +1,7 @@
+import { workspaceMediaUrl } from '../../../../../services/workspaceContext'
 import { useEffect, useRef, useState } from 'react'
-import { Alert, Button, Card, Checkbox, Collapse, Empty, Form, Input, InputNumber, List, Modal, Select, Space, Tag, message } from 'antd'
+import { Alert, Button, Checkbox, Collapse, Empty, Form, Input, InputNumber, List, Modal, Select, Space, Tag, message } from 'antd'
+import { ProjectSection } from '../../ProjectSection'
 import { BenchmarksService as B, OpenAPI, ReverseService as R } from '../../../../../services/generated'
 import type { AnalysisRead, BenchmarkDocument, BenchmarkRead, BenchmarkSnapshot } from '../../../../../services/generated'
 
@@ -184,7 +186,7 @@ export function BenchmarkPanel({ projectId }: { projectId: string }) {
     else change()
   }
 
-  return <Card title="验收样本与标注" data-testid="benchmark-panel">
+  return <ProjectSection title="验收样本与标注" data-testid="benchmark-panel">
     <Collapse items={[{ key: 'workspace', label: '准备独立对白样本，查看缺项并保存标注', children: <>
       <Alert className="mb-4" type="info" showIcon message="正式验收尚需独立样本" description="请选择有使用授权的连续30–60秒双人对白视频，语音清晰、口型可见，含人物互动、动作及机位变化。现有约10秒样本仅可作草稿。冻结只保存人工声明和标注版本，不代表正式验收通过。" />
       {error && <Alert className="mb-3" type="error" showIcon message={error} />}
@@ -202,10 +204,10 @@ export function BenchmarkPanel({ projectId }: { projectId: string }) {
       {draft && <>
         <Alert className="mb-4" showIcon type={draft.readiness.can_freeze ? 'info' : 'warning'} message={dirty ? '有未保存修改，缺项清单对应上次保存版本' : draft.readiness.can_freeze ? '声明与结构检查齐全，可保存冻结快照' : `还有 ${draft.readiness.issues.length} 类内容待补充`} description={<List size="small" dataSource={draft.readiness.issues} renderItem={item => <List.Item>{item.message}</List.Item>} />} />
         {analysis && <div className="mb-4">
-          <p>原视频 {analysis.source_hash.slice(0, 16)} · {frames.length} 个实际解码帧 · {duration.toFixed(3)} 秒 · {technical?.audio.present ? '已提取音轨' : '没有音轨'}</p>
-          <video key={analysis.id} aria-label="标注原视频预览" controls preload="metadata" style={{ maxHeight: 240, maxWidth: '100%' }} src={`${OpenAPI.BASE}/api/v1/reverse/projects/${encodeURIComponent(projectId)}/analyses/${encodeURIComponent(analysis.id)}/proxy`} />
+          <div className="project-inline-facts"><span>原视频 {analysis.source_hash.slice(0, 16)}</span><span>{frames.length} 个实际解码帧</span><span>{duration.toFixed(3)} 秒</span><span>{technical?.audio.present ? '已提取音轨' : '没有音轨'}</span></div>
+          <video key={analysis.id} aria-label="标注原视频预览" controls preload="metadata" style={{ maxHeight: 240, maxWidth: '100%' }} src={workspaceMediaUrl(`${OpenAPI.BASE}/api/v1/reverse/projects/${encodeURIComponent(projectId)}/analyses/${encodeURIComponent(analysis.id)}/proxy`)} />
           <Space wrap className="mt-2"><span>检查原始帧</span><InputNumber aria-label="标注原始帧" min={0} max={frameMax} precision={0} value={frameInput} onChange={v => setFrameInput(v ?? 0)} /><Button onClick={() => setPreview(frameInput)}>查看标注帧</Button></Space>
-          {preview !== null && <div className="mt-2"><img alt={`标注原始帧 ${preview}`} style={{ maxHeight: 240, maxWidth: '100%' }} src={`${OpenAPI.BASE}/api/v1/reverse/projects/${encodeURIComponent(projectId)}/analyses/${encodeURIComponent(analysis.id)}/frames/${preview}`} /><span> 原始帧 {preview} · {((frames[preview]?.relative_us ?? 0) / 1000000).toFixed(6)} 秒</span></div>}
+          {preview !== null && <div className="mt-2"><img alt={`标注原始帧 ${preview}`} style={{ maxHeight: 240, maxWidth: '100%' }} src={workspaceMediaUrl(`${OpenAPI.BASE}/api/v1/reverse/projects/${encodeURIComponent(projectId)}/analyses/${encodeURIComponent(analysis.id)}/frames/${preview}`)} /><span> 原始帧 {preview} · {((frames[preview]?.relative_us ?? 0) / 1000000).toFixed(6)} 秒</span></div>}
         </div>}
       </>}
       <Form form={form} layout="vertical" disabled={busy || loading || !draft} onFinish={save} onValuesChange={() => setDirty(true)} style={{ display: draft ? undefined : 'none' }} initialValues={emptyDocument()}>
@@ -257,5 +259,5 @@ export function BenchmarkPanel({ projectId }: { projectId: string }) {
         <Alert type="info" message="仅保存人工声明，不代表正式Q0验收通过" /><p className="my-3 break-all">内容校验值：{snapshot?.content_hash}</p><p>快照包含源视频校验值、原始帧时间证据、标注与固定评分规则；实际素材需随工程另行备份。</p>
       </Modal>
     </> }]} />
-  </Card>
+  </ProjectSection>
 }

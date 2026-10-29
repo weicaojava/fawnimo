@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Card, Empty, Input, Modal, Space, message, Pagination } from 'antd'
+import { Button, Empty, Input, Modal, Space, message, Pagination } from 'antd'
+import { ProjectSection } from '../../ProjectSection'
 import { EditOutlined, LinkOutlined, PlusOutlined } from '@ant-design/icons'
 import { useParams, useNavigate } from 'react-router-dom'
 import { StudioShotLinksService } from '../../../../../services/generated'
@@ -17,6 +18,7 @@ type SceneLike = {
   thumbnail?: string
 }
 
+/** Keep existing collection actions in a readable project workspace. */
 export function ScenesTab() {
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId: string }>()
@@ -158,16 +160,17 @@ export function ScenesTab() {
   if (!projectId) return null
 
   return (
-    <div className="h-full overflow-auto">
-      <Card
+    <div className="project-asset-tab">
+      <ProjectSection
         title="项目场景"
+        loading={linksLoading}
         extra={
           <Space>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalOpen(true)}>
               新建
             </Button>
             <Button
-              type="primary"
+              type="default"
               icon={<LinkOutlined />}
               onClick={() => {
                 setSearch('')
@@ -229,7 +232,7 @@ export function ScenesTab() {
                   }
                   meta={
                     <div className="space-y-1">
-                      <div className="text-xs text-gray-600 line-clamp-2">{s?.description ?? '—'}</div>
+                      <div className="text-xs text-gray-600 line-clamp-2">{s?.description ?? '暂无描述'}</div>
                       <div className="text-xs text-gray-500 truncate">scene_id：{l.scene_id}</div>
                     </div>
                   }
@@ -252,7 +255,7 @@ export function ScenesTab() {
             </div>
           </div>
         )}
-      </Card>
+      </ProjectSection>
 
       <StudioAssetTypeFormModal
         open={createModalOpen}
@@ -294,7 +297,7 @@ export function ScenesTab() {
         </div>
         <div className="max-h-[60vh] overflow-y-auto">
           {scenesLoading ? (
-            <div className="py-8 text-center text-gray-500">加载中...</div>
+            <div className="py-8 text-center text-gray-500">加载中…</div>
           ) : availableScenes.length === 0 ? (
             <Empty description={scenes.length === 0 ? '暂无场景，请先在资产管理中创建场景' : '当前项目已关联全部搜索结果'} />
           ) : (
@@ -313,7 +316,7 @@ export function ScenesTab() {
                       />
                     ) : (
                       <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
-                        —
+                        暂无图片
                       </div>
                     )}
                     <div className="min-w-0">

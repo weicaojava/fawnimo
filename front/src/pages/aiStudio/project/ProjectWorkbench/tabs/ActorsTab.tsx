@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Card, Empty, Image, Input, Modal, Space, message, Pagination } from 'antd'
+import { Button, Empty, Image, Input, Modal, Space, message, Pagination } from 'antd'
+import { ProjectSection } from '../../ProjectSection'
 import { EditOutlined, LinkOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons'
 import { useParams, useNavigate } from 'react-router-dom'
 import { StudioShotLinksService } from '../../../../../services/generated'
@@ -18,6 +19,7 @@ type ActorLike = {
   thumbnail?: string
 }
 
+/** Keep existing collection actions in a readable project workspace. */
 export function ActorsTab() {
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId: string }>()
@@ -182,16 +184,17 @@ export function ActorsTab() {
   if (!projectId) return null
 
   return (
-    <div className="h-full overflow-auto">
-      <Card
+    <div className="project-asset-tab">
+      <ProjectSection
         title="项目演员"
+        loading={linksLoading}
         extra={
           <Space>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalOpen(true)}>
               新建
             </Button>
             <Button
-              type="primary"
+              type="default"
               icon={<LinkOutlined />}
               onClick={() => {
                 setSearch('')
@@ -213,7 +216,7 @@ export function ActorsTab() {
                 新建
               </Button>
               <Button
-                type="primary"
+                type="default"
                 icon={<LinkOutlined />}
                 onClick={() => {
                   setSearch('')
@@ -270,7 +273,7 @@ export function ActorsTab() {
                   }
                   meta={
                     <div className="space-y-1">
-                      <div className="text-xs text-gray-600 line-clamp-2">{a?.description ?? '—'}</div>
+                      <div className="text-xs text-gray-600 line-clamp-2">{a?.description ?? '暂无描述'}</div>
                       <div className="text-xs text-gray-500 truncate">actor_id：{l.actor_id}</div>
                     </div>
                   }
@@ -293,7 +296,7 @@ export function ActorsTab() {
             </div>
           </div>
         )}
-      </Card>
+      </ProjectSection>
 
       <ActorEntityFormModal
         open={createModalOpen}
@@ -323,7 +326,7 @@ export function ActorsTab() {
         </div>
         <div className="max-h-[60vh] overflow-y-auto">
           {actorsLoading ? (
-            <div className="py-8 text-center text-gray-500">加载中...</div>
+            <div className="py-8 text-center text-gray-500">加载中…</div>
           ) : availableActors.length === 0 ? (
             <Empty description={actors.length === 0 ? '暂无演员，请先在资产管理中创建演员' : '当前项目已关联全部搜索结果'} />
           ) : (
@@ -369,4 +372,3 @@ export function ActorsTab() {
     </div>
   )
 }
-

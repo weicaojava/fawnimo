@@ -1,5 +1,6 @@
-import { Card, Empty, Button } from 'antd'
+import { Button } from 'antd'
 
+/** Keep the existing destination visible when a workbench feature lives on another page. */
 export function PlaceholderTab({
   title,
   description,
@@ -12,19 +13,10 @@ export function PlaceholderTab({
   onAction: () => void
 }) {
   return (
-    <Card>
-      <Empty
-        description={
-          <div className="text-left">
-            <div className="font-medium text-gray-900 mb-1">{title}</div>
-            <p className="text-gray-500 text-sm mb-3">{description}</p>
-            <Button type="primary" onClick={onAction}>
-              {actionLabel}
-            </Button>
-          </div>
-        }
-        image={Empty.PRESENTED_IMAGE_SIMPLE}
-      />
-    </Card>
+    <section className="project-placeholder">
+      <h2>{title}</h2>
+      <p>{description}</p>
+      <Button type="primary" onClick={onAction}>{actionLabel}</Button>
+    </section>
   )
 }

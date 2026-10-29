@@ -34,7 +34,7 @@ class VideoPromptPreviewResponse(BaseModel):
 )
 async def preview_video_generation_prompt(
     body: VideoGenerationTaskRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[VideoPromptPreviewResponse]:
     """预览视频生成的提示词与自动关联参考图。"""
     prompt, images, pack = await preview_prompt_and_images(
@@ -55,7 +55,7 @@ async def preview_video_generation_prompt(
 )
 async def create_video_generation_task(
     body: VideoGenerationTaskRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db, scope='function'),
 ) -> ApiResponse[TaskCreated]:
     """创建视频生成任务并后台执行，结果通过 /tasks/{task_id}/result 获取。"""
 

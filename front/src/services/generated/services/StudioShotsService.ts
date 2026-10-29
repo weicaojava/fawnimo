@@ -9,6 +9,9 @@ import type { ApiResponse_NoneType_ } from '../models/ApiResponse_NoneType_';
 import type { ApiResponse_PaginatedData_ShotLinkedAssetItem__ } from '../models/ApiResponse_PaginatedData_ShotLinkedAssetItem__';
 import type { ApiResponse_PaginatedData_ShotRead__ } from '../models/ApiResponse_PaginatedData_ShotRead__';
 import type { ApiResponse_ShotAssetsOverviewRead_ } from '../models/ApiResponse_ShotAssetsOverviewRead_';
+import type { ApiResponse_ShotGraphRead_ } from '../models/ApiResponse_ShotGraphRead_';
+import type { ApiResponse_ShotGraphReceiptRead_ } from '../models/ApiResponse_ShotGraphReceiptRead_';
+import type { ApiResponse_ShotGraphResult_ } from '../models/ApiResponse_ShotGraphResult_';
 import type { ApiResponse_ShotPreparationMutationResultRead_ } from '../models/ApiResponse_ShotPreparationMutationResultRead_';
 import type { ApiResponse_ShotPreparationStateRead_ } from '../models/ApiResponse_ShotPreparationStateRead_';
 import type { ApiResponse_ShotRead_ } from '../models/ApiResponse_ShotRead_';
@@ -18,6 +21,7 @@ import type { ApiResponse_StudioScriptExtractionDraft_ } from '../models/ApiResp
 import type { ShotCreate } from '../models/ShotCreate';
 import type { ShotExtractedCandidateLinkRequest } from '../models/ShotExtractedCandidateLinkRequest';
 import type { ShotExtractedDialogueCandidateAcceptRequest } from '../models/ShotExtractedDialogueCandidateAcceptRequest';
+import type { ShotGraphWrite } from '../models/ShotGraphWrite';
 import type { ShotPreparationLinkRequest } from '../models/ShotPreparationLinkRequest';
 import type { ShotSkipExtractionUpdate } from '../models/ShotSkipExtractionUpdate';
 import type { ShotUpdate } from '../models/ShotUpdate';
@@ -25,6 +29,79 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class StudioShotsService {
+    /**
+     * Get Shot Graph
+     * Read complete chapter structure and its exact CAS token before any edit.
+     * @returns ApiResponse_ShotGraphRead_ Successful Response
+     * @throws ApiError
+     */
+    public static getShotGraph({
+        projectId,
+        chapterId,
+    }: {
+        projectId: string,
+        chapterId: string,
+    }): CancelablePromise<ApiResponse_ShotGraphRead_> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/studio/shots/graph',
+            query: {
+                'project_id': projectId,
+                'chapter_id': chapterId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Mutate Shot Graph
+     * Atomically reorder, insert or merge without transferring adopted result identities.
+     * @returns ApiResponse_ShotGraphResult_ Successful Response
+     * @throws ApiError
+     */
+    public static mutateShotGraph({
+        requestBody,
+    }: {
+        requestBody: ShotGraphWrite,
+    }): CancelablePromise<ApiResponse_ShotGraphResult_> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/studio/shots/graph/actions',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Read Shot Graph Receipt
+     * Read the original preparation graph for auditing and manual reconstruction.
+     * @returns ApiResponse_ShotGraphReceiptRead_ Successful Response
+     * @throws ApiError
+     */
+    public static readShotGraphReceipt({
+        receiptId,
+        projectId,
+    }: {
+        receiptId: string,
+        projectId: string,
+    }): CancelablePromise<ApiResponse_ShotGraphReceiptRead_> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/studio/shots/graph/receipts/{receipt_id}',
+            path: {
+                'receipt_id': receiptId,
+            },
+            query: {
+                'project_id': projectId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
     /**
      * 镜头列表（分页）
      * @returns ApiResponse_PaginatedData_ShotRead__ Successful Response

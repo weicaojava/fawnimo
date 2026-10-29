@@ -14,6 +14,28 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class StudioFilesService {
     /**
+     * Export Files Bundle
+     * Download a real bounded ZIP only after every selected stored file is verified.
+     * @returns binary Successful Response
+     * @throws ApiError
+     */
+    public static exportFileBundle({
+        fileIds,
+    }: {
+        fileIds: Array<string>,
+    }): CancelablePromise<Blob> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/studio/files/export-bundle',
+            query: {
+                'file_ids': fileIds,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * 文件列表（分页）
      * @returns ApiResponse_PaginatedData_FileRead__ Successful Response
      * @throws ApiError
