@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-30",
+  "features": [
+    "F-013.01"
+  ],
+  "scope": "Default-closed independent public requirement intake, authored signed HTTP, minimal source clocks, immutable versions and delivery acknowledgements",
+  "base_published_commit": "f481e20240d60fd95cd1b73cf8dd8d597549d54a",
+  "selected_source_tree": "cdac0448fc614e16d7512ee3a0b6816793e7cea6",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "b093435741d8a5ec6fe3fbe54e48e65ac6e6888c69761b3c00e83ede652265cb",
+    "backend/community-openapi.json": "3af5e3401b14de4679ade7f49e08da5ee3548c60144afdae1867a70b831844e8",
+    "backend/app/core/contracts/community_requests.py": "bd1e9d877772337ee128ec5b86da4851c50577aef862833c66b9561033c6c6df",
+    "backend/app/services/community/__init__.py": "7b548e76874f7edf0c1bddbbdcb78ed73088c7ef123c1699f44567c3114da7b1",
+    "backend/app/services/community/events.py": "9a38133931e5a1c58d3c45d1c6e4f9a22b4dd3fca442fea6b4658f9b5c9de243",
+    "backend/app/services/community/store.py": "f8660d9026ec64a160a29a77b7a48b8f76f3182f58b6258b93fd0d51980cb410",
+    "backend/app/api/community_intake.py": "c8fd6e887ad98e47fa213a6e004c703ea5fadfcb4f4c75d9ad4aa55568583989",
+    "backend/app/controlplane/community.py": "7ab31c40e66c63ccf193522074ef87b14fedd05f06995f067881ca051186c07c",
+    "backend/run_community.py": "b4bc8d4f72ac61e9e9a3883ffc2413284cb744fce4a488dd917cd251f913088d",
+    "backend/tests/test_community_intake.py": "d638bbc8a557714f8799b353dfb13c9c822649e759cfec079626ca1d9b8208e6"
+  },
+  "related_frozen_tests_passed": 43,
+  "primary_evidence": {
+    "file": "backend-frozen-v2.xml",
+    "sha256": "a78a32538e46d2fc4da56455583e0ebae6e05e27c740ab483d7b8a701d0abba3"
+  },
+  "independent_runs": {
+    "frozen_targeted43": {
+      "file": "independent-targeted-v2.xml",
+      "sha256": "4273616b8348e7c579eaf6bdb40b5771880919a3e2fb58f6fe59fa5f80c28fc9",
+      "tests": 43,
+      "passed": 43,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "original_counterexamples5": {
+      "file": "independent-counterexamples-v2.xml",
+      "sha256": "e4ae406e23f2dec9b3567fcce113821e56bee9ab588825c57590c303c5a9efc5",
+      "tests": 5,
+      "passed": 5,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "additional_private4": {
+      "file": "independent-private-v2.xml",
+      "sha256": "bfb9497720a75fafa1a981487995cae35cf15e0a292b745fec2d2936a16aa361",
+      "tests": 4,
+      "passed": 4,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "independent_review_sha256": "6c54ed2f4f2a1d26e9d964f8914f808f69a95921b015bb13e91f4f3cabbb658e",
+  "independent_review_evidence": "private_external:stage-g-community-intake/independent-review.json",
+  "metadata_review_evidence": "private_external:stage-g-community-intake/independent-metadata-review.json",
+  "before_findings_sha256": "8bbae487fb7871651c88c077f62d4208ee17d4fbae9b5cbfad440b03cac67c8a",
+  "closed_findings": [
+    {
+      "id": "COMMUNITY-P2-01",
+      "priority": "P2",
+      "status": "closed_in_frozen_v2"
+    },
+    {
+      "id": "COMMUNITY-P2-02",
+      "priority": "P2",
+      "status": "closed_in_frozen_v2"
+    },
+    {
+      "id": "COMMUNITY-P3-03",
+      "priority": "P3",
+      "status": "closed_in_frozen_v2"
+    }
+  ],
+  "count_note": "43 primary cases are rerun independently43; private5 original counterchecks and4 additional checks are separate. Before-v1 green36 and failed5 are retained, not added. Parent762 CI does not validate this new delta.",
+  "register_negative_fixture": "scripts/features_check.py now selects an actually planned feature for its two planned-only corruption cases. F01301 is partial; validation rules in scripts/features.py are unchanged.",
+  "parent_ci": {
+    "commit": "f481e20240d60fd95cd1b73cf8dd8d597549d54a",
+    "run_id": 41011532360,
+    "backend_passed": 762,
+    "register_passed": 23,
+    "frontend_modules": 3214,
+    "scope": "Parent published source only; frontend/personal main schema remain identical"
+  },
+  "api": {
+    "personal_paths": 234,
+    "personal_schemas": 549,
+    "community_paths": 2,
+    "community_schemas": 2,
+    "standalone_schema": "backend/community-openapi.json",
+    "schema_export_without_database_or_lifespan": true,
+    "pnpm_main_openapi_update_run": true,
+    "frontend_unchanged_from_parent": true
+  },
+  "repository_readonly_observation": {
+    "id": 1438202832,
+    "full_name": "weicaojava/fawnimo",
+    "private": false,
+    "observed_date": "2026-10-30",
+    "live_github_app_or_webhook_configured": false
+  },
+  "coverage": [
+    "Disabled construction performs no storage write; enabling requires explicit fixed repository ID/name and independent private HMAC secret",
+    "Raw bounded UTF8 SHA256 HMAC, constant-time comparison, single headers/canonical delivery UUID, strict duplicate/finite JSON and exact public repository checks",
+    "Only explicit human open enhancement proposals and retained known history have body versions; other supported human issue events retain minimal identity/clock/fingerprint without body",
+    "Exact delivery replay and semantic version dedup are atomic; stale deliveries cannot rewind source and same-clock conflicts pause until a newer source epoch",
+    "First newer/same-clock closed or unlabeled observations prevent a later opened event from resurrecting a previously withdrawn unknown requirement",
+    "Immutable source rows, initial request INSERT, current pointer/clock checks, paired delivery references and natural-key replacement guards reject source mixing",
+    "Concurrent same-delivery and distinct deliveries preserve one version; competing different payloads under one delivery get one winner and conflict",
+    "Fresh maintainer CLI and standalone schema export avoid personal settings/ORM/database imports; no model execution, code runner or GitHub outbound writer exists"
+  ],
+  "limits": [
+    "Only six issue actions opened/edited/reopened/closed/labeled/unlabeled are projected; other signed actions/events get minimal ignored receipts",
+    "source_eligible describes the selected observed snapshot, not real-time GitHub existence or permission to evaluate, execute, deploy or close an issue",
+    "Same-clock conflict is deliberately paused until a newer signed source clock; later evaluation/queue must independently verify current public source",
+    "Live GitHub App/webhook HTTPS receipt, maintainer evaluation/queue/budgets, isolated AI coding, independent review/CI/preview release and public hosting are not delivered by this foundation",
+    "All input signatures and identities in tests are authored; body text is stored as data and is never evaluated as commands"
+  ],
+  "live_github_delivery_verified": false,
+  "automatic_development_enabled": false,
+  "model_quality_qualified": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "outbound_github_writes": 0,
+  "original_workspace_writes": 0,
+  "personal_workspace_access": 0,
+  "user_paid_budget_authorized": 0
+}

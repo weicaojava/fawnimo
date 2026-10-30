@@ -30,3 +30,8 @@ description: "参与 Jellyfish 代码和文档协作的起点。"
 - 目录结构
 - 接口生成流程
 - 提交与协作规范
+
+
+## 社区需求登记基础
+
+公开enhancement建议的本机签名登记与版本基础已实现，当前独立服务默认关闭。维护者操作见[接入指南](../../guide/community-intake/)，实际范围见[架构](../../architecture/community-intake/)。真实GitHub事件和AI评估/排队/研发/审核/预览闭环尚未接通；Issue正文只作为需求数据，不是执行指令。

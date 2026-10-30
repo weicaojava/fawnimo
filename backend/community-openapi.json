@@ -1,0 +1,147 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Fawnimo public requirement intake",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/community/github/events": {
+      "post": {
+        "tags": [
+          "community-intake"
+        ],
+        "summary": "Receive Public Github Event",
+        "description": "Verify the original bounded bytes, then acknowledge only after atomic source/delivery persistence.",
+        "operationId": "receive_public_github_event_community_github_events_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_CommunityDeliveryReceipt_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "description": "Expose process readiness only, with no source counts, raw requirements or configuration secrets.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponse_CommunityDeliveryReceipt_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "与 HTTP 状态码一致",
+            "default": 200
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CommunityDeliveryReceipt"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "实际数据"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta",
+            "description": "附加元信息"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[CommunityDeliveryReceipt]"
+      },
+      "CommunityDeliveryReceipt": {
+        "properties": {
+          "delivery_id": {
+            "type": "string",
+            "title": "Delivery Id"
+          },
+          "replayed": {
+            "type": "boolean",
+            "title": "Replayed"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "recorded",
+              "duplicate_version",
+              "stale_version",
+              "source_conflict",
+              "ignored"
+            ],
+            "title": "Outcome"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "delivery_id",
+          "replayed",
+          "outcome"
+        ],
+        "title": "CommunityDeliveryReceipt",
+        "description": "A committed event acknowledgement exposes no signature, secret, raw payload or execution entitlement."
+      }
+    }
+  }
+}

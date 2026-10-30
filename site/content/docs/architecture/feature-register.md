@@ -33,3 +33,6 @@ description: "当前功能状态的唯一登记源、独立状态和文档一致
 
 
 固定worker本机协议例外另记于 `capabilities/workspace-local-models-validation.json`：10源文件，762冻结主回归含38新用例；独立38及2补测不相加。前端和公共接口保持父提交来源，本轮是实际worker/HTTP/SQLite的有界软件验证。仅附加F-001.04证据，45/6/13与current18/longterm1不变；真实供应商、完整公开收费、MP4/成片与公网资格不提升。
+
+
+社区接入基础另记于 `capabilities/community-intake-validation.json`：10源文件，43冻结专项及独立43/原反例5/额外4分组，不与v1旧通过/失败或父CI762累加。最小源时钟与INSERT关联修复后，两P2一P3关闭。F-013.01仅由planned到partial，整项软件仍not_verified；45/7/12、current18和longterm1，真实GitHub/App/源实时性/自动研发/公网资格不提升。

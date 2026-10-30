@@ -76,6 +76,7 @@ jobs:
           tests/test_script_candidates.py tests/test_workspace_tasks.py tests/test_script_task_workspaces.py
           tests/test_workspace_local_models.py tests/test_workspace_local_model_execution.py
           tests/test_workspace_local_native_execution.py tests/test_workspace_local_understanding_execution.py
+          tests/test_community_intake.py
           tests/test_script_preparation.py tests/test_shot_extracted_candidates_api_responses.py
           tests/test_seedance25_independent.py tests/test_workspace_video_pipeline.py
 

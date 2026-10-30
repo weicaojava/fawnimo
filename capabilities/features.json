@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-10-30.8",
+  "register_version": "2026-10-30.9",
   "updated_at": "2026-10-30",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -404,6 +404,16 @@
         "F-001.04"
       ],
       "scope": "762主回归含38新检查；独立38重跑及2窄补测分记。固定worker只读自身本机端口配置；六费用协议通过自作回环与原项目记录验证。公开收费仍503；Native到接收/查询，无MP4或真实模型/账单/公网资格；整项状态不提升。"
+    },
+    {
+      "id": "EV-COMMUNITY-INTAKE",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/community-intake-validation.json",
+      "features": [
+        "F-013.01"
+      ],
+      "scope": "43冻结专项、独立43/原反例5/补测4分记；HMAC公开源/投递去重/最小时钟/不可变版本已本机验证，两P2一P3关闭。真实App/HTTPS事件、实时源复验及后续AI研发未接通，整项软件仍未验收；旧36通过及5失败不累加。"
     }
   ],
   "features": [
@@ -3116,32 +3126,48 @@
         "R-003",
         "R-004"
       ],
-      "implementation": "planned",
+      "implementation": "partial",
       "validation": {
         "software": "not_verified",
         "model": "not_required",
-        "evidence": []
+        "evidence": [
+          "EV-COMMUNITY-INTAKE"
+        ]
       },
       "deployment": {
         "status": "not_deployed",
         "url": null
       },
       "version": {
-        "implementation": null,
+        "implementation": "working-tree-2026-10-30",
         "release": null
       },
       "entry": {
         "route": "",
-        "label": "尚无可验收入口"
+        "label": "独立维护者服务与命令行；真实GitHub事件尚未接通"
       },
-      "code": [],
-      "tests": [],
+      "code": [
+        "backend/app/api/community_intake.py",
+        "backend/app/controlplane/community.py",
+        "backend/app/core/contracts/community_requests.py",
+        "backend/app/services/community/__init__.py",
+        "backend/app/services/community/events.py",
+        "backend/app/services/community/store.py",
+        "backend/community-openapi.json",
+        "backend/run_community.py"
+      ],
+      "tests": [
+        "backend/tests/test_community_intake.py"
+      ],
       "acceptance": [
         "真实目标仓库接收签名事件，重复delivery/issue版本只入库一次",
         "只保存用户明确提交的公开需求，不读取私人视频空间"
       ],
       "limits": [
-        "目标仓库名fawnimo已确认，创建与事件接入待核验；Issue正文只作为需求数据"
+        "公开目标weicaojava/fawnimo及数字ID已只读核验；当前为默认关闭的独立本机接入，不读取个人视频空间。",
+        "真实GitHub App/公网签名投递、实时源复验和评估/队列/自动研发/发布仍待接通，整项software仍not_verified。",
+        "未入选公开需求只留最小源时钟，不留无关正文；Issue文本是数据，source_eligible不是执行授权或部署完成。",
+        "43本机专项和独立43/5/4有界软件证据不代表真实外部接入、模型或公网资格；本轮实际费用授权0。"
       ],
       "depends_on": [
         "F-015.01"
@@ -3839,7 +3865,7 @@
     {
       "id": "E",
       "title": "社区需求到AI开发、审核、预览和发布基本闭环",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "A",
         "B"
@@ -3857,7 +3883,8 @@
         "调度/故障/资源上限矩阵",
         "独立审查与CI触发证明",
         "预览及回退报告"
-      ]
+      ],
+      "progress": "已完成独立本机签名接入、去重、最小源时钟和不可变需求版本的软件基础；43专项/独立43与5/4补测通过。真实GitHub事件、AI评估、队列、隔离研发、PR/CI/预览及发布闭环继续推进。"
     },
     {
       "id": "F",
@@ -3928,8 +3955,8 @@
   "current_state": {
     "overview": "资源隔离、项目独立预算和离线迁移副本演练保留；六类有界模型协议接原项目费用，四种AI剧本候选完成软件闭环。全部收费身份执行、社区研发、完整成片与公网仍待完成。",
     "acceptance_setup": "使用独立验收数据和本机A/B账号。项目大厅可建立/重置纯自作7镜、21条可编辑提示词示例；每次重建新工程保留旧编辑，同一请求恢复返回原结果。本机入口与账号交付已可复验，尚无公网平台。",
-    "readme_status": "身份、个人空间、文字示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。",
-    "verification_checkpoint": "d65提交CI724/登记23与前端通过；本机协议配置762冻结回归含38新检查，独立38与2补测分别记录。前端与公共OpenAPI同父提交，构建来源d65；本轮执行证据来自实际fixed-worker/HTTP/SQLite。45/6/13及current18不变，公开收费、真实供应商/成片/公网资格不提升。",
+    "readme_status": "身份、个人空间、文字示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。",
+    "verification_checkpoint": "f481提交CI762/登记23与前端通过。后续社区接入43冻结专项通过，独立43/5/4分记；两P2和一P3关闭。F01301由planned到partial，整项验收仍not_verified；45已实现/7部分/12待实现，current18不变。无真实模型、外部写入、GitHub App/实时源或公网资格。",
     "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {

@@ -100,7 +100,7 @@
   "failed": 0,
   "groups": 15,
   "features": 64,
-  "source_sha256": "d30ba60df67e44f1aed3140d75160ca42381814211c9ae97e3a33ad60bd13a6a",
+  "source_sha256": "d12891a494917354d7f8fe1b3f1f959a8ad3a5fd5d2c0f992f456690d73a7616",
   "generator_sha256": "3f8742199b4a97e2ad42c5de72c9879f6b277220dedf0b93a8bf8a90bbc05b2c",
   "command": "python scripts/features_check.py",
   "application_qualified": false,
@@ -108,5 +108,5 @@
   "deployment_qualified": false,
   "external_model_calls": 0,
   "private_database_access": false,
-  "independent_review": "private_external:stage-f-local-models/independent-metadata-review.json"
+  "independent_review": "private_external:stage-g-community-intake/independent-metadata-review.json"
 }

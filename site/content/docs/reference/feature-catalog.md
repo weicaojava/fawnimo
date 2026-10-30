@@ -7,7 +7,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-10-30.8`，更新日期：2026-10-30。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-10-30.9`，更新日期：2026-10-30。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
@@ -15,7 +15,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 资源隔离、项目独立预算和离线迁移副本演练保留；六类有界模型协议接原项目费用，四种AI剧本候选完成软件闭环。全部收费身份执行、社区研发、完整成片与公网仍待完成。
 
-d65提交CI724/登记23与前端通过；本机协议配置762冻结回归含38新检查，独立38与2补测分别记录。前端与公共OpenAPI同父提交，构建来源d65；本轮执行证据来自实际fixed-worker/HTTP/SQLite。45/6/13及current18不变，公开收费、真实供应商/成片/公网资格不提升。
+f481提交CI762/登记23与前端通过。后续社区接入43冻结专项通过，独立43/5/4分记；两P2和一P3关闭。F01301由planned到partial，整项验收仍not_verified；45已实现/7部分/12待实现，current18不变。无真实模型、外部写入、GitHub App/实时源或公网资格。
 
 ## F-001 身份与工作空间
 
@@ -847,7 +847,7 @@ d65提交CI724/登记23与前端通过；本机协议配置762冻结回归含38�
 
 | 编号 / 子功能 | 实现 | 软件验证 | 真实模型 | 部署 | 实际入口 |
 | --- | --- | --- | --- | --- | --- |
-| [F-013.01 GitHub需求接入、事件去重与需求版本](#f-013-01) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
+| [F-013.01 GitHub需求接入、事件去重与需求版本](#f-013-01) | 部分实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 独立维护者服务与命令行；真实GitHub事件尚未接通 |
 | [F-013.02 AI查重、澄清、合理性评估与复议](#f-013-02) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
 | [F-013.03 依赖、价值、成本与容量排队](#f-013-03) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
 | [F-013.04 租约、幂等、取消与资源上限](#f-013-04) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
@@ -859,11 +859,13 @@ d65提交CI724/登记23与前端通过；本机协议配置762冻结回归含38�
 
 ### F-013.01 GitHub需求接入、事件去重与需求版本
 
-需求：R-003, R-004；验收阶段：E；范围：本阶段交付；实现版本：`未实现`；发布版本：`未发布`。
+需求：R-003, R-004；验收阶段：E；范围：本阶段交付；实现版本：`working-tree-2026-10-30`；发布版本：`未发布`。
 
-限制：目标仓库名fawnimo已确认，创建与事件接入待核验；Issue正文只作为需求数据。
+代码：[`backend/app/api/community_intake.py`](../../../../backend/app/api/community_intake.py)、[`backend/app/controlplane/community.py`](../../../../backend/app/controlplane/community.py)、[`backend/app/core/contracts/community_requests.py`](../../../../backend/app/core/contracts/community_requests.py)、[`backend/app/services/community/__init__.py`](../../../../backend/app/services/community/__init__.py)、[`backend/app/services/community/events.py`](../../../../backend/app/services/community/events.py)、[`backend/app/services/community/store.py`](../../../../backend/app/services/community/store.py)、[`backend/community-openapi.json`](../../../../backend/community-openapi.json)、[`backend/run_community.py`](../../../../backend/run_community.py)。
 
-验证依据：尚无通过证据。测试文件是待运行目标，文件存在不代表测试通过。
+限制：公开目标weicaojava/fawnimo及数字ID已只读核验；当前为默认关闭的独立本机接入，不读取个人视频空间。；真实GitHub App/公网签名投递、实时源复验和评估/队列/自动研发/发布仍待接通，整项software仍not_verified。；未入选公开需求只留最小源时钟，不留无关正文；Issue文本是数据，source_eligible不是执行授权或部署完成。；43本机专项和独立43/5/4有界软件证据不代表真实外部接入、模型或公网资格；本轮实际费用授权0。。
+
+验证依据：`EV-COMMUNITY-INTAKE`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1081,6 +1083,7 @@ d65提交CI724/登记23与前端通过；本机协议配置762冻结回归含38�
 | EV-SCRIPT-CANDIDATES | software | repository · `capabilities/script-candidates-validation.json` | 有界单独SQLite四种AI文字候选、原项目费用、源修订/哈希、明确采用与历史；713含128相关/16核心，专项131另有3任务中心检查不在主CI；18整App浏览器。独立97/额外1和React9/导航7/来源3按各实际树分记，不累加；真实模型/账单/双身份/成片/公网不提升。 |
 | EV-SCRIPT-TASK-RETURN | software | repository · `capabilities/workspace-script-tasks-validation.json` | 33专项、27整App浏览器，剧本候选第五类轻量摘要和原章节/镜头回跳；两个固定worker仅保留失败记录与跨身份负例，不代表完整收费执行。旧713属前一次提交，不累加；功能数量与全局资格不提升。 |
 | EV-WORKSPACE-LOCAL-MODELS | software | repository · `capabilities/workspace-local-models-validation.json` | 762主回归含38新检查；独立38重跑及2窄补测分记。固定worker只读自身本机端口配置；六费用协议通过自作回环与原项目记录验证。公开收费仍503；Native到接收/查询，无MP4或真实模型/账单/公网资格；整项状态不提升。 |
+| EV-COMMUNITY-INTAKE | software | repository · `capabilities/community-intake-validation.json` | 43冻结专项、独立43/原反例5/补测4分记；HMAC公开源/投递去重/最小时钟/不可变版本已本机验证，两P2一P3关闭。真实App/HTTPS事件、实时源复验及后续AI研发未接通，整项软件仍未验收；旧36通过及5失败不累加。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

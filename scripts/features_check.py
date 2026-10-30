@@ -33,6 +33,12 @@ def find(candidate,fid):
     return next(item for item in candidate['features'] if item['id']==fid)
 
 
+def planned(candidate):
+    """Choose an actually planned feature so state transitions do not invalidate governance corruption fixtures."""
+    return next(item for item in candidate['features'] if item['implementation']=='planned')
+
+
+
 reject('duplicate_feature_id',lambda d:d['features'].append(copy.deepcopy(d['features'][0])))
 reject('unknown_requirement',lambda d:find(d,'F-002.01').update(requirements=['missing']))
 reject('dependency_cycle',lambda d:find(d,'F-001.01').update(depends_on=['F-001.02']))
@@ -43,8 +49,8 @@ reject('absolute_private_path',lambda d:find(d,'F-002.01').update(code=['C:/priv
 reject('unscoped_evidence',lambda d:find(d,'F-002.01')['validation'].update(evidence=['EV-REGISTER-CHECK']))
 reject('model_qualification_without_live_evidence',lambda d:find(d,'F-007.03')['validation'].update(model='verified'))
 reject('software_qualification_without_current_evidence',lambda d:find(d,'F-007.03')['validation'].update(software='verified',evidence=['EV-LOCAL-20261029']))
-reject('planned_feature_cannot_be_accepted',lambda d:find(d,'F-013.01')['validation'].update(software='verified'))
-reject('planned_feature_cannot_be_deployed',lambda d:find(d,'F-013.01')['deployment'].update(status='local_only'))
+reject('planned_feature_cannot_be_accepted',lambda d:planned(d)['validation'].update(software='verified'))
+reject('planned_feature_cannot_be_deployed',lambda d:planned(d)['deployment'].update(status='local_only'))
 reject('public_deployment_without_evidence',lambda d:find(d,'F-002.01')['deployment'].update(status='public_verified',url='https://studio.example.org'))
 
 

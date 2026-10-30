@@ -11,7 +11,7 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 <!-- features:begin -->
 ## 当前开发与验收状态
 
-本分支继续开发开源AI短视频制作工具，登记15个功能区、64项子功能：45项已实现、6项部分实现、13项待实现。实现、软件验证、真实模型验证和部署分别记录，数量不表示全部验收通过。
+本分支继续开发开源AI短视频制作工具，登记15个功能区、64项子功能：45项已实现、7项部分实现、12项待实现。实现、软件验证、真实模型验证和部署分别记录，数量不表示全部验收通过。
 
 - [功能总表与代码/入口/验证矩阵](site/content/docs/reference/feature-catalog.md)
 - [逐项验收指南](site/content/docs/guide/feature-acceptance.md)
@@ -19,7 +19,7 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 - [公开路线图](site/content/docs/plans/public-roadmap.md)
 - [单一功能登记源](capabilities/features.json)，检查/生成：`python scripts/features.py --check` / `python scripts/features.py`
 
-身份、个人空间、文字示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
+身份、个人空间、文字示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
 
 代码保留并基于[Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish)继续开发，遵循[现有许可证](LICENSE)，来源和发布边界见[UPSTREAM.md](UPSTREAM.md)。现有代码包含上游、既有改动和AI辅助开发成果，不能宣称全部从零AI原创。仓库里的上游Issues、Actions、Pages与镜像链接属于上游，不是已交付的自有平台。
 <!-- features:end -->
