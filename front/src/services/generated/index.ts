@@ -76,6 +76,7 @@ export type { ApiResponse_list_BenchmarkRead__ } from './models/ApiResponse_list
 export type { ApiResponse_list_dict__ } from './models/ApiResponse_list_dict__';
 export type { ApiResponse_list_EditDraftRead__ } from './models/ApiResponse_list_EditDraftRead__';
 export type { ApiResponse_list_ExecutionRead__ } from './models/ApiResponse_list_ExecutionRead__';
+export type { ApiResponse_list_NativeVideoModelChoice__ } from './models/ApiResponse_list_NativeVideoModelChoice__';
 export type { ApiResponse_list_PlannedJobRead__ } from './models/ApiResponse_list_PlannedJobRead__';
 export type { ApiResponse_list_PlanRead__ } from './models/ApiResponse_list_PlanRead__';
 export type { ApiResponse_list_PromptCategoryOptionRead__ } from './models/ApiResponse_list_PromptCategoryOptionRead__';
@@ -323,6 +324,7 @@ export type { ModelSettingsRead } from './models/ModelSettingsRead';
 export type { ModelSettingsUpdate } from './models/ModelSettingsUpdate';
 export type { ModelUpdate } from './models/ModelUpdate';
 export type { MouthAnchor } from './models/MouthAnchor';
+export type { NativeVideoModelChoice } from './models/NativeVideoModelChoice';
 export type { PaginatedData_AgentConfigRead_ } from './models/PaginatedData_AgentConfigRead_';
 export type { PaginatedData_AgentRunRead_ } from './models/PaginatedData_AgentRunRead_';
 export type { PaginatedData_Any_ } from './models/PaginatedData_Any_';

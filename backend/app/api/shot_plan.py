@@ -10,6 +10,7 @@ from app.services.script_preparation.service import chapter_owned
 from app.core.contracts.seedance25_preparation import Seedance25ProfileRead, Seedance25PlanPreview
 from app.services.shot_plan.seedance25_preparation import profile_view, preview_plan
 from app.services.studio.production import project_exists
+from app.api.workspace_actor import model_submitted_by
 
 router=APIRouter(prefix='/shot-plans/projects/{project_id}',tags=['shot-plans'])
 
@@ -97,7 +98,8 @@ async def preflight_shot_plan(project_id:str,plan_id:str,request:Request,factory
 @router.post('/plans/{plan_id}/shots/{shot_id}/submissions',response_model=ApiResponse[PlannedSubmissionRead],status_code=201)
 async def submit_planned_shot(project_id:str,plan_id:str,shot_id:str,body:PlannedSubmission,request:Request,factory=Depends(get_shot_plan_factory)):
     """Replay original jobs before new eligibility checks; never accept client execution inputs."""
-    return success_response({'job_id':await admit_planned_shot(factory,project_id,plan_id,shot_id,body.request_key,getattr(request.app.state,'execution_runtime',None))})
+    return success_response({'job_id':await admit_planned_shot(factory,project_id,plan_id,shot_id,body.request_key,getattr(request.app.state,'execution_runtime',None),
+        submitted_by=model_submitted_by(request),confirmed=body.confirm_project_charges,price_fingerprint=body.expected_price_fingerprint)})
 
 
 @router.get('/plans/{plan_id}/jobs',response_model=ApiResponse[list[PlannedJobRead]])

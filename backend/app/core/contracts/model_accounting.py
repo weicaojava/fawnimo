@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, field_validator, model_serializer, model_validator
 
-ModelCallKind = Literal['agent_text','model_connection_test','asset_image','video_vision','video_asr']
+ModelCallKind = Literal['agent_text','model_connection_test','asset_image','video_vision','video_asr','native_video']
 
 
 class ModelPriceEnvelope(BaseModel):
@@ -59,7 +59,7 @@ class ModelPriceRule(BaseModel):
 
     model_config = ConfigDict(extra='forbid',frozen=True)
     quote: ModelPriceEnvelope
-    kinds: list[ModelCallKind] = Field(min_length=1,max_length=5)
+    kinds: list[ModelCallKind] = Field(min_length=1,max_length=6)
 
     @model_validator(mode='after')
     def distinct_kinds(self):

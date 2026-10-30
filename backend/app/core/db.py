@@ -110,6 +110,7 @@ async def init_db() -> None:
     import app.models.model_billing  # noqa: F401
     import app.models.model_job_charge  # noqa: F401
     import app.models.understanding_charge  # noqa: F401
+    import app.models.native_video_charge  # noqa: F401
 
     async with engine.begin() as conn:
         if engine.dialect.name=='sqlite':
@@ -158,6 +159,8 @@ async def init_db() -> None:
         await migrate_model_job_charges(engine)
         from app.services.video_understanding.charge_schema import migrate_understanding_charges
         await migrate_understanding_charges(engine)
+        from app.services.worker.native_video_charge_schema import migrate_native_video_charges
+        await migrate_native_video_charges(engine)
 
 
 async def close_db() -> None:

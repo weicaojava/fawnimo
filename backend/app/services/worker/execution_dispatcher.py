@@ -42,7 +42,11 @@ class ExecutionDispatcher:
             elif getattr(self.worker,'budget_required',False):
                 # Ineligible old-account jobs and missing spending holds must
                 # not monopolize every bounded batch ahead of eligible work.
-                if getattr(self.worker,'enforce_binding',False):
+                if getattr(self.worker,'native_accounting',None) is not None:
+                    from app.models.native_video_charge import NativeVideoJobCharge
+                    statement=statement.where(ExecutionJob.id.in_(select(NativeVideoJobCharge.job_id)))
+                    if not self.worker.native_accounting.allow_new_post:statement=statement.where(ExecutionJob.state!='queued')
+                elif getattr(self.worker,'enforce_binding',False):
                     bound=select(ExecutionBinding.job_id).where(ExecutionBinding.binding_hash.in_(self.worker.allowed_bindings))
                     statement=statement.where(ExecutionJob.id.in_(bound))
                 reserved=select(ExecutionBudgetEntry.job_id).where(ExecutionBudgetEntry.state=='reserved')

@@ -18,6 +18,7 @@ from app.services.worker.execution_artifacts import DownloadedArtifact, publish_
 from app.models.execution_budget import ExecutionBudgetEntry
 from app.models.execution_binding import ExecutionBinding
 from app.models.shot_plan import PlanJobLink  # Register optional linkage before test/production metadata creation.
+from app.services.worker.database_operation import joined_database
 
 TERMINAL={'ready','failed','cancelled'}
 
@@ -41,13 +42,25 @@ def digest(value: dict) -> str:
     return hashlib.sha256(json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
 
 
+async def cancel_and_join(*tasks):
+    """Stop external work once, then join its killable transport and heartbeat cleanup through repeated owner cancellation."""
+    for task in tasks:
+        if not task.done() and not task.cancelling():task.cancel()
+    joined=asyncio.gather(*tasks,return_exceptions=True);cancellation=None
+    while not joined.done():
+        try:await asyncio.shield(joined)
+        except asyncio.CancelledError as error:cancellation=error
+    joined.result()
+    if cancellation is not None:raise cancellation
+
+
 class DurableExecution:
     """Database-coordinated one-step worker with fenced leases and no submission retry.
 
     Adapter qualification, network trust and real-provider capability validation
     remain separate requirements; a passing state-machine test is not live access.
     """
-    def __init__(self, transport: ExecutionTransport, *, factory=async_session_maker, clock=time.time, lease_seconds=90, poll_seconds=5, wait_seconds=1800, retry_limit=3, publisher=publish_artifact, budget_required=True, enforce_binding=True):
+    def __init__(self, transport: ExecutionTransport, *, factory=async_session_maker, clock=time.time, lease_seconds=90, poll_seconds=5, wait_seconds=1800, retry_limit=3, publisher=publish_artifact, budget_required=True, enforce_binding=True,native_accounting=None):
         if lease_seconds<90:raise ValueError('Lease must outlive the 60-second hard transport deadline with margin')
         self.transport=transport;self.factory=factory;self.clock=clock
         self.lease_seconds=lease_seconds;self.poll_seconds=max(5,poll_seconds)
@@ -56,6 +69,7 @@ class DurableExecution:
         self.budget_required=budget_required
         self.enforce_binding=enforce_binding
         self.allowed_bindings=frozenset()
+        self.native_accounting=native_accounting
 
     async def create(self, project_id: str, request_key: str, snapshot: dict) -> str:
         """Deduplicate logical requests and refuse reusing an identity with different inputs."""
@@ -77,6 +91,7 @@ class DurableExecution:
                 return winner.id
             return job_id
 
+    @joined_database
     async def _update(self, job_id: str, token: str, **values) -> bool:
         """Fence stale workers; an expired owner cannot overwrite a newer worker's state."""
         async with self.factory() as db:
@@ -90,9 +105,15 @@ class DurableExecution:
                 # Release in the same transaction: a crash after terminal commit
                 # must not leave the single execution slot permanently occupied.
                 await db.execute(update(ExecutionSlot).where(ExecutionSlot.id==1,ExecutionSlot.token==token,ExecutionSlot.job_id==job_id).values(job_id=None,token=None,lease_until=0))
+                if self.native_accounting is not None and values['state']=='cancelled':
+                    from app.services.worker.native_video_charges import job_charge,release_unsent_job
+                    link=await job_charge(db,job_id)
+                    attempt=await db.scalar(select(SubmissionAttempt.id).where(SubmissionAttempt.job_id==job_id))
+                    if link is not None and attempt is None:await release_unsent_job(db,job.project_id,job_id)
             await db.commit();return bool(changed.rowcount)
 
-    async def _claim(self, job_id: str) -> tuple[ExecutionJob,str] | None:
+    @joined_database
+    async def _claim(self, job_id: str,claimed=None) -> tuple[ExecutionJob,str] | None:
         """CAS the lease and commit it before any provider operation."""
         now=self.clock();token=str(uuid.uuid4())
         async with self.factory() as db:
@@ -102,8 +123,10 @@ class DurableExecution:
             changed=await db.execute(update(ExecutionJob).where(ExecutionJob.id==job_id,ExecutionJob.lease_until<=now,ExecutionJob.next_due<=now,ExecutionJob.state.not_in(TERMINAL|{'paused'})).values(lease_token=token,lease_until=now+self.lease_seconds))
             if not changed.rowcount:await db.rollback();return None
             await db.commit();job=await db.get(ExecutionJob,job_id)
-            return job,token
+        if claimed is not None:claimed.append((job,token))
+        return job,token
 
+    @joined_database
     async def _renew(self, job_id: str, token: str) -> bool:
         """Renew both fences together; an expired lease cannot be resurrected."""
         now=self.clock()
@@ -135,15 +158,16 @@ class DurableExecution:
             if pulse in done:raise LeaseLost()
             raise TimeoutError('External operation deadline')
         finally:
-            if not task.done():task.cancel();await asyncio.gather(task,return_exceptions=True)
-            pulse.cancel();await asyncio.gather(pulse,return_exceptions=True)
+            await cancel_and_join(task,pulse)
 
+    @joined_database
     async def request_cancel(self, job_id: str) -> None:
         """Record intent; remote cancellation is confirmed only by the adapter's result."""
         async with self.factory() as db:
             await db.execute(update(ExecutionJob).where(ExecutionJob.id==job_id,ExecutionJob.state.not_in(TERMINAL)).values(cancel_requested=True))
             await db.commit()
 
+    @joined_database
     async def resume(self, job_id: str) -> None:
         """Resume query/download after a bounded pause, never reset to submission."""
         async with self.factory() as db:
@@ -177,6 +201,41 @@ class DurableExecution:
             try:await release_unaccepted(job.project_id,job_id,factory=self.factory)
             except BudgetError:pass  # Recovery rechecks the journal; never release unknown acceptance.
 
+    @joined_database
+    async def _prepare_submission(self,job,token,proof):
+        """Keep the legacy attempt and its original hold atomic through physical Session cleanup."""
+        from app.services.shot_plan.admission import validate_send_locked
+        async with self.factory() as db:
+            await db.execute(text('BEGIN IMMEDIATE'))
+            await validate_send_locked(db,job.id,proof)
+            if self.budget_required:
+                held=await db.execute(update(ExecutionBudgetEntry).where(ExecutionBudgetEntry.job_id==job.id,ExecutionBudgetEntry.project_id==job.project_id,ExecutionBudgetEntry.state=='reserved').values(state='unknown'))
+                if not held.rowcount:await db.rollback();return None
+            attempt=SubmissionAttempt(id=str(uuid.uuid4()),job_id=job.id,request_hash=job.request_hash,state='prepared')
+            db.add(attempt)
+            changed=await db.execute(update(ExecutionJob).where(ExecutionJob.id==job.id,ExecutionJob.lease_token==token,ExecutionJob.lease_until>self.clock(),ExecutionJob.state=='queued',ExecutionJob.cancel_requested.is_(False)).values(state='submitting',started_at=self.clock()))
+            if not changed.rowcount:await db.rollback();return None
+            await db.commit();return attempt.id
+
+    @joined_database
+    async def _submission_result(self,attempt_id,**values):
+        """Retain the original task handle separately from private bill matching evidence, including late responses."""
+        async with self.factory() as db:
+            await db.execute(update(SubmissionAttempt).where(SubmissionAttempt.id==attempt_id).values(**values));await db.commit()
+
+    @joined_database
+    async def _release_claim(self,job_id,token):
+        """Close both leases in one joined DB unit, clearing unsent queue ownership so blocked prices cannot monopolize a slot."""
+        async with self.factory() as db:
+            await db.execute(text('BEGIN IMMEDIATE'))
+            await db.execute(update(ExecutionJob).where(ExecutionJob.id==job_id,ExecutionJob.lease_token==token).values(lease_until=0))
+            current=await db.get(ExecutionJob,job_id)
+            values={'lease_until':0}
+            if current and (current.state in TERMINAL or current.state=='queued'):
+                values.update(job_id=None,token=None)
+            await db.execute(update(ExecutionSlot).where(ExecutionSlot.id==1,ExecutionSlot.token==token).values(**values))
+            await db.commit()
+
     async def step(self, job_id: str) -> None:
         """Execute at most one external operation, with a durable state transition first."""
         if self.budget_required:
@@ -184,7 +243,10 @@ class DurableExecution:
                 job=await db.get(ExecutionJob,job_id)
                 hold=await db.get(ExecutionBudgetEntry,job_id)
                 if job is None:return
-                if self.enforce_binding:
+                if self.native_accounting is not None:
+                    from app.services.worker.native_video_charges import job_charge
+                    if await job_charge(db,job_id) is None:return
+                elif self.enforce_binding:
                     binding=await db.get(ExecutionBinding,job_id)
                     if binding is None or binding.binding_hash not in self.allowed_bindings:
                         # A changed service/account/policy cannot take over an
@@ -194,45 +256,47 @@ class DurableExecution:
                 if job.state=='queued' and (hold is None or hold.project_id!=job.project_id or hold.state!='reserved'):
                     # An absent quote/reservation is never permission to send.
                     return
-        claimed=await self._claim(job_id)
+        receipt=[]
+        try:claimed=await self._claim(job_id,claimed=receipt)
+        except asyncio.CancelledError:
+            if receipt:await self._release_claim(job_id,receipt[0][1])
+            raise
         if claimed is None:return
         job,token=claimed
         try:
+            transport=self.transport
+            if self.native_accounting is not None and job.state!='queued':
+                try:
+                    descriptor=await self.native_accounting.control_material(job.id)
+                    transport=self.native_accounting.transport(descriptor,job.id)
+                except HTTPException:
+                    await self._update(job.id,token,reason='native_original_connection_unavailable',next_due=self.clock()+30);return
             if job.state=='queued':
                 if job.cancel_requested:
                     await self._update(job.id,token,state='cancelled');return
-                from app.services.shot_plan.admission import prepare_send_evidence,validate_send_locked
+                from app.services.shot_plan.admission import prepare_send_evidence
                 try:proof=await prepare_send_evidence(self.factory,job.id)
                 except HTTPException:
                     await self._cancel_stale_plan(job.id,token);return
-                async with self.factory() as db:
-                    await db.execute(text('BEGIN IMMEDIATE'))
-                    try:await validate_send_locked(db,job.id,proof)
-                    except HTTPException:
-                        await db.rollback();await self._cancel_stale_plan(job.id,token);return
-                    # An attempt exists before the first byte is sent. A unique job
-                    # constraint also protects against accidental future retry code.
-                    if self.budget_required:
-                        held=await db.execute(update(ExecutionBudgetEntry).where(ExecutionBudgetEntry.job_id==job.id,ExecutionBudgetEntry.project_id==job.project_id,ExecutionBudgetEntry.state=='reserved').values(state='unknown'))
-                        if not held.rowcount:await db.rollback();return
-                    attempt=SubmissionAttempt(id=str(uuid.uuid4()),job_id=job.id,request_hash=job.request_hash,state='prepared')
-                    db.add(attempt)
-                    changed=await db.execute(update(ExecutionJob).where(ExecutionJob.id==job.id,ExecutionJob.lease_token==token,ExecutionJob.lease_until>self.clock(),ExecutionJob.state=='queued').values(state='submitting',started_at=self.clock()))
-                    if not changed.rowcount:await db.rollback();return
-                    await db.commit();attempt_id=attempt.id
                 try:
-                    remote_id=await self._external(job.id,token,lambda:self.transport.submit(job.snapshot,attempt_id))
+                    if self.native_accounting is not None:
+                        descriptor=await self.native_accounting.prepare(job,token,proof,self.clock)
+                        attempt_id=descriptor['attempt_id'];transport=self.native_accounting.transport(descriptor,job.id,attempt_id)
+                    else:attempt_id=await self._prepare_submission(job,token,proof)
+                except HTTPException:
+                    if self.native_accounting is None:await self._cancel_stale_plan(job.id,token)
+                    else:await self._update(job.id,token,reason='native_project_fees_unavailable',next_due=self.clock()+30)
+                    return
+                if attempt_id is None:return
+                try:
+                    remote_id=await self._external(job.id,token,lambda:transport.submit(job.snapshot,attempt_id))
                     if not remote_id:raise RuntimeError('missing provider identity')
                 except RejectedSubmission:
-                    async with self.factory() as db:
-                        await db.execute(update(SubmissionAttempt).where(SubmissionAttempt.id==attempt_id).values(state='rejected'));await db.commit()
+                    await self._submission_result(attempt_id,state='rejected')
                     await self._update(job.id,token,state='failed',reason='provider_rejected');return
                 except Exception:
                     await self._update(job.id,token,state='submission_unknown',reason='submission_acceptance_unknown');return
-                async with self.factory() as db:
-                    # Always preserve a late provider ID in the journal, even if
-                    # this owner's lease expired while the server was answering.
-                    await db.execute(update(SubmissionAttempt).where(SubmissionAttempt.id==attempt_id).values(state='accepted',remote_id=remote_id));await db.commit()
+                await self._submission_result(attempt_id,state='accepted',remote_id=remote_id)
                 await self._update(job.id,token,state='running',remote_id=remote_id,next_due=self.clock()+self.poll_seconds)
                 return
             if job.state in {'submitting','submission_unknown'}:
@@ -242,7 +306,7 @@ class DurableExecution:
                     # The rejection journal may commit just before a process dies.
                     # Recover its terminal state without calling submit/reconcile.
                     await self._update(job.id,token,state='failed',reason='provider_rejected');return
-                try:remote_id=attempt.remote_id or await self._external(job.id,token,lambda:self.transport.reconcile(attempt.id))
+                try:remote_id=attempt.remote_id or await self._external(job.id,token,lambda:transport.reconcile(attempt.id))
                 except Exception:remote_id=None
                 if remote_id:await self._update(job.id,token,state='running',remote_id=remote_id,next_due=self.clock()+self.poll_seconds,reason='')
                 else:
@@ -254,11 +318,11 @@ class DurableExecution:
             if job.started_at is not None and self.clock()-job.started_at>self.wait_seconds:
                 await self._pause(job,token,'wait_limit_reached');return
             if job.cancel_requested and job.remote_id:
-                if await self._external(job.id,token,lambda:self.transport.cancel(job.remote_id)):
+                if await self._external(job.id,token,lambda:transport.cancel(job.remote_id)):
                     await self._update(job.id,token,state='cancelled');return
                 # False is an unconfirmed request; keep the remote task identity.
             if job.state=='running':
-                try:result=await self._external(job.id,token,lambda:self.transport.query(job.remote_id or ''))
+                try:result=await self._external(job.id,token,lambda:transport.query(job.remote_id or ''))
                 except QueryBackoff:raise
                 except Exception:
                     retries=job.query_retries+1
@@ -274,7 +338,7 @@ class DurableExecution:
                 return
             if job.state=='downloading':
                 try:
-                    artifact=await self._external(job.id,token,lambda:self.transport.download(job.result or {},job.media_id or '',job.project_id))
+                    artifact=await self._external(job.id,token,lambda:transport.download(job.result or {},job.media_id or '',job.project_id))
                     media_id=await self.publisher(self.factory,self.clock,job.id,token,artifact)
                 except QueryBackoff:raise
                 except Exception:
@@ -289,10 +353,4 @@ class DurableExecution:
             # past its automatic wait budget. Explicit resume honors next_due.
             await self._update(job.id,token,state='paused',pause_from=job.state,reason='provider_query_backoff',next_due=query_backoff_deadline(self.clock(),control.retry_after_seconds))
         finally:
-            await self._update(job.id,token,lease_until=0)
-            async with self.factory() as db:
-                current=await db.get(ExecutionJob,job.id)
-                values={'lease_until':0}
-                if current and current.state in TERMINAL:values['job_id']=None
-                await db.execute(update(ExecutionSlot).where(ExecutionSlot.id==1,ExecutionSlot.token==token).values(**values))
-                await db.commit()
+            await self._release_claim(job.id,token)

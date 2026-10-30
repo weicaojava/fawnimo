@@ -1,9 +1,11 @@
 """Trusted internal accounting completion; no prices or free execution are inferred."""
-from sqlalchemy import select
+from sqlalchemy import select,text
 from app.core.db import async_session_maker
 from app.models.execution import ExecutionJob, SubmissionAttempt
 from app.models.execution_budget import ExecutionBudget, ExecutionBudgetEntry
-from app.services.worker.execution_budget import BudgetError, amount, change_balance, transaction
+from app.models.native_video_charge import NativeVideoJobCharge
+from app.services.worker.database_operation import joined_database
+from app.services.worker.execution_budget import BudgetError, amount, change_balance, transaction,native_fee_exists
 
 
 async def recover_unaccepted_holds(*, factory=async_session_maker, limit=20) -> int:
@@ -11,6 +13,8 @@ async def recover_unaccepted_holds(*, factory=async_session_maker, limit=20) -> 
     if type(limit) is not int or not 1<=limit<=100:raise ValueError('Invalid recovery batch size')
     async with factory() as db:
         rejected=select(SubmissionAttempt.job_id).where(SubmissionAttempt.state=='rejected')
+        if await db.scalar(text("SELECT 1 FROM sqlite_master WHERE type='table' AND name='native_video_job_charges'")):
+            rejected=rejected.where(SubmissionAttempt.job_id.not_in(select(NativeVideoJobCharge.job_id)))
         attempted=select(SubmissionAttempt.job_id)
         candidates=(await db.execute(select(ExecutionJob.project_id,ExecutionJob.id).join(ExecutionBudgetEntry,ExecutionBudgetEntry.job_id==ExecutionJob.id).where(ExecutionBudgetEntry.state.in_({'reserved','unknown'}),((ExecutionJob.state=='failed') & ExecutionJob.id.in_(rejected)) | ((ExecutionJob.state=='cancelled') & ExecutionJob.id.not_in(attempted) & (ExecutionBudgetEntry.state=='reserved'))).order_by(ExecutionJob.id).limit(limit))).all()
     released=0
@@ -32,6 +36,7 @@ async def owned_hold(db, project_id: str, job_id: str):
     return job,entry,budget
 
 
+@joined_database
 async def release_unaccepted(project_id: str, job_id: str, *, factory=async_session_maker) -> str:
     """Release only proven rejection or cancellation before any submission attempt.
 
@@ -42,6 +47,9 @@ async def release_unaccepted(project_id: str, job_id: str, *, factory=async_sess
     async with factory() as db:
         async with transaction(db):
             job,entry,budget=await owned_hold(db,project_id,job_id)
+            if await native_fee_exists(db,job_id):
+                from app.services.worker.native_video_charges import release_unsent_job
+                return await release_unsent_job(db,project_id,job_id)
             attempt=(await db.execute(select(SubmissionAttempt).where(SubmissionAttempt.job_id==job_id))).scalars().one_or_none()
             rejected=job.state=='failed' and attempt is not None and attempt.state=='rejected'
             unsent=job.state=='cancelled' and attempt is None
@@ -55,6 +63,7 @@ async def release_unaccepted(project_id: str, job_id: str, *, factory=async_sess
             return 'released'
 
 
+@joined_database
 async def settle_actual(project_id: str, job_id: str, actual_minor: int, *, factory=async_session_maker) -> str:
     """Settle an explicitly trusted actual amount once, never inferred from ready.
 
@@ -65,6 +74,8 @@ async def settle_actual(project_id: str, job_id: str, actual_minor: int, *, fact
     async with factory() as db:
         async with transaction(db):
             _job,entry,budget=await owned_hold(db,project_id,job_id)
+            if await native_fee_exists(db,job_id):
+                raise BudgetError('Common native fees require explicit normalized bill reconciliation')
             if actual_minor>entry.quote_minor:raise BudgetError('Actual cost exceeds reserved quote')
             if entry.state=='settled':
                 if entry.actual_minor!=actual_minor:raise BudgetError('Settlement conflict')

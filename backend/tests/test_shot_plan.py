@@ -181,12 +181,48 @@ async def test_readiness_aggregates_owned_shot_missing_fields(tmp_path,monkeypat
     finally:await engine.dispose()
 
 
+async def legacy_plan_parent_database(path):
+    """Author a populated pre-plan schema without private recovery files or new child DDL.
+
+    These four parent tables predate the plan journals. Copying them to separate
+    metadata deliberately omits the new child's before-create index hooks, so
+    every supported additive entrypoint must install the missing composite keys.
+    """
+    from sqlalchemy import MetaData,insert
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from app.core.db import Base
+    legacy=MetaData()
+    for name in ('projects','chapters','generation_tasks','execution_jobs'):
+        Base.metadata.tables[name].to_metadata(legacy)
+    # The old schema also predates composite indexes registered on parent models.
+    for table in legacy.tables.values():
+        for index in list(table.indexes):
+            if index.name in ('chapter_id_project_scope','execution_id_project_scope','native_execution_job_scope'):
+                table.indexes.remove(index)
+    engine=create_async_engine('sqlite+aiosqlite:///'+path.as_posix())
+    try:
+        async with engine.begin() as connection:
+            await connection.run_sync(legacy.create_all)
+            for suffix in ('a','b'):
+                project='legacy-project-'+suffix;task='legacy-task-'+suffix
+                await connection.execute(insert(legacy.tables['projects']),{'id':project,'name':'Authored legacy '+suffix,'style':'drama'})
+                await connection.execute(insert(legacy.tables['chapters']),{'id':'legacy-chapter-'+suffix,'project_id':project,'index':1,'title':'Preserved authored chapter'})
+                await connection.execute(insert(legacy.tables['generation_tasks']),{'id':task,'mode':'async_polling','task_kind':'video_generation','status':'succeeded'})
+                await connection.execute(insert(legacy.tables['execution_jobs']),{
+                    'id':'legacy-job-'+suffix,'task_id':task,'project_id':project,'request_key':'legacy-request',
+                    'request_hash':suffix*64,'snapshot':{'authored_fixture':True,'project_id':project},'state':'succeeded'})
+    finally:await engine.dispose()
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize('entrypoint',['metadata','benchmark','init_db'])
-async def test_actual_m4a_upgrade_all_supported_entrypoints(tmp_path,monkeypatch,entrypoint):
-    """Real accepted M4A copies upgrade without depending on a single new migrator."""
+async def test_legacy_plan_upgrade_all_supported_entrypoints(tmp_path,monkeypatch,entrypoint):
+    """Every public entrypoint upgrades populated pre-plan parents and preserves all rows.
+
+    Historical actual M4A recovery acceptance remains separate private evidence;
+    this portable software test contains only newly authored local rows.
+    """
     import hashlib
-    import json
     import sqlite3
     from sqlalchemy import event,text
     from sqlalchemy.ext.asyncio import create_async_engine
@@ -194,11 +230,16 @@ async def test_actual_m4a_upgrade_all_supported_entrypoints(tmp_path,monkeypatch
     import app.core.db as database
     import app.services.studio.production_schema as production_schema
     from app.services.benchmark.schema import migrate_benchmark
-    root=Path(__file__).resolve().parents[5]
-    evidence=json.loads((root/'outputs/m4a/recovery-result.json').read_text(encoding='utf8'))
-    source=Path(evidence['run_dir'])/'restored.db';before=hashlib.sha256(source.read_bytes()).hexdigest()
-    copy=tmp_path/'m4a-copy.db'
-    with sqlite3.connect(source.as_uri()+'?mode=ro',uri=True) as original,sqlite3.connect(copy) as target:original.backup(target)
+    source=tmp_path/'authored-pre-plan.db'
+    await legacy_plan_parent_database(source)
+    before=hashlib.sha256(source.read_bytes()).hexdigest()
+    parents=('projects','chapters','generation_tasks','execution_jobs')
+    copy=tmp_path/'upgrade-copy.db'
+    with sqlite3.connect(source.as_uri()+'?mode=ro',uri=True) as original,sqlite3.connect(copy) as target:
+        assert not original.execute("SELECT 1 FROM sqlite_master WHERE name IN ('chapter_id_project_scope','execution_id_project_scope','shot_plan_job_links')").fetchone()
+        rows={name:original.execute(f'SELECT * FROM {name} ORDER BY id').fetchall() for name in parents}
+        assert all(len(value)==2 for value in rows.values())
+        original.backup(target)
     engine=create_async_engine('sqlite+aiosqlite:///'+copy.as_posix())
     @event.listens_for(engine.sync_engine,'connect')
     def foreign_keys(connection,_):
@@ -214,6 +255,9 @@ async def test_actual_m4a_upgrade_all_supported_entrypoints(tmp_path,monkeypatch
         async with engine.connect() as connection:
             assert not (await connection.execute(text('PRAGMA foreign_key_check'))).first()
             assert (await connection.execute(text("SELECT 1 FROM sqlite_master WHERE name='execution_id_project_scope'"))).first()
+            assert (await connection.execute(text("SELECT 1 FROM sqlite_master WHERE name='chapter_id_project_scope'"))).first()
             assert (await connection.execute(text("SELECT 1 FROM sqlite_master WHERE name='shot_plan_job_links'"))).first()
+            for name in parents:
+                assert [tuple(row) for row in (await connection.execute(text(f'SELECT * FROM {name} ORDER BY id'))).all()]==rows[name]
         assert hashlib.sha256(source.read_bytes()).hexdigest()==before
     finally:await engine.dispose()

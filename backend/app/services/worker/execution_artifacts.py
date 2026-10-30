@@ -12,6 +12,7 @@ from app.models.production import ProductionMedia
 from app.models.studio import FileItem
 from app.services.studio.production_media import inspect_media, media_path, probe_media
 from app.core.contracts.execution_artifact import DownloadedArtifact
+from app.services.worker.database_operation import joined_database
 
 
 async def publish_artifact(factory, clock, job_id: str, token: str, artifact: DownloadedArtifact) -> str:
@@ -25,7 +26,14 @@ async def publish_artifact(factory, clock, job_id: str, token: str, artifact: Do
         raise HTTPException(400,'生成结果为空、无效或超过大小限制')
     mime=inspect_media(artifact.name,artifact.data)
     await asyncio.to_thread(probe_media,artifact.name,artifact.data)
-    checksum=hashlib.sha256(artifact.data).hexdigest();path=None;committed=False;media_id=None
+    checksum=hashlib.sha256(artifact.data).hexdigest()
+    return await _publish_validated(factory,clock,job_id,token,artifact,mime,checksum)
+
+
+@joined_database
+async def _publish_validated(factory,clock,job_id,token,artifact,mime,checksum):
+    """Join the short fenced DB/file publication and its commit-ambiguity cleanup, after all decoding has finished."""
+    path=None;committed=False;media_id=None
     try:
         async with factory() as db:
             fenced=await db.execute(update(ExecutionJob).where(ExecutionJob.id==job_id,ExecutionJob.lease_token==token,ExecutionJob.lease_until>clock(),ExecutionJob.state.in_({'downloading','ready'})).values(reason=''))

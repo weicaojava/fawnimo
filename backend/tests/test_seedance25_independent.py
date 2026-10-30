@@ -6,6 +6,8 @@ from dataclasses import replace
 import hashlib
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 import json
+import os
+import shutil
 from pathlib import Path
 import socket
 import subprocess
@@ -30,7 +32,7 @@ from app.services.studio.production import add_version
 from app.schemas.studio.production import VersionWrite
 
 ROOT=Path(__file__).resolve().parents[5]
-FFMPEG=ROOT/'work/ffmpeg.exe'
+FFMPEG=Path(os.environ.get('FAWNIMO_TEST_FFMPEG') or shutil.which('ffmpeg') or ROOT/'work/ffmpeg.exe')
 MODEL='doubao-seedance-2-5-260628'
 CREATE='/api/v3/contents/generations/tasks'
 REMOTE='fixture_seedance_001'
@@ -671,18 +673,20 @@ async def test_stale_resume_cannot_clear_a_new_concurrent_real_429_pause(tmp_pat
                 try:yield db;await db.commit()
                 except BaseException:await db.rollback();raise
         app=FastAPI();app.include_router(router);app.dependency_overrides[get_db]=actual_session
-        read_old=asyncio.Event();release_old=asyncio.Event();stale_task=None;owners=set()
+        from contextvars import ContextVar
+        read_old=asyncio.Event();release_old=asyncio.Event();stale_task=None
+        stale_owner=ContextVar('stale_resume_owner',default=False)
         original_get=AsyncSession.get;original_scoped=execution_queries.scoped_job
         async def delayed_get(db,entity,identity,*args,**kwargs):
             """Keep the real loaded row intact and suspend only the chosen stale worker reader."""
             row=await original_get(db,entity,identity,*args,**kwargs)
-            if entry=='worker' and entity is ExecutionJob and identity==job and asyncio.current_task() in owners:
+            if entry=='worker' and entity is ExecutionJob and identity==job and stale_owner.get():
                 read_old.set();await release_old.wait()
             return row
         async def delayed_scoped(db,project,identity):
             """Keep the actual HTTP scoped SELECT result, delaying only its old reader."""
             row=await original_scoped(db,project,identity)
-            if entry=='http' and identity==job and asyncio.current_task() in owners:
+            if entry=='http' and identity==job and stale_owner.get():
                 read_old.set();await release_old.wait()
             return row
         monkeypatch.setattr(AsyncSession,'get',delayed_get)
@@ -694,7 +698,7 @@ async def test_stale_resume_cannot_clear_a_new_concurrent_real_429_pause(tmp_pat
                 assert (await client.post(url+'/pause')).status_code==200
                 async def stale_resume():
                     """Exercise one real resume endpoint while identifying only its delay seam."""
-                    owners.add(asyncio.current_task())
+                    stale_owner.set(True)
                     if entry=='http':return (await client.post(url+'/resume')).status_code
                     try:await worker.resume(job);return 200
                     except HTTPException as error:return error.status_code

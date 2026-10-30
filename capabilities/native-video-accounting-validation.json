@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-30",
+  "features": [
+    "F-001.04",
+    "F-007.01",
+    "F-007.02",
+    "F-007.03",
+    "F-009.01",
+    "F-009.03"
+  ],
+  "scope": "Bounded standalone SQLite managed native text-video original-project common fees, sole real-job holds, sealed whole batches and original-account recovery/control",
+  "base_published_commit": "f8425c1e574f20a8a7d34584c8d27dfd8c69b0b6",
+  "selected_source_tree": "9d7c2c617c58cad5cd0a3287e92a0d45ddb4b30e",
+  "full_selected_regressions_passed": 675,
+  "related_tests_included_in_primary": 224,
+  "core_native_tests_included": 42,
+  "browser_checks_passed": 22,
+  "independent_runs": {
+    "core_final": {
+      "file": "independent-core-final.xml",
+      "sha256": "f73f6f197e3edc8c7b802dcc8d57d2455d6b58b9b1ad1b2cd4cc27cd45466ae9",
+      "tests": 42,
+      "passed": 42,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "legacy_cross_final": {
+      "file": "independent-legacy-final.xml",
+      "sha256": "beb91e403c545b878b46b788a693b1035f6e0d493734b34a581d46758aa95454",
+      "tests": 263,
+      "passed": 263,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "private_final": {
+      "file": "independent-private-final.xml",
+      "sha256": "ccd6047b69c6007296cf23c72e4897389e9206032ee0c245ee61f3289f6d15e5",
+      "tests": 9,
+      "passed": 9,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "worker_environment_final": {
+      "file": "independent-worker-env-final.xml",
+      "sha256": "a40beccf2209b8c566eaeaeaddec439b2d225dba1be4abf3637b066cf86bfad5",
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "count_note": "Primary includes42 native and224 of the independent cases. Independent42 core/263 legacy/9 private/1 environment groups are disjoint but are not added to primary. Of263 legacy,82 old vendor-author tests are outside the selected main CI;9 private controls are also outside it.",
+  "primary_evidence": {
+    "full": {
+      "file": "backend-full.xml",
+      "sha256": "00af0ef3de791450ce0bdea5449b560fc00389e9f26953aea084d88eef4ba701"
+    },
+    "related": {
+      "file": "backend-related-final.xml",
+      "sha256": "bb3724be3cee328d6463cb4076be648d476470a07f7f5f1fca3a57ad61135628"
+    },
+    "browser": {
+      "file": "browser.json",
+      "sha256": "7883cbf8814fc422196c0952fa01066ea2770ccd9bbfa7612cb56cac576a7c7f"
+    }
+  },
+  "independent_review_status": "passed_for_bounded_native_video_project_accounting",
+  "independent_review_sha256": "cbc692d2ee706ba6382705a2d85e431b1e10d97efe4aaa85f2ab2cf7328573b0",
+  "test_only_delta_review_sha256": "8266025909d676522dded3e86db4b03aa0fd812f306ca74c4b6b90d8a82c1652",
+  "test_only_delta_review_evidence": "private_external:stage-b-native-video/independent-source51-delta-review.json",
+  "independent_test_only_delta_run": {
+    "file": "independent-portable-migration.xml",
+    "sha256": "d84f401845b513b6166a8c03f1f07e1cc635453bddefbe66cfafff25fce9fe6e",
+    "tests": 10,
+    "passed": 10,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "source_lineage": {
+    "runtime_review_browser_frontend_tree": "905eeab24c58214a4db6c7457cb9a6e6f02d891f",
+    "final_source_tree": "9d7c2c617c58cad5cd0a3287e92a0d45ddb4b30e",
+    "unchanged_reviewed_runtime_source_files": 50,
+    "only_additional_source_file": "backend/tests/test_shot_plan.py",
+    "note": "The original315 independent cases and22 browser checks ran on905. All50 reviewed source files are LF-identical on the final51-file tree; only portable migration tests differ. The independent10-test delta and final675-case primary are separately recorded, never added to prior counts."
+  },
+  "independent_review_evidence": "private_external:stage-b-native-video/independent-review.json",
+  "metadata_review_evidence": "private_external:stage-b-native-video/independent-metadata-review.json",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "699baa9c7d4e57b5db46599494265be876f67c49e2083ae749cd81d303197095",
+    "backend/app/api/execution.py": "55a5bbe79ee6125727e1e4ea445d89a0d47b49c80374a741bd58a1073509ff5f",
+    "backend/app/api/execution_submission.py": "93fdb018a294e8c5e9429602366ee6942aed93314d62df339d600f6be70fa6ed",
+    "backend/app/api/shot_plan.py": "d7fc3f60f6f859195cbc9089ce22b5de769017b9122d3bf5e14f4cfebf1b0195",
+    "backend/app/api/video_runtime_setup.py": "4398ea8f9f2f6e824e42653bdf031180a518ac76b268b33c4a9544d0dc462908",
+    "backend/app/core/contracts/model_accounting.py": "5ab9a3d6f44e364c5ad5d4c6de46d651ee4173611fbcb298594c4162ea47f3bc",
+    "backend/app/core/contracts/native_video_accounting.py": "2afdc9398f9e1517928bf106cea27f34388eaa8c2de20ce6cfba4731f03aef8b",
+    "backend/app/core/contracts/shot_plan.py": "2249e681040af501d6e597402caafb2da22b9dde47c470c03252fe5e30b2f8e0",
+    "backend/app/core/contracts/video_runtime_setup.py": "039adc9c3509018ce5c28fee1b423f42d0f17ce2498c0c240bb9eb0cfbe6585b",
+    "backend/app/core/db.py": "2bd0029f3a2625108af8509ed02a3dd10f9d80592d26bfaad606655824f8346a",
+    "backend/app/core/integrations/volcengine/seedance25.py": "f59cefe76af16e6b8698dfafe1440d47ca616d888e0e6c359fdbcac43632be93",
+    "backend/app/main.py": "cfe36d2ad114def80685192014593f6895f8dba9f035fe7f5d743fb7efe282b1",
+    "backend/app/models/native_video_charge.py": "12d2640d4731613da80bcfebcbbab843a72be618107cfe04262bfa16da451fc3",
+    "backend/app/services/shot_plan/service.py": "de545f51442ab2dc464e28e8dd19ab0bb0a3238d20e9208842d915eb93194bb4",
+    "backend/app/services/worker/database_operation.py": "164f5b70ede13ed447835d768695a7e28f1c4347fd687da3e015561079e62a07",
+    "backend/app/services/worker/durable_execution.py": "37568a27aa537c9babc3b6befb7d0d6614fe5670ff78ad46da47f47d47c9a4db",
+    "backend/app/services/worker/execution_accounting.py": "402e6eaf4d3005e184f4aa5acbe74029b536956bf295aa10b6e10b41766c0b3b",
+    "backend/app/services/worker/execution_admission.py": "9a6332a282d1e5db9fe1e481884bd15cb23bd5cc2308f666634938eb84dcc109",
+    "backend/app/services/worker/execution_artifacts.py": "ed5779c729499b42102cdcee5220e008d5453b6970348e597e0b07703b5cb515",
+    "backend/app/services/worker/execution_budget.py": "951b134fed0daeda57677fb2e9655f0b4081f598515a56a26940a00337772004",
+    "backend/app/services/worker/execution_dispatcher.py": "34c787a3d5b96232cdbc5d2ca8a3686c5a630ae7aaaa156aa58fa6417d70fc82",
+    "backend/app/services/worker/execution_queries.py": "afe8eaa146fbffa1f13baac10e3d80018ea3c0b4e08eb5c4fea45c65f30af5d4",
+    "backend/app/services/worker/execution_runtime.py": "e71d3a51003bbbfcbf7d46f91265771b9bb9cde7bd842f56f547b664f66ceeb3",
+    "backend/app/services/worker/native_video_accounting.py": "90da8dd33e73149adc91f33e4f53fc28fe15c62c36ffc6fb8ce9879ae190473e",
+    "backend/app/services/worker/native_video_charge_schema.py": "f0fee58582b9daf16b56207c93d9fb0b692c24e176c05beffdbc0ea7f396ce47",
+    "backend/app/services/worker/native_video_charges.py": "fe59161600abebaedba83533c5ae950cf360f8f033c2f601368bf80e8b014237",
+    "backend/app/services/worker/native_video_models.py": "8180b7696aeba75927be8e0bb03607a1ef0922f3fa540ed7555d1d19e2722189",
+    "backend/app/services/worker/workspace_video_runtime.py": "c032469839a543f33edb9787ea77bee469e809e7bb10d87648495c43e8650ed3",
+    "backend/run_tenant_worker.py": "172de4c08003894895a831c6a83d5592959659cebad22fa329fdc91ad10264e6",
+    "backend/tests/test_model_price_workspace.py": "2881a6e155d2074c759adf3cce319c8f55d3e5e24aa45c7dbffec5f6bcb35c83",
+    "backend/tests/test_shot_plan.py": "b23d7451dbc7c64c2c21336fb596e9e2d0704aec292c8068ebd242a036f008d3",
+    "backend/tests/test_seedance25_independent.py": "e8dcf14bfc97e41a5e5672b07018bb60c575ff015aea996216d4cf2f5ab6ac14",
+    "backend/tests/test_native_video_model_connections.py": "e039679d3d514f49af9b25184e382fdb9621496691c55cd3fd396ac57045e6b8",
+    "backend/tests/test_native_video_project_accounting.py": "fd67fe47ef13aab7298ac92115c394542f33cc3afe2eca7af9113709ae7c7b7a",
+    "backend/tests/test_native_video_planned_accounting.py": "dc60c4698e468e2c4aa0635d27f8069a61a62b73459c4cc789924a1daa122912",
+    "backend/tests/test_native_video_http_accounting.py": "baa0a827893b7048d9576c9c19c244f7b21b1cb99eac5f0349465775ffd245a0",
+    "backend/tests/test_native_video_cancellation.py": "71ee0bd2cfcc038d1af366b06db1dbdbdbbaa42a5fe327cf0b334493710b376d",
+    "backend/tests/test_native_video_api.py": "67be8c3981aa58c63e2f1a583c583b27324ec1c8d2696c2a36a036e09f8f38ca",
+    "front/openapi.json": "8fbdf32ca7e1f8947dd9d07850aadb905b98f4f5743af922eff9d0430dc4890f",
+    "front/src/pages/aiStudio/chapter/components/ShotPlanPanel.tsx": "4a234e2816d0173bb11ec37e0a28d3fb0edffc3c8fb318c65352ea29b65a305f",
+    "front/src/pages/aiStudio/models/ModelsTab.tsx": "2a8643abcc3fa1a0a280ca3d6253e9dbbd779d4f07c97b995e65e20fc6aaa0c0",
+    "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx": "96c05a656b835f3a75e8d184b38f614801116c4eab352566f5fc58edda3ffed3",
+    "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoRuntimeSetupPanel.tsx": "0c9b363f721755dbad79d134c6f5ac07b3b0fca4bdd91a50eee839854960e898",
+    "front/src/services/generated/index.ts": "953790a9b26a4b9994a7ab5d0a28e54e3c36a3ef2c16e8d174b2cdf29d31464b",
+    "front/src/services/generated/models/ApiResponse_list_NativeVideoModelChoice__.ts": "cae63428a3a54f355a9556b49a7357f444693ba56725023bbba0f0a5ef37678a",
+    "front/src/services/generated/models/NativeVideoModelChoice.ts": "5f5f1b0e348a07cf38cfd65c57b334f96c9838bfdd4b0ba11f5e22383b0e87a4",
+    "front/src/services/generated/models/PlannedSubmission.ts": "fc8d1a8bf340d09b44d64f0e7c981efb91df321684faa0dbddcff4d83e2aed73",
+    "front/src/services/generated/models/ProjectBudgetEntryRead.ts": "2d7f5814dc523c098fbea0b5b21f155370b62c47e6050ca7acec329f5339bd7b",
+    "front/src/services/generated/models/SubmissionInput.ts": "6b8fc1322c6ecc4f753906907cddf358e756935ce54b10a1b348af35dd7685d2",
+    "front/src/services/generated/models/VideoRuntimeSetupRead.ts": "d552a5e97290fc10f62f00a020749893b25806a5b6ffc378b73c5ba748675201",
+    "front/src/services/generated/services/VideoRuntimeService.ts": "c6a9c90e6411950b8d4b1ebc1d640604d6b265f38ac4c0ea5f17345202dfbde8"
+  },
+  "closed_findings": [
+    {
+      "id": "NATIVE-WHOLE-BATCH-LIFECYCLE-001",
+      "severity": "P2",
+      "after": "Full per-unit ledger/attempt/receipt/overage pairing is checked. Three independent malformed sibling variants issue0 new prefix requests, with a legitimate cancellation/settlement positive counterpart."
+    },
+    {
+      "id": "NATIVE-LEGACY-LEDGER-TABLE-002",
+      "severity": "P2",
+      "after": "native_fee_exists checks actual supported tables and either native link/common-call evidence; final old budget tests pass without permitting native legacy settlement."
+    }
+  ],
+  "historical_failures_retained": {
+    "before_product_findings": [
+      "A malformed later sibling hold could allow a paid first prefix",
+      "Legacy two-table ledger helper incorrectly required a new native table"
+    ],
+    "before_counterexample_is_not_a_product_pass": true,
+    "source_v2_primary": "Incomplete superseded run; no aggregate pass claim",
+    "test_driver_scope": "Old owner-task seams were updated to ContextVar after joined child-task cleanup; independent missing FFmpeg environment and root fixture/import/seam/browser timing failures are preserved separately. Source905 full run had672 passes and3 missing private M4A evidence-file failures; source9d uses authored portable parent-table migrations instead. That earlier run is not promoted or added."
+  },
+  "coverage": [
+    "Explicit native purpose, exact logical/actual model, provider clock and independent named protocol quote; no startup key cache",
+    "Actual native job.id reuses exactly one existing original-project hold and the common bill identity; no second mc_* reservation",
+    "All selected jobs/holds/calls seal in one transaction; public UI/routes currently submit one shot, internal batch admission supports1..64 atomically",
+    "Every sibling ledger/attempt/receipt/overage lifecycle and full invoice gate is checked before any new POST; bad later units block the first prefix",
+    "Unknown hold and original attempt commit before pinned killable HTTP; safe response-header bill identity is distinct from remote task handle",
+    "Only unsent cancellation releases once; old finish/settle/recovery cannot refund prepared common fees; explicit charged/not_charged bills use original project",
+    "Closing new submission, changing current quotes/iteration or removing a new-generation flag does not rebind original control; changed account clock/profile blocks reads",
+    "Exact original actor/scope/confirmation/fingerprint replay precedes balance/current config; stable read snapshots avoid concurrent-bill mixed views",
+    "Joined DB, claim/prepare/response/slot cleanup and canceled external task joining survive repeated owner cancellation",
+    "Actual authored native HTTP/video publication, control-only restart, standalone two-project browser recovery and explicit new candidate fees"
+  ],
+  "frontend": {
+    "openapi_semantic_match": true,
+    "typescript_passed": true,
+    "production_build_passed": true,
+    "modules_transformed": 3212,
+    "browser_checks_passed": 22,
+    "authored_native_posts": 2,
+    "authored_video_downloads": 2
+  },
+  "connected_protocols": [
+    "agent_text",
+    "model_connection_test",
+    "asset_image",
+    "video_vision",
+    "video_asr",
+    "native_video"
+  ],
+  "bounded_standalone_protocols_connected": true,
+  "all_model_runtime_admission_connected": false,
+  "paid_gateway_enabled": false,
+  "provider_bill_verified": false,
+  "full_execution_isolation_qualified": false,
+  "model_quality_qualified": false,
+  "complete_film_qualified": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "original_workspace_writes": 0,
+  "limitations": [
+    "All HTTP, media, keys, prices and invoices are authored local fixtures; two projects do not qualify two identity workspaces.",
+    "No public bulk submit endpoint or multishot browser button is claimed; existing user-visible native entries are per-shot.",
+    "True supplier bill authentication, all paid A/B execution, references/audio, film quality, community lifecycle and public hosting remain incomplete.",
+    "The user explicitly declined paid tests and has not purchased hosting; the existing encrypted Ark profile was not decrypted or called."
+  ]
+}

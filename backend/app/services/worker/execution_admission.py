@@ -119,7 +119,7 @@ async def _insert_reserved_job(db, project_id: str, request_key: str, frozen: di
         raise HTTPException(409,'尚未配置有效预算币种')
     preflight(frozen,policy.capability,quoted_cost=Decimal(policy.quote_minor),remaining_budget=Decimal(policy.quote_minor),iteration=0,iteration_limit=policy.iteration_limit)
     await reference_validator(db,project_id,frozen)
-    budget=await db.get(ExecutionBudget,project_id)
+    budget=await db.scalar(select(ExecutionBudget).where(ExecutionBudget.project_id==project_id).execution_options(populate_existing=True))
     if budget is None or budget.currency!=policy.currency:
         raise HTTPException(409,'尚未配置对应币种的工程预算')
     count=select(func.count()).select_from(ExecutionJob).where(ExecutionJob.project_id==project_id,ExecutionJob.snapshot['model_id'].as_string()==policy.capability.model_id).scalar_subquery()

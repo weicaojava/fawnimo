@@ -100,21 +100,22 @@ async def lifespan(app: FastAPI):
         from app.services.editing.transition_exports import TransitionExportWorker
         transition_export_worker = TransitionExportWorker(async_session_maker, settings.production_probe_executable)
     app.state.transition_export_worker = transition_export_worker
+    from app.services.worker.model_prices import load_model_prices
+    model_prices=load_model_prices(settings.model_price_config)
+    app.state.model_prices=model_prices
     # Add the inert catalog only after migration checks succeed. Respect even an
     # explicitly injected None, and remove only the runtime this lifespan owns.
     owns_preparation_runtime=not hasattr(app.state,'execution_runtime')
     if owns_preparation_runtime:
         from app.core.db import async_session_maker
         from app.services.worker.seedance25_runtime import build_preparation_runtime
-        from app.services.worker.workspace_video_runtime import build_workspace_video_runtime
-        configured_runtime, setup = build_workspace_video_runtime(async_session_maker, settings.video_runtime_config)
+        from app.services.worker.workspace_video_runtime import build_managed_video_runtime
+        configured_runtime, setup = await build_managed_video_runtime(async_session_maker, settings.video_runtime_config,model_prices)
         app.state.workspace_video_setup = setup
+        app.state.native_video_history_factory=async_session_maker
         app.state.execution_runtime=configured_runtime or build_preparation_runtime(async_session_maker)
     runtime=getattr(app.state,'execution_runtime',None)
     from app.core.db import async_session_maker
-    from app.services.worker.model_prices import load_model_prices
-    model_prices=load_model_prices(settings.model_price_config)
-    app.state.model_prices=model_prices
     from app.services.agent_execution import AgentExecutionRuntime
     agent_execution_runtime = AgentExecutionRuntime(async_session_maker,price_registry=model_prices)
     app.state.agent_execution_runtime = agent_execution_runtime
@@ -155,6 +156,7 @@ async def lifespan(app: FastAPI):
         if runtime is not None:await runtime.stop()
         if owns_preparation_runtime:
             delattr(app.state,'execution_runtime')
+            delattr(app.state,'native_video_history_factory')
 
 
 app = FastAPI(

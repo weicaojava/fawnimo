@@ -3,6 +3,8 @@ from fastapi import APIRouter,HTTPException,Request
 from pydantic import BaseModel,ConfigDict,Field,StrictInt
 from app.schemas.common import ApiResponse,success_response
 from app.services.worker.execution_admission import admit
+from app.api.workspace_actor import model_submitted_by
+from app.core.contracts.native_video_accounting import NativeVideoConfirmation
 
 router=APIRouter(prefix='/execution',tags=['execution'])
 
@@ -20,7 +22,7 @@ class ReferenceInput(BaseModel):
     kind: str=Field(pattern='^(image|video|audio)$')
 
 
-class SubmissionInput(BaseModel):
+class SubmissionInput(NativeVideoConfirmation):
     """Client owns desired content and idempotency identity, never capability or cost."""
     model_config=ConfigDict(extra='forbid')
     request_key: str=Field(min_length=1,max_length=128)
@@ -55,10 +57,23 @@ async def execution_availability(request: Request):
 async def submit_execution(project_id: str,body: SubmissionInput,request: Request):
     """Commit admission and budget before the durable scanner can discover this work."""
     runtime=getattr(request.app.state,'execution_runtime',None)
+    snapshot=body.model_dump(exclude={'request_key','confirm_project_charges','expected_price_fingerprint'})
+    selection={'kind':'direct','snapshot':snapshot}
+    accountant=getattr(getattr(runtime,'worker',None),'native_accounting',None)
+    if accountant is not None:
+        history=getattr(request.app.state,'native_video_history_factory',None)
+        if history is not None and accountant.factory is not history:raise HTTPException(503,'原生视频运行配置与当前数据库不一致，未接受调用')
+        accepted=await accountant.admit(project_id,body.request_key,selection,submitted_by=model_submitted_by(request),
+            confirmed=body.confirm_project_charges,price_fingerprint=body.expected_price_fingerprint,runtime=runtime)
+        return success_response({'job_id':accepted['job_ids'][0]})
+    from app.services.worker.native_video_accounting import identity,recover_request
+    factory=getattr(request.app.state,'native_video_history_factory',None)
+    if factory is not None:
+        old=await recover_request(factory,project_id,body.request_key,identity(project_id,model_submitted_by(request),selection,body.expected_price_fingerprint,confirmed=body.confirm_project_charges))
+        if old:return success_response({'job_id':old['job_ids'][0]})
     if runtime is None or not runtime.allow_submission or not runtime.running:
         raise HTTPException(503,'生成服务尚未配置或未启用，未创建任务、未预留费用')
     policy=runtime.policies.get(body.model_id)
     if policy is None:raise HTTPException(422,'该模型尚未配置受信能力与报价')
-    snapshot=body.model_dump(exclude={'request_key'})
     job_id=await admit(runtime.worker.factory,project_id,body.request_key,snapshot,policy)
     return success_response({'job_id':job_id})

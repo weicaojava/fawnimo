@@ -17,11 +17,13 @@ jobs:
   register-and-backend:
     if: github.repository == 'weicaojava/fawnimo'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       JELLYFISH_SKIP_ENV_FILE: "1"
       PYTHONUTF8: "1"
       UV_PYTHON_DOWNLOADS: never
+      FAWNIMO_TEST_FFMPEG: /usr/bin/ffmpeg
+      TEST_MEDIA_PROBE: /usr/bin/ffmpeg
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -64,6 +66,14 @@ jobs:
           tests/test_video_understanding.py tests/test_understanding_runtime_charges.py
           tests/test_trusted_http.py tests/test_llm_manage.py
           tests/test_llm_resolver.py tests/test_llm_api_responses.py
+          tests/test_native_video_model_connections.py
+          tests/test_native_video_project_accounting.py tests/test_native_video_planned_accounting.py
+          tests/test_native_video_http_accounting.py tests/test_native_video_cancellation.py tests/test_native_video_api.py
+          tests/test_durable_execution.py tests/test_execution_schema.py
+          tests/test_execution_dispatcher.py tests/test_execution_runtime.py
+          tests/test_execution_artifacts.py tests/test_execution_http_integration.py
+          tests/test_shot_plan.py tests/test_shot_plan_acceptance.py tests/test_shot_plan_guard_acceptance.py
+          tests/test_seedance25_independent.py tests/test_workspace_video_pipeline.py
 
   frontend:
     if: github.repository == 'weicaojava/fawnimo'

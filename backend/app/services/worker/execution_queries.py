@@ -7,6 +7,7 @@ from app.models.execution import ExecutionJob, ExecutionSlot, SubmissionAttempt
 from app.models.execution_budget import ExecutionBudget, ExecutionBudgetEntry
 from app.models.task import GenerationTask
 from app.services.studio.production import project_exists
+from app.services.worker.database_operation import joined_database
 
 TERMINAL = {'ready', 'failed', 'cancelled'}
 RESUMABLE = {'running', 'downloading', 'submission_unknown'}
@@ -17,6 +18,8 @@ REASONS = {'provider_rejected':'服务明确拒绝了请求', 'submission_accept
 REASONS['runtime_binding_unavailable']='原服务配置已改变，请恢复原配置后继续处理；未重新提交'
 REASONS['plan_stale_unsent']='镜头计划或准备资料已失配，已在提交前取消；未发起新的模型请求'
 REASONS['provider_query_backoff']='服务要求延后查询，已暂停；等待结束后可显式恢复原任务，未重新生成'
+REASONS['native_original_connection_unavailable']='原账号连接或执行服务版本已改变，保留原任务与未知费用；未向新账号查询'
+REASONS['native_project_fees_unavailable']='本次项目费用、原连接或完整计划需要重新核对，尚未发送新生成请求'
 
 
 def safe_view(job: ExecutionJob) -> dict:
@@ -64,8 +67,14 @@ async def control_job(db: AsyncSession, project_id: str, job_id: str, action: st
         attempt=exists(select(SubmissionAttempt.id).where(SubmissionAttempt.job_id==job_id))
         changed=await db.execute(update(ExecutionJob).where(*scope,ExecutionJob.state=='queued',ExecutionJob.lease_until<=now,~attempt).values(state='cancelled',cancel_requested=True,reason='cancelled_before_submission',lease_token=None,lease_until=0))
         if changed.rowcount:
+            from app.models.native_video_charge import NativeVideoJobCharge
+            native=await db.get(NativeVideoJobCharge,job_id)
             entry=await db.get(ExecutionBudgetEntry,job_id)
-            if entry is not None:
+            if native is not None:
+                from app.services.worker.native_video_charges import release_unsent_job
+                try:await release_unsent_job(db,project_id,job_id)
+                except ValueError:raise HTTPException(409,'原生视频费用记录需要核对，任务与余额未改变') from None
+            elif entry is not None:
                 if entry.project_id!=project_id or entry.state not in {'reserved','released'}:
                     raise HTTPException(409,'预算记录需要核实，任务尚未取消')
                 if entry.state=='reserved':
@@ -81,3 +90,17 @@ async def control_job(db: AsyncSession, project_id: str, job_id: str, action: st
     status={'queued':'pending','submitting':'running','submission_unknown':'running','running':'running','downloading':'running','paused':'pending','ready':'succeeded','failed':'failed','cancelled':'cancelled'}.get(job.state,'pending')
     await db.execute(update(GenerationTask).where(GenerationTask.id==job.task_id).values(status=status,progress=100 if job.state=='ready' else 0,cancel_requested=job.cancel_requested,result={'execution_job_id':job.id,'execution_state':job.state},error=REASONS.get(job.reason,'执行失败') if job.state=='failed' else ''))
     return safe_view(job)
+
+
+@joined_database
+async def control_job_atomic(factory,project_id,job_id,action):
+    """Own cancellation/resume/pause through its writer commit and physical Session cleanup before responding."""
+    async with factory() as db:
+        try:
+            # Preserve the old read/conditional-UPDATE race contract. The first
+            # real UPDATE owns SQLite's writer through any native fee release;
+            # an intervening newer pause must still make the stale CAS lose.
+            result=await control_job(db,project_id,job_id,action)
+            await db.commit();return result
+        except BaseException:
+            await db.rollback();raise

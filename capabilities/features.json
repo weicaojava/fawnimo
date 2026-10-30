@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-10-30.4",
+  "register_version": "2026-10-30.5",
   "updated_at": "2026-10-30",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -357,6 +357,21 @@
         "F-009.03"
       ],
       "scope": "单独SQLite视觉/ASR按原项目完整预留与原请求恢复：527项含104相关，25浏览器；独立104重跑/10补测分别记录。关闭取消锁库与认领中断，原生视频、全部收费隔离、真实模型/账单/成片/公网资格不提升。"
+    },
+    {
+      "id": "EV-NATIVE-VIDEO-ACCOUNTING",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/native-video-accounting-validation.json",
+      "features": [
+        "F-001.04",
+        "F-007.01",
+        "F-007.02",
+        "F-007.03",
+        "F-009.01",
+        "F-009.03"
+      ],
+      "scope": "单独SQLite托管原生视频复用原项目单份预留、完整批次和账单关联；675主回归含224相关/42核心，22浏览器。独立42/263/9/1分记（82旧协议作者检查不在主CI），关闭两项P2。真实供应商、收费双身份、模型/成片/公网资格不提升。"
     }
   ],
   "features": [
@@ -544,7 +559,8 @@
           "EV-MODEL-ACCOUNTING",
           "EV-MODEL-RUNTIME",
           "EV-QUOTE-IDENTITY",
-          "EV-UNDERSTANDING-ACCOUNTING"
+          "EV-UNDERSTANDING-ACCOUNTING",
+          "EV-NATIVE-VIDEO-ACCOUNTING"
         ]
       },
       "deployment": {
@@ -578,7 +594,14 @@
         "backend/app/services/video_understanding/model_connections.py",
         "backend/app/services/video_understanding/admission.py",
         "backend/app/services/video_understanding/runtime.py",
-        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx"
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx",
+        "backend/app/models/native_video_charge.py",
+        "backend/app/services/worker/native_video_models.py",
+        "backend/app/services/worker/native_video_charges.py",
+        "backend/app/services/worker/native_video_charge_schema.py",
+        "backend/app/services/worker/native_video_accounting.py",
+        "backend/app/services/worker/database_operation.py",
+        "front/src/pages/aiStudio/chapter/components/ShotPlanPanel.tsx"
       ],
       "tests": [
         "backend/tests/test_identity_controlplane.py",
@@ -606,7 +629,13 @@
         "backend/tests/test_understanding_charges.py",
         "backend/tests/test_understanding_runtime_charges.py",
         "backend/tests/test_video_understanding.py",
-        "backend/tests/test_trusted_http.py"
+        "backend/tests/test_trusted_http.py",
+        "backend/tests/test_native_video_model_connections.py",
+        "backend/tests/test_native_video_project_accounting.py",
+        "backend/tests/test_native_video_planned_accounting.py",
+        "backend/tests/test_native_video_http_accounting.py",
+        "backend/tests/test_native_video_cancellation.py",
+        "backend/tests/test_native_video_api.py"
       ],
       "acceptance": [
         "A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权",
@@ -616,7 +645,7 @@
         "工作进程不继承旧主机模型/云凭据与共享Celery配置；资源及历史读取隔离证据保留。",
         "单独SQLite的文本工作流、连接测试、单张图片及原片视觉/ASR尝试已绑定提交人/原项目/连接版本/报价，原子预留、发送准备、取消/重试与采用已本机验证。",
         "固定身份网关收费仍503，可用性明确关闭；该门禁不授予全部收费执行隔离资格。",
-        "原生视频统一账单接线、A/B收费执行联合验收和真实供应商账单仍未完成。",
+        "托管原生视频已接通单份原项目预留和统一账单；A/B全部收费执行联合验收和真实供应商账单认证仍未完成。",
         "新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。"
       ],
       "depends_on": [
@@ -1713,7 +1742,8 @@
         "software": "baseline_verified",
         "model": "not_verified",
         "evidence": [
-          "EV-LOCAL-20261029"
+          "EV-LOCAL-20261029",
+          "EV-NATIVE-VIDEO-ACCOUNTING"
         ]
       },
       "deployment": {
@@ -1721,7 +1751,7 @@
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "working-tree-2026-10-30",
         "release": null
       },
       "entry": {
@@ -1730,19 +1760,33 @@
       },
       "code": [
         "backend/app/api/video_runtime_setup.py",
-        "backend/app/services/worker/workspace_video_runtime.py"
+        "backend/app/services/worker/workspace_video_runtime.py",
+        "backend/app/models/native_video_charge.py",
+        "backend/app/services/worker/native_video_models.py",
+        "backend/app/services/worker/native_video_charges.py",
+        "backend/app/services/worker/native_video_charge_schema.py",
+        "backend/app/services/worker/native_video_accounting.py",
+        "backend/app/services/worker/database_operation.py",
+        "front/src/pages/aiStudio/chapter/components/ShotPlanPanel.tsx"
       ],
       "tests": [
         "backend/tests/test_workspace_video_runtime.py",
-        "backend/tests/test_workspace_launcher.py"
+        "backend/tests/test_workspace_launcher.py",
+        "backend/tests/test_native_video_model_connections.py",
+        "backend/tests/test_native_video_project_accounting.py",
+        "backend/tests/test_native_video_planned_accounting.py",
+        "backend/tests/test_native_video_http_accounting.py",
+        "backend/tests/test_native_video_cancellation.py",
+        "backend/tests/test_native_video_api.py"
       ],
       "acceptance": [
         "未配置服务保持准备模式；下载模板默认关闭且没有密钥",
-        "专用配置和环境凭据验证通过才启用；构造、GET与浏览不发模型请求"
+        "专用配置、托管模型连接及独立命名报价核对通过才允许新生成；构造、GET与浏览不发模型请求"
       ],
       "limits": [
         "当前固定Seedance文本视频协议，不能将上游或其他账号配置当授权",
-        "新身份网关不继承旧主机视频配置，专用服务与项目费用未验收前收费提交返回503"
+        "新身份网关不继承旧主机视频配置，专用服务与项目费用未验收前收费提交返回503",
+        "应用启动使用显式托管模型与独立native_video价格；关闭新生成仍可用原未变化账号控制已封存旧任务。旧raw/env配置不自动授予新通用费用授权。"
       ],
       "depends_on": [],
       "issues": [],
@@ -1763,7 +1807,8 @@
         "model": "not_verified",
         "evidence": [
           "EV-LOCAL-20261029",
-          "EV-PROJECT-BUDGET"
+          "EV-PROJECT-BUDGET",
+          "EV-NATIVE-VIDEO-ACCOUNTING"
         ]
       },
       "deployment": {
@@ -1771,7 +1816,7 @@
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "working-tree-2026-10-30",
         "release": null
       },
       "entry": {
@@ -1781,13 +1826,26 @@
       "code": [
         "backend/app/api/video_runtime_setup.py",
         "backend/app/services/worker",
-        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx"
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx",
+        "backend/app/models/native_video_charge.py",
+        "backend/app/services/worker/native_video_models.py",
+        "backend/app/services/worker/native_video_charges.py",
+        "backend/app/services/worker/native_video_charge_schema.py",
+        "backend/app/services/worker/native_video_accounting.py",
+        "backend/app/services/worker/database_operation.py",
+        "front/src/pages/aiStudio/chapter/components/ShotPlanPanel.tsx"
       ],
       "tests": [
         "backend/tests/test_workspace_video_runtime.py",
         "backend/tests/test_execution_budget.py",
         "backend/tests/test_execution_accounting.py",
-        "backend/tests/test_project_budget.py"
+        "backend/tests/test_project_budget.py",
+        "backend/tests/test_native_video_model_connections.py",
+        "backend/tests/test_native_video_project_accounting.py",
+        "backend/tests/test_native_video_planned_accounting.py",
+        "backend/tests/test_native_video_http_accounting.py",
+        "backend/tests/test_native_video_cancellation.py",
+        "backend/tests/test_native_video_api.py"
       ],
       "acceptance": [
         "保存工程上限并刷新，用并发revision验证409保留输入",
@@ -1795,7 +1853,8 @@
       ],
       "limits": [
         "预算按项目独立管理，项目之间不占用额度；旧工作空间总上限已移除，历史控制和修改收据只读归档。",
-        "本项EV-PROJECT-BUDGET的早期验收覆盖持久视频独立预算；后续文本、图片及原片视觉/ASR费用接线见F-009.03。真实供应商账单认证仍未验收，预留或spent=0不能当成实际账单。"
+        "本项EV-PROJECT-BUDGET的早期验收覆盖持久视频独立预算；后续文本、图片及原片视觉/ASR费用接线见F-009.03。真实供应商账单认证仍未验收，预留或spent=0不能当成实际账单。",
+        "托管原生视频的共同费用identity直接复用真实job与原预留；取消、错误、ready均不代替供应商账单证据。"
       ],
       "depends_on": [],
       "issues": [],
@@ -1815,7 +1874,8 @@
         "software": "baseline_verified",
         "model": "not_verified",
         "evidence": [
-          "EV-LOCAL-20261029"
+          "EV-LOCAL-20261029",
+          "EV-NATIVE-VIDEO-ACCOUNTING"
         ]
       },
       "deployment": {
@@ -1823,7 +1883,7 @@
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "working-tree-2026-10-30",
         "release": null
       },
       "entry": {
@@ -1833,11 +1893,24 @@
       "code": [
         "backend/app/api/execution.py",
         "backend/app/services/worker",
-        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ExecutionJobsPanel.tsx"
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ExecutionJobsPanel.tsx",
+        "backend/app/models/native_video_charge.py",
+        "backend/app/services/worker/native_video_models.py",
+        "backend/app/services/worker/native_video_charges.py",
+        "backend/app/services/worker/native_video_charge_schema.py",
+        "backend/app/services/worker/native_video_accounting.py",
+        "backend/app/services/worker/database_operation.py",
+        "front/src/pages/aiStudio/chapter/components/ShotPlanPanel.tsx"
       ],
       "tests": [
         "backend/tests/test_workspace_video_pipeline.py",
-        "backend/tests/test_execution_http_integration.py"
+        "backend/tests/test_execution_http_integration.py",
+        "backend/tests/test_native_video_model_connections.py",
+        "backend/tests/test_native_video_project_accounting.py",
+        "backend/tests/test_native_video_planned_accounting.py",
+        "backend/tests/test_native_video_http_accounting.py",
+        "backend/tests/test_native_video_cancellation.py",
+        "backend/tests/test_native_video_api.py"
       ],
       "acceptance": [
         "明确预览hash/金额后用实际本地HTTP提交，重复相同意图只返回原任务",
@@ -1845,7 +1918,8 @@
       ],
       "limits": [
         "软件夹具不是真实视频模型；当前无参考输入、无生成音频",
-        "新身份网关收费提交当前被拒绝；历史本地软件协议通过不能升级空间执行资格"
+        "新身份网关收费提交当前被拒绝；历史本地软件协议通过不能升级空间执行资格",
+        "原提交保存原项目/计划/镜头/确认/fingerprint；当前单镜UI可在刷新、额度用满、dirty和关闭新生成后精确核对。内部整批服务不等于已开放批量界面。"
       ],
       "depends_on": [],
       "issues": [],
@@ -2200,7 +2274,8 @@
         "model": "not_verified",
         "evidence": [
           "EV-LOCAL-20261029",
-          "EV-UNDERSTANDING-ACCOUNTING"
+          "EV-UNDERSTANDING-ACCOUNTING",
+          "EV-NATIVE-VIDEO-ACCOUNTING"
         ]
       },
       "deployment": {
@@ -2225,7 +2300,13 @@
         "backend/tests/test_llm_manage.py",
         "backend/tests/test_llm_resolver.py",
         "backend/tests/test_understanding_model_connections.py",
-        "backend/tests/test_llm_api_responses.py"
+        "backend/tests/test_llm_api_responses.py",
+        "backend/tests/test_native_video_model_connections.py",
+        "backend/tests/test_native_video_project_accounting.py",
+        "backend/tests/test_native_video_planned_accounting.py",
+        "backend/tests/test_native_video_http_accounting.py",
+        "backend/tests/test_native_video_cancellation.py",
+        "backend/tests/test_native_video_api.py"
       ],
       "acceptance": [
         "保存供应商、模型、参数和分类默认值再刷新验证",
@@ -2234,7 +2315,8 @@
       "limits": [
         "新18000模型/连接存私有空间且不继承旧凭据；配置CRUD不代表收费生成已开放",
         "供应商支持范围和真实账号质量须分协议核验",
-        "音频类别当前供明确逐段转写选择；不回退到视频默认模型，不因此取得声音生成或真实模型资格。"
+        "音频类别当前供明确逐段转写选择；不回退到视频默认模型，不因此取得声音生成或真实模型资格。",
+        "明确标记受限原生视频用途；保存开关不发请求。费用来自独立native_video报价，不使用旧环境key或手填视频金额授予执行。"
       ],
       "depends_on": [],
       "issues": [],
@@ -2307,7 +2389,8 @@
           "EV-MODEL-ACCOUNTING",
           "EV-MODEL-RUNTIME",
           "EV-QUOTE-IDENTITY",
-          "EV-UNDERSTANDING-ACCOUNTING"
+          "EV-UNDERSTANDING-ACCOUNTING",
+          "EV-NATIVE-VIDEO-ACCOUNTING"
         ]
       },
       "deployment": {
@@ -2343,7 +2426,14 @@
         "backend/app/services/video_understanding/model_connections.py",
         "backend/app/services/video_understanding/admission.py",
         "backend/app/services/video_understanding/runtime.py",
-        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx"
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx",
+        "backend/app/models/native_video_charge.py",
+        "backend/app/services/worker/native_video_models.py",
+        "backend/app/services/worker/native_video_charges.py",
+        "backend/app/services/worker/native_video_charge_schema.py",
+        "backend/app/services/worker/native_video_accounting.py",
+        "backend/app/services/worker/database_operation.py",
+        "front/src/pages/aiStudio/chapter/components/ShotPlanPanel.tsx"
       ],
       "tests": [
         "backend/tests/test_execution_budget.py",
@@ -2369,7 +2459,13 @@
         "backend/tests/test_understanding_charges.py",
         "backend/tests/test_understanding_runtime_charges.py",
         "backend/tests/test_video_understanding.py",
-        "backend/tests/test_trusted_http.py"
+        "backend/tests/test_trusted_http.py",
+        "backend/tests/test_native_video_model_connections.py",
+        "backend/tests/test_native_video_project_accounting.py",
+        "backend/tests/test_native_video_planned_accounting.py",
+        "backend/tests/test_native_video_http_accounting.py",
+        "backend/tests/test_native_video_cancellation.py",
+        "backend/tests/test_native_video_api.py"
       ],
       "acceptance": [
         "项目分别设置上限并原子预留，不能超本项目预算；项目之间互不占额度，旧总上限规则完全停用。",
@@ -2377,9 +2473,9 @@
       ],
       "limits": [
         "项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。",
-        "文本工作流/连接测试/单张图片/原片视觉与ASR实际执行已接受信协议上界、原项目预留、私有请求证据和人工规范化账单；采用不再次预留。",
-        "原生视频统一账单接线未完成；更正、退款和多义请求仍未决。CSV或哈希不认证真实供应商，provider_bill_verified=false。",
-        "身份网关收费仍关闭；本轮付费上限未获确认，旧样片预算不能沿用。",
+        "文本工作流/连接测试/单张图片/原片视觉、ASR与托管原生视频实际执行已接受信协议上界、原项目预留、私有请求证据和人工规范化账单；采用不再次预留。",
+        "原生视频复用实际job预留并接通账单；更正、退款和多义请求仍未决。CSV或哈希不认证真实供应商，provider_bill_verified=false。",
+        "身份网关收费仍关闭；用户本轮明确不授权付费，旧样片预算不能沿用。",
         "新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。"
       ],
       "depends_on": [
@@ -3291,7 +3387,7 @@
       ],
       "limits": [
         "GitHub源码已公开，保留Jellyfish许可证和Git历史；私人素材与本机证据不在公开源码中",
-        "本功能只验证源码发布；应用公网部署仍为not_deployed，原生视频通用账单、正式迁移切换和社区研发仍按各自门槛验收"
+        "本功能只验证源码发布；应用公网部署仍为not_deployed，全部收费执行隔离、正式迁移切换和社区研发仍按各自门槛验收"
       ],
       "depends_on": [
         "F-015.01",
@@ -3626,7 +3722,7 @@
         "迁移/备份/回退报告",
         "原数据完整性与后台执行绑定证据"
       ],
-      "progress": "项目预算、资源隔离与离线迁移保留；文本/连接测试/图片及原片视觉/ASR按原项目接入费用。527项含104相关、25浏览器，独立104/10分记；取消锁库和认领中断已关闭。原生视频统一账单、全部收费隔离、正式切换仍待完成。"
+      "progress": "六种有界单独SQLite调用已接原项目费用；托管原生视频复用实际job单份预留与账单、完整批次及原账号控制。675项含224相关/42核心，22浏览器；独立42/263/9/1分记。收费A/B联合验收、真实账单认证与正式迁移切换仍待完成。"
     },
     {
       "id": "C",
@@ -3668,7 +3764,7 @@
         "各真实模型与费用验证单",
         "完整成片检查表和限制"
       ],
-      "progress": "原片理解已改为模型管理中的显式视觉/语音协议、完整项目预留和可恢复原尝试；仅完成此有界软件步骤。剧本生成、参考条件、声音制作、真实模型与完整成片等其余D项仍按功能登记推进。"
+      "progress": "原片理解与受限原生文生视频的软件费用/恢复链已接通；不代表真实模型或完整成片通过。剧本生成、参考条件、声音制作及其余D项继续按功能登记推进；本轮不授权付费测试。"
     },
     {
       "id": "E",
@@ -3760,10 +3856,10 @@
     "缺失检查、旧PR版本、独立审核失败或费用/资源超限不晋级；失败有明确结果与有限恢复。"
   ],
   "current_state": {
-    "overview": "资源隔离、项目预算及离线迁移副本演练保留；文本/连接测试/单张图片/原片视觉与ASR已接单独运行器的项目费用。原生视频统一账单、全部收费隔离、社区研发、完整成片与公网仍待完成。",
+    "overview": "资源隔离、项目预算与离线迁移副本演练保留；文本/连接测试/图片/视觉/ASR/托管原生视频六类有界单独调用已接原项目费用。全部收费身份隔离、社区研发、完整成片与公网仍待完成。",
     "acceptance_setup": "使用独立验收数据和本机A/B账号。项目大厅可建立/重置纯自作7镜、21条可编辑提示词示例；每次重建新工程保留旧编辑，同一请求恢复返回原结果。本机入口与账号交付已可复验，尚无公网平台。",
-    "readme_status": "身份、个人空间、示例与项目预算可用；单独SQLite文本/连接测试/图片及原片视觉/ASR接完整项目预留与原请求恢复。身份收费网关仍关闭；原生视频账单、社区研发、成片及公网继续推进。",
-    "verification_checkpoint": "527项最终选定回归含104相关、25浏览器；独立104重跑与10补测分记。视觉/ASR费用、取消锁库及认领中断修复；真实账单、全部收费隔离、模型/成片/公网资格不提升。",
+    "readme_status": "身份、个人空间、示例和项目预算可用；六种有界单独SQLite协议接完整原项目预留、账单证据与原请求恢复。身份收费网关仍关闭，全部收费隔离、社区研发、成片与公网继续推进。",
+    "verification_checkpoint": "675项最终主回归含224相关/42原生核心，22浏览器；独立42核心/263旧链/9补测/1环境不与主回归相加，其中82旧协议作者检查不在主CI。两项P2已关闭；真实收费/账单、全部身份执行、模型/成片/公网资格不提升。",
     "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {

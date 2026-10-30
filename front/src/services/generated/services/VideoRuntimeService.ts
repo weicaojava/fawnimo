@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ApiResponse_list_NativeVideoModelChoice__ } from '../models/ApiResponse_list_NativeVideoModelChoice__';
 import type { ApiResponse_ProjectBudgetPage_ } from '../models/ApiResponse_ProjectBudgetPage_';
 import type { ApiResponse_ProjectBudgetRead_ } from '../models/ApiResponse_ProjectBudgetRead_';
 import type { ApiResponse_VideoExecutionPlanPreview_ } from '../models/ApiResponse_VideoExecutionPlanPreview_';
@@ -11,6 +12,18 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class VideoRuntimeService {
+    /**
+     * List Native Video Models
+     * List explicitly marked native choices and named quotes without keys, transport construction or network requests.
+     * @returns ApiResponse_list_NativeVideoModelChoice__ Successful Response
+     * @throws ApiError
+     */
+    public static listNativeVideoModels(): CancelablePromise<ApiResponse_list_NativeVideoModelChoice__> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/video-runtime/models',
+        });
+    }
     /**
      * Get Video Runtime Setup
      * Read availability without touching credentials, accepting jobs or returning private paths.

@@ -13,7 +13,7 @@ const exactMoney = (minor: string) => {
   return `${negative ? '-' : ''}${digits.slice(0, -2)}.${digits.slice(-2)} 元`
 }
 const states = { reserved: '已预留', unknown: '待核实，保留额度', released: '已释放', settled: '账本已结算' }
-const callLabels = { agent_text: '文本工作流', model_connection_test: '连接测试', asset_image: '图片候选', video_vision: '视频理解', video_asr: '语音转写' }
+const callLabels = { agent_text: '文本工作流', model_connection_test: '连接测试', asset_image: '图片候选', video_vision: '视频理解', video_asr: '语音转写', native_video: '原生视频' }
 /** Explain each ledger row without exposing a private provider request identifier. */
 const sourceLabel = (row: ProjectBudgetEntryRead) => row.source === 'model_call' ? row.call_kind ? callLabels[row.call_kind] : '模型调用'
   : row.source === 'bill_adjustment' ? '账单差额' : row.source === 'durable_video' ? '视频任务' : '来源待核对'

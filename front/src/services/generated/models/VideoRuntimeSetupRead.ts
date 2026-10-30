@@ -20,5 +20,8 @@ export type VideoRuntimeSetupRead = {
     output_description: string;
     real_model_qualified?: boolean;
     legacy_actions_available?: boolean;
+    managed_model_id?: (string | null);
+    price_fingerprint?: (string | null);
+    original_control_available?: boolean;
 };
 

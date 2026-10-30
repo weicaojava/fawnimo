@@ -42,7 +42,7 @@ reject('path_traversal',lambda d:find(d,'F-002.01').update(code=['../private.db'
 reject('absolute_private_path',lambda d:find(d,'F-002.01').update(code=['C:/private.db']))
 reject('unscoped_evidence',lambda d:find(d,'F-002.01')['validation'].update(evidence=['EV-REGISTER-CHECK']))
 reject('model_qualification_without_live_evidence',lambda d:find(d,'F-007.03')['validation'].update(model='verified'))
-reject('software_qualification_without_current_evidence',lambda d:find(d,'F-007.03')['validation'].update(software='verified'))
+reject('software_qualification_without_current_evidence',lambda d:find(d,'F-007.03')['validation'].update(software='verified',evidence=['EV-LOCAL-20261029']))
 reject('planned_feature_cannot_be_accepted',lambda d:find(d,'F-013.01')['validation'].update(software='verified'))
 reject('planned_feature_cannot_be_deployed',lambda d:find(d,'F-013.01')['deployment'].update(status='local_only'))
 reject('public_deployment_without_evidence',lambda d:find(d,'F-002.01')['deployment'].update(status='public_verified',url='https://studio.example.org'))

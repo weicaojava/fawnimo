@@ -86,6 +86,44 @@ def configuration_template() -> dict:
     return VideoRuntimeConfiguration().model_dump(mode='json')
 
 
+async def build_managed_video_runtime(factory,filename,price_registry,*,trusted_local_host=None,trusted_local_port=None,transport_factory=Seedance25DurableTransport):
+    """Compose the application runtime from an explicit saved model and shared prices; legacy raw-key files cannot grant new execution.
+
+    Disabling new submissions still permits only sealed original native jobs to
+    query their proven unchanged account. Workspace import locks remain enforced
+    by the application's lifecycle and are never overridden here.
+    """
+    from app.services.worker.native_video_accounting import NativeVideoAccounting
+    if not filename:return None,setup_projection()
+    try:
+        path=Path(filename).expanduser()
+        if path.is_symlink() or path.resolve()!=path.absolute() or not path.is_file() or path.stat().st_size>16384:raise ValueError()
+        with path.open('rb') as stream:raw=stream.read(16385)
+        if len(raw)>16384:raise ValueError()
+        config=VideoRuntimeConfiguration.model_validate_json(raw)
+    except Exception:
+        return None,setup_projection(issue_code='invalid_configuration',message='视频服务配置文件无效，请核对本地模板。')
+    if config.model_id is None:
+        return None,setup_projection(config,issue_code='managed_model_required',message='请选择模型库中明确配置的原生视频模型；旧环境凭据与手填费用不授予新执行权限。')
+    accountant=NativeVideoAccounting(factory,config,price_registry,trusted_local_host=trusted_local_host,
+        trusted_local_port=trusted_local_port,transport_factory=transport_factory)
+    policies={};ready=False;quote=None;issue='disabled';message='新生成已关闭；只允许原任务使用未变化的原账号继续查询。'
+    if config.enabled:
+        try:
+            async with factory() as db:_connection,quote,_profile,policy=await accountant.current(db)
+            policies={MODEL_ID:policy};ready=True;issue='configured';message='托管模型与完整项目费用已登记；只有明确确认后才接受新任务。'
+        except HTTPException:
+            issue='managed_connection_or_price_required';message='模型连接或原生视频受信价格需要核对；新生成关闭，原任务只读控制保留。'
+        except (ValueError,TypeError):
+            issue='invalid_credentials_or_profile';message='执行服务配置版本无效，新生成保持关闭。'
+    runtime=ExecutionRuntime(DurableExecution(None,factory=factory,native_accounting=accountant),policies,
+        allow_submission=ready,allow_original_control=True)
+    view=setup_projection(config,issue_code=issue,message=message,credential_present=ready)
+    view.update(managed_model_id=config.model_id,price_fingerprint=quote.fingerprint if quote else None,
+        quote_minor=quote.max_call_minor if quote else None,quote_note=quote.source_note if quote else '',original_control_available=True)
+    return runtime,view
+
+
 async def read_project_budget(db, project_id: str) -> ProjectBudgetRead:
     """Read current accounting with explicit unsettled/unknown holds and no external requests."""
     await project_read_snapshot(db)

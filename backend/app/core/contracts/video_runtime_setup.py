@@ -5,11 +5,24 @@ from app.core.contracts.shot_plan import PlanIssue
 from app.core.contracts.model_accounting import ModelCallKind
 
 
+class NativeVideoModelChoice(BaseModel):
+    """Expose explicitly supported managed native-video metadata and pricing without reading any credential value."""
+    id: str
+    name: str
+    provider_name: str
+    configured: bool
+    message: str
+    priced: bool = False
+    max_call_minor: int | None = None
+    price_fingerprint: str | None = None
+
+
 class VideoRuntimeConfiguration(BaseModel):
     """A server-owned configuration file; project imports cannot supply credentials or origins."""
     model_config = ConfigDict(extra='forbid')
     schema_version: Literal[1] = 1
     enabled: StrictBool = False
+    model_id: str | None = Field(default=None,min_length=1,max_length=64)
     credential_env: str = Field('JELLYFISH_VIDEO_API_KEY', pattern=r'^[A-Z][A-Z0-9_]{2,127}$')
     service_version: str = Field('workspace-seedance-v1', pattern=r'^[A-Za-z0-9_-]{1,128}$')
     account_version: str = Field('workspace-account-v1', pattern=r'^[A-Za-z0-9_-]{1,128}$')
@@ -34,6 +47,9 @@ class VideoRuntimeSetupRead(BaseModel):
     output_description: str
     real_model_qualified: Literal[False] = False
     legacy_actions_available: Literal[False] = False
+    managed_model_id: str | None = None
+    price_fingerprint: str | None = None
+    original_control_available: bool = False
 
 
 class ProjectBudgetWrite(BaseModel):

@@ -40,10 +40,11 @@ def test_marked_workspace_gets_only_its_fixed_private_price_file(tmp_path,monkey
         directory=marked(tmp_path,identity)
         private=directory/'private';private.mkdir()
         (private/'model-prices.json').write_text(json.dumps({'schema_version':1,'enabled':False,'rules':[]}),encoding='utf-8')
-    monkeypatch.setattr(os,'environ',{**os.environ,'MODEL_PRICE_CONFIG':'untrusted-inherited-pricing','FUTURE_MODEL_KEY':'inert-fixture-key'})
+    monkeypatch.setattr(os,'environ',{**os.environ,'MODEL_PRICE_CONFIG':'untrusted-inherited-pricing','VIDEO_RUNTIME_CONFIG':'untrusted-inherited-native','FUTURE_MODEL_KEY':'inert-fixture-key'})
     database,workspace,port=configure_worker(startup(tmp_path,space))
     assert workspace==space and database.parent==tmp_path/space
     assert os.environ['MODEL_PRICE_CONFIG']==str(tmp_path/space/'private'/'model-prices.json')
+    assert os.environ['VIDEO_RUNTIME_CONFIG']==str(tmp_path/space/'private'/'native-video.json')
     assert 'FUTURE_MODEL_KEY' not in os.environ and os.environ['WORKSPACE_RUNTIME_LOCKED']=='false'
     with pytest.raises(ValueError):
         configure_worker({**startup(tmp_path,space),'model_price_config':'another.json'})
@@ -56,6 +57,7 @@ def test_imported_execution_lock_does_not_load_even_a_present_private_price_file
     monkeypatch.setattr(os,'environ',{**os.environ,'MODEL_PRICE_CONFIG':'inherited'})
     configure_worker(startup(tmp_path,SPACE_A))
     assert os.environ['WORKSPACE_RUNTIME_LOCKED']=='true' and os.environ['MODEL_PRICE_CONFIG']==''
+    assert 'VIDEO_RUNTIME_CONFIG' not in os.environ
 
 
 def test_redirected_private_pricing_directory_is_rejected_before_environment_or_file_use(tmp_path,monkeypatch):

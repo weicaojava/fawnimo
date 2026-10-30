@@ -2,7 +2,7 @@
 import json
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
-from app.core.contracts.video_runtime_setup import ProjectBudgetRead, ProjectBudgetWrite, ProjectBudgetPage, VideoRuntimeSetupRead, VideoExecutionPlanPreview
+from app.core.contracts.video_runtime_setup import NativeVideoModelChoice, ProjectBudgetRead, ProjectBudgetWrite, ProjectBudgetPage, VideoRuntimeSetupRead, VideoExecutionPlanPreview
 from app.config import settings
 from app.core.db import async_session_maker
 from app.schemas.common import ApiResponse, success_response
@@ -15,6 +15,15 @@ router = APIRouter(prefix='/video-runtime', tags=['video-runtime'])
 def get_video_setup_factory():
     """Resolve the application database while allowing isolated API verification."""
     return async_session_maker
+
+
+@router.get('/models',response_model=ApiResponse[list[NativeVideoModelChoice]],operation_id='list_native_video_models')
+async def list_native_video_models(request:Request,factory=Depends(get_video_setup_factory)):
+    """List explicitly marked native choices and named quotes without keys, transport construction or network requests."""
+    from app.services.worker.native_video_models import choices
+    accountant=getattr(getattr(getattr(request.app.state,'execution_runtime',None),'worker',None),'native_accounting',None)
+    async with factory() as db:
+        return success_response(await choices(db,getattr(request.app.state,'model_prices',None),**(accountant.network if accountant else {})))
 
 
 @router.get('/setup', response_model=ApiResponse[VideoRuntimeSetupRead], operation_id='get_video_runtime_setup')

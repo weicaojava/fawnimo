@@ -67,6 +67,14 @@ async def change_balance(db, budget, reserved_delta: int, spent_delta: int):
         raise BudgetError('Insufficient budget or stale revision')
 
 
+async def native_fee_exists(db,job_id):
+    """Preserve the old two-table ledger helper while rejecting any actual native common charge or retained native link."""
+    names=set((await db.scalars(text("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('native_video_job_charges','model_call_charges')"))).all())
+    if 'native_video_job_charges' in names and await db.scalar(text('SELECT 1 FROM native_video_job_charges WHERE job_id=:job LIMIT 1'),{'job':job_id}):return True
+    if 'model_call_charges' in names and await db.scalar(text("SELECT 1 FROM model_call_charges WHERE id=:job AND kind='native_video' LIMIT 1"),{'job':job_id}):return True
+    return False
+
+
 async def reserve(db, project_id: str, job_id: str, quote_minor: int, currency: str):
     """Reserve once by job; changed quotes or currency/project reuse are conflicts."""
     amount(quote_minor)
@@ -97,6 +105,8 @@ async def finish(db, project_id: str, job_id: str, action: str, actual_minor=Non
     if action == 'settle':
         amount(actual_minor)
     async with transaction(db):
+        if await native_fee_exists(db,job_id):
+            raise BudgetError('Common native fees cannot use legacy accounting completion')
         entry = await db.get(ExecutionBudgetEntry, job_id)
         if entry is None or entry.project_id != project_id:
             raise BudgetError('Project-owned reservation required')

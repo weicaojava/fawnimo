@@ -188,7 +188,17 @@ async def list_jobs(db,project_id,plan_id):
     return result
 
 
-async def admit_planned_shot(factory,project_id,plan_id,shot_id,request_key,runtime=None):
+async def admit_planned_shot(factory,project_id,plan_id,shot_id,request_key,runtime=None,*,submitted_by='local_operator',confirmed=False,price_fingerprint=None):
     """Expose the one trusted planned admission service without circular import initialization."""
     from app.services.shot_plan.admission import admit_planned_shot as admit
+    from app.services.worker.native_video_accounting import identity,recover_request
+    selection={'kind':'plan','plan_id':plan_id,'shot_ids':[shot_id]}
+    accountant=getattr(getattr(runtime,'worker',None),'native_accounting',None)
+    if accountant is not None:
+        if accountant.factory is not factory:raise HTTPException(503,'原生视频运行配置与当前数据库不一致，未接受调用')
+        accepted=await accountant.admit(project_id,request_key,selection,submitted_by=submitted_by,confirmed=confirmed,
+            price_fingerprint=price_fingerprint,runtime=runtime)
+        return accepted['job_ids'][0]
+    old=await recover_request(factory,project_id,request_key,identity(project_id,submitted_by,selection,price_fingerprint,confirmed=confirmed))
+    if old:return old['job_ids'][0]
     return await admit(factory,project_id,plan_id,shot_id,request_key,runtime)

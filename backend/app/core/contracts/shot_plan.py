@@ -2,6 +2,7 @@
 from typing import Annotated,Literal
 from pydantic import BaseModel,ConfigDict,Field,StrictInt
 from app.core.contracts.script_preparation import ScriptDocument
+from app.core.contracts.native_video_accounting import NativeVideoConfirmation
 
 ID=Annotated[str,Field(pattern=r'^[a-zA-Z0-9_-]{1,64}$')]
 
@@ -44,8 +45,8 @@ class PlanCompile(StrictInput):
     expected_revision:Annotated[StrictInt,Field(ge=1)]
 
 
-class PlannedSubmission(StrictInput):
-    """Only a recovery identity is client supplied; plan inputs come from the server."""
+class PlannedSubmission(StrictInput,NativeVideoConfirmation):
+    """Confirm exact managed project charges and a recovery identity; immutable plan inputs remain server-owned."""
     request_key:str=Field(min_length=1,max_length=128)
 
 

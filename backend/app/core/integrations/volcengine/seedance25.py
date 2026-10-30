@@ -99,13 +99,14 @@ class Seedance25DurableTransport:
     use the existing isolated child transport; no project payload can supply it.
     """
 
-    def __init__(self, config: Seedance25Configuration, *, requester=None, clock=time.time):
+    def __init__(self, config: Seedance25Configuration, *, requester=None, clock=time.time,on_submission_response=None):
         """Keep configuration in memory; constructing the adapter performs no I/O."""
         if not isinstance(config, Seedance25Configuration):
             raise TypeError('Trusted S25A configuration required')
         self.config = config
         self._requester = requester
         self._clock = clock
+        self._on_submission_response=on_submission_response
 
     async def _http(self, url: str, **options) -> HttpResult:
         """Hide upstream exceptions while preserving real cancellation cleanup."""
@@ -147,6 +148,13 @@ class Seedance25DurableTransport:
             timeout=15, max_bytes=65536, max_redirects=0,
             **self._network_options(frozenset({self.config.control_host})),
         )
+        if method=='POST' and path==CREATE_PATH and self._on_submission_response is not None:
+            # Only a real create-response header supplies bill matching evidence.
+            # The body task handle is a separate control identity, including on errors.
+            values=[value for key,value in response.headers.items() if isinstance(key,str) and key.lower()=='x-request-id'] if isinstance(response.headers,dict) else []
+            request_id=values[0] if len(values)==1 else None
+            if not isinstance(request_id,str) or not re.fullmatch(r'[A-Za-z0-9_.:-]{1,128}',request_id) or self.config.api_key in request_id:request_id=None
+            await self._on_submission_response(request_id)
         if type(response.status) is not int:
             raise Seedance25ProtocolError('Invalid provider HTTP status')
         if response.status == 429 and query_backoff:
@@ -180,7 +188,7 @@ class Seedance25DurableTransport:
 
     async def _getmeta(self, remote_id: str) -> dict:
         """Query the original exact identity/model and enforce provider status shape."""
-        if not valid_remote_id(remote_id):
+        if not valid_remote_id(remote_id) or self.config.api_key in remote_id:
             raise Seedance25ProtocolError('Invalid provider identity')
         result = await self._control(CREATE_PATH + '/' + quote(remote_id, safe=''),
                                      query_backoff=True)
@@ -201,7 +209,7 @@ class Seedance25DurableTransport:
             raise RejectedSubmission('Unsupported local S25A request') from None
         result = await self._control(CREATE_PATH, method='POST', body=body)
         remote_id = result.get('id')
-        if not valid_remote_id(remote_id):
+        if not valid_remote_id(remote_id) or self.config.api_key in remote_id:
             raise Seedance25ProtocolError('Missing or invalid provider identity')
         return remote_id
 

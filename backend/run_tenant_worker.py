@@ -76,13 +76,16 @@ def configure_worker(message: dict) -> tuple[Path, str, int]:
         if not probe_path.is_file():
             raise ValueError("Media executable must be a file")
         probe = str(probe_path)
-    price_file=None
+    price_file=None;native_video_file=None
     if marked and not imported:
         private=directory/'private'
         candidate=private/'model-prices.json'
         if private.resolve()!=private or candidate.resolve()!=candidate:
             raise ValueError('Workspace model pricing cannot redirect')
         price_file=str(candidate)
+        native=private/'native-video.json'
+        if native.resolve()!=native:raise ValueError('Workspace native video setup cannot redirect')
+        native_video_file=str(native)
     # The second allowlist protects direct launcher use as well as gateway spawn.
     # It prevents future inherited credential names from bypassing a denylist.
     kept = {key: value for key, value in os.environ.items() if key.upper() in SAFE_ENVIRONMENT_KEYS}
@@ -104,6 +107,7 @@ def configure_worker(message: dict) -> tuple[Path, str, int]:
         # No shared Celery endpoint is usable by a private workspace worker.
         "CELERY_BROKER_URL": "memory://", "REDIS_HOST": "127.0.0.1",
     })
+    if native_video_file is not None:os.environ['VIDEO_RUNTIME_CONFIG']=native_video_file
     (directory / "media").mkdir(exist_ok=True)
     (directory / "files").mkdir(exist_ok=True)
     return database, workspace_id, port

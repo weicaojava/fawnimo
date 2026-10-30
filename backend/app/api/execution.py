@@ -1,10 +1,10 @@
 """Execution inspection and explicit controls, with no submission/execution route."""
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession,async_sessionmaker
 from app.dependencies import get_db
 from app.schemas.common import ApiResponse, success_response
-from app.services.worker.execution_queries import control_job, list_jobs, safe_view, scoped_job
+from app.services.worker.execution_queries import control_job_atomic, list_jobs, safe_view, scoped_job
 
 router=APIRouter(prefix='/execution/projects/{project_id}/jobs',tags=['execution'])
 
@@ -39,16 +39,16 @@ async def get_execution_job(project_id: str, job_id: str, db: AsyncSession=Depen
 @router.post('/{job_id}/pause',response_model=ApiResponse[ExecutionRead])
 async def pause_execution_job(project_id: str, job_id: str, db: AsyncSession=Depends(get_db, scope='function')):
     """暂停后续查询或下载；正在执行的一步需先结束。"""
-    return success_response(await control_job(db,project_id,job_id,'pause'))
+    return success_response(await control_job_atomic(async_sessionmaker(db.bind,expire_on_commit=False,autoflush=False),project_id,job_id,'pause'))
 
 
 @router.post('/{job_id}/resume',response_model=ApiResponse[ExecutionRead])
 async def resume_execution_job(project_id: str, job_id: str, db: AsyncSession=Depends(get_db, scope='function')):
     """仅恢复已暂停任务的查询或下载，不创建或重新提交请求。"""
-    return success_response(await control_job(db,project_id,job_id,'resume'))
+    return success_response(await control_job_atomic(async_sessionmaker(db.bind,expire_on_commit=False,autoflush=False),project_id,job_id,'resume'))
 
 
 @router.post('/{job_id}/cancel',response_model=ApiResponse[ExecutionRead])
 async def cancel_execution_job(project_id: str, job_id: str, db: AsyncSession=Depends(get_db, scope='function')):
     """记录取消意图；已提交任务需等待远端确认，提交前可本地取消。"""
-    return success_response(await control_job(db,project_id,job_id,'cancel'))
+    return success_response(await control_job_atomic(async_sessionmaker(db.bind,expire_on_commit=False,autoflush=False),project_id,job_id,'cancel'))

@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Alert, AutoComplete, Button, Card, Collapse, Drawer, Empty, Input, List, Modal, Select, Space, Table, Tag, message } from 'antd'
 import { Link, useNavigate } from 'react-router-dom'
 import { ExecutionService, ScriptPreparationService, ShotPlansService as S, VideoRuntimeService as V } from '../../../../services/generated'
-import type { CompiledPlanRead, PlanCatalog, PlanDocument, PlanPreflight, PlanRead, PlannedJobRead, PlanVersionOption, ScriptCatalog, Seedance25PlanPreview, Seedance25ProfileRead, VideoExecutionPlanPreview, VideoRuntimeSetupRead } from '../../../../services/generated'
+import type { CompiledPlanRead, PlanCatalog, PlanDocument, PlanPreflight, PlanRead, PlannedJobRead, PlannedSubmission, PlanVersionOption, ScriptCatalog, Seedance25PlanPreview, Seedance25ProfileRead, VideoExecutionPlanPreview, VideoRuntimeSetupRead } from '../../../../services/generated'
+import { chargeMoney, readProjectCharge } from '../../project/ProjectChargePicker'
 import { resolveAssetUrl } from '../../assets/utils'
 import { useTaskUiStore } from '../../components/taskUiStore'
 
@@ -12,6 +13,7 @@ type Entry = { shot_id: string; duration_ms: number; entry_hash: string; request
 const kindNames: Record<string, string> = { character: '角色', scene: '场景', appearance: '服装', voice: '声线', prop: '道具' }
 const stateNames: Record<string, string> = { queued: '等待执行', submitting: '正在提交', submission_unknown: '等待核对受理', running: '生成中', downloading: '接收结果', ready: '候选已接收', failed: '失败', cancelled: '已取消', paused: '已暂停' }
 const SEEDANCE25_MODEL_ID = 'doubao-seedance-2-5-260628'
+type NativeIntent = { schema: 1; projectId: string; chapterId: string; planId: string; shotId: string; projectName: string; upperMinor: number; body: PlannedSubmission }
 
 /** Keep an empty saved draft useful even before a publication or account exists. */
 function emptyDocument(): PlanDocument { return { schema_version: 1, script_snapshot_id: null, model_id: '', shots: [] } }
@@ -73,6 +75,9 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
   const [error, setError] = useState('')
   const [jsonOpen, setJsonOpen] = useState(false)
   const [keyRevision, setKeyRevision] = useState(0)
+  const [nativeIntent, setNativeIntent] = useState<NativeIntent | null>(null)
+  const nativeOperation = useRef(false)
+  const nativeIntentKey = `jellyfish:native-planned-intent:${projectId}:${chapterId}`
   const identity = useRef({ projectId, chapterId, open })
   const contextEpoch = useRef(0)
   const contextKey = useRef('')
@@ -169,10 +174,23 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
   }
 
   useEffect(() => {
-    setDraft(null); setPlan(null); setPreflight(null); setJobs([]); setCatalog(null); setDirty(false); setJsonOpen(false); setProfile(null); setProfileError(''); setWirePreview(null); setWireError(''); setWireOpen(false)
+    setBusy(false); setDraft(null); setPlan(null); setPreflight(null); setJobs([]); setCatalog(null); setDirty(false); setJsonOpen(false); setProfile(null); setProfileError(''); setWirePreview(null); setWireError(''); setWireOpen(false)
     if (open) void load()
     else { request.current++; confirmation.current?.destroy(); setBusy(false); setLoading(false) }
     return () => { request.current++; confirmation.current?.destroy() }
+  }, [projectId, chapterId, open])
+
+  useEffect(() => {
+    nativeOperation.current = false; setNativeIntent(null)
+    if (!open) return
+    try {
+      const saved = workspaceStorage.getItem(nativeIntentKey)
+      if (saved) {
+        const value = JSON.parse(saved) as NativeIntent
+        if (value.schema !== 1 || value.projectId !== projectId || value.chapterId !== chapterId || !value.planId || !value.shotId || !value.body?.request_key || value.body.confirm_project_charges !== true || !/^[a-f0-9]{64}$/.test(value.body.expected_price_fingerprint ?? '') || !Number.isSafeInteger(value.upperMinor) || value.upperMinor <= 0) throw new Error('Invalid native intent')
+        setNativeIntent(value)
+      }
+    } catch { setError('无法读取原视频提交记录，请先在任务历史核查是否已经建立任务。') }
   }, [projectId, chapterId, open])
 
   useEffect(() => {
@@ -274,11 +292,66 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
 
   /** Persist one recovery identity before sending; never silently retry under a new key. */
   function storedKey(shotId: string) {
+    if (isSeedance25Plan(plan)) return ''
     try { return workspaceStorage.getItem(`jellyfish:planned-submit:${projectId}:${plan?.id}:${shotId}`) ?? '' } catch { return '' }
+  }
+
+  /** Send only the frozen original project/path/body, independently of edits, current prices or current plan selection. */
+  async function sendNativeIntent(intent: NativeIntent) {
+    if (!current() || nativeOperation.current || intent.projectId !== projectId || intent.chapterId !== chapterId) return
+    nativeOperation.current = true; setBusy(true); setError('')
+    try {
+      workspaceStorage.setItem(nativeIntentKey, JSON.stringify(intent)); setNativeIntent(intent)
+      const result = await S.submitPlannedShotApiV1ShotPlansProjectsProjectIdPlansPlanIdShotsShotIdSubmissionsPost({ projectId: intent.projectId, planId: intent.planId, shotId: intent.shotId, requestBody: intent.body })
+      if (!current() || !result.data?.job_id) return
+      try { workspaceStorage.removeItem(nativeIntentKey); setNativeIntent(null) } catch { setError('任务已保存，本地记录尚未清除；再次核对仍返回原任务。') }
+      const linked = await S.listPlannedShotJobsApiV1ShotPlansProjectsProjectIdPlansPlanIdJobsGet({ projectId: intent.projectId, planId: intent.planId })
+      if (!current()) return
+      const job = linked.data?.find(item => item.job_id === result.data?.job_id)
+      if (planNow.current?.id === intent.planId) setJobs(linked.data ?? [])
+      if (job) upsertTask({ taskId: job.task_id, title: '镜头计划执行', status: job.state === 'ready' ? 'succeeded' : ['failed', 'cancelled'].includes(job.state) ? job.state as 'failed' | 'cancelled' : ['queued', 'paused'].includes(job.state) ? 'pending' : 'running', progress: job.state === 'ready' ? 100 : 0, cancelRequested: false, relationType: 'video', relationEntityId: job.shot_id, onNavigate: () => navigate(`/projects/${intent.projectId}/chapters/${intent.chapterId}/studio?plan=${intent.planId}`), onCancel: () => { void cancelJob(intent.projectId, job.job_id) } })
+      message.success('已取得原视频任务与项目费用预留，可在任务中心查看'); setTaskCenterOpen(true)
+    } catch (cause) {
+      if (current()) {
+        const status = (cause as { status?: number }).status
+        if (status === 409 || status === 422) { try { workspaceStorage.removeItem(nativeIntentKey); setNativeIntent(null) } catch { /* Keep the exact intent if browser persistence is unavailable. */ } }
+        setError(cause instanceof DOMException ? '浏览器无法保存原提交记录，未发送。' : explain(cause))
+      }
+    } finally { if (current()) { nativeOperation.current = false; setBusy(false) } }
+  }
+
+  /** Confirm one fixed-project native call using its fresh full quote and exact balance, then freeze the recovery body. */
+  async function offerNativeSubmission(entry: Entry, newIteration: boolean) {
+    if (!current() || !plan || nativeOperation.current || nativeIntent || busy || dirty || !preflight?.can_submit || !currentPreview?.can_prepare) return
+    nativeOperation.current = true; setBusy(true); setError('')
+    const planId = plan.id, form = formVersion.current, revision = draftNow.current?.revision
+    const originalPolicy = (plan.payload as { binding?: { quote_minor?: number } }).binding
+    try {
+      const setup = (await V.getVideoRuntimeSetup()).data
+      if (!current()) return
+      setWorkspaceSetup(setup ?? null)
+      if (!setup?.running || !setup.managed_model_id || !setup.price_fingerprint || !setup.quote_minor || setup.quote_minor !== originalPolicy?.quote_minor) { setError('当前视频模型或费用与原计划不符，请刷新配置并重新编译计划。'); nativeOperation.current = false; setBusy(false); return }
+      const approval = await readProjectCharge(projectId, setup.quote_minor)
+      if (!current()) return
+      if (!approval.ready) { setError(approval.reason ?? '本项目费用尚未核对'); nativeOperation.current = false; setBusy(false); return }
+      if (planNow.current?.id !== planId || dirtyNow.current || formVersion.current !== form || draftNow.current?.revision !== revision) { nativeOperation.current = false; setBusy(false); return }
+      const intent: NativeIntent = { schema: 1, projectId, chapterId, planId, shotId: entry.shot_id, projectName: approval.projectName, upperMinor: setup.quote_minor,
+        body: { request_key: crypto.randomUUID(), confirm_project_charges: true, expected_price_fingerprint: setup.price_fingerprint } }
+      confirm({ title: newIteration ? '重新生成一个视频候选？' : '确认本项目的视频费用？', content: <div><p>费用项目：{approval.projectName}</p><p>本次完整预留：{chargeMoney(intent.upperMinor)}</p><p>核对账单后的可用额度：{chargeMoney(approval.budget.available_after_bills_minor ?? String(approval.budget.available_minor))}</p><p>{newIteration ? '这会创建新任务并新增一次预留，原任务的未知费用仍保留。' : '只使用此项目的预算。候选接收成功后仍需核对实际账单与结果。'}</p></div>,
+        onCancel: () => { confirmation.current = null; if (current()) { nativeOperation.current = false; setBusy(false) } },
+        onOk: async () => {
+          confirmation.current = null
+          if (!current()) return
+          nativeOperation.current = false; setBusy(false)
+          if (planNow.current?.id !== planId || dirtyNow.current || formVersion.current !== form || draftNow.current?.revision !== revision) { message.warning('计划已修改，请重新核对费用。'); return }
+          await sendNativeIntent(intent)
+        } })
+    } catch (cause) { if (current()) { setError(explain(cause)); nativeOperation.current = false; setBusy(false) } }
   }
 
   /** Confirm each new generation intent; recovery keeps the same durable identity. */
   function offerSubmission(entry: Entry, newIteration = false) {
+    if (isSeedance25Plan(plan)) { void offerNativeSubmission(entry, newIteration); return }
     if (!current() || !plan || busy || dirty || isPreparationOnlySeedancePlan(plan)) return
     const replay = !newIteration && !!storedKey(entry.shot_id)
     if (!replay && (!preflight?.can_submit || (isSeedance25Plan(plan) && !currentPreview?.can_prepare))) return
@@ -328,6 +401,7 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
     <div className="production-plan-panel" data-testid="shot-plan-panel">
       <Alert className="mb-3" type="info" showIcon message={preparationOnlyPlan || (seedanceSelected && !workspaceSetup?.running) ? '先锁定输入，再检查请求预览' : '先锁定输入，再逐镜提交'} description="此处检查的是剧本、资产和任务准备。无需账号也可保存和编译准备计划；实际提交须有独立的服务配置与额度，候选结果仍须单独检查和采用，不代表模型质量已通过。" />
       {error && <Alert className="mb-3" type="error" showIcon message={error} />}
+      {nativeIntent && <Alert className="mb-3" type="warning" showIcon message="上次视频提交结果尚未核对" description={`核对「${nativeIntent.projectName}」原来确认的 ${chargeMoney(nativeIntent.upperMinor)} 完整预留。使用原计划、原模型与原请求；已经接收时返回原任务。当前编辑内容保留。`} action={<Button disabled={busy} onClick={() => void sendNativeIntent(nativeIntent)}>核对上次视频提交</Button>} />}
       <Space wrap className="mb-3">
         <Button loading={loading} disabled={busy || dirty} onClick={() => void load()}>刷新计划与资料</Button>
         <Link to={`/projects/${projectId}?tab=chapters`}>制作剧本与覆盖</Link>
@@ -391,7 +465,7 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
             { title: '镜头', render: (_, entry) => catalog?.shots.find(shot => shot.id === entry.shot_id)?.title ?? entry.shot_id },
             { title: '计划时长', render: (_, entry) => `${entry.duration_ms / 1000}秒` },
             { title: '任务与候选', render: (_, entry) => <Space direction="vertical">{jobs.filter(job => job.shot_id === entry.shot_id).map(job => <div key={job.job_id}><Tag>{stateNames[job.state] ?? job.state}</Tag><span title={job.job_id}>{job.job_id.slice(0, 8)}</span>{job.reason && <div>{job.reason}</div>}{job.media_available && job.media_id && <a href={resolveAssetUrl(`/api/v1/studio/production/projects/${encodeURIComponent(projectId)}/media/${encodeURIComponent(job.media_id)}/content`) ?? undefined} target="_blank" rel="noreferrer"> 查看候选（未采用）</a>}{job.media_available && job.media_id && <Link to={`/projects/${projectId}/editor?chapter=${encodeURIComponent(chapterId)}&plan=${encodeURIComponent(plan?.id ?? "")}&job=${encodeURIComponent(job.job_id)}`}> 去剪辑页确认采用</Link>}</div>)}</Space> },
-            { title: '操作', render: (_, entry) => <Space direction="vertical"><Button disabled={preparationOnlyPlan || busy || dirty || (!storedKey(entry.shot_id) && (!preflight?.can_submit || (seedancePlan && !currentPreview?.can_prepare)))} onClick={() => offerSubmission(entry)}>{storedKey(entry.shot_id) ? '核对原提交' : '提交此镜头'}</Button>{preparationOnlyPlan && <span className="text-xs text-gray-500">生成未启用；可查看准备预览</span>}{jobs.some(job => job.shot_id === entry.shot_id && ['ready', 'failed', 'cancelled'].includes(job.state)) && !jobs.some(job => job.shot_id === entry.shot_id && !['ready', 'failed', 'cancelled'].includes(job.state)) && <Button disabled={preparationOnlyPlan || busy || dirty || !preflight?.can_submit || (seedancePlan && !currentPreview?.can_prepare)} onClick={() => offerSubmission(entry, true)}>另生成一个候选</Button>}</Space> },
+            { title: '操作', render: (_, entry) => <Space direction="vertical"><Button disabled={preparationOnlyPlan || busy || dirty || !!nativeIntent || (!storedKey(entry.shot_id) && (!preflight?.can_submit || (seedancePlan && !currentPreview?.can_prepare)))} onClick={() => offerSubmission(entry)}>{storedKey(entry.shot_id) ? '核对原提交' : '提交此镜头'}</Button>{preparationOnlyPlan && <span className="text-xs text-gray-500">生成未启用；可查看准备预览</span>}{jobs.some(job => job.shot_id === entry.shot_id && ['ready', 'failed', 'cancelled'].includes(job.state)) && !jobs.some(job => job.shot_id === entry.shot_id && !['ready', 'failed', 'cancelled'].includes(job.state)) && <Button disabled={preparationOnlyPlan || busy || dirty || !!nativeIntent || !preflight?.can_submit || (seedancePlan && !currentPreview?.can_prepare)} onClick={() => offerSubmission(entry, true)}>另生成一个候选</Button>}</Space> },
           ]} />
         </Card>}
       </>}

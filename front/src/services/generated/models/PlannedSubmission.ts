@@ -3,9 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Only a recovery identity is client supplied; plan inputs come from the server.
+ * Confirm exact managed project charges and a recovery identity; immutable plan inputs remain server-owned.
  */
 export type PlannedSubmission = {
+    confirm_project_charges?: boolean;
+    expected_price_fingerprint?: (string | null);
     request_key: string;
 };
 
