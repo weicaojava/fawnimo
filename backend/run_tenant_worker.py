@@ -76,7 +76,7 @@ def configure_worker(message: dict) -> tuple[Path, str, int]:
         if not probe_path.is_file():
             raise ValueError("Media executable must be a file")
         probe = str(probe_path)
-    price_file=None;native_video_file=None
+    price_file=None;native_video_file=None;local_models_file=None
     if marked and not imported:
         private=directory/'private'
         candidate=private/'model-prices.json'
@@ -86,6 +86,9 @@ def configure_worker(message: dict) -> tuple[Path, str, int]:
         native=private/'native-video.json'
         if native.resolve()!=native:raise ValueError('Workspace native video setup cannot redirect')
         native_video_file=str(native)
+        local_models=private/'local-models.json'
+        if local_models.resolve()!=local_models:raise ValueError('Workspace local model setup cannot redirect')
+        local_models_file=str(local_models)
     # The second allowlist protects direct launcher use as well as gateway spawn.
     # It prevents future inherited credential names from bypassing a denylist.
     kept = {key: value for key, value in os.environ.items() if key.upper() in SAFE_ENVIRONMENT_KEYS}
@@ -96,6 +99,7 @@ def configure_worker(message: dict) -> tuple[Path, str, int]:
         "WORKSPACE_INTERNAL_TOKEN": token,
         "WORKSPACE_RUNTIME_LOCKED": 'true' if imported else 'false',
         "MODEL_PRICE_CONFIG": price_file or '',
+        "WORKSPACE_LOCAL_MODELS_CONFIG": local_models_file or '',
         "DATABASE_URL": "sqlite+aiosqlite:///" + database.as_posix(),
         "LOCAL_STORAGE_ROOT": str(directory / "files"), "STORAGE_BACKEND": "local",
         "PRODUCTION_MEDIA_ROOT": str(directory / "media"),

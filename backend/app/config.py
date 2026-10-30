@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     workspace_id: str | None = Field(None, pattern=r'^ws_[a-f0-9]{32}$')
     workspace_internal_token: str | None = None
     workspace_runtime_locked: bool = False
+    # Fixed-worker authored loopback model exceptions; no keys, public admission or paid authorization.
+    workspace_local_models_config: str | None = None
 
     # Redis / Celery Broker
     redis_host: str = "localhost"

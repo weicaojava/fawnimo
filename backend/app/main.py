@@ -103,6 +103,9 @@ async def lifespan(app: FastAPI):
     from app.services.worker.model_prices import load_model_prices
     model_prices=load_model_prices(settings.model_price_config)
     app.state.model_prices=model_prices
+    from app.services.worker.workspace_local_models import load_workspace_local_models
+    local_models = load_workspace_local_models(settings.workspace_local_models_config, workspace_id=settings.workspace_id)
+    app.state.workspace_local_models = local_models
     # Add the inert catalog only after migration checks succeed. Respect even an
     # explicitly injected None, and remove only the runtime this lifespan owns.
     owns_preparation_runtime=not hasattr(app.state,'execution_runtime')
@@ -110,23 +113,27 @@ async def lifespan(app: FastAPI):
         from app.core.db import async_session_maker
         from app.services.worker.seedance25_runtime import build_preparation_runtime
         from app.services.worker.workspace_video_runtime import build_managed_video_runtime
-        configured_runtime, setup = await build_managed_video_runtime(async_session_maker, settings.video_runtime_config,model_prices)
+        configured_runtime, setup = await build_managed_video_runtime(async_session_maker, settings.video_runtime_config,model_prices,
+            trusted_local_host=local_models.host_for('native_video'), trusted_local_port=local_models.native_video_port)
         app.state.workspace_video_setup = setup
         app.state.native_video_history_factory=async_session_maker
         app.state.execution_runtime=configured_runtime or build_preparation_runtime(async_session_maker)
     runtime=getattr(app.state,'execution_runtime',None)
     from app.core.db import async_session_maker
     from app.services.agent_execution import AgentExecutionRuntime
-    agent_execution_runtime = AgentExecutionRuntime(async_session_maker,price_registry=model_prices)
+    agent_execution_runtime = AgentExecutionRuntime(async_session_maker,price_registry=model_prices,
+        trusted_local_host=local_models.host_for('agent_text'), trusted_local_ports=local_models.agent_text_ports)
     app.state.agent_execution_runtime = agent_execution_runtime
     from app.services.asset_image_generation import AssetImageGenerationRuntime
-    asset_image_generation_runtime = AssetImageGenerationRuntime(async_session_maker,price_registry=model_prices)
+    asset_image_generation_runtime = AssetImageGenerationRuntime(async_session_maker,price_registry=model_prices,
+        trusted_local_host=local_models.host_for('asset_image'), trusted_local_ports=local_models.asset_image_ports)
     app.state.asset_image_generation_runtime = asset_image_generation_runtime
     from app.services.video_understanding.runtime import UnderstandingWorker
     understanding_worker = UnderstandingWorker(async_session_maker, settings.production_probe_executable,
         enabled=settings.video_understanding_enabled, allow_remote=settings.video_understanding_allow_remote,
-        price_registry=model_prices, trusted_local_host=settings.video_understanding_local_host,
-        trusted_local_ports=settings.video_understanding_local_ports)
+        price_registry=model_prices,
+        trusted_local_host=local_models.host_for('video_understanding') if settings.workspace_id else settings.video_understanding_local_host,
+        trusted_local_ports=local_models.video_understanding_ports if settings.workspace_id else settings.video_understanding_local_ports)
     app.state.understanding_worker = understanding_worker
     try:
         # Imported historical queues retain their original records without

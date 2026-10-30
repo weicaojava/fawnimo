@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-30",
+  "features": [
+    "F-001.04"
+  ],
+  "scope": "Own fixed-workspace authored loopback model exceptions and actual private worker text/image/ASR/vision/native protocol execution",
+  "base_published_commit": "d65bd65f81d0b61f531d379e5559d69abf865a8e",
+  "selected_source_tree": "82f97d4b3f79def49191fc5a0447e0119a537600",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "d2a318ad5dfb408fbcb6de402a78054da83748bf52eddae25a23876fa1366e51",
+    "backend/app/config.py": "63dcf568fcae3824f867ba9a9a84805e69c78e0f4153d5e29aaf2ef5ccfdb8a3",
+    "backend/app/main.py": "3b15338b44ce860f020e05762c1153c24d162d8da0a4c17a3f37aaf1655a9d60",
+    "backend/run_tenant_worker.py": "10824e23111a80c5e8718cbad3c3a11ba2fac33b1eba896e7d59eff732f2902b",
+    "backend/app/core/contracts/workspace_local_models.py": "280db5101d28759d8abb43a7b255de9c06415097044788135f4de0520d6a0683",
+    "backend/app/services/worker/workspace_local_models.py": "85fbacc34bd000c37b5fa160ee865cb35e15564d91b7aa28b7df92d58b8a3646",
+    "backend/tests/test_workspace_local_models.py": "7853fdceecdb90eb64e18c500347eca397db2b1ab0fbb08d2b7739c629294155",
+    "backend/tests/test_workspace_local_model_execution.py": "aa6b6e3db2bbf63e27c7497ba56272a53078d2f168a6825959c2a2c1376aaab3",
+    "backend/tests/test_workspace_local_native_execution.py": "6f5bf285d23958cdf98d2cfb6cdf4f72fd4fb0dd58f3fbb77938ad78d334c8e4",
+    "backend/tests/test_workspace_local_understanding_execution.py": "5a866626feb5ca399578ab837226286f23203b68d1a31db5e2381170ae8940f4"
+  },
+  "full_selected_regressions_passed": 762,
+  "new_targeted_cases_included": 38,
+  "targeted_groups": {
+    "configuration": 24,
+    "text_connection_script_image": 10,
+    "native": 2,
+    "asr_vision": 2
+  },
+  "primary_evidence": {
+    "file": "backend-full.xml",
+    "sha256": "f3e0b1cbe7c64053fbf720b9bc6ae5b9b08e93915756e5b73048f683a10058dc"
+  },
+  "independent_runs": {
+    "frozen_targeted38": {
+      "file": "independent-targeted-v1.xml",
+      "sha256": "077f1576f7d55a9cacf1e0613d883d4b42ff2144dcfaa225742c5df5e924adb3",
+      "tests": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "private_counterchecks2": {
+      "file": "independent-private-v1.xml",
+      "sha256": "3ee06c26b9bb32300477420f7099904aa1d8e1fab75e5a7505d173a57d1d26ed",
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "independent_review_sha256": "81587bb394c2334551ad4e625e3db8c60be05f0ce88dde0b586156a96691ef47",
+  "independent_review_evidence": "private_external:stage-f-local-models/independent-review.json",
+  "metadata_review_evidence": "private_external:stage-f-local-models/independent-metadata-review.json",
+  "count_note": "762 includes all38 new cases. Independent38 reruns the same cases; private2 is separate. Earlier development runs and parent724 are not added.",
+  "frontend_and_openapi": {
+    "all_frontend_git_blobs_unchanged_from_parent": true,
+    "openapi_semantic_equal": true,
+    "paths": 234,
+    "schemas": 549,
+    "no_schema_lifespan_or_database": true,
+    "build_source_commit": "d65bd65f81d0b61f531d379e5559d69abf865a8e",
+    "build_source_ci_run": 41007242074,
+    "parent_modules_transformed": 3214,
+    "parent_browser_evidence": "private_external:stage-e-workspace-tasks/browser.json",
+    "current_validation_scope": "Actual fixed-worker/SQLite/local HTTP and lifecycle tests; unchanged frontend build evidence belongs to parent"
+  },
+  "coverage": [
+    "Only marked nonimported workers select their own fixed private/local-models.json; inherited and startup/body paths cannot choose it",
+    "Strict bounded JSON rejects extra keys, duplicates, nonfinite values, wrong owner, coercions, unsafe ports and redirected paths; absent/disabled setup has no local exceptions",
+    "Exact127.0.0.1 and per-protocol ports independently compose agent text/connection/script, image, ASR/vision and native runtimes",
+    "Actual separate A/B processes have colliding business IDs but independent models, synthetic keys, quotes, submitters, holds, results and local media",
+    "Text/image positive cases hold55 unknown units, native acceptance/query adds25 in its separate fixture, ASR/vision adds18 in another; these are not one shared account or supplier bill",
+    "Original private request recovery does not repeat model HTTP; foreign record read/control/content cannot cross workers",
+    "Wrong port/localhost/protocol group and wrong-owner file cannot use another origin; in-flight cancellation/worker stop retains unknown holds and does not automatically resend"
+  ],
+  "limits": [
+    "Every positive model admission uses privileged private worker HTTP in an authored test; the public paid gateway still returns503",
+    "Native evidence ends at accepted task and authenticated running-state GET, with no MP4 download or complete film",
+    "ASR/vision process newly authored decoded WAV/frames into unreviewed synthetic candidates, not recognized real user footage",
+    "No real supplier/model quality, supplier bill certification, full public paid identity execution, OS sandbox or public hosting qualification",
+    "Original application services/data remain untouched; ordinary loopback exceptions and operator setup do not authorize spending"
+  ],
+  "paid_gateway_enabled": false,
+  "full_execution_isolation_qualified": false,
+  "provider_bill_verified": false,
+  "model_quality_qualified": false,
+  "complete_film_qualified": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "original_workspace_writes": 0,
+  "user_paid_budget_authorized": 0
+}

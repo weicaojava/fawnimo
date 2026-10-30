@@ -30,3 +30,6 @@ description: "当前功能状态的唯一登记源、独立状态和文档一致
 
 
 剧本任务回跳补充于 `capabilities/workspace-script-tasks-validation.json`：12源文件，33专项（16核心/9摘要/2固定worker历史/6网关）与27整App浏览器分记，前一次b07提交的713CI不继承为本批全量回归。第五来源只含轻量元数据，明确返回原章节或原镜；两固定worker的失败历史与负例不授予公开收费执行、模型/成片/公网资格。功能数量与实现/整项验收状态不提升。
+
+
+固定worker本机协议例外另记于 `capabilities/workspace-local-models-validation.json`：10源文件，762冻结主回归含38新用例；独立38及2补测不相加。前端和公共接口保持父提交来源，本轮是实际worker/HTTP/SQLite的有界软件验证。仅附加F-001.04证据，45/6/13与current18/longterm1不变；真实供应商、完整公开收费、MP4/成片与公网资格不提升。
