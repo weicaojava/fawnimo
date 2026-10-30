@@ -15,7 +15,8 @@ from app.models.asset_image_generation import AssetImageJob
 from app.models.llm import Model, Provider
 from app.models.production import ProductionMedia
 from app.models.reverse import ReverseAnalysis
-from app.models.studio import Actor, FileItem, Project
+from app.models.script_candidate import ScriptCandidate
+from app.models.studio import Actor, Chapter, FileItem, Project, Shot
 from app.models.video_understanding import UnderstandingAttempt, UnderstandingJob
 from app.services.workspace_tasks import recent_tasks
 
@@ -34,6 +35,10 @@ async def seed_summaries(factory):
         db.add(Project(id='summary-project', name='Summary fixture project', style='真人都市', visual_style='现实'))
         db.add(FileItem(id='summary-media', name='Private source file', type='video', storage_key='never-read/' + SENSITIVE))
         await db.flush()
+        db.add(Chapter(id='summary-chapter', project_id='summary-project', index=1, title=SENSITIVE, raw_text=SENSITIVE))
+        await db.flush()
+        db.add(Shot(id='summary-shot', chapter_id='summary-chapter', index=1, title=SENSITIVE, script_excerpt=SENSITIVE, status='pending'))
+        await db.flush()
         db.add(ProductionMedia(id='summary-media', project_id='summary-project', name='Private fixture source', mime='video/mp4', size=1, sha256='0' * 64, relative_path='never-read/' + SENSITIVE))
         await db.flush()
         db.add(ReverseAnalysis(id='summary-analysis', project_id='summary-project', media_id='summary-media', request_key='summary-analysis', source_hash='0' * 64, state='ready', manifest={'private': SENSITIVE}))
@@ -49,6 +54,14 @@ async def seed_summaries(factory):
         image = {'scope_key': 'summary-image-fixture', 'request_hash': '0' * 64, 'asset_kind': 'actor', 'slot_id': 1, 'model_id': 'summary-model', 'model_name': 'Private fixture model', 'model_binding': {'secret': SENSITIVE}, 'prompt': SENSITIVE, 'size': '256x256', 'error': SENSITIVE, 'created_at': now, 'finished_at': now}
         db.add(AssetImageJob(id='same-id', request_key='image-summary', asset_id='summary-actor', status='candidate', **image))
         db.add(AssetImageJob(id='deleted-image', request_key='deleted-image-summary', asset_id='missing-actor', status='adopted', **image))
+        for operation, status in [('optimize', 'succeeded'), ('simplify', 'failed'), ('divide', 'queued'), ('extract_shot', 'running')]:
+            identifier = 'script-' + operation
+            db.add(AgentRun(id=identifier, kind='script_candidate', request_key=identifier, agent_id=None,
+                model_id='summary-model', status=status, **common))
+            await db.flush()
+            db.add(ScriptCandidate(id=identifier, project_id='summary-project', chapter_id='summary-chapter',
+                shot_id='summary-shot' if operation == 'extract_shot' else None, operation=operation, source_field='raw_text',
+                source_revision=1, source_hash='0'*64, source_snapshot={'private': SENSITIVE}, decision='pending'))
         await db.commit()
 
 
@@ -81,16 +94,16 @@ async def test_actual_get_is_metadata_only_namespaced_and_read_only(tmp_path):
             response = await client.get('/workspace-tasks/recent')
             assert response.status_code == 200, response.text
             value = response.json()['data']
-            assert value['complete'] and len(value['items']) == 7
-            assert len({item['id'] for item in value['items']}) == 7
-            assert {item['kind'] for item in value['items']} == {'agent_workflow', 'model_connection_test', 'video_understanding', 'asset_image_generation'}
+            assert value['complete'] and len(value['items']) == 11
+            assert len({item['id'] for item in value['items']}) == 11
+            assert {item['kind'] for item in value['items']} == {'agent_workflow', 'model_connection_test', 'video_understanding', 'asset_image_generation', 'script_candidate'}
             assert SENSITIVE not in response.text and 'https://' not in response.text
             for item in value['items']:
                 assert set(item) == {'id', 'kind', 'title', 'status', 'progress', 'created_at_ts', 'started_at_ts', 'finished_at_ts', 'return_path', 'return_note'}
                 assert item['progress'] == (65 if item['kind'] == 'video_understanding' else None)
             assert all(statement.lstrip().upper().startswith('SELECT') for statement in statements)
             joined = '\n'.join(statements).lower()
-            for forbidden in ('input_text', 'output_text', 'prompt', 'error', 'model_binding', 'config_snapshot', 'base_url', 'storage_key', 'input_receipt', 'document', 'transcripts', 'generation_tasks'):
+            for forbidden in ('input_text', 'output_text', 'prompt', 'error', 'model_binding', 'config_snapshot', 'source_snapshot', 'script_excerpt', 'raw_text', 'base_url', 'storage_key', 'input_receipt', 'document', 'transcripts', 'generation_tasks'):
                 assert forbidden not in joined, forbidden
             assert 'video_understanding_jobs.source' not in joined and 'providers.api_key' not in joined
             assert (await client.get('/workspace-tasks/recent?limit=0')).status_code == 422
@@ -129,9 +142,60 @@ async def test_limits_keep_active_jobs_and_failed_source_is_explicit(tmp_path):
         async with engine.begin() as connection:
             await connection.execute(text('DROP TABLE asset_image_generation_jobs'))
         partial = await recent_tasks(factory)
-        assert not partial['complete'] and len(partial['items']) == 5
+        assert not partial['complete'] and len(partial['items']) == 9
         unavailable = next(source for source in partial['sources'] if source['kind'] == 'asset_image_generation')
         assert not unavailable['available'] and '上次记录' in unavailable['message']
         assert 'sqlite' not in json.dumps(partial).lower() and 'workspace-tasks.db' not in json.dumps(partial)
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('operation', ['optimize', 'simplify', 'divide', 'extract_shot'])
+async def test_script_navigation_uses_only_owned_source_and_never_claims_adoption(tmp_path, operation):
+    """Every proposal kind returns to its exact saved source, while status remains execution-only metadata."""
+    engine, factory = await fixture(tmp_path)
+    try:
+        value = await recent_tasks(factory)
+        item = next(row for row in value['items'] if row['id'] == 'workspace:script_candidate:script-' + operation)
+        assert item['title'] == 'AI剧本候选' and item['progress'] is None
+        assert '不代表已采用' in item['return_note']
+        if operation == 'extract_shot':
+            assert item['return_path'] == '/projects/summary-project/chapters/summary-chapter/shots/summary-shot/edit?candidateRun=script-extract_shot#script-candidates'
+        else:
+            assert item['return_path'] == '/projects/summary-project?tab=chapters&edit=summary-chapter&ai=' + operation + '&candidateRun=script-' + operation + '#script-candidates'
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_corrupt_legacy_source_cannot_link_to_another_chapters_shot(tmp_path):
+    """Even a hand-authored legacy row with a mismatched shot returns to the project list, never another source."""
+    engine, factory = await fixture(tmp_path)
+    try:
+        async with factory() as db:
+            db.add(Chapter(id='other-chapter', project_id='summary-project', index=2, title='Other fixture'))
+            await db.flush()
+            db.add(Shot(id='other-shot', chapter_id='other-chapter', index=1, title='Other fixture', status='pending'))
+            await db.flush()
+            await db.execute(text("UPDATE script_candidates SET shot_id='other-shot' WHERE id='script-extract_shot'"))
+            await db.commit()
+        item = next(row for row in (await recent_tasks(factory))['items'] if row['id'] == 'workspace:script_candidate:script-extract_shot')
+        assert item['return_path'] == '/projects' and '不可定位' in item['return_note']
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_missing_script_source_retains_other_feeds_and_reports_partial_read(tmp_path):
+    """An unavailable additive proposal table cannot hide the other four persisted task sources."""
+    engine, factory = await fixture(tmp_path)
+    try:
+        async with engine.begin() as connection:
+            await connection.execute(text('DROP TABLE script_candidates'))
+        feed = await recent_tasks(factory)
+        assert not feed['complete'] and len(feed['items']) == 7
+        assert {source['kind'] for source in feed['sources'] if not source['available']} == {'script_candidate'}
+        assert SENSITIVE not in json.dumps(feed) and 'sqlite' not in json.dumps(feed).lower()
     finally:
         await engine.dispose()

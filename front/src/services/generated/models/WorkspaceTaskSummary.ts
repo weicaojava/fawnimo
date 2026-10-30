@@ -7,7 +7,7 @@
  */
 export type WorkspaceTaskSummary = {
     id: string;
-    kind: 'agent_workflow' | 'model_connection_test' | 'video_understanding' | 'asset_image_generation';
+    kind: 'agent_workflow' | 'model_connection_test' | 'video_understanding' | 'asset_image_generation' | 'script_candidate';
     title: string;
     status: 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled';
     progress?: (number | null);

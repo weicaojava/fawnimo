@@ -2,7 +2,7 @@
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
-WorkspaceTaskKind = Literal['agent_workflow', 'model_connection_test', 'video_understanding', 'asset_image_generation']
+WorkspaceTaskKind = Literal['agent_workflow', 'model_connection_test', 'video_understanding', 'asset_image_generation', 'script_candidate']
 WorkspaceTaskStatus = Literal['pending', 'running', 'succeeded', 'failed', 'cancelled']
 
 

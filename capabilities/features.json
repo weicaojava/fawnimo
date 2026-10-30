@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-10-30.6",
+  "register_version": "2026-10-30.7",
   "updated_at": "2026-10-30",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -383,6 +383,17 @@
         "F-009.03"
       ],
       "scope": "有界单独SQLite四种AI文字候选、原项目费用、源修订/哈希、明确采用与历史；713含128相关/16核心，专项131另有3任务中心检查不在主CI；18整App浏览器。独立97/额外1和React9/导航7/来源3按各实际树分记，不累加；真实模型/账单/双身份/成片/公网不提升。"
+    },
+    {
+      "id": "EV-SCRIPT-TASK-RETURN",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/workspace-script-tasks-validation.json",
+      "features": [
+        "F-001.04",
+        "F-011.03"
+      ],
+      "scope": "33专项、27整App浏览器，剧本候选第五类轻量摘要和原章节/镜头回跳；两个固定worker仅保留失败记录与跨身份负例，不代表完整收费执行。旧713属前一次提交，不累加；功能数量与全局资格不提升。"
     }
   ],
   "features": [
@@ -571,7 +582,8 @@
           "EV-MODEL-RUNTIME",
           "EV-QUOTE-IDENTITY",
           "EV-UNDERSTANDING-ACCOUNTING",
-          "EV-NATIVE-VIDEO-ACCOUNTING"
+          "EV-NATIVE-VIDEO-ACCOUNTING",
+          "EV-SCRIPT-TASK-RETURN"
         ]
       },
       "deployment": {
@@ -646,7 +658,9 @@
         "backend/tests/test_native_video_planned_accounting.py",
         "backend/tests/test_native_video_http_accounting.py",
         "backend/tests/test_native_video_cancellation.py",
-        "backend/tests/test_native_video_api.py"
+        "backend/tests/test_native_video_api.py",
+        "backend/tests/test_workspace_tasks.py",
+        "backend/tests/test_script_task_workspaces.py"
       ],
       "acceptance": [
         "A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权",
@@ -657,7 +671,8 @@
         "单独SQLite的文本工作流、连接测试、单张图片及原片视觉/ASR尝试已绑定提交人/原项目/连接版本/报价，原子预留、发送准备、取消/重试与采用已本机验证。",
         "固定身份网关收费仍503，可用性明确关闭；该门禁不授予全部收费执行隔离资格。",
         "托管原生视频已接通单份原项目预留和统一账单；A/B全部收费执行联合验收和真实供应商账单认证仍未完成。",
-        "新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。"
+        "新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。",
+        "剧本候选固定worker A/B保留失败记录与跨身份读取/采用/忽略负例通过；公开收费提交仍503，完整付费执行隔离继续未验收。"
       ],
       "depends_on": [
         "F-001.03"
@@ -2815,7 +2830,8 @@
         "software": "baseline_verified",
         "model": "not_required",
         "evidence": [
-          "EV-LOCAL-20261029"
+          "EV-LOCAL-20261029",
+          "EV-SCRIPT-TASK-RETURN"
         ]
       },
       "deployment": {
@@ -2833,10 +2849,13 @@
       "code": [
         "backend/app/services/workspace_tasks.py",
         "front/src/pages/aiStudio/components/TaskCenter.tsx",
-        "front/src/pages/aiStudio/components/TaskRuntimeProvider.tsx"
+        "front/src/pages/aiStudio/components/TaskRuntimeProvider.tsx",
+        "backend/app/core/contracts/workspace_tasks.py",
+        "front/src/pages/aiStudio/chapter/components/ScriptCandidatePanel.tsx"
       ],
       "tests": [
-        "backend/tests/test_workspace_tasks.py"
+        "backend/tests/test_workspace_tasks.py",
+        "backend/tests/test_script_task_workspaces.py"
       ],
       "acceptance": [
         "分别提交隔离Agent/图像/理解/视频/本地导出，中心展示轻量真实状态",
@@ -2844,7 +2863,8 @@
       ],
       "limits": [
         "新18000任务查询在私有worker内；收费提交与旧共享执行写入仍关闭",
-        "业务提示词与调试详情留在业务页"
+        "业务提示词与调试详情留在业务页",
+        "独立持久任务新增剧本候选第五种轻量来源；仅真实状态和原业务回跳，结果审阅/采用留在候选面板，近期摘要有界。"
       ],
       "depends_on": [],
       "issues": [],
@@ -3888,7 +3908,7 @@
     "overview": "资源隔离、项目独立预算和离线迁移副本演练保留；六类有界模型协议接原项目费用，四种AI剧本候选完成软件闭环。全部收费身份执行、社区研发、完整成片与公网仍待完成。",
     "acceptance_setup": "使用独立验收数据和本机A/B账号。项目大厅可建立/重置纯自作7镜、21条可编辑提示词示例；每次重建新工程保留旧编辑，同一请求恢复返回原结果。本机入口与账号交付已可复验，尚无公网平台。",
     "readme_status": "身份、个人空间、文字示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。",
-    "verification_checkpoint": "剧本713项所选回归含128相关/16核心，专项131中另有3任务中心检查不在主CI；18整App浏览器。独立97与额外1按实际运行树继承，React9/导航7/来源3分记，不累加。两P2与一P3关闭；仅F-002.05软件状态提升，真实费用、双身份执行、模型/成片/公网资格不提升。",
+    "verification_checkpoint": "剧本b07提交CI713/登记23与前端通过。后续任务中心第五来源及原记录回跳33专项/27整App检查通过，独立复核分记；A/B失败历史不代表公开收费或完整执行。功能45已实现/6部分/13待实现，全部收费隔离、模型/成片/公网资格保持原状态。",
     "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {

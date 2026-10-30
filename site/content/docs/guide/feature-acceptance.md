@@ -55,9 +55,9 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权
 2. 后台任务固化原空间、提交人、连接版本；切换空间不重发原收费请求
 
-软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`、`backend/tests/test_project_budget.py`、`backend/tests/test_workspace_resource_matrix.py`、`backend/tests/test_agent_execution.py`、`backend/tests/test_asset_image_generation.py`、`backend/tests/test_connection_versions.py`、`backend/tests/test_model_accounting_guards.py`、`backend/tests/test_model_billing.py`、`backend/tests/test_model_billing_budget_view.py`、`backend/tests/test_model_billing_cli.py`、`backend/tests/test_model_charges.py`、`backend/tests/test_model_prices.py`、`backend/tests/test_agent_project_accounting.py`、`backend/tests/test_cross_model_project_budget.py`、`backend/tests/test_gateway_pricing_status.py`、`backend/tests/test_image_project_accounting.py`、`backend/tests/test_model_job_charges.py`、`backend/tests/test_model_price_workspace.py`、`backend/tests/test_quote_model_identity.py`、`backend/tests/test_understanding_model_connections.py`、`backend/tests/test_understanding_charges.py`、`backend/tests/test_understanding_runtime_charges.py`、`backend/tests/test_video_understanding.py`、`backend/tests/test_trusted_http.py`、`backend/tests/test_native_video_model_connections.py`、`backend/tests/test_native_video_project_accounting.py`、`backend/tests/test_native_video_planned_accounting.py`、`backend/tests/test_native_video_http_accounting.py`、`backend/tests/test_native_video_cancellation.py`、`backend/tests/test_native_video_api.py`。
+软件回归目标：`backend/tests/test_identity_controlplane.py`、`backend/tests/test_identity_review.py`、`backend/tests/test_workspace_boundary.py`、`backend/tests/test_project_budget.py`、`backend/tests/test_workspace_resource_matrix.py`、`backend/tests/test_agent_execution.py`、`backend/tests/test_asset_image_generation.py`、`backend/tests/test_connection_versions.py`、`backend/tests/test_model_accounting_guards.py`、`backend/tests/test_model_billing.py`、`backend/tests/test_model_billing_budget_view.py`、`backend/tests/test_model_billing_cli.py`、`backend/tests/test_model_charges.py`、`backend/tests/test_model_prices.py`、`backend/tests/test_agent_project_accounting.py`、`backend/tests/test_cross_model_project_budget.py`、`backend/tests/test_gateway_pricing_status.py`、`backend/tests/test_image_project_accounting.py`、`backend/tests/test_model_job_charges.py`、`backend/tests/test_model_price_workspace.py`、`backend/tests/test_quote_model_identity.py`、`backend/tests/test_understanding_model_connections.py`、`backend/tests/test_understanding_charges.py`、`backend/tests/test_understanding_runtime_charges.py`、`backend/tests/test_video_understanding.py`、`backend/tests/test_trusted_http.py`、`backend/tests/test_native_video_model_connections.py`、`backend/tests/test_native_video_project_accounting.py`、`backend/tests/test_native_video_planned_accounting.py`、`backend/tests/test_native_video_http_accounting.py`、`backend/tests/test_native_video_cancellation.py`、`backend/tests/test_native_video_api.py`、`backend/tests/test_workspace_tasks.py`、`backend/tests/test_script_task_workspaces.py`。
 
-验收限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；资源及历史读取隔离证据保留。；单独SQLite的文本工作流、连接测试、单张图片及原片视觉/ASR尝试已绑定提交人/原项目/连接版本/报价，原子预留、发送准备、取消/重试与采用已本机验证。；固定身份网关收费仍503，可用性明确关闭；该门禁不授予全部收费执行隔离资格。；托管原生视频已接通单份原项目预留和统一账单；A/B全部收费执行联合验收和真实供应商账单认证仍未完成。；新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。。
+验收限制：工作进程不继承旧主机模型/云凭据与共享Celery配置；资源及历史读取隔离证据保留。；单独SQLite的文本工作流、连接测试、单张图片及原片视觉/ASR尝试已绑定提交人/原项目/连接版本/报价，原子预留、发送准备、取消/重试与采用已本机验证。；固定身份网关收费仍503，可用性明确关闭；该门禁不授予全部收费执行隔离资格。；托管原生视频已接通单份原项目预留和统一账单；A/B全部收费执行联合验收和真实供应商账单认证仍未完成。；新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。；剧本候选固定worker A/B保留失败记录与跨身份读取/采用/忽略负例通过；公开收费提交仍503，完整付费执行隔离继续未验收。。
 
 ### F-001.05 旧数据认领、迁移与回退
 
@@ -529,9 +529,9 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. 分别提交隔离Agent/图像/理解/视频/本地导出，中心展示轻量真实状态
 2. 按任务类型正确取消并精确回到记录；任务故障保留，刷新不重发收费请求
 
-软件回归目标：`backend/tests/test_workspace_tasks.py`。
+软件回归目标：`backend/tests/test_workspace_tasks.py`、`backend/tests/test_script_task_workspaces.py`。
 
-验收限制：新18000任务查询在私有worker内；收费提交与旧共享执行写入仍关闭；业务提示词与调试详情留在业务页。
+验收限制：新18000任务查询在私有worker内；收费提交与旧共享执行写入仍关闭；业务提示词与调试详情留在业务页；独立持久任务新增剧本候选第五种轻量来源；仅真实状态和原业务回跳，结果审阅/采用留在候选面板，近期摘要有界。。
 
 ### F-011.04 SQLite持久启动、迁移前备份与提交顺序
 

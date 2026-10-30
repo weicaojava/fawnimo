@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-30",
+  "features": [
+    "F-001.04",
+    "F-011.03"
+  ],
+  "scope": "Fifth lightweight script-candidate task source, original chapter/shot return and bounded fixed-worker history isolation",
+  "base_published_commit": "b07f67982b2983e2a812a830f68a61e5f10b1311",
+  "selected_source_tree": "66fb05d0640480c9272053500d2aecfa129fa3b3",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "07550fdbdf907af86f392964886cae2707db961b3a0ae69c8d3808d9f7a5d51a",
+    "backend/app/services/workspace_tasks.py": "7c80b2f34905c075cc8887297bf7b90d3e7207396bda34293a8fccc92399dc9a",
+    "backend/app/core/contracts/workspace_tasks.py": "aeb5ab241e3ef2b4fcd7fc564b3b4762ffa943bb6d084567cb0f4dc7c8771521",
+    "backend/tests/test_workspace_tasks.py": "bde3a2adcd912eb5ee6af1cf7f184262b3f712bf4f4ebb0042c9a4558ac3edef",
+    "backend/tests/test_script_task_workspaces.py": "abc83fe9a3bdc2be86636abf691216070618fdc6586b22bd20ef92b903e6fe3c",
+    "front/openapi.json": "3ecdcc81806c19f5ba981d6311c3253bac78a22ea120bd202461dfaf1d9a63e4",
+    "front/src/pages/aiStudio/chapter/components/ScriptCandidatePanel.tsx": "10f3dfc7cac671bac6f3acde19fd1282c65f1552abea8bcbf912da9b223c9acf",
+    "front/src/pages/aiStudio/chapter/components/ChapterRawTextEditorModal.tsx": "a0c87467955014637f64c522d0c96675f180e9e8041afd61cdfb92445d92a2c1",
+    "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ChaptersTab.tsx": "11215f91888b3496ea19aca2e3480aab9ceabdd2425b3650c0623ee5b71abb1f",
+    "front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx": "72fc6a944b8e289295473b41a9376d734288a1791a7e37699f3b69bb69ab1057",
+    "front/src/services/generated/models/WorkspaceTaskSummary.ts": "43d675405d885393a5fc055d8345c0c48c896713162caaae2d7323e30c3106c9",
+    "front/src/services/generated/models/WorkspaceTaskSource.ts": "c0289932c3853d9f748f5380b0ad4eb770787de38e5c407179059715fc99b304"
+  },
+  "related_tests_passed": 33,
+  "related_groups": {
+    "script_core": 16,
+    "task_metadata": 9,
+    "fixed_worker_history": 2,
+    "closed_gateway": 6
+  },
+  "primary_evidence": {
+    "backend": {
+      "file": "backend-related.xml",
+      "sha256": "47cb2397f5974061bf96e303a629983eeac831f2e83fd0c007227e470cbdff77"
+    },
+    "browser": {
+      "file": "browser.json",
+      "sha256": "0f0e81191c645292b4d84a125d1ee8c10f97e2d2c9c73b9b48dfc33561c80f99"
+    }
+  },
+  "browser_checks_passed": 27,
+  "browser_scope": "18 inherited scenarios rerun plus9 new task-return assertions in one27-check full-app run; not27+18",
+  "frontend": {
+    "typescript_passed": true,
+    "production_build_passed": true,
+    "modules_transformed": 3214
+  },
+  "independent_review_status": "passed_for_bounded_workspace_tasks",
+  "independent_review_sha256": "c4816bc93ba560a412b3bc74ccf698fc908da3846a4bb33fd95b7621d7a56547",
+  "independent_review_evidence": "private_external:stage-e-workspace-tasks/independent-review.json",
+  "metadata_review_evidence": "private_external:stage-e-workspace-tasks/independent-metadata-review.json",
+  "prior_exact_head_ci": {
+    "commit": "b07f67982b2983e2a812a830f68a61e5f10b1311",
+    "backend": 713,
+    "register": 23,
+    "run_id": 41004387409,
+    "scope": "Previous published source only, not the task-return delta and not added to33"
+  },
+  "coverage": [
+    "Metadata SQL selects only clocks/status/source identifiers/existence; never prompt, output, saved source or provider credentials",
+    "Five individually bounded sources; failed source remains explicit while others return and client retains prior metadata",
+    "All four candidate operations return to exact original business page and read row without creating, adopting or cancelling",
+    "Chapter/shot existence, ownership and inert path segments prevent corrupted source links into another chapter",
+    "Two actual fixed workers have colliding project/chapter/model IDs but separate users, prices, runs and project bills",
+    "A/B retained script records are admitted via private worker HTTP solely to exercise reads; transport rejects before model socket access",
+    "Foreign read/adopt/dismiss cannot affect the original owner; public paid posts, including slashed aliases, remain503"
+  ],
+  "count_note": "33 related tests,27 whole-app checks and independent reruns are separate evidence sets, never summed. The initial authored-history revision fixture error is retained and not a product pass.",
+  "limits": [
+    "Bounded recent summary: per source50, default total100/max200; no all-history task count or new business detail view",
+    "Task succeeded means execution ended, not valid output, explicit adoption, settled supplier fees or content quality",
+    "Full paid A/B model execution and public admission are not qualified by retained failed-history tests",
+    "Local whole-app browser uses one standalone operator/two projects; fixed-worker A/B source tests are distinct",
+    "No actual supplier, credential profile, original application data, complete film or public server was used"
+  ],
+  "paid_gateway_enabled": false,
+  "full_execution_isolation_qualified": false,
+  "provider_bill_verified": false,
+  "model_quality_qualified": false,
+  "complete_film_qualified": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "original_workspace_writes": 0,
+  "user_paid_budget_authorized": 0
+}

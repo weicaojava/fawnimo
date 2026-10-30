@@ -25,7 +25,7 @@ import {
   StudioShotsService,
 } from '../../../services/generated'
 import { executeAsyncTaskCreate, executeTaskCancel, notifyExistingTask } from '../components/taskActionHelpers'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { getChapterShotEditPath, getChapterShotsPath, getChapterStudioPath } from '../project/ProjectWorkbench/routes'
 import { DisplayImageCard } from '../assets/components/DisplayImageCard'
 import { ChapterShotAssetConfirmation } from './components/ChapterShotAssetConfirmation'
@@ -185,6 +185,9 @@ function overviewTypeToAssetKind(kind: ShotAssetOverviewItem['type']): AssetKind
 export function ChapterShotEditPage() {
   const generation = useGenerationAvailability()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const candidateRunParam = searchParams.get('candidateRun')
+  const [focusedCandidate, setFocusedCandidate] = useState<{ shotId: string; runId: string }>()
   const { projectId, chapterId, shotId } = useParams<{
     projectId: string
     chapterId: string
@@ -249,6 +252,16 @@ export function ChapterShotEditPage() {
   const dialogDebounceTimersRef = useRef<Map<number, number>>(new Map())
   const tabAutoInitShotIdRef = useRef<string | null>(null)
   const editorTabMemoryRef = useRef<Record<string, 'basic' | 'confirm'>>({})
+
+  useEffect(() => {
+    // Consume navigation only after the owned shot has loaded; returning never submits or adopts a proposal.
+    if (!candidateRunParam || loading || !shotId || shot?.id !== shotId) return
+    setFocusedCandidate({ shotId, runId: candidateRunParam })
+    editorTabMemoryRef.current[shotId] = 'confirm'
+    tabAutoInitShotIdRef.current = shotId
+    setEditorTabKey('confirm')
+    setSearchParams(previous => { const next = new URLSearchParams(previous); next.delete('candidateRun'); return next }, { replace: true })
+  }, [candidateRunParam, loading, shot, shotId, setSearchParams])
 
   const shotsSorted = useMemo(
     () => [...shots].sort((a, b) => a.index - b.index),
@@ -1369,6 +1382,7 @@ export function ChapterShotEditPage() {
       children: (
         <div className="production-confirm-area space-y-4">
           {projectId && chapterId && shotId && <ScriptCandidatePanel projectId={projectId} chapterId={chapterId} shotId={shotId}
+            focusCandidateId={focusedCandidate?.shotId === shotId ? focusedCandidate.runId : undefined}
             hasUnsavedChanges={candidateEditorDirty || saving || semanticSaving || dialogLoading} onBusyChange={setCandidateActionBusy}
             onAdopted={async (_row, isCurrent) => {
               const next = await loadPreparationState({ syncBasicInfo: false, shouldApply: () => isCurrent() && !candidateDirtyRef.current })

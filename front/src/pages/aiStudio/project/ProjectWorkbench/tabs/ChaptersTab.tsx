@@ -47,6 +47,7 @@ export function ChaptersTab() {
   const [editOpen, setEditOpen] = useState(false)
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null)
   const [candidateOperation, setCandidateOperation] = useState<'optimize' | 'simplify' | 'divide'>()
+  const [focusCandidateId, setFocusCandidateId] = useState<string>()
   const [createOpen, setCreateOpen] = useState(false)
   const [createTitle, setCreateTitle] = useState('')
   const [createContent, setCreateContent] = useState('')
@@ -72,6 +73,7 @@ export function ChaptersTab() {
   const createParam = searchParams.get(CREATE_PARAM)
   const editParam = searchParams.get(EDIT_PARAM)
   const candidateParam = searchParams.get('ai')
+  const candidateRunParam = searchParams.get('candidateRun')
   useEffect(() => {
     if (createParam === '1') {
       setCreateOpen(true)
@@ -90,17 +92,19 @@ export function ChaptersTab() {
     if (!editParam) return
     const target = chapters.find((chapter) => chapter.id === editParam)
     if (!target) return
-    openEditModal(target, candidateParam === 'divide' ? 'divide' : undefined)
+    const operation = candidateParam === 'divide' || candidateParam === 'simplify' || candidateParam === 'optimize' ? candidateParam : undefined
+    openEditModal(target, operation, candidateRunParam || undefined)
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
         next.delete(EDIT_PARAM)
         next.delete('ai')
+        next.delete('candidateRun')
         return next
       },
       { replace: true }
     )
-  }, [chapters, editParam, candidateParam, setSearchParams])
+  }, [chapters, editParam, candidateParam, candidateRunParam, setSearchParams])
 
   useEffect(() => {
     let cancelled = false
@@ -128,8 +132,9 @@ export function ChaptersTab() {
     }
   }, [chapters])
 
-  const openEditModal = (chapter: Chapter, operation?: 'optimize' | 'simplify' | 'divide') => {
+  const openEditModal = (chapter: Chapter, operation?: 'optimize' | 'simplify' | 'divide', candidateId?: string) => {
     setCandidateOperation(operation)
+    setFocusCandidateId(candidateId)
     setEditingChapter(chapter)
     setEditOpen(true)
   }
@@ -573,6 +578,7 @@ export function ChaptersTab() {
       <ChapterRawTextEditorModal
         projectId={projectId}
         initialCandidateOperation={candidateOperation}
+        focusCandidateId={focusCandidateId}
         open={editOpen}
         onClose={() => {
           setEditOpen(false)

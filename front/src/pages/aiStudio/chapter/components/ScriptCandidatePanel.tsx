@@ -34,9 +34,10 @@ function ResultPreview({ row }: { row: ScriptCandidateRead }) {
 }
 
 /** Authorize one project-billed saved-source proposal, then require a separate human adoption. */
-export function ScriptCandidatePanel({ projectId, chapterId, shotId, preferredOperation, hasUnsavedChanges = false, onAdopted, onBusyChange }: {
+export function ScriptCandidatePanel({ projectId, chapterId, shotId, preferredOperation, focusCandidateId, hasUnsavedChanges = false, onAdopted, onBusyChange }: {
   projectId: string; chapterId: string; shotId?: string; hasUnsavedChanges?: boolean
   preferredOperation?: 'optimize' | 'simplify' | 'divide'
+  focusCandidateId?: string
   onAdopted?: (row: ScriptCandidateRead, isCurrent: () => boolean) => void | Promise<void>
   onBusyChange?: (busy: boolean) => void
 }) {
@@ -53,6 +54,7 @@ export function ScriptCandidatePanel({ projectId, chapterId, shotId, preferredOp
   const [busy, setBusy] = useState(false)
   const [intent, setIntent] = useState<Intent | null>(null)
   const [opened, setOpened] = useState<string[]>([])
+  const consumedFocus = useRef<string>()
   const live = useRef({ scope, dirty: hasUnsavedChanges, identity })
   live.current = { scope, dirty: hasUnsavedChanges, identity }
   const mounted = useRef(false)
@@ -85,7 +87,7 @@ export function ScriptCandidatePanel({ projectId, chapterId, shotId, preferredOp
   useEffect(() => {
     mounted.current = true; epoch.current++
     const notify = busyListener.current
-    requestVersion.current++; inFlight.current = false; setBusy(false); busyListener.current?.(false); setRows([]); setOpened([]); setAvailability(null)
+    requestVersion.current++; inFlight.current = false; consumedFocus.current = undefined; setBusy(false); busyListener.current?.(false); setRows([]); setOpened([]); setAvailability(null)
     setOperation(shotId ? 'extract_shot' : preferredOperation || 'optimize'); setSourceField('raw_text'); setModelId(undefined); setIntent(null); setError(''); setQuoteError('')
     try {
       const saved = workspaceStorage.getItem(storageKey)
@@ -101,6 +103,12 @@ export function ScriptCandidatePanel({ projectId, chapterId, shotId, preferredOp
   useEffect(() => { if (!shotId && preferredOperation) setOperation(preferredOperation) }, [shotId, preferredOperation])
 
   useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => {
+    // A task-center return may open only a row already read within this exact chapter/shot scope.
+    if (!focusCandidateId || consumedFocus.current === focusCandidateId || !rows.some(row => row.id === focusCandidateId && row.shot_id === (shotId ?? null))) return
+    consumedFocus.current = focusCandidateId
+    setOpened(previous => [...new Set([...previous, focusCandidateId])])
+  }, [scope, focusCandidateId, rows, shotId])
   useEffect(() => {
     if (!rows.some(row => row.status === 'queued' || row.status === 'running')) return
     const timer = window.setTimeout(() => void refresh(), 1000)
@@ -173,7 +181,7 @@ export function ScriptCandidatePanel({ projectId, chapterId, shotId, preferredOp
   }
 
   const visibleRows = rows.filter(row => shotId ? row.shot_id === shotId : row.shot_id === null)
-  return <Card size="small" title={shotId ? 'AI 镜头候选' : 'AI 剧本候选'} className="my-3" extra={<Button size="small" onClick={() => void refresh()} disabled={busy}>刷新记录与费用</Button>}>
+  return <Card id="script-candidates" size="small" title={shotId ? 'AI 镜头候选' : 'AI 剧本候选'} className="my-3" extra={<Button size="small" onClick={() => void refresh()} disabled={busy}>刷新记录与费用</Button>}>
     <Space wrap className="mb-3">
       {!shotId && <Select aria-label="候选操作" value={operation} onChange={setOperation} disabled={busy} options={(['optimize', 'simplify', 'divide'] as Operation[]).map(value => ({ value, label: titles[value] }))} />}
       {operation === 'divide' && <Select aria-label="分镜文本来源" value={sourceField} onChange={setSourceField} disabled={busy} options={[{ value: 'raw_text', label: '已保存原文' }, { value: 'condensed_text', label: '已保存精简内容' }]} />}

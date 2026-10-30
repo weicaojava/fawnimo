@@ -11,11 +11,12 @@ from app.models.agent_execution import AgentRun
 from app.models.asset_image_generation import AssetImageJob
 from app.models.llm import Model
 from app.models.reverse import ReverseAnalysis
-from app.models.studio import Actor, Costume, Project, Prop, Scene
+from app.models.script_candidate import ScriptCandidate
+from app.models.studio import Actor, Chapter, Costume, Project, Prop, Scene, Shot
 from app.models.video_understanding import UnderstandingAttempt, UnderstandingJob
 
-KINDS = ('agent_workflow', 'model_connection_test', 'video_understanding', 'asset_image_generation')
-TITLES = {'agent_workflow': 'Agent工作流执行', 'model_connection_test': '模型连接测试', 'video_understanding': '视频自动拆解', 'asset_image_generation': '资产图片候选生成'}
+KINDS = ('agent_workflow', 'model_connection_test', 'video_understanding', 'asset_image_generation', 'script_candidate')
+TITLES = {'agent_workflow': 'Agent工作流执行', 'model_connection_test': '模型连接测试', 'video_understanding': '视频自动拆解', 'asset_image_generation': '资产图片候选生成', 'script_candidate': 'AI剧本候选'}
 STATUS = {'queued': 'pending', 'pending': 'pending', 'running': 'running', 'succeeded': 'succeeded', 'failed': 'failed', 'cancelled': 'cancelled', 'candidate': 'succeeded', 'adopted': 'succeeded'}
 SAFE_ID = re.compile(r'^[A-Za-z0-9_-]{1,64}$')
 
@@ -106,10 +107,38 @@ async def image_items(factory, limit: int) -> list:
     return result
 
 
+async def script_items(factory, limit: int) -> list:
+    """Read source identifiers and clocks only; keep proposal content and adoption in its business panel."""
+    statement = select(AgentRun.id, AgentRun.status, AgentRun.created_at, AgentRun.started_at, AgentRun.finished_at,
+        ScriptCandidate.project_id, ScriptCandidate.chapter_id, ScriptCandidate.shot_id, ScriptCandidate.operation,
+        exists(select(Project.id).where(Project.id == ScriptCandidate.project_id)).label('project_exists'),
+        exists(select(Chapter.id).where(Chapter.id == ScriptCandidate.chapter_id,
+            Chapter.project_id == ScriptCandidate.project_id)).label('chapter_exists'),
+        exists(select(Shot.id).where(Shot.id == ScriptCandidate.shot_id,
+            Shot.chapter_id == ScriptCandidate.chapter_id)).label('shot_exists'))
+    statement = statement.join(ScriptCandidate, ScriptCandidate.id == AgentRun.id).where(AgentRun.kind == 'script_candidate')
+    statement = statement.order_by(case((AgentRun.status.in_(['queued', 'running']), 1), else_=0).desc(),
+        AgentRun.created_at.desc(), AgentRun.id).limit(limit)
+    async with factory() as db:
+        rows = (await db.execute(statement)).mappings().all()
+    result = []
+    for row in rows:
+        valid = row['project_exists'] and row['chapter_exists'] and all(safe_id(row[key]) for key in ('project_id', 'chapter_id', 'id'))
+        if row['operation'] == 'extract_shot':
+            valid = valid and row['shot_exists'] and safe_id(row['shot_id'])
+            target = f"/projects/{row['project_id']}/chapters/{row['chapter_id']}/shots/{row['shot_id']}/edit?" + urlencode({'candidateRun': row['id']}) + '#script-candidates' if valid else '/projects'
+        else:
+            valid = valid and row['operation'] in {'optimize', 'simplify', 'divide'} and row['shot_id'] is None
+            target = f"/projects/{row['project_id']}?" + urlencode({'tab': 'chapters', 'edit': row['chapter_id'], 'ai': row['operation'], 'candidateRun': row['id']}) + '#script-candidates' if valid else '/projects'
+        note = '执行状态不代表已采用，请回候选面板审阅结果。' if valid else '原项目、章节或镜头已移除或不可定位，候选历史仍保留；返回项目列表核对。'
+        result.append(summary('script_candidate', row, target, note))
+    return result
+
+
 async def recent_tasks(factory, limit: int = 100) -> dict:
     """Collect bounded independent sources; one unavailable source does not hide known tasks from the others."""
     per_source = min(limit, 50)
-    results = await asyncio.gather(agent_items(factory, 'agent_workflow', per_source), agent_items(factory, 'model_connection_test', per_source), understanding_items(factory, per_source), image_items(factory, per_source), return_exceptions=True)
+    results = await asyncio.gather(agent_items(factory, 'agent_workflow', per_source), agent_items(factory, 'model_connection_test', per_source), understanding_items(factory, per_source), image_items(factory, per_source), script_items(factory, per_source), return_exceptions=True)
     items, sources = [], []
     for kind, result in zip(KINDS, results):
         if isinstance(result, BaseException):

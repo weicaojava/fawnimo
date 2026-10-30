@@ -50,6 +50,7 @@ export function ChapterRawTextEditorModal({
   chapterId,
   projectId,
   initialCandidateOperation,
+  focusCandidateId,
   onSaved,
 }: {
   open: boolean
@@ -57,6 +58,7 @@ export function ChapterRawTextEditorModal({
   chapterId: string | undefined
   projectId?: string
   initialCandidateOperation?: 'optimize' | 'simplify' | 'divide'
+  focusCandidateId?: string
   onSaved?: (next: { rawText?: string; condensedText?: string }) => void
 }) {
   const generation = useGenerationAvailability()
@@ -698,7 +700,7 @@ export function ChapterRawTextEditorModal({
       >
         {!projectId && !generation.available && <Alert className="mb-3" type="info" showIcon message={generation.message} description="原文编辑、保存和真实版本历史可继续使用。" />}
         {projectId && chapterId && !loading && !loadFailure && <Collapse activeKey={candidateSections} onChange={value => setCandidateSections(typeof value === 'string' ? [value] : value)} className="mb-3" destroyInactivePanel items={[{
-          key: 'ai', label: 'AI 剧本候选 · 优化、精简与分镜提取', children: <ScriptCandidatePanel projectId={projectId} chapterId={chapterId} preferredOperation={candidateOperation}
+          key: 'ai', label: 'AI 剧本候选 · 优化、精简与分镜提取', children: <ScriptCandidatePanel projectId={projectId} chapterId={chapterId} preferredOperation={candidateOperation} focusCandidateId={focusCandidateId}
             hasUnsavedChanges={hasUnsavedChanges || saving} onBusyChange={setCandidateBusy} onAdopted={row => {
               if (row.result && 'text' in row.result) onSaved?.(row.operation === 'optimize' ? { rawText: row.result.text } : { condensedText: row.result.text })
               else onSaved?.({})
