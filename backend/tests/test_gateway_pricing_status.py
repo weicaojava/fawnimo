@@ -37,8 +37,9 @@ def priced_metadata_worker():
         server.shutdown();server.server_close();thread.join(timeout=2)
 
 
-@pytest.mark.parametrize('path',['agent-execution','asset-image-generation'])
-def test_gateway_overrides_ready_state_but_preserves_nonsecret_quote_and_rejects_paid_post(tmp_path,path):
+@pytest.mark.parametrize('path',['agent-execution','asset-image-generation','script-candidates'])
+@pytest.mark.parametrize('suffix',['','/'])
+def test_gateway_overrides_ready_state_but_preserves_nonsecret_quote_and_rejects_paid_post(tmp_path,path,suffix):
     """Actual login/proxy HTTP keeps positive pricing visible while the existing submit gate remains503."""
     with priced_metadata_worker() as (state,port):
         class Pool:
@@ -53,11 +54,14 @@ def test_gateway_overrides_ready_state_but_preserves_nonsecret_quote_and_rejects
         with TestClient(gateway) as client:
             identity=client.post('/api/v1/identity/login',json={'account':'pricing-status','password':'synthetic-status-password'}).json()['data']
             headers={'X-Identity-Id':identity['user']['id'],'X-Workspace-Id':identity['workspace_id']}
-            response=client.get('/api/v1/'+path+'/availability',headers=headers)
+            availability=path+'/availability' if path!='script-candidates' else 'script-preparation/projects/p/chapters/c/candidates/availability'
+            response=client.get('/api/v1/'+availability+suffix,headers=headers)
             assert response.status_code==200 and response.headers['Cache-Control']=='no-store'
             data=response.json()['data']
             assert not data['available'] and '尚未开放' in data['message']
             assert data['models'][0]['priced'] and data['models'][0]['max_call_minor']==15 and data['models'][0]['price_fingerprint']=='a'*64
-            target='agent-execution/agents/synthetic/runs' if path=='agent-execution' else 'asset-image-generation/assets/actor/synthetic/slots/1/jobs'
-            assert client.post('/api/v1/'+target,json={},headers=headers).status_code==503
+            target={'agent-execution':'agent-execution/agents/synthetic/runs',
+                'asset-image-generation':'asset-image-generation/assets/actor/synthetic/slots/1/jobs',
+                'script-candidates':'script-preparation/projects/p/chapters/c/candidates'}[path]
+            assert client.post('/api/v1/'+target+suffix,json={},headers=headers).status_code==503
             assert state=={'get':1,'post':0}

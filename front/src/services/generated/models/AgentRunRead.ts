@@ -8,7 +8,7 @@ import type { AgentNodeRunRead } from './AgentNodeRunRead';
  */
 export type AgentRunRead = {
     id: string;
-    kind: 'workflow' | 'connection_test';
+    kind: 'workflow' | 'connection_test' | 'script_candidate';
     agent_id: (string | null);
     agent_name: string;
     agent_version: number;

@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-10-30.5`，更新日期：2026-10-30。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-10-30.6`，更新日期：2026-10-30。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-资源隔离、项目预算与离线迁移副本演练保留；文本/连接测试/图片/视觉/ASR/托管原生视频六类有界单独调用已接原项目费用。全部收费身份隔离、社区研发、完整成片与公网仍待完成。
+资源隔离、项目独立预算和离线迁移副本演练保留；六类有界模型协议接原项目费用，四种AI剧本候选完成软件闭环。全部收费身份执行、社区研发、完整成片与公网仍待完成。
 
-675项最终主回归含224相关/42原生核心，22浏览器；独立42核心/263旧链/9补测/1环境不与主回归相加，其中82旧协议作者检查不在主CI。两项P2已关闭；真实收费/账单、全部身份执行、模型/成片/公网资格不提升。
+剧本713项所选回归含128相关/16核心，专项131中另有3任务中心检查不在主CI；18整App浏览器。独立97与额外1按实际运行树继承，React9/导航7/来源3分记，不累加。两P2与一P3关闭；仅F-002.05软件状态提升，真实费用、双身份执行、模型/成片/公网资格不提升。
 
 ## F-001 身份与工作空间
 
@@ -124,7 +124,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | [F-002.02 工程设置与资产关联](#f-002-02) | 已实现 | 历史软件基线通过 | 不适用 | 仅本机 | /projects/:projectId?tab=settings · 工作台设置及演员/角色/场景/道具/服装页 |
 | [F-002.03 章节创建与原文/精简文本CAS历史恢复](#f-002-03) | 已实现 | 历史软件基线通过 | 不适用 | 仅本机 | /projects/:projectId?tab=chapters · 章节原文编辑器及历史 |
 | [F-002.04 结构化制作剧本与必需节拍/对白覆盖](#f-002-04) | 已实现 | 未验收 | 不适用 | 仅本机 | /projects/:projectId?tab=production · 制作剧本准备 |
-| [F-002.05 AI剧本提取、优化、精简与候选确认](#f-002-05) | 部分实现 | 未验收 | 未验收 | 仅本机 | /projects/:projectId/chapters/:chapterId/shots · 章节分镜提取及编辑 |
+| [F-002.05 AI剧本提取、优化、精简与候选确认](#f-002-05) | 已实现 | 本阶段已验证 | 未验收 | 仅本机 | /projects/:projectId?tab=chapters · 章节文字候选、分镜拆分与镜头提取确认 |
 
 <a id="f-002-01"></a>
 
@@ -186,13 +186,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-002.05 AI剧本提取、优化、精简与候选确认
 
-需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-30`；发布版本：`未发布`。
 
-代码：[`backend/app/api/v1/routes/script_processing.py`](../../../../backend/app/api/v1/routes/script_processing.py)、[`backend/app/services/script_processing_tasks.py`](../../../../backend/app/services/script_processing_tasks.py)、[`front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx`](../../../../front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx)。
+代码：[`backend/app/api/v1/routes/script_processing.py`](../../../../backend/app/api/v1/routes/script_processing.py)、[`backend/app/services/script_processing_tasks.py`](../../../../backend/app/services/script_processing_tasks.py)、[`front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx`](../../../../front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx)、[`backend/app/api/script_candidates.py`](../../../../backend/app/api/script_candidates.py)、[`backend/app/core/contracts/script_candidates.py`](../../../../backend/app/core/contracts/script_candidates.py)、[`backend/app/models/script_candidate.py`](../../../../backend/app/models/script_candidate.py)、[`backend/app/services/script_preparation/candidates.py`](../../../../backend/app/services/script_preparation/candidates.py)、[`backend/app/services/script_preparation/candidate_schema.py`](../../../../backend/app/services/script_preparation/candidate_schema.py)、[`front/src/pages/aiStudio/chapter/components/ScriptCandidatePanel.tsx`](../../../../front/src/pages/aiStudio/chapter/components/ScriptCandidatePanel.tsx)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ChaptersTab.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ChaptersTab.tsx)、[`front/src/pages/aiStudio/shots/ChapterShotsPage.tsx`](../../../../front/src/pages/aiStudio/shots/ChapterShotsPage.tsx)。
 
-限制：旧Film/Celery执行默认未授权；当前不得据此承诺真实模型提取可用。
+限制：有界单独工作室：16k字/64KiB保存来源、单个2048-token文本调用、每章最多100候选、一次最多64新镜；原文与精简来源不自动回退；新章/章节表/空镜列表进入同一候选面板；已保存原请求手动恢复，不取当前未保存表单重发；文本变化不自动改写制作剧本、已有分镜、资产或生成计划；单镜采用后仍需逐项确认资产和对白；身份网关收费入口继续503，全部收费双身份、真实模型质量、完整成片和公网未通过；旧Film/Celery不授予新执行。
 
-验证依据：尚无通过证据。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-SCRIPT-CANDIDATES`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -651,9 +651,9 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`backend/app/models/project_budget.py`](../../../../backend/app/models/project_budget.py)、[`backend/app/services/worker/project_budget.py`](../../../../backend/app/services/worker/project_budget.py)、[`backend/app/services/worker/project_budget_schema.py`](../../../../backend/app/services/worker/project_budget_schema.py)、[`backend/app/api/video_runtime_setup.py`](../../../../backend/app/api/video_runtime_setup.py)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx)、[`backend/app/models/model_charge.py`](../../../../backend/app/models/model_charge.py)、[`backend/app/models/model_billing.py`](../../../../backend/app/models/model_billing.py)、[`backend/app/services/worker/model_charges.py`](../../../../backend/app/services/worker/model_charges.py)、[`backend/app/services/worker/model_billing.py`](../../../../backend/app/services/worker/model_billing.py)、[`backend/reconcile_model_billing.py`](../../../../backend/reconcile_model_billing.py)、[`backend/app/models/model_job_charge.py`](../../../../backend/app/models/model_job_charge.py)、[`backend/app/services/worker/model_job_charges.py`](../../../../backend/app/services/worker/model_job_charges.py)、[`backend/app/services/worker/model_job_charge_schema.py`](../../../../backend/app/services/worker/model_job_charge_schema.py)、[`front/src/pages/aiStudio/project/ProjectChargePicker.tsx`](../../../../front/src/pages/aiStudio/project/ProjectChargePicker.tsx)、[`backend/app/models/understanding_charge.py`](../../../../backend/app/models/understanding_charge.py)、[`backend/app/services/video_understanding/charges.py`](../../../../backend/app/services/video_understanding/charges.py)、[`backend/app/services/video_understanding/charge_schema.py`](../../../../backend/app/services/video_understanding/charge_schema.py)、[`backend/app/services/video_understanding/model_connections.py`](../../../../backend/app/services/video_understanding/model_connections.py)、[`backend/app/services/video_understanding/admission.py`](../../../../backend/app/services/video_understanding/admission.py)、[`backend/app/services/video_understanding/runtime.py`](../../../../backend/app/services/video_understanding/runtime.py)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/VideoUnderstandingPanel.tsx)、[`backend/app/models/native_video_charge.py`](../../../../backend/app/models/native_video_charge.py)、[`backend/app/services/worker/native_video_models.py`](../../../../backend/app/services/worker/native_video_models.py)、[`backend/app/services/worker/native_video_charges.py`](../../../../backend/app/services/worker/native_video_charges.py)、[`backend/app/services/worker/native_video_charge_schema.py`](../../../../backend/app/services/worker/native_video_charge_schema.py)、[`backend/app/services/worker/native_video_accounting.py`](../../../../backend/app/services/worker/native_video_accounting.py)、[`backend/app/services/worker/database_operation.py`](../../../../backend/app/services/worker/database_operation.py)、[`front/src/pages/aiStudio/chapter/components/ShotPlanPanel.tsx`](../../../../front/src/pages/aiStudio/chapter/components/ShotPlanPanel.tsx)。
 
-限制：项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。；文本工作流/连接测试/单张图片/原片视觉、ASR与托管原生视频实际执行已接受信协议上界、原项目预留、私有请求证据和人工规范化账单；采用不再次预留。；原生视频复用实际job预留并接通账单；更正、退款和多义请求仍未决。CSV或哈希不认证真实供应商，provider_bill_verified=false。；身份网关收费仍关闭；用户本轮明确不授权付费，旧样片预算不能沿用。；新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。。
+限制：项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。；文本工作流/连接测试/单张图片/原片视觉、ASR与托管原生视频实际执行已接受信协议上界、原项目预留、私有请求证据和人工规范化账单；采用不再次预留。；原生视频复用实际job预留并接通账单；更正、退款和多义请求仍未决。CSV或哈希不认证真实供应商，provider_bill_verified=false。；身份网关收费仍关闭；用户本轮明确不授权付费，旧样片预算不能沿用。；新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。；剧本四种候选复用agent_text原项目费用与未知账单；它不是新增第七种费用协议，也不提升全部收费隔离或真实账单认证。。
 
-验证依据：`EV-PROJECT-BUDGET`、`EV-MODEL-ACCOUNTING`、`EV-MODEL-RUNTIME`、`EV-QUOTE-IDENTITY`、`EV-UNDERSTANDING-ACCOUNTING`、`EV-NATIVE-VIDEO-ACCOUNTING`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-PROJECT-BUDGET`、`EV-MODEL-ACCOUNTING`、`EV-MODEL-RUNTIME`、`EV-QUOTE-IDENTITY`、`EV-UNDERSTANDING-ACCOUNTING`、`EV-NATIVE-VIDEO-ACCOUNTING`、`EV-SCRIPT-CANDIDATES`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1078,6 +1078,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-QUOTE-IDENTITY | software | repository · `capabilities/quote-identity-validation.json` | 隔离快照修复模型改名沿用旧价：441项含145相关、46浏览器，独立145重跑/12补测分记；旧缺名称报价仅历史兼容。ASR开发、真实收费和公网资格不提升。 |
 | EV-UNDERSTANDING-ACCOUNTING | software | repository · `capabilities/understanding-accounting-validation.json` | 单独SQLite视觉/ASR按原项目完整预留与原请求恢复：527项含104相关，25浏览器；独立104重跑/10补测分别记录。关闭取消锁库与认领中断，原生视频、全部收费隔离、真实模型/账单/成片/公网资格不提升。 |
 | EV-NATIVE-VIDEO-ACCOUNTING | software | repository · `capabilities/native-video-accounting-validation.json` | 单独SQLite托管原生视频复用原项目单份预留、完整批次和账单关联；675主回归含224相关/42核心，22浏览器。独立42/263/9/1分记（82旧协议作者检查不在主CI），关闭两项P2。真实供应商、收费双身份、模型/成片/公网资格不提升。 |
+| EV-SCRIPT-CANDIDATES | software | repository · `capabilities/script-candidates-validation.json` | 有界单独SQLite四种AI文字候选、原项目费用、源修订/哈希、明确采用与历史；713含128相关/16核心，专项131另有3任务中心检查不在主CI；18整App浏览器。独立97/额外1和React9/导航7/来源3按各实际树分记，不累加；真实模型/账单/双身份/成片/公网不提升。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

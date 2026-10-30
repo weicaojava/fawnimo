@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-30",
+  "features": [
+    "F-002.05",
+    "F-009.03"
+  ],
+  "scope": "Bounded standalone project-billed optimize/simplify/divide/one-shot extraction proposals with explicit source-bound review and adoption",
+  "base_published_commit": "a659244280c388c148744e7f585f4a91d8f84348",
+  "selected_source_tree": "0b5cf505c339114e779f793dbc166fe584c01f31",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "e47da37a474525157efdc995fc7e24367284b81b2e67711890e10b8161ccdc88",
+    "backend/app/api/script_candidates.py": "58205a3f5ebd6f2effbf738bd35fee79d6be7a17e4d26abe1f63a20ab5ea105d",
+    "backend/app/api/v1/__init__.py": "22749f8b702e60d0f85e54076a8e5e557839d4804163d9cddddf4a45f9b31c72",
+    "backend/app/core/contracts/agent_execution.py": "a7a6ec1daf92acf2e8d28f751ce57d0927ff670dad574842589abea1265c06c6",
+    "backend/app/core/contracts/script_candidates.py": "948904f769a058f397e7e1a0f6e8ffd4de44577aec66c3fbbfefd1a401ee1f9f",
+    "backend/app/core/db.py": "222e5ca0f8721415e810b4049d8613557f62d104e9c2ab6254765483f9aa51a7",
+    "backend/app/controlplane/gateway.py": "e9c658d76dce4e00eb2e6f43998599f7ea9c86b95ba28dc5cbd15d3f82d23293",
+    "backend/app/models/script_candidate.py": "540b120712e8d9370a809618848f8ac8b9299e3e64c92f2e7210fa66955b26ce",
+    "backend/app/services/agent_execution.py": "d8eb8500fb391db776454df19e444b8e5a485ee1d6c3d404d53a142ee22808b0",
+    "backend/app/services/script_preparation/candidate_schema.py": "ed56978de11c63524e403389ed0c389a7f6ea9830c2a2ccdc994805e0c478d0c",
+    "backend/app/services/script_preparation/candidates.py": "9198e5fa9146e95a920d282eee1c8497d8aa9021a472f457a4b31fc50cc3919f",
+    "backend/tests/test_script_candidates.py": "250c167bd37423ef280de193633192e623c234b5e1b7993b81ae92c78bef1ef6",
+    "backend/tests/test_gateway_pricing_status.py": "8d32f04719aec7b8f2de4c9e45e54870f5bd45ccd95007761930155771ffe512",
+    "backend/tests/test_script_preparation.py": "c02d2504f9657b5f241834e5f70c276b3b8177f8189994c2ab7aeba23cc668e3",
+    "backend/tests/test_shot_extracted_candidates_api_responses.py": "321b92e62bcf27719d6fc44003ce29f3b22e984c33f2b0e28d2cee7cdfeb4f1a",
+    "front/openapi.json": "3ffe0b3546709835dab40d0cd0462dc9527401cda8286257ac6c92f22de558e8",
+    "front/src/services/workspaceContext.ts": "662d0f43dfae21c68f2da032c1ea668913579424942a52106a0f0122c7924249",
+    "front/src/pages/aiStudio/chapter/components/ScriptCandidatePanel.tsx": "140cc3d34d32d79136f0472cb40775e7c1812aa3187c13dbd4da55d6059670b7",
+    "front/src/pages/aiStudio/chapter/components/ChapterRawTextEditorModal.tsx": "31b90e3ec2ca63ce1748c7d6e8c4c9897a06631e2e5a1ea7ff50fd86596c4957",
+    "front/src/pages/aiStudio/chapter/ChapterPrep.tsx": "135379a718acbf10c63bed563784a2ac29c5ab30b41d2839525dc9fed12ab693",
+    "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ChaptersTab.tsx": "fa4d4c104d51b62e20e3ed71a1a10187a74836bbab964c46c64b1ddcb7205470",
+    "front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx": "8bb8136b04b3207f5ce5413b2ec6c22da209e1963fe62d5b4ec80811c44525e8",
+    "front/src/pages/aiStudio/shots/ChapterShotsPage.tsx": "020a60f233cb5eb7a64bd91681af2994519c5bcaf7bb1007b5f9af1d32451a11",
+    "front/src/services/generated/index.ts": "f72eda3b7681d3ea6f929bc8bed63618632be69b524ae8a070abb4132c566fa7",
+    "front/src/services/generated/models/AgentRunRead.ts": "0c185e168b3ea4b5dd6ae6aae711ee9c4eb535a674a9904f20d9c9181cf36b33",
+    "front/src/services/generated/models/ApiResponse_list_ScriptCandidateRead__.ts": "5c180f0b1206803d4eaa438c094027465d0fc1f92b9a3c71acf5e65f1f5a8e7c",
+    "front/src/services/generated/models/ApiResponse_ScriptCandidateAvailability_.ts": "077948ab9de8db02ff38cb2b45dcea9fbea50ce2c8b16ca67bbafe3fa501be61",
+    "front/src/services/generated/models/ApiResponse_ScriptCandidateRead_.ts": "60ef45d7f251f08920b43f5931350b8fef3fedd18f0bbea597821e6f81caefc3",
+    "front/src/services/generated/models/ScriptCandidateAvailability.ts": "4ca6710e746add5ffd732aa0927b5b4e381c54b16576feeaad9dee2728a89cbf",
+    "front/src/services/generated/models/ScriptCandidateCreate.ts": "1965c2700d6895aa8d6949b95bd1020b6894748a1d608e45b7ccca56b118eee7",
+    "front/src/services/generated/models/ScriptCandidateDecision.ts": "5741c96f0f8d7427e48adab4f0667aad770205c9010b7c9be754fae4e0db5c77",
+    "front/src/services/generated/models/ScriptCandidateRead.ts": "22e3a6787beeee7efc69450216dd27abfaf62130104dc6906445b47d241cfe41",
+    "front/src/services/generated/models/ScriptDialogueProposal.ts": "19cd95ec9ad70b75a7e6b1dbb68ac46a0bfc3dcb3515c023509c2d8e81a32433",
+    "front/src/services/generated/models/ScriptDivisionProposal.ts": "4f1798137c212b1a4c9c7230f12dcfaa6ab702d3ff94fb49855558c8d30adf5d",
+    "front/src/services/generated/models/ScriptEntityProposal.ts": "071bf338f8acce3c1844e418d8134956286a1a617479aeefe2e5ac1ed961c130",
+    "front/src/services/generated/models/ScriptExtractionProposal.ts": "652b247ae54e719221a4a9d1de051966607b87ab299f9338e3ad9b1820974400",
+    "front/src/services/generated/models/ScriptShotProposal.ts": "25bfba15976fc605c68d623a82a14c73cf37e5a76d7d503ed35e8eb0784b4d5a",
+    "front/src/services/generated/models/ScriptTextProposal.ts": "1dcd5f1131000c698b59c266e1246874415ac134fc0336b452164b4689d29700",
+    "front/src/services/generated/services/ScriptCandidatesService.ts": "17e8145b3d8e78828bcfeb28b546fe578d6367d66c7a77d0d847c95a9f1a080b"
+  },
+  "full_selected_regressions_passed": 713,
+  "related_tests_passed": 131,
+  "related_tests_included": 128,
+  "related_tests_outside_primary": 3,
+  "core_script_tests_included": 16,
+  "primary_backend_run_tree": "052972be01fe3991ef6ca5273288df16c943a3b5",
+  "backend_lineage": {
+    "actual_run_tree": "052972be01fe3991ef6ca5273288df16c943a3b5",
+    "final_source_tree": "0b5cf505c339114e779f793dbc166fe584c01f31",
+    "only_changed_paths": [
+      "front/src/pages/aiStudio/chapter/components/ScriptCandidatePanel.tsx",
+      "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ChaptersTab.tsx",
+      "front/src/pages/aiStudio/shots/ChapterShotsPage.tsx"
+    ],
+    "all_backend_tests_and_generated_api_unchanged": true,
+    "full_unique_cases": 713,
+    "related_focus_unique_cases": 131,
+    "related_included": 128,
+    "focused_outside_primary": 3,
+    "note": "713 primary/131 focus were run on v2; their actual intersection is128, with3 workspace-task cases outside primary. Final39 differs only in three frontend paths. Final frontend/browser are rerun on the final tree; counts are never added."
+  },
+  "primary_evidence": {
+    "full": {
+      "file": "backend-full-v2.xml",
+      "sha256": "2a95c8b94d97d9b198b5e0f88c517cf6971e67646d94b04d5f87829c2ec5d324"
+    },
+    "related": {
+      "file": "backend-related-v2.xml",
+      "sha256": "9c9120ae89cecffdcb1f4c949b938fdf3b3dee0d28f6e737c894ebc051bb9a7e"
+    },
+    "browser": {
+      "file": "browser.json",
+      "sha256": "ad048a0d2c1b3decaf2e0526fbbd373b099fe2dbb4a301f0a921ee1948dfee6c"
+    }
+  },
+  "browser_checks_passed": 18,
+  "authored_model_posts": 4,
+  "independent_runs": {
+    "backend97": {
+      "file": "independent-final-v2.xml",
+      "sha256": "eb6f63f2273244aee13877397955e722dedd39d6e13dc8c6034f4c0ad99557b5",
+      "tests": 97,
+      "passed": 97,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "additional_source_choice1": {
+      "file": "independent-source-choice-v3.xml",
+      "sha256": "73e9ff3fb5e7a7a1380f5212e9318d6d01959a327b626f99352721e06f634abd",
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "focused_frontend_checks": {
+    "independent-ui-lifecycle-v4.json": {
+      "file": "independent-ui-lifecycle-v4.json",
+      "sha256": "b6a599317fa1a7f86d98501e04f963fe2eb896e2a033ac5c0ede7c4583add625",
+      "passed": 9,
+      "failed": 0,
+      "run_tree": "0b5cf505c339114e779f793dbc166fe584c01f31",
+      "scope": "Actual frozen component in real React/DOM/browser lifecycle with authored AntD/generated-client stubs and crypto UUID source; this is not full-app browser or model HTTP validation"
+    },
+    "independent-navigation-v4.json": {
+      "file": "independent-navigation-v4.json",
+      "sha256": "cfab02d3d4d9673bce53c4967b791f52945616e11449098270765dd20e6bd76a",
+      "passed": 7,
+      "failed": 0,
+      "run_tree": "0b5cf505c339114e779f793dbc166fe584c01f31",
+      "scope": "Exact product TypeScript closures executed with route/modal/state stubs; not full-app browser or model HTTP"
+    },
+    "independent-source-picker-v3.json": {
+      "file": "independent-source-picker-v3.json",
+      "sha256": "2905d0fc54e9f1de4b31626b55e5cd2294bf43c47dfd84c1e8b0f76dff2f12d5",
+      "passed": 3,
+      "failed": 0,
+      "run_tree": "3f2f494fc65d8227257fd7c08c6035c50907931e",
+      "scope": "Actual component/React/DOM with authored AntD/generated-client/UUID boundaries; not full application or model HTTP"
+    }
+  },
+  "count_note": "Primary713 includes128 of the131 focused cases and all16 core cases;3 focused workspace-task cases are outside primary. Independent97 ran on v2,1 extra condensed-source case on v3; final backend is identical. Their combined overlap with primary is66, outside32. Final React9/navigation7 ran on finalv4; source-picker3 inherits identical v3 component. No independent or earlier browser counts are added to primary.",
+  "independent_review_status": "passed_for_bounded_script_candidates",
+  "independent_review_sha256": "f149b4c563c24abea614540d20bf699760c5904ca87a4d211f3363ee9fa6decd",
+  "independent_review_evidence": "private_external:stage-d-script-candidates/independent-review.json",
+  "metadata_review_evidence": "private_external:stage-d-script-candidates/independent-metadata-review.json",
+  "closed_findings": [
+    {
+      "id": "SCRIPT-CANDIDATE-UI-EPOCH-001",
+      "severity": "P2"
+    },
+    {
+      "id": "SCRIPT-CANDIDATE-GATEWAY-SLASH-002",
+      "severity": "P2"
+    },
+    {
+      "id": "SCRIPT-CANDIDATE-NAV-WHITESPACE-003",
+      "severity": "P3"
+    }
+  ],
+  "coverage": [
+    "One fixed agent_text node, exact logical/actual model and independent project quote; no imported tools or execution configuration",
+    "Original actor/path/body recovery precedes current source, balance or pricing readiness; no automatic retry",
+    "Saved source revision/hash and original shot/candidate facts rechecked before dispatch and adoption",
+    "Duplicate keys, nonfinite values, wrong fields, foreign IDs and incomplete/reordered source division cannot be adopted",
+    "Explicit adoption writes text history once, creates new chapter shots without overwriting old ones, or refreshes original-shot pending candidate review",
+    "Dismiss/cancel discards late output while retaining sent unknown fees; only unsent units release",
+    "Mount/epoch/identity fences invalidate old modal actions, late callbacks and intent cleanup through unmount and A-B-A",
+    "All paid route aliases with trailing slashes and callbacks are rejected at the closed gateway before worker forwarding",
+    "Chapter primary/new-chapter/empty-shot-list actions open reviewed division; raw and condensed input are explicitly selected without fallback"
+  ],
+  "frontend": {
+    "typescript_passed": true,
+    "production_build_passed": true,
+    "modules_transformed": 3214,
+    "browser_checks_passed": 18
+  },
+  "historical_failures_retained": [
+    "Before v2: one stale UI callback after unmount/ABA, and a trailing-slash paid intent forwarded to an inert worker",
+    "Before v4: whitespace-only condensed text blocked navigation despite valid raw text",
+    "Old private R1 fixture dependency and preview fake missing its selection lookup were repaired with authored portable fixtures and the actual guard preserved",
+    "An initial private actor-string error and incomplete browser-driver timing/budget-setup failures are retained separately and are not product passes"
+  ],
+  "limits": [
+    "Source text is at most16000 characters/64KiB; one fixed2048-token call; at most64 new shots and100 proposal records per chapter",
+    "These are standalone/two-project authored fixtures, not complete paid identity workspace qualification",
+    "Changing chapter text does not automatically rewrite manual production-script snapshots, existing shots or generation plans",
+    "Global task-center feeds still cover their existing explicit sources; script proposal state/history lives in its chapter/shot panel",
+    "True supplier bills, model quality, complete film, references/audio, community lifecycle and public hosting are not qualified"
+  ],
+  "paid_gateway_enabled": false,
+  "full_execution_isolation_qualified": false,
+  "provider_bill_verified": false,
+  "model_quality_qualified": false,
+  "complete_film_qualified": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "original_workspace_writes": 0,
+  "user_paid_budget_authorized": 0
+}

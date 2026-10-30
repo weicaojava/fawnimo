@@ -142,21 +142,23 @@ async def test_draft_list_rejects_201_rows_instead_of_silent_truncation(tmp_path
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('entrypoint',['benchmark','metadata'])
-async def test_actual_r1_database_additive_entrypoints_create_parent_key(tmp_path,entrypoint):
-    """Old real R1 copies upgrade safely even without init_db's index bootstrap."""
-    import json
+async def test_authored_legacy_database_additive_entrypoints_create_parent_key(tmp_path,entrypoint):
+    """Portable populated legacy parents upgrade without private R1 recovery files.
+
+    Actual historical R1 acceptance remains separate evidence; these rows are
+    newly authored software fixtures, with the original chapter index absent.
+    """
     import sqlite3
-    from pathlib import Path
     from sqlalchemy import event
     from sqlalchemy.ext.asyncio import create_async_engine,async_sessionmaker
     from app.core.db import Base
     from app.models.script_preparation import ScriptDraft
     from app.services.benchmark.schema import migrate_benchmark
-    root=Path(__file__).resolve().parents[5]
-    evidence=json.loads((root/'outputs/r1/recovery-result.json').read_text(encoding='utf8'))
-    source=Path(evidence['run_dir'])/'restored.db'
+    from tests.test_shot_plan import legacy_plan_parent_database
+    source=tmp_path/'authored-legacy-parents.db'
+    await legacy_plan_parent_database(source)
     before=hashlib.sha256(source.read_bytes()).hexdigest()
-    copied=tmp_path/'r1-copy.db'
+    copied=tmp_path/'authored-upgrade-copy.db'
     with sqlite3.connect(source.as_uri()+'?mode=ro',uri=True) as old,sqlite3.connect(copied) as new:
         old.backup(new)
         assert not new.execute("SELECT 1 FROM sqlite_master WHERE type='index' AND name='chapter_id_project_scope'").fetchone()

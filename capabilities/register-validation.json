@@ -100,7 +100,7 @@
   "failed": 0,
   "groups": 15,
   "features": 64,
-  "source_sha256": "06a9e1a15347830e37efe3cfc15942174f3cc4578c0d7d348c3e710f93664f7e",
+  "source_sha256": "15c636689e5b43785e098f3cb32186e4fa75747313ca6823be4c9fd244a2de14",
   "generator_sha256": "3f8742199b4a97e2ad42c5de72c9879f6b277220dedf0b93a8bf8a90bbc05b2c",
   "command": "python scripts/features_check.py",
   "application_qualified": false,
@@ -108,5 +108,5 @@
   "deployment_qualified": false,
   "external_model_calls": 0,
   "private_database_access": false,
-  "independent_review": "private_external:stage-b-native-video/independent-metadata-review.json"
+  "independent_review": "private_external:stage-d-script-candidates/independent-metadata-review.json"
 }

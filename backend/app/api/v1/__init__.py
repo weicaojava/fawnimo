@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 from app.controlplane.routes import router as identity_router
 from app.api import execution, execution_submission, reverse, benchmark, script_preparation, shot_plan, editing, editing_export, video_dna, video_dna_preparation
-from app.api import video_dna_production, video_runtime_setup, video_understanding, editing_v2, workspace_tasks
+from app.api import video_dna_production, video_runtime_setup, video_understanding, editing_v2, workspace_tasks,script_candidates
 
 from app.api.v1.routes import agents, agent_execution, asset_image_generation, film, health, llm, studio, script_processing
 
@@ -17,6 +17,7 @@ router.include_router(execution_submission.router)
 router.include_router(reverse.router)
 router.include_router(benchmark.router)
 router.include_router(script_preparation.router)
+router.include_router(script_candidates.router)
 router.include_router(shot_plan.router)
 router.include_router(editing.router)
 router.include_router(editing_v2.router)

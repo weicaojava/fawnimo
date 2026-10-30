@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-10-30.5",
+  "register_version": "2026-10-30.6",
   "updated_at": "2026-10-30",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -372,6 +372,17 @@
         "F-009.03"
       ],
       "scope": "单独SQLite托管原生视频复用原项目单份预留、完整批次和账单关联；675主回归含224相关/42核心，22浏览器。独立42/263/9/1分记（82旧协议作者检查不在主CI），关闭两项P2。真实供应商、收费双身份、模型/成片/公网资格不提升。"
+    },
+    {
+      "id": "EV-SCRIPT-CANDIDATES",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/script-candidates-validation.json",
+      "features": [
+        "F-002.05",
+        "F-009.03"
+      ],
+      "scope": "有界单独SQLite四种AI文字候选、原项目费用、源修订/哈希、明确采用与历史；713含128相关/16核心，专项131另有3任务中心检查不在主CI；18整App浏览器。独立97/额外1和React9/导航7/来源3按各实际树分记，不累加；真实模型/账单/双身份/成片/公网不提升。"
     }
   ],
   "features": [
@@ -969,39 +980,55 @@
       "requirements": [
         "R-001"
       ],
-      "implementation": "partial",
+      "implementation": "implemented",
       "validation": {
-        "software": "not_verified",
+        "software": "verified",
         "model": "not_verified",
-        "evidence": []
+        "evidence": [
+          "EV-SCRIPT-CANDIDATES"
+        ]
       },
       "deployment": {
         "status": "local_only",
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "working-tree-2026-10-30",
         "release": null
       },
       "entry": {
-        "route": "/projects/:projectId/chapters/:chapterId/shots",
-        "label": "章节分镜提取及编辑"
+        "route": "/projects/:projectId?tab=chapters",
+        "label": "章节文字候选、分镜拆分与镜头提取确认"
       },
       "code": [
         "backend/app/api/v1/routes/script_processing.py",
         "backend/app/services/script_processing_tasks.py",
-        "front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx"
+        "front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx",
+        "backend/app/api/script_candidates.py",
+        "backend/app/core/contracts/script_candidates.py",
+        "backend/app/models/script_candidate.py",
+        "backend/app/services/script_preparation/candidates.py",
+        "backend/app/services/script_preparation/candidate_schema.py",
+        "front/src/pages/aiStudio/chapter/components/ScriptCandidatePanel.tsx",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ChaptersTab.tsx",
+        "front/src/pages/aiStudio/shots/ChapterShotsPage.tsx"
       ],
       "tests": [
         "backend/tests/test_script_processing_async_api.py",
-        "backend/tests/test_shot_extracted_candidates_api_responses.py"
+        "backend/tests/test_shot_extracted_candidates_api_responses.py",
+        "backend/tests/test_script_candidates.py",
+        "backend/tests/test_gateway_pricing_status.py"
       ],
       "acceptance": [
-        "运行时不可用时明确禁用模型操作；手工编辑继续可用",
-        "使用独立夹具校验提取候选、采用/忽略及取消后状态，真实文本质量另验"
+        "运行时、受信价格或保存文本不可用时禁新请求，手工编辑/保存继续可用；创建前明确项目、模型、来源与本次费用",
+        "优化/精简/分镜/单镜提取先生成持久候选；原文修订、引用/完整性与输出哈希复查后明确采用，旧/迟到结果不能覆盖新编辑",
+        "采用/忽略/取消、文本历史、分镜不覆盖及pending资产/对白已通过自作HTTP与整App浏览器；真实文本质量另验"
       ],
       "limits": [
-        "旧Film/Celery执行默认未授权；当前不得据此承诺真实模型提取可用"
+        "有界单独工作室：16k字/64KiB保存来源、单个2048-token文本调用、每章最多100候选、一次最多64新镜；原文与精简来源不自动回退",
+        "新章/章节表/空镜列表进入同一候选面板；已保存原请求手动恢复，不取当前未保存表单重发",
+        "文本变化不自动改写制作剧本、已有分镜、资产或生成计划；单镜采用后仍需逐项确认资产和对白",
+        "身份网关收费入口继续503，全部收费双身份、真实模型质量、完整成片和公网未通过；旧Film/Celery不授予新执行"
       ],
       "depends_on": [],
       "issues": [],
@@ -2390,7 +2417,8 @@
           "EV-MODEL-RUNTIME",
           "EV-QUOTE-IDENTITY",
           "EV-UNDERSTANDING-ACCOUNTING",
-          "EV-NATIVE-VIDEO-ACCOUNTING"
+          "EV-NATIVE-VIDEO-ACCOUNTING",
+          "EV-SCRIPT-CANDIDATES"
         ]
       },
       "deployment": {
@@ -2476,7 +2504,8 @@
         "文本工作流/连接测试/单张图片/原片视觉、ASR与托管原生视频实际执行已接受信协议上界、原项目预留、私有请求证据和人工规范化账单；采用不再次预留。",
         "原生视频复用实际job预留并接通账单；更正、退款和多义请求仍未决。CSV或哈希不认证真实供应商，provider_bill_verified=false。",
         "身份网关收费仍关闭；用户本轮明确不授权付费，旧样片预算不能沿用。",
-        "新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。"
+        "新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。",
+        "剧本四种候选复用agent_text原项目费用与未知账单；它不是新增第七种费用协议，也不提升全部收费隔离或真实账单认证。"
       ],
       "depends_on": [
         "F-001.04",
@@ -3764,7 +3793,7 @@
         "各真实模型与费用验证单",
         "完整成片检查表和限制"
       ],
-      "progress": "原片理解与受限原生文生视频的软件费用/恢复链已接通；不代表真实模型或完整成片通过。剧本生成、参考条件、声音制作及其余D项继续按功能登记推进；本轮不授权付费测试。"
+      "progress": "四种有界AI剧本候选已接单项目费用、保存来源、明确采用和可恢复文本历史；713主回归与18整App浏览器通过。参考条件、声音、完整成片及其余D项继续；真实模型质量未验收。"
     },
     {
       "id": "E",
@@ -3856,10 +3885,10 @@
     "缺失检查、旧PR版本、独立审核失败或费用/资源超限不晋级；失败有明确结果与有限恢复。"
   ],
   "current_state": {
-    "overview": "资源隔离、项目预算与离线迁移副本演练保留；文本/连接测试/图片/视觉/ASR/托管原生视频六类有界单独调用已接原项目费用。全部收费身份隔离、社区研发、完整成片与公网仍待完成。",
+    "overview": "资源隔离、项目独立预算和离线迁移副本演练保留；六类有界模型协议接原项目费用，四种AI剧本候选完成软件闭环。全部收费身份执行、社区研发、完整成片与公网仍待完成。",
     "acceptance_setup": "使用独立验收数据和本机A/B账号。项目大厅可建立/重置纯自作7镜、21条可编辑提示词示例；每次重建新工程保留旧编辑，同一请求恢复返回原结果。本机入口与账号交付已可复验，尚无公网平台。",
-    "readme_status": "身份、个人空间、示例和项目预算可用；六种有界单独SQLite协议接完整原项目预留、账单证据与原请求恢复。身份收费网关仍关闭，全部收费隔离、社区研发、成片与公网继续推进。",
-    "verification_checkpoint": "675项最终主回归含224相关/42原生核心，22浏览器；独立42核心/263旧链/9补测/1环境不与主回归相加，其中82旧协议作者检查不在主CI。两项P2已关闭；真实收费/账单、全部身份执行、模型/成片/公网资格不提升。",
+    "readme_status": "身份、个人空间、文字示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。",
+    "verification_checkpoint": "剧本713项所选回归含128相关/16核心，专项131中另有3任务中心检查不在主CI；18整App浏览器。独立97与额外1按实际运行树继承，React9/导航7/来源3分记，不累加。两P2与一P3关闭；仅F-002.05软件状态提升，真实费用、双身份执行、模型/成片/公网资格不提升。",
     "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {

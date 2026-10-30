@@ -30,3 +30,6 @@ export const workspaceStorage = {
   setItem(key: string, value: string) { localStorage.setItem(namespace + key, value) },
   removeItem(key: string) { localStorage.removeItem(namespace + key) },
 }
+
+/** Fence pending page actions to the visible identity even before a route has unmounted. */
+export function workspaceRequestScope(): string { return namespace }

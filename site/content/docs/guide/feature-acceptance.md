@@ -130,14 +130,15 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 ### F-002.05 AI剧本提取、优化、精简与候选确认
 
-入口：`/projects/:projectId/chapters/:chapterId/shots`，章节分镜提取及编辑。当前：部分实现 / 未验收 / 仅本机。
+入口：`/projects/:projectId?tab=chapters`，章节文字候选、分镜拆分与镜头提取确认。当前：已实现 / 本阶段已验证 / 仅本机。
 
-1. 运行时不可用时明确禁用模型操作；手工编辑继续可用
-2. 使用独立夹具校验提取候选、采用/忽略及取消后状态，真实文本质量另验
+1. 运行时、受信价格或保存文本不可用时禁新请求，手工编辑/保存继续可用；创建前明确项目、模型、来源与本次费用
+2. 优化/精简/分镜/单镜提取先生成持久候选；原文修订、引用/完整性与输出哈希复查后明确采用，旧/迟到结果不能覆盖新编辑
+3. 采用/忽略/取消、文本历史、分镜不覆盖及pending资产/对白已通过自作HTTP与整App浏览器；真实文本质量另验
 
-软件回归目标：`backend/tests/test_script_processing_async_api.py`、`backend/tests/test_shot_extracted_candidates_api_responses.py`。
+软件回归目标：`backend/tests/test_script_processing_async_api.py`、`backend/tests/test_shot_extracted_candidates_api_responses.py`、`backend/tests/test_script_candidates.py`、`backend/tests/test_gateway_pricing_status.py`。
 
-验收限制：旧Film/Celery执行默认未授权；当前不得据此承诺真实模型提取可用。
+验收限制：有界单独工作室：16k字/64KiB保存来源、单个2048-token文本调用、每章最多100候选、一次最多64新镜；原文与精简来源不自动回退；新章/章节表/空镜列表进入同一候选面板；已保存原请求手动恢复，不取当前未保存表单重发；文本变化不自动改写制作剧本、已有分镜、资产或生成计划；单镜采用后仍需逐项确认资产和对白；身份网关收费入口继续503，全部收费双身份、真实模型质量、完整成片和公网未通过；旧Film/Celery不授予新执行。
 
 ## F-003 演员、服装、场景与道具
 
@@ -451,7 +452,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 软件回归目标：`backend/tests/test_execution_budget.py`、`backend/tests/test_execution_accounting.py`、`backend/tests/test_project_budget.py`、`backend/tests/test_agent_execution.py`、`backend/tests/test_asset_image_generation.py`、`backend/tests/test_connection_versions.py`、`backend/tests/test_model_accounting_guards.py`、`backend/tests/test_model_billing.py`、`backend/tests/test_model_billing_budget_view.py`、`backend/tests/test_model_billing_cli.py`、`backend/tests/test_model_charges.py`、`backend/tests/test_model_prices.py`、`backend/tests/test_agent_project_accounting.py`、`backend/tests/test_cross_model_project_budget.py`、`backend/tests/test_gateway_pricing_status.py`、`backend/tests/test_image_project_accounting.py`、`backend/tests/test_model_job_charges.py`、`backend/tests/test_model_price_workspace.py`、`backend/tests/test_quote_model_identity.py`、`backend/tests/test_understanding_model_connections.py`、`backend/tests/test_understanding_charges.py`、`backend/tests/test_understanding_runtime_charges.py`、`backend/tests/test_video_understanding.py`、`backend/tests/test_trusted_http.py`、`backend/tests/test_native_video_model_connections.py`、`backend/tests/test_native_video_project_accounting.py`、`backend/tests/test_native_video_planned_accounting.py`、`backend/tests/test_native_video_http_accounting.py`、`backend/tests/test_native_video_cancellation.py`、`backend/tests/test_native_video_api.py`。
 
-验收限制：项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。；文本工作流/连接测试/单张图片/原片视觉、ASR与托管原生视频实际执行已接受信协议上界、原项目预留、私有请求证据和人工规范化账单；采用不再次预留。；原生视频复用实际job预留并接通账单；更正、退款和多义请求仍未决。CSV或哈希不认证真实供应商，provider_bill_verified=false。；身份网关收费仍关闭；用户本轮明确不授权付费，旧样片预算不能沿用。；新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。。
+验收限制：项目上限、预留/结算明细、CAS修改收据和分页已实现，无工作空间合计费用上限。；文本工作流/连接测试/单张图片/原片视觉、ASR与托管原生视频实际执行已接受信协议上界、原项目预留、私有请求证据和人工规范化账单；采用不再次预留。；原生视频复用实际job预留并接通账单；更正、退款和多义请求仍未决。CSV或哈希不认证真实供应商，provider_bill_verified=false。；身份网关收费仍关闭；用户本轮明确不授权付费，旧样片预算不能沿用。；新调用必须精确匹配报价中的实际模型名称；旧无名称报价保留指纹、重放与账单兼容，不授权新HTTP。已预留后续阶段也重查超价/争议。；剧本四种候选复用agent_text原项目费用与未知账单；它不是新增第七种费用协议，也不提升全部收费隔离或真实账单认证。。
 
 ## F-010 剪辑、字幕与声音
 

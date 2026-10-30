@@ -1,6 +1,6 @@
 import '../chapter/production.css'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Badge, Button, Card, Divider, Empty, Layout, List, Modal, Popconfirm, Segmented, Space, Spin, Tabs, Tooltip, Typography, message } from 'antd'
+import { Badge, Button, Card, Divider, Empty, Layout, List, Modal, Popconfirm, Segmented, Space, Spin, Tabs, Tooltip, Typography, message } from 'antd'
 import { useGenerationAvailability } from '../../../hooks/useGenerationAvailability'
 import { ArrowLeftOutlined, CheckCircleOutlined, ClearOutlined, CloseCircleOutlined, ReloadOutlined } from '@ant-design/icons'
 import type {
@@ -42,6 +42,7 @@ import {
 } from '../project/ProjectWorkbench/chapterDivisionTasks'
 import { StudioEntitiesApi } from '../../../services/studioEntities'
 import { resolveAssetUrl } from '../assets/utils'
+import { ScriptCandidatePanel } from '../chapter/components/ScriptCandidatePanel'
 
 const { Header, Content } = Layout
 const extractTaskCopy = TASK_COPY.scriptExtract
@@ -95,7 +96,7 @@ function getExtractionStateMeta(
     return {
       tone: 'gold',
       title: '当前镜头还没有执行过信息提取',
-      description: '点击“提取并刷新候选”后，系统会同时提取资产和对白候选。',
+      description: '通过 AI 镜头候选生成并采用后，逐项确认资产和对白。',
     }
   }
   if (state === 'extracted_empty') {
@@ -198,6 +199,8 @@ export function ChapterShotEditPage() {
   const [shot, setShot] = useState<ShotRead | null>(null)
   const [title, setTitle] = useState('')
   const [scriptExcerpt, setScriptExcerpt] = useState('')
+  const candidateDirtyRef = useRef(false)
+  const [candidateActionBusy, setCandidateActionBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [semanticSaving, setSemanticSaving] = useState(false)
@@ -422,7 +425,7 @@ export function ChapterShotEditPage() {
   )
 
   const loadPreparationState = useCallback(
-    async (options?: { syncBasicInfo?: boolean; silent?: boolean }) => {
+    async (options?: { syncBasicInfo?: boolean; silent?: boolean; shouldApply?: () => boolean }) => {
       if (!shotId) return null
       const reqSeq = ++preparationStateRequestSeqRef.current
       setDialogLoading(true)
@@ -433,6 +436,7 @@ export function ChapterShotEditPage() {
         if (reqSeq !== preparationStateRequestSeqRef.current) return null
         const data = res.data ?? null
         if (!data) return null
+        if (options?.shouldApply && !options.shouldApply()) return null
         applyPreparationState(data, { syncBasicInfo: options?.syncBasicInfo })
         return data
       } catch {
@@ -1313,6 +1317,10 @@ export function ChapterShotEditPage() {
     [shotId],
   )
 
+  const candidateEditorDirty = !!shot && (title !== (shot.title || '') || scriptExcerpt !== (shot.script_excerpt || '') ||
+    JSON.stringify(extractedDialogLines) !== JSON.stringify((preparationState?.dialogue_candidates || []).filter(item => item.candidate_status === 'pending')))
+  candidateDirtyRef.current = candidateEditorDirty
+
   const editorTabItems = [
     {
       key: 'basic',
@@ -1329,7 +1337,7 @@ export function ChapterShotEditPage() {
         <ChapterShotBasicInfoSection
           title={title}
           scriptExcerpt={scriptExcerpt}
-          saving={saving}
+          saving={saving || candidateActionBusy}
           semanticSaving={semanticSaving}
           semantic={{
             camera_shot: shotDetail?.camera_shot ?? undefined,
@@ -1360,6 +1368,12 @@ export function ChapterShotEditPage() {
       ),
       children: (
         <div className="production-confirm-area space-y-4">
+          {projectId && chapterId && shotId && <ScriptCandidatePanel projectId={projectId} chapterId={chapterId} shotId={shotId}
+            hasUnsavedChanges={candidateEditorDirty || saving || semanticSaving || dialogLoading} onBusyChange={setCandidateActionBusy}
+            onAdopted={async (_row, isCurrent) => {
+              const next = await loadPreparationState({ syncBasicInfo: false, shouldApply: () => isCurrent() && !candidateDirtyRef.current })
+              if (!next && isCurrent()) message.info('服务器已保存本镜候选；当前编辑保留，请保存或撤销后刷新')
+            }} />}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-sm font-medium text-slate-900">提取确认工作区</div>
@@ -1394,7 +1408,7 @@ export function ChapterShotEditPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button
+              {generation.available && <Button
                 type="primary"
                 size="small"
                 loading={extractingAssets || extractTaskActive}
@@ -1403,7 +1417,7 @@ export function ChapterShotEditPage() {
                 onClick={() => void extractAssets()}
               >
                 提取并刷新候选
-              </Button>
+              </Button>}
               {extractTask ? (
                 <Button
                   size="small"
@@ -1514,7 +1528,6 @@ export function ChapterShotEditPage() {
           </Typography.Text>
         </div>
       </Header>
-      {!generation.available && <Alert className="mx-4 my-3" type="info" showIcon message={generation.message} description="信息提取暂不可用；镜头基础信息、资产关联、手工对白、确认、保存和进入工作室仍可操作。" />}
 
       <Content
         className="production-page-content"

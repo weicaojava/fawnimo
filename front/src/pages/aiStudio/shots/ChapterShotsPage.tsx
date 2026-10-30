@@ -1,7 +1,6 @@
 import '../chapter/production.css'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Alert,
   Button,
   Card,
   Divider,
@@ -32,9 +31,8 @@ import {
   VideoCameraOutlined,
 } from '@ant-design/icons'
 import type { ShotRead, ShotRuntimeSummaryRead, ShotStatus } from '../../../services/generated'
-import { ScriptProcessingService, StudioChaptersService, StudioShotsService } from '../../../services/generated'
-import { useGenerationAvailability } from '../../../hooks/useGenerationAvailability'
-import { executeAsyncTaskCreate, executeTaskCancel } from '../components/taskActionHelpers'
+import { StudioChaptersService, StudioShotsService } from '../../../services/generated'
+import { executeTaskCancel } from '../components/taskActionHelpers'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { getChapterShotEditPath, getChapterShotsPath, getChapterStudioPath } from '../project/ProjectWorkbench/routes'
 import { useCancelableRelationTask } from '../project/ProjectWorkbench/chapterDivisionTasks'
@@ -45,19 +43,6 @@ import { TASK_COPY } from '../components/taskCopy'
 
 const { Header, Content } = Layout
 type ShotListFilter = 'all' | 'pending' | 'generating' | 'ready'
-
-function getErrorMessage(e: unknown) {
-  if (!e) return '请求失败'
-  if (typeof e === 'string') return e
-  if (typeof e === 'object') {
-    const maybeAny = e as any
-    const detail = maybeAny?.body?.detail ?? maybeAny?.detail
-    if (typeof detail === 'string' && detail.trim()) return detail
-    const msg = maybeAny?.message
-    if (typeof msg === 'string' && msg.trim()) return msg
-  }
-  return '请求失败'
-}
 
 /** Label information confirmation in Chinese without treating it as video-generation readiness. */
 function statusTag(status?: ShotStatus) {
@@ -107,12 +92,10 @@ function getShotPreparationState(shot: ShotRead, runtime?: ShotRuntimeState): Sh
 }
 
 export function ChapterShotsPage() {
-  const generation = useGenerationAvailability()
   const taskCopy = TASK_COPY.chapterDivision
   const navigate = useNavigate()
   const { projectId, chapterId } = useParams<{ projectId: string; chapterId: string }>()
   const [loading, setLoading] = useState(false)
-  const [extracting, setExtracting] = useState(false)
   const [shots, setShots] = useState<ShotRead[]>([])
   const [shotRuntimeMap, setShotRuntimeMap] = useState<Record<string, ShotRuntimeState>>({})
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
@@ -129,6 +112,7 @@ export function ChapterShotsPage() {
   const [createSubmitting, setCreateSubmitting] = useState(false)
   const [createForm] = Form.useForm<{ title: string; script_excerpt?: string }>()
   const [chapterDivisionTaskLoading, setChapterDivisionTaskLoading] = useState(false)
+  const extracting = chapterDivisionTaskLoading
 
   const refresh = async () => {
     if (!chapterId) return
@@ -171,7 +155,7 @@ export function ChapterShotsPage() {
   }
 
   const reloadShotsAfterTaskSettled = useCallback(createTaskSettledReloader(refresh), [refresh])
-  const { task: chapterDivisionTask, settledTask: chapterDivisionSettledTask, trackTaskData, applyCancelData } = useCancelableRelationTask({
+  const { task: chapterDivisionTask, settledTask: chapterDivisionSettledTask, applyCancelData } = useCancelableRelationTask({
     enabled: !!chapterId,
     relationType: 'chapter_division',
     relationEntityId: chapterId,
@@ -283,37 +267,16 @@ export function ChapterShotsPage() {
     }
   }, [chapterId, closeCreate, createForm, shots])
 
+  /** Open the same saved-source candidate flow as the chapter table, without a legacy model POST. */
   const handleOneClickExtract = useCallback(async () => {
-    if (!generation.available) { message.info(generation.message); return }
-    if (!chapterId) return
-    const scriptText = (chapterCondensedText || chapterRawText).trim()
+    if (!chapterId || !projectId) return
+    const scriptText = chapterCondensedText.trim() || chapterRawText.trim()
     if (!scriptText) {
       message.error('章节没有可用文本（condensed/raw 为空）')
       return
     }
-    setExtracting(true)
-    try {
-      await executeAsyncTaskCreate({
-        request: () =>
-          ScriptProcessingService.divideScriptAsyncApiV1ScriptProcessingDivideAsyncPost({
-            requestBody: {
-              script_text: scriptText,
-              write_to_db: true,
-              chapter_id: chapterId,
-            },
-          }),
-        trackTaskData,
-        startedMessage: taskCopy.startedMessage,
-        reusedMessage: taskCopy.reusedMessage,
-        fallbackErrorMessage: '启动分镜提取失败',
-        getErrorMessage: (error) => getErrorMessage(error),
-      })
-    } catch {
-      // executeAsyncTaskCreate 已统一处理错误提示
-    } finally {
-      setExtracting(false)
-    }
-  }, [chapterCondensedText, chapterId, chapterRawText, generation.available, generation.message])
+    navigate(`/projects/${projectId}?${new URLSearchParams({ tab: 'chapters', edit: chapterId, ai: 'divide' })}`)
+  }, [chapterCondensedText, chapterId, chapterRawText, navigate, projectId])
 
   const handleCancelChapterDivisionTask = useCallback(async () => {
     if (!chapterDivisionTask) return
@@ -582,7 +545,6 @@ export function ChapterShotsPage() {
           </Space>
         ) : null}
       </Header>
-      {!generation.available && <Alert className="mx-4 my-3" type="info" showIcon message={generation.message} description="自动提取分镜暂不可用；可以手工创建、编辑、保存分镜，并继续整理已有素材。" />}
 
       <Content
         className="production-page-content"
@@ -635,7 +597,7 @@ export function ChapterShotsPage() {
               ) : null}
               <Tooltip
                 title={
-                  !generation.available ? generation.message : chapterDivisionTask
+                  chapterDivisionTask
                     ? '当前章节已有分镜提取任务在运行'
                     : shots.length > 0
                       ? '已存在分镜时不允许同步分镜，需先清空分镜'
@@ -647,8 +609,7 @@ export function ChapterShotsPage() {
                     type={shots.length === 0 ? 'primary' : 'default'}
                     icon={<ScissorOutlined />}
                     loading={extracting}
-                    disabled={extracting || shots.length > 0 || !!chapterDivisionTask || !generation.available}
-                    title={!generation.available ? generation.message : undefined}
+                    disabled={extracting || shots.length > 0 || !!chapterDivisionTask}
                     onClick={() => void handleOneClickExtract()}
                   >
                     {chapterDivisionTask ? '分镜提取中' : shots.length === 0 ? '一键提取分镜' : '重新提取需先清空分镜'}

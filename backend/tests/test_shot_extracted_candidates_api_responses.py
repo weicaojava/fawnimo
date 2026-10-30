@@ -326,7 +326,15 @@ def test_get_shot_extracted_dialogue_candidates_returns_success_envelope(
 
 
 def test_preview_shot_video_prompt_returns_success_envelope(client: TestClient, monkeypatch) -> None:
-    db = _FakeDB()
+    from app.models.production import ShotSelection
+    lookups=[]
+    class _PreviewDB(_FakeDB):
+        """This envelope fixture explicitly has no adopted production selection."""
+        async def get(self,model,identifier):
+            """Exercise the current selection guard instead of bypassing its scope read."""
+            assert model is ShotSelection and identifier=='shot-1'
+            lookups.append((model,identifier));return None
+    db = _PreviewDB()
 
     class _Preview:
         shot_id = "shot-1"
@@ -367,6 +375,7 @@ def test_preview_shot_video_prompt_returns_success_envelope(client: TestClient, 
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
+    assert lookups==[(ShotSelection,'shot-1')]
     body = response.json()
     assert body["code"] == 200
     assert body["data"]["rendered_prompt"] == "视频提示词"

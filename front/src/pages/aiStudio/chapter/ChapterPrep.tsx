@@ -1309,6 +1309,7 @@ const ChapterPrep: React.FC = () => {
       </Modal>
 
       <ChapterRawTextEditorModal
+        projectId={projectId}
         open={editorModalOpen}
         onClose={() => setEditorModalOpen(false)}
         chapterId={chapterId}

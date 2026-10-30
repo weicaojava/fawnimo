@@ -12,7 +12,7 @@ import {
   SyncOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ScriptProcessingService, StudioChaptersService } from '../../../../../services/generated'
+import { StudioChaptersService } from '../../../../../services/generated'
 import { chapterStatusMap } from '../constants'
 import { getChapterShotsPath, getChapterStudioPath } from '../routes'
 import { useChapters, newId, type Chapter } from '../hooks/useProjectData'
@@ -20,7 +20,7 @@ import { ChapterRawTextEditorModal } from '../../../chapter/components/ChapterRa
 import { ensureHasShotsBeforeShooting } from '../ensureHasShotsBeforeShooting'
 import { getChapterPreparationState } from '../chapterPreparation'
 import { loadChapterFlowStats, type ChapterFlowStats } from '../projectFlowStats'
-import { executeAsyncTaskCreate, executeTaskCancel } from '../../../components/taskActionHelpers'
+import { executeTaskCancel } from '../../../components/taskActionHelpers'
 import { TASK_COPY } from '../../../components/taskCopy'
 import { useTaskPageContext } from '../../../components/taskPageContext'
 import { useTaskUiStore } from '../../../components/taskUiStore'
@@ -46,6 +46,7 @@ export function ChaptersTab() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null)
+  const [candidateOperation, setCandidateOperation] = useState<'optimize' | 'simplify' | 'divide'>()
   const [createOpen, setCreateOpen] = useState(false)
   const [createTitle, setCreateTitle] = useState('')
   const [createContent, setCreateContent] = useState('')
@@ -70,6 +71,7 @@ export function ChaptersTab() {
 
   const createParam = searchParams.get(CREATE_PARAM)
   const editParam = searchParams.get(EDIT_PARAM)
+  const candidateParam = searchParams.get('ai')
   useEffect(() => {
     if (createParam === '1') {
       setCreateOpen(true)
@@ -88,16 +90,17 @@ export function ChaptersTab() {
     if (!editParam) return
     const target = chapters.find((chapter) => chapter.id === editParam)
     if (!target) return
-    openEditModal(target)
+    openEditModal(target, candidateParam === 'divide' ? 'divide' : undefined)
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
         next.delete(EDIT_PARAM)
+        next.delete('ai')
         return next
       },
       { replace: true }
     )
-  }, [chapters, editParam, setSearchParams])
+  }, [chapters, editParam, candidateParam, setSearchParams])
 
   useEffect(() => {
     let cancelled = false
@@ -125,7 +128,8 @@ export function ChaptersTab() {
     }
   }, [chapters])
 
-  const openEditModal = (chapter: Chapter) => {
+  const openEditModal = (chapter: Chapter, operation?: 'optimize' | 'simplify' | 'divide') => {
+    setCandidateOperation(operation)
     setEditingChapter(chapter)
     setEditOpen(true)
   }
@@ -141,7 +145,7 @@ export function ChaptersTab() {
       cancelText: '稍后处理',
       onOk: () => {
         if (hasRawText) {
-          navigate(getChapterShotsPath(projectId, chapter.id))
+          openEditModal(chapter, 'divide')
           return
         }
         openEditModal(chapter)
@@ -237,7 +241,7 @@ export function ChaptersTab() {
       return
     }
     if (state.key === 'extract_shots') {
-      navigate(getChapterShotsPath(projectId, record.id))
+      openEditModal(record, 'divide')
       return
     }
     if (state.key === 'prepare_shots') {
@@ -252,37 +256,14 @@ export function ChaptersTab() {
     })
   }
 
+  /** The main chapter action opens reviewed, project-billed proposals before any model request. */
   const handleDivideAsync = async (record: Chapter) => {
     const scriptText = record.rawText?.trim()
     if (!scriptText) {
       message.warning('请先补章节原文')
       return
     }
-    setChapterDivisionActionId(record.id)
-    try {
-      await executeAsyncTaskCreate({
-        request: () =>
-          ScriptProcessingService.divideScriptAsyncApiV1ScriptProcessingDivideAsyncPost({
-            requestBody: {
-              chapter_id: record.id,
-              script_text: scriptText,
-              write_to_db: true,
-            },
-          }),
-        trackTaskData: (data) => {
-          const tracked = createRelationTaskState(data)
-          setChapterDivisionTaskMap(upsertRelationTaskStateInMap(chapterDivisionTaskMap, record.id, tracked))
-          return tracked
-        },
-        startedMessage: taskCopy.startedMessage,
-        reusedMessage: taskCopy.reusedMessage,
-        fallbackErrorMessage: '启动分镜提取失败',
-      })
-    } catch {
-      // executeAsyncTaskCreate 已统一处理错误提示
-    } finally {
-      setChapterDivisionActionId(null)
-    }
+    openEditModal(record, 'divide')
   }
 
   const handleCancelDivideTask = async (record: Chapter) => {
@@ -590,6 +571,8 @@ export function ChaptersTab() {
       />
 
       <ChapterRawTextEditorModal
+        projectId={projectId}
+        initialCandidateOperation={candidateOperation}
         open={editOpen}
         onClose={() => {
           setEditOpen(false)

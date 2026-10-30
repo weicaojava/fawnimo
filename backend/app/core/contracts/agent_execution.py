@@ -88,7 +88,7 @@ class AgentRunRead(BaseModel):
     """Return durable state and safe binding metadata, excluding stored config internals and leases."""
     model_config = ConfigDict(from_attributes=True)
     id: str
-    kind: Literal['workflow', 'connection_test']
+    kind: Literal['workflow', 'connection_test','script_candidate']
     agent_id: str | None
     agent_name: str
     agent_version: int

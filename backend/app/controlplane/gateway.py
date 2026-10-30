@@ -25,6 +25,7 @@ BILLABLE = (
     r'/api/v1/video-understanding/projects/[^/]+/jobs(?:/[^/]+/retry)?$',
     r'/api/v1/execution/projects/[^/]+/submissions$',
     r'/api/v1/shot-plans/projects/[^/]+/plans/[^/]+/shots/[^/]+/submissions$',
+    r'/api/v1/script-preparation/projects/[^/]+/chapters/[^/]+/candidates$',
 )
 CLOSED_AVAILABILITY_PATHS = frozenset({'/api/v1/agent-execution/availability','/api/v1/asset-image-generation/availability'})
 
@@ -108,13 +109,14 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
             if identity['role'] == 'viewer':
                 raise HTTPException(403, '此工作空间只有查看权限')
         route = '/api/v1/' + path
+        policy_route = route.rstrip('/')
         if route.rstrip('/').startswith('/api/v1/video-runtime/workspace-budget'):
             raise HTTPException(410, '预算已改为按项目管理，请进入项目设置')
         if write and re.fullmatch(r'/api/v1/video-runtime/projects/[^/]+/budget/?', route) and identity['role'] != 'owner':
             raise HTTPException(403, '只有所有者可以调整项目预算')
         if write and (route.startswith(LEGACY_PATHS) or path in {'film', 'script-processing'}):
             raise HTTPException(503, '旧共享执行入口尚未通过空间隔离验收')
-        if write and (any(re.fullmatch(pattern, route) for pattern in BILLABLE) or route.endswith('/callbacks')):
+        if write and (any(re.fullmatch(pattern, policy_route) for pattern in BILLABLE) or policy_route.endswith('/callbacks')):
             raise HTTPException(503, '收费模型尚未启用：项目费用与专用服务配置仍待验收，当前可编辑与本地制作')
         body = bytearray()
         async for chunk in request.stream():
@@ -151,7 +153,7 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
             await upstream.aclose()
             await client.aclose()
             raise
-        if request.method=='GET' and route.rstrip('/') in CLOSED_AVAILABILITY_PATHS and upstream.status_code==200:
+        if request.method=='GET' and (route.rstrip('/') in CLOSED_AVAILABILITY_PATHS or re.fullmatch(r'/api/v1/script-preparation/projects/[^/]+/chapters/[^/]+/candidates/availability/?',route)) and upstream.status_code==200:
             # An operator quote can be inspected before all execution paths are
             # qualified. Do not expose worker readiness as an open gateway gate.
             try:

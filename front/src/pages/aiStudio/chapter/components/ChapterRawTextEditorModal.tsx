@@ -23,6 +23,7 @@ import { useRelationTaskNotification } from '../../components/taskNotificationHe
 import { useTaskPageContext } from '../../components/taskPageContext'
 import { TASK_COPY } from '../../components/taskCopy'
 import { useGenerationAvailability } from '../../../../hooks/useGenerationAvailability'
+import { ScriptCandidatePanel } from './ScriptCandidatePanel'
 
 type EditorMode = 'raw' | 'condensed' | 'compare'
 
@@ -47,11 +48,15 @@ export function ChapterRawTextEditorModal({
   open,
   onClose,
   chapterId,
+  projectId,
+  initialCandidateOperation,
   onSaved,
 }: {
   open: boolean
   onClose: () => void
   chapterId: string | undefined
+  projectId?: string
+  initialCandidateOperation?: 'optimize' | 'simplify' | 'divide'
   onSaved?: (next: { rawText?: string; condensedText?: string }) => void
 }) {
   const generation = useGenerationAvailability()
@@ -64,6 +69,12 @@ export function ChapterRawTextEditorModal({
   const [checkingConsistency, setCheckingConsistency] = useState(false)
   const [optimizingScript, setOptimizingScript] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [candidateBusy, setCandidateBusy] = useState(false)
+  const [candidateSections, setCandidateSections] = useState<string[]>([])
+  const [candidateOperation, setCandidateOperation] = useState<'optimize' | 'simplify' | 'divide'>('optimize')
+  useEffect(() => {
+    if (open && initialCandidateOperation) { setCandidateOperation(initialCandidateOperation); setCandidateSections(['ai']) }
+  }, [open, chapterId, initialCandidateOperation])
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyFailure, setHistoryFailure] = useState('')
@@ -205,7 +216,7 @@ export function ChapterRawTextEditorModal({
   const plainWordCount = useMemo(() => editorText.trim().length, [editorText])
   const paragraphCount = useMemo(() => editorText.split(/\n\s*\n/).filter((p) => p.trim()).length, [editorText])
   const actionsLoading =
-    extracting || checkingConsistency || optimizingScript || !!simplifyTask || !!optimizeTask || !!consistencyTask
+    candidateBusy || extracting || checkingConsistency || optimizingScript || !!simplifyTask || !!optimizeTask || !!consistencyTask
   const consistencyIssues = useMemo(() => {
     const list = (consistencyResult?.issues as any[] | undefined) ?? []
     return Array.isArray(list) ? list : []
@@ -613,9 +624,9 @@ export function ChapterRawTextEditorModal({
                 size="small"
                 icon={<ThunderboltOutlined />}
                 loading={extracting || !!simplifyTask}
-                disabled={actionsLoading || saving || loading || !!loadFailure || !!simplifyTask || !generation.available}
-                title={!generation.available ? generation.message : undefined}
-                onClick={() => void handleSmartSimplify()}
+                disabled={actionsLoading || saving || loading || !!loadFailure || !!simplifyTask || (!projectId && !generation.available)}
+                title={projectId ? '查看按项目费用生成的精简候选' : !generation.available ? generation.message : undefined}
+                onClick={() => { if (projectId) { setCandidateOperation('simplify'); setCandidateSections(['ai']) } else void handleSmartSimplify() }}
               >
                 {simplifyTask ? '精简中' : '智能精简'}
               </Button>
@@ -685,7 +696,15 @@ export function ChapterRawTextEditorModal({
           body: { maxHeight: '70vh', overflow: 'auto', paddingTop: 12 },
         }}
       >
-        {!generation.available && <Alert className="mb-3" type="info" showIcon message={generation.message} description="原文编辑、保存和真实版本历史可继续使用。" />}
+        {!projectId && !generation.available && <Alert className="mb-3" type="info" showIcon message={generation.message} description="原文编辑、保存和真实版本历史可继续使用。" />}
+        {projectId && chapterId && !loading && !loadFailure && <Collapse activeKey={candidateSections} onChange={value => setCandidateSections(typeof value === 'string' ? [value] : value)} className="mb-3" destroyInactivePanel items={[{
+          key: 'ai', label: 'AI 剧本候选 · 优化、精简与分镜提取', children: <ScriptCandidatePanel projectId={projectId} chapterId={chapterId} preferredOperation={candidateOperation}
+            hasUnsavedChanges={hasUnsavedChanges || saving} onBusyChange={setCandidateBusy} onAdopted={row => {
+              if (row.result && 'text' in row.result) onSaved?.(row.operation === 'optimize' ? { rawText: row.result.text } : { condensedText: row.result.text })
+              else onSaved?.({})
+              setReloadVersion(value => value + 1)
+            }} />,
+        }]} />}
         {loading ? (
           <div className="flex justify-center items-center py-10">
             <Spin />
@@ -743,9 +762,9 @@ export function ChapterRawTextEditorModal({
                       type="primary"
                       icon={<ThunderboltOutlined />}
                       loading={optimizingScript || !!optimizeTask}
-                      disabled={actionsLoading || saving || loading || !!loadFailure || !!optimizeTask || !generation.available}
-                      title={!generation.available ? generation.message : undefined}
-                      onClick={() => void handleOneClickOptimize()}
+                      disabled={actionsLoading || saving || loading || !!loadFailure || !!optimizeTask || (!projectId && !generation.available)}
+                      title={projectId ? '查看按项目费用生成的优化候选' : !generation.available ? generation.message : undefined}
+                      onClick={() => { if (projectId) { setCandidateOperation('optimize'); setCandidateSections(['ai']) } else void handleOneClickOptimize() }}
                     >
                       {optimizeTask ? '优化中' : '一键优化'}
                     </Button>

@@ -235,6 +235,8 @@ async def retry_run(db, runtime, run_id: str, body: AgentRunRetry, *,submitted_b
     """Start a new explicit full attempt from a frozen snapshot; never silently replay uncertain work."""
     await begin_job_admission(db)
     original = await get_run(db, run_id)
+    if original.kind=='script_candidate':
+        raise HTTPException(409,'请在原章节查看候选并按当前保存内容确认新请求；通用重试不会绕过原文检查')
     if original.status not in {'failed', 'cancelled'}:
         raise HTTPException(409, '只有失败或取消的任务可显式重试')
     scope = 'retry:' + run_id
@@ -410,6 +412,9 @@ class AgentExecutionRuntime:
                             binding,secret = await text_connection_material(db, run.model_id)
                             if binding != run.model_binding:
                                 raise AgentModelError('模型配置在排队后改变；未重定向请求，请新建执行')
+                            if run.kind=='script_candidate':
+                                from app.services.script_preparation.candidates import preflight_dispatch
+                                await preflight_dispatch(db,run)
                             financial=await job_charge(db,'agent',run_id,required=True)
                             charge=await charged_job_unit(db,financial,spec['id'])
                             kind='model_connection_test' if run.kind=='connection_test' else 'agent_text'
