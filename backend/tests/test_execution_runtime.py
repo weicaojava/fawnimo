@@ -61,12 +61,16 @@ async def test_lifespan_admission_scan_shutdown_and_restart(tmp_path,monkeypatch
     from app.main import app,lifespan
     import app.core.db as core_db
     from app.config import settings
-    # This fixture owns only execution/production schemas. A valid FFmpeg path
-    # inherited from the environment must not start an unrelated reverse scanner.
+    from app.services.editing.sound_schema import migrate_sound
+    from app.services.editing.local_speech_schema import migrate_local_speech
+    # Bind every scanner to this fixture's database and install the sound
+    # migration exactly as required by the production startup guard.
+    # A valid inherited FFmpeg path must not start an unrelated reverse scanner.
     monkeypatch.setattr(settings,'reverse_analysis_enabled',False)
     engine,factory,adapter,clock,_,_=await setup(tmp_path)
     previous=getattr(app.state,'execution_runtime',None)
     monkeypatch.setattr(core_db,'engine',engine)
+    monkeypatch.setattr(core_db,'async_session_maker',factory)
     worker=DurableExecution(adapter,factory=factory,clock=clock,publisher=fixture_publisher)
     policies={'fixture':AdmissionPolicy(Capability('fixture',frozenset({5}),frozenset(),0),10,'TEST',3)}
     runtime=ExecutionRuntime(worker,policies,allow_submission=True,dispatcher=ExecutionDispatcher(worker,factory=factory,clock=clock,interval_seconds=.01))
@@ -75,6 +79,8 @@ async def test_lifespan_admission_scan_shutdown_and_restart(tmp_path,monkeypatch
         async with engine.begin() as connection:
             await connection.execute(text('CREATE TABLE production_schema(version INTEGER)'))
             await connection.execute(text('INSERT INTO production_schema VALUES(1)'))
+        await migrate_sound(engine)
+        await migrate_local_speech(engine)
         async with factory() as db:await configure(db,'p','TEST',100)
         async with lifespan(app):
             assert runtime.running
@@ -103,4 +109,41 @@ async def test_lifespan_admission_scan_shutdown_and_restart(tmp_path,monkeypatch
     finally:
         await runtime.stop()
         app.state.execution_runtime=previous
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('missing',['sound_table','speech_table','sound_slot','speech_slot'])
+async def test_lifespan_rejects_incomplete_sound_migration_before_any_runtime_starts(tmp_path,monkeypatch,missing):
+    """Missing tables or singleton slots must fail before registry setup, model/scanner startup or lifespan entry."""
+    from fastapi import FastAPI
+    import app.main as main_module
+    import app.core.db as core_db
+    from app.services.editing.sound_schema import migrate_sound
+    from app.services.editing.local_speech_schema import migrate_local_speech
+    engine,factory,_adapter,_clock,_worker,_url=await setup(tmp_path)
+    monkeypatch.setattr(core_db,'engine',engine)
+    monkeypatch.setattr(core_db,'async_session_maker',factory)
+    started=[]
+
+    def forbidden_bootstrap():
+        """Make crossing the preflight boundary observable instead of allowing a background worker to hide the failure."""
+        started.append('bootstrap')
+        raise AssertionError('Startup advanced beyond an incomplete sound migration')
+
+    monkeypatch.setattr(main_module,'bootstrap_all_registries',forbidden_bootstrap)
+    try:
+        await migrate_sound(engine)
+        await migrate_local_speech(engine)
+        async with engine.begin() as connection:
+            await connection.execute(text('CREATE TABLE production_schema(version INTEGER)'))
+            await connection.execute(text('INSERT INTO production_schema VALUES(1)'))
+            table='sound_export_slot' if missing.startswith('sound') else 'local_speech_slot'
+            await connection.execute(text(('DROP TABLE ' if missing.endswith('table') else 'DELETE FROM ')+table))
+        expected='Run python migrate_editing.py' if missing.endswith('table') else 'Unsupported sound editing migration state'
+        with pytest.raises(RuntimeError,match=expected):
+            async with main_module.lifespan(FastAPI()):
+                raise AssertionError('Unmigrated application entered its lifespan')
+        assert not started
+    finally:
         await engine.dispose()
