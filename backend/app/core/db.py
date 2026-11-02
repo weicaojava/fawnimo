@@ -112,6 +112,7 @@ async def init_db() -> None:
     import app.models.understanding_charge  # noqa: F401
     import app.models.native_video_charge  # noqa: F401
     import app.models.script_candidate  # noqa: F401
+    import app.models.local_example  # noqa: F401
 
     async with engine.begin() as conn:
         if engine.dialect.name=='sqlite':

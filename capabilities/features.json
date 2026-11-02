@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-11-02.2",
+  "register_version": "2026-11-02.3",
   "updated_at": "2026-11-02",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -424,6 +424,16 @@
         "F-014.02"
       ],
       "scope": "2ced83d精确GitHub镜像构建及40项Compose容器检查通过，完整报告公开，双账号/独立卷/删除重建持久数据及资源清理有实际证据；原8安全方法与30原生断言分记。公网、浏览器、备份回退及真实模型未验收。"
+    },
+    {
+      "id": "EV-ORIGINAL-EXAMPLE",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/original-example-validation.json",
+      "features": [
+        "F-012.02"
+      ],
+      "scope": "900项固定v2可复现回归通过，2项历史私有升级未运行；独立v1基线59与v2取消7/私补3/真实worker1分记，两个P2关闭。实际浏览器v1完成创建/恢复/声明保存/锁定/四格式下载及换账号拦截，前端及公开schema与v3相同；v2原生HTTP另实跑导出与重启。无真实模型、成片或公网资格。"
     }
   ],
   "features": [
@@ -3026,13 +3036,14 @@
         "R-005",
         "R-007"
       ],
-      "implementation": "partial",
+      "implementation": "implemented",
       "validation": {
-        "software": "not_verified",
+        "software": "verified",
         "model": "not_required",
         "evidence": [
           "EV-DEMO-LOCAL",
-          "EV-IDENTITY-BROWSER"
+          "EV-IDENTITY-BROWSER",
+          "EV-ORIGINAL-EXAMPLE"
         ]
       },
       "deployment": {
@@ -3040,19 +3051,35 @@
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "source-tree-06c9c5fcbc16",
         "release": null
       },
       "entry": {
-        "route": "API POST /api/v1/identity/demo",
-        "label": "项目大厅：建立 / 重置体验示例（已登录）"
+        "route": "API POST /api/v1/identity/demo-exportable",
+        "label": "项目大厅：创建可导出示例 / 创建文字分镜示例（已登录）"
       },
       "code": [
+        "backend/app/controlplane/local_example.py",
         "backend/app/controlplane/demo.py",
         "backend/app/controlplane/routes.py",
-        "backend/app/core/contracts/identity.py"
+        "backend/app/api/local_example_rpc.py",
+        "backend/app/core/contracts/local_example.py",
+        "backend/app/core/owned_tasks.py",
+        "backend/app/models/local_example.py",
+        "backend/app/services/studio/local_example.py",
+        "backend/app/services/studio/local_example_install.py",
+        "backend/app/services/studio/local_example_media.py",
+        "backend/app/services/studio/demo_media_child.py",
+        "front/src/identity/DemoStarter.tsx"
       ],
       "tests": [
+        "backend/tests/test_demo_media_render.py",
+        "backend/tests/test_owned_process.py",
+        "backend/tests/test_local_example_contract_schema.py",
+        "backend/tests/test_local_example_media.py",
+        "backend/tests/test_local_example.py",
+        "backend/tests/test_local_example_cancellation.py",
+        "backend/tests/test_workspace_exportable_demo.py",
         "backend/tests/test_workspace_demo.py"
       ],
       "acceptance": [
@@ -3060,10 +3087,11 @@
         "重置幂等且仅影响目标示例空间；不覆盖其他用户项目或个人原片"
       ],
       "limits": [
-        "纯自作《点亮小岛》文字示例，7个pending镜头、每镜首/尾/关键帧3条可编辑提示词，无图片/视频或模型调用",
-        "重建创建全新工程保留旧例；成功原请求重放不覆盖编辑，部分结果改/删后返回409",
-        "每空间最多20次新示例请求，旧请求恢复不占新名额",
-        "服务与按钮通过本地HTTP/SQLite和实际浏览器检查；未提供媒体成片或公网平台"
+        "本地原创几何：7段4秒无声视频、7张PNG、剧本/计划/明确导入采用/28秒剪辑草稿；源码Apache-2.0，不用用户原片或模型。",
+        "文字v1仍提供7个pending镜头与21提示词；两种入口共享20次新请求，原key恢复不增名额，新建保留旧工程与编辑。",
+        "新素材一次事务保存，7条剧情标记默认未确认；确认、保存、锁定后导出MP4/SRT/VTT/ZIP。无对白字幕为空，不提供配音或音乐。",
+        "完成回放保留后来编辑/采用，缺失或改变的素材409且不修复；每worker单制作槽、每请求3次尝试，未知文件保留。",
+        "需要独立登录空间及受信本地媒体工具；旧独立入口与迁移执行锁拒绝新媒体制作。软件本机通过，公网、真实模型/成片及两项私有历史升级未验收。"
       ],
       "depends_on": [
         "F-012.01"
@@ -3853,12 +3881,12 @@
         "示例来源/重置报告",
         "A/B浏览器制作与隔离记录"
       ],
-      "progress": "本机A/B账号已安全建立；纯自作7镜/21提示词服务已用真实本地HTTP/SQLite验证，示例按钮、重建保留旧编辑及双账号本机浏览器检查已通过。C仍partial，公网领取与完整体验未交付。"
+      "progress": "本机账号与文字示例保留；F-012.02已加入原创7段素材、完整剪辑草稿和实际四格式本地导出，原请求及旧编辑保留。公网领取、额度/有效期与完整平台体验仍未交付，C继续推进。"
     },
     {
       "id": "D",
       "title": "短视频主线软件缺口及模型/成片联合验收",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "B",
         "C"
@@ -3875,7 +3903,7 @@
         "各真实模型与费用验证单",
         "完整成片检查表和限制"
       ],
-      "progress": "四种有界AI剧本候选已接单项目费用、保存来源、明确采用和可恢复文本历史；713主回归与18整App浏览器通过。参考条件、声音、完整成片及其余D项继续；真实模型质量未验收。"
+      "progress": "四种有界AI剧本候选已接单项目费用、保存来源、明确采用和可恢复文本历史；713主回归与18整App浏览器通过。参考条件、声音、完整成片及其余D项继续；真实模型质量未验收。 原创无模型示例已实际跑通剧本/计划/采用/剪辑与本地四格式导出；这不替代真实模型、声音或完整成片验收。"
     },
     {
       "id": "E",
@@ -3968,10 +3996,10 @@
     "缺失检查、旧PR版本、独立审核失败或费用/资源超限不晋级；失败有明确结果与有限恢复。"
   ],
   "current_state": {
-    "overview": "资源隔离、项目独立预算和离线迁移副本演练保留；六类有界模型协议接原项目费用，四种AI剧本候选完成软件闭环。全部收费身份执行、社区研发、完整成片与公网仍待完成。",
-    "acceptance_setup": "使用独立验收数据和本机A/B账号。项目大厅可建立/重置纯自作7镜、21条可编辑提示词示例；每次重建新工程保留旧编辑，同一请求恢复返回原结果。本机入口与账号交付已可复验，尚无公网平台。",
-    "readme_status": "身份、个人空间、文字示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。",
-    "verification_checkpoint": "2ced83d新增容器CI通过实际镜像构建与40断言；原8安全方法及30原生断言分记，主后端/前端CI另行登记。45已实现/7部分/12计划，current18与longterm1不变；费用授权0，公网和完整功能未交付。",
+    "overview": "资源隔离、项目独立预算和离线迁移副本演练保留；六类有界协议、四种AI剧本候选继续接原项目记录。原创示例可编辑并本地导出。全部收费身份执行、社区研发、真实模型/成片与公网仍待完成。",
+    "acceptance_setup": "使用独立本机A/B验收数据；项目大厅分别建立文字或可导出原创示例。新建保留旧工程，原请求恢复保留后来编辑；7条剧情声明默认未确认。尚无公网领取或部署平台。",
+    "readme_status": "身份、个人空间、文字/原创可导出示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。",
+    "verification_checkpoint": "原创示例35路径源码经独立复核，两个取消P2关闭；固定v2回归900通过、2项私有历史升级未运行。实际浏览器与v2原生导出分开归属，不能合计。46已实现/6部分/12计划，current17与longterm1；费用授权0，公网和完整平台未交付。",
     "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {

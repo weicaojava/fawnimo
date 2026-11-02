@@ -1,8 +1,11 @@
-"""Own a gated helper and every descendant until exit, timeout or cancellation.
+"""Own a gated helper's process group and join the root on every outcome.
 
 The server-owned helper must read all stdin before it can spawn descendants.
 Windows attaches it to a kill-on-close Job Object before opening that input gate.
 Job handles are non-inheritable, so application death also closes the last owner.
+Windows job accounting is not a per-descendant I/O completion barrier. Helpers
+publishing files should encode in the root, or retain uncertain output until
+separate verification rather than assuming every descendant handle is signalled.
 """
 import asyncio
 import ctypes
@@ -69,7 +72,7 @@ class WindowsProcessJob:
             self.api.CloseHandle(process)
 
     def terminate_and_close(self):
-        """Terminate and observe the whole kernel container even when the helper has already exited."""
+        """Terminate and drain job membership; this does not join every descendant's pending kernel I/O."""
         if not self.handle: return
         handle, self.handle = self.handle, None
         try:
@@ -86,12 +89,14 @@ class WindowsProcessJob:
             self.api.CloseHandle(handle)
 
 
-async def run_owned_process(command: Sequence[str], input_data: bytes, *, timeout: float, max_stdout_bytes: int = 2 * 1024 * 1024) -> tuple[bytes, int]:
-    """Run trusted gated argv, bound I/O/time, and join its owned tree on every outcome.
+async def run_owned_process(command: Sequence[str], input_data: bytes, *, timeout: float, max_stdout_bytes: int = 2 * 1024 * 1024, environment: dict[str, str] | None = None) -> tuple[bytes, int]:
+    """Run trusted gated argv, bound I/O/time, terminate its group and join its root on every outcome.
 
     Never pass a client-supplied command. The helper must not spawn before stdin
     reaches EOF: Windows ownership is installed before input_data is delivered.
     The return code is returned for caller-specific protocol validation.
+    Callers may provide an explicit environment allowlist for helpers that need
+    no application configuration; existing callers retain their prior environment.
     """
     if not command or timeout <= 0 or max_stdout_bytes < 1: raise ValueError('Invalid owned process bounds')
     job = WindowsProcessJob() if os.name == 'nt' else None
@@ -114,7 +119,7 @@ async def run_owned_process(command: Sequence[str], input_data: bytes, *, timeou
 
     try:
         options = {'creationflags': subprocess.CREATE_NO_WINDOW} if os.name == 'nt' else {'start_new_session': True}
-        process = await asyncio.create_subprocess_exec(*command, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL, **options)
+        process = await asyncio.create_subprocess_exec(*command, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL, env=environment, **options)
         if job is not None: job.attach(process.pid)
 
         async def exchange():
@@ -134,8 +139,14 @@ async def run_owned_process(command: Sequence[str], input_data: bytes, *, timeou
         return await asyncio.wait_for(exchange(), timeout)
     finally:
         cleaning = asyncio.create_task(cleanup())
-        try:
-            await asyncio.shield(cleaning)
-        except asyncio.CancelledError:
-            await asyncio.shield(cleaning)
-            raise
+        cancelled = None
+        while not cleaning.done():
+            try:
+                await asyncio.shield(cleaning)
+            except asyncio.CancelledError as error:
+                # Repeated cancellation cannot detach the cleanup task or skip
+                # the root join. Job drain alone is not a descendant I/O barrier.
+                cancelled = error
+        cleaning.result()
+        if cancelled is not None:
+            raise cancelled

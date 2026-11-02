@@ -1,5 +1,6 @@
 """Actual SQLite/MP4 editing author tests; no provider or model calls."""
 import asyncio
+import os
 import subprocess
 from pathlib import Path
 import pytest
@@ -25,7 +26,7 @@ async def fixture(tmp_path,monkeypatch,audio=True):
     """Use actual registered plans and decoded synthetic MP4 as explicit manual imports."""
     engine,factory,draft,value,runtime,_=await plan_fixture(tmp_path,monkeypatch)
     await migrate_editing(engine)
-    executable=Path(__file__).resolve().parents[4]/'ffmpeg.exe'
+    executable=Path(os.environ.get('FAWNIMO_TEST_FFMPEG') or os.environ.get('TEST_MEDIA_PROBE') or Path(__file__).resolve().parents[4]/'ffmpeg.exe')
     monkeypatch.setattr(settings,'production_probe_executable',str(executable))
     file=tmp_path/'synthetic.mp4'
     args=[str(executable),'-nostdin','-v','error','-f','lavfi','-i','color=blue:s=160x120:r=30:d=2']
@@ -132,7 +133,7 @@ async def test_actual_planned_candidate_reuses_one_take_without_source_claim(tmp
     engine,factory,draft,value,runtime,transport=await plan_fixture(tmp_path,monkeypatch)
     await migrate_editing(engine)
     file=tmp_path/'actual-fixture.mp4'
-    executable=Path(__file__).resolve().parents[4]/'ffmpeg.exe'
+    executable=Path(os.environ.get('FAWNIMO_TEST_FFMPEG') or os.environ.get('TEST_MEDIA_PROBE') or Path(__file__).resolve().parents[4]/'ffmpeg.exe')
     monkeypatch.setattr(settings,'production_probe_executable',str(executable))
     subprocess.run([str(executable),'-nostdin','-v','error','-f','lavfi','-i','color=green:s=160x120:r=30:d=1','-c:v','libx264','-pix_fmt','yuv420p','-y',str(file)],check=True,timeout=20)
     async def actual_download(result,media_id,project_id):

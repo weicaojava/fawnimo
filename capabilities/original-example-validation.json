@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-02",
+  "features": [
+    "F-012.02"
+  ],
+  "scope": "Local original licensed geometry example, atomic new project and recoverable editing/export flow only",
+  "base_published_commit": "cca699fce70f28f0e454aab3204a7e9e2ddf3e97",
+  "selected_source_tree": "06c9c5fcbc164ea227946dc6991192be6ce7937d",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "cf3de85a7e389374a10e23aa5194af1817727d3651bbfe896fd58fb75e45906e",
+    "backend/app/api/local_example_rpc.py": "e9481f7fd09414e827447b8331346f2ef2c47501f4be28c5f8f7d2746c7a3c22",
+    "backend/app/core/contracts/demo_example.py": "738c34c54cf51a5a86c10e9121f50b93ccc2bf681de5d759ad374088aa9c27f5",
+    "backend/app/core/contracts/local_example.py": "7c6a379a25c3981d6e28585fac50d571a4bc0b172e16d16c0b3e80d61d60beba",
+    "backend/app/core/db.py": "af880c5a58b40b8c6368bf08fe4675e2411f5316cb8d2605a069036c1b0f8f2e",
+    "backend/app/core/owned_process.py": "16f269329114f96544cdbce52bae12abf5c8f106a4c1b5b966d7da880c41b1ae",
+    "backend/app/core/owned_tasks.py": "03715f39fa5384d0ef0222a338ea26a6f6193c56d20173d29508cb932c71865f",
+    "backend/app/core/media_environment.py": "58be3bf9dbb827beccf24a92d19158af0f80a3e7acb23ee0d6d5e4f6d9f2a73d",
+    "backend/app/controlplane/demo.py": "8593c957add8f2d738edc62b697ab63a390472feba3d11e6c3f9432a71095f8f",
+    "backend/app/controlplane/local_example.py": "b2effdef2104e19114043504b92b751f88f13a96b23d947e1419a21799f43cdc",
+    "backend/app/controlplane/routes.py": "024a7ea1d672aa06615122aa56ad6ee5acf7da9d4859e7a19682d62c8ccf7ba2",
+    "backend/app/main.py": "90cc5844755ec8bb32782eb450fcc46dd1d5ed14cad920ac29d0f07ce19e8c9f",
+    "backend/app/models/local_example.py": "17c54585fd8e44f4f16190f204c329288b423d8086ac5baa32574369d48ce6de",
+    "backend/app/services/studio/demo_media_child.py": "35f8a6cd890d988f9664aadf172d3fa2506b0c7826d204eea2eef806ab1c3a0c",
+    "backend/app/services/studio/local_example_media.py": "443b04b03a9ebfcf39d0af128b1e3728f1f3e178c8adf1cb4de9534782c37e04",
+    "backend/app/services/studio/local_example_install.py": "fa1f9fd0401723a3f473127dc1fc8a85d00bb2ad75abdd3dd0a6a69e0de6abc3",
+    "backend/app/services/studio/local_example.py": "54ecc023dbd059d20fb671d9de60b663239d20d0f19e6d92029857674b735175",
+    "backend/app/services/studio/production.py": "0b9654a931cbca21e33539b65ac067c84b6d72158edfe1f401775f92bfa7e425",
+    "backend/app/services/editing/selection.py": "8136063370e1c04fc9a334869b81fb49a865c1575e0319db9a210e496232aaec",
+    "backend/tests/test_demo_media_render.py": "9c87702e4e26c161a549f435c8b409d5c01c649ce0a369d11b9f98500032aa75",
+    "backend/tests/test_owned_process.py": "e8e633add18c58096e7d0e10c02a92eabaeebf9228485c11b18a0dab21320ae6",
+    "backend/tests/test_local_example_contract_schema.py": "82ef1a565cdeeb5a4fbd1a8114c43a6e598a1ae9cd6b0c24ab55d2935c6a23b3",
+    "backend/tests/test_local_example_media.py": "af89247537c32b8ff52059b5aea29eaf98bd84ffa0d344619ae27dbed15fccf1",
+    "backend/tests/test_local_example.py": "5b3741e74f189daf4c2c38b0d8a93a4c052a5f40175f2f04de07ee0f605dd425",
+    "backend/tests/test_local_example_cancellation.py": "ca4d10e7fd964cf7c5a613d859a4fcc94be2558e9e3a3d72792eae0605f37d47",
+    "backend/tests/test_workspace_exportable_demo.py": "d676b33891915e86893794292f79c91ec87d62bde1e5ed4ecf692b40791268c6",
+    "backend/tests/test_editing.py": "87ea7cc5cf8121066886f340af615d604e260ec2ff1de84406d42280aac88244",
+    "backend/tests/test_editing_independent.py": "324b01687dbb49f9840a2425aa05bea0641719aaa2e44274baa5ecabda7bb15b",
+    "front/src/identity/DemoStarter.tsx": "e960ca2cd81e0c4283ca078aac5a36cc7aa194ed24f4cb2f486b001fb7e6d231",
+    "front/openapi.json": "7e2dc5a8f3195bd17a6194861ff70dd05c6aa6ed0f578082787bb08416a32d68",
+    "front/src/services/generated/index.ts": "b255cc8dabddbb6aaa126b6b18873dc7492a9a717fcfc0b8af9883928796d1dc",
+    "front/src/services/generated/services/IdentityService.ts": "19213857938378434c376d2a96e6cfe64cb342d5116266041d571f40bf035260",
+    "front/src/services/generated/models/LocalExampleInput.ts": "12475de0678dde5642c0fb639cd1cd40bcff3d3cfd3fadef4f3035b96152b309",
+    "front/src/services/generated/models/LocalExampleRead.ts": "739049c08feb31fc50fade54545c3e83b47199f7acca2764c15d19c9d5046d1c",
+    "front/src/services/generated/models/ApiResponse_LocalExampleRead_.ts": "ee484feb111cf1f75e1b4dd654aad43b7b275c8c4eed3683dbd3d34c27471f09"
+  },
+  "bounded_source_review_sha256": "0a44ef34601b55596135ebd24e7cc155f7ae7ee1872d041b720be0603d9abc47",
+  "ci_timeout_delta_review_sha256": "d4dc03a84128b62888e9443afbb8a51cbb934ea2e7fb189109e5cebf0274eb9f",
+  "metadata_review": "pending_independent_metadata_review",
+  "portable_backend_regression": {
+    "tests": 900,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 900,
+    "junit_seconds": 1900.603,
+    "source_tree": "123f40d247cccbff398367a4a9c0c85f106f6580",
+    "sha256": "d0f55ba23fe72da46d1f584bbfe1346766fa04547e83e5fe39fc3b447b50032b",
+    "evidence": "private_external:stage-i-exportable-demo/expanded-backend-frozen-v2.xml",
+    "deselected_historical_cases": 2,
+    "selection_note": "Two retained historical M4B private-snapshot upgrade cases are not run or qualified. This is the expanded workflow selection, not every test in the repository.",
+    "inheritance": "Final source changes only CI timeout25 to40 minutes; backend/frontend/test bytes and test command are identical to this tested v2."
+  },
+  "independent_runs": {
+    "v1_targeted59": {
+      "file": "independent-targeted-v1.xml",
+      "sha256": "518408dc7c001d72d3a0930f4cd4e5adfd630884d22c6ca70fc1b23cb2d6d68c",
+      "selected_tree": "8ed17fe13ee0a9fa94d4b672bf69cda0ca7a1b17",
+      "tests": 59,
+      "passed": 59,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "v2_cancellation7": {
+      "file": "independent-cancellation-v2.xml",
+      "sha256": "2786075db6050f9f56302d2595a426e3e11a7db568adc26463a60e78836910a0",
+      "selected_tree": "123f40d247cccbff398367a4a9c0c85f106f6580",
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "v2_private3": {
+      "file": "independent-private-v2.xml",
+      "sha256": "e0e2e69ae9e6c8d0f05bbc422f80c841babdd09dd710f09475023ec1f42c89b1",
+      "selected_tree": "123f40d247cccbff398367a4a9c0c85f106f6580",
+      "tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "v2_actual_worker1": {
+      "file": "independent-worker-v2.xml",
+      "sha256": "aa7381261364388ca6d216d80d8ca5c365aa9ad52803270c6d7663a376608c23",
+      "selected_tree": "123f40d247cccbff398367a4a9c0c85f106f6580",
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "closed_findings": [
+    {
+      "id": "I-P2-01",
+      "priority": "P2",
+      "status": "closed_in_frozen_v2"
+    },
+    {
+      "id": "I-P2-02",
+      "priority": "P2",
+      "status": "closed_in_frozen_v2"
+    }
+  ],
+  "before_findings_sha256": "05aa068e09e20aa31f1c82be1cd11470703f6ad958727081eb855d5e18978d08",
+  "browser": {
+    "actual_browser": true,
+    "source_tree": "8ed17fe13ee0a9fa94d4b672bf69cda0ca7a1b17",
+    "checks": {
+      "create_and_original_key_retry": true,
+      "second_project_preserves_first": true,
+      "seven_real_clips": true,
+      "browser_video_dimensions": [
+        360,
+        640
+      ],
+      "source_clip_duration_seconds": 4,
+      "editable_title": true,
+      "seven_anchors_default_unconfirmed": true,
+      "freeze_disabled_until_saved_confirmation": true,
+      "save_revision_and_freeze": true,
+      "local_export_ready": true,
+      "four_real_ui_downloads": true,
+      "other_account_zero_projects": true,
+      "cross_tab_identity_change_blocks_old_completion": true,
+      "original_intent_retained_after_account_change": true,
+      "original_account_readonly_recovery": true,
+      "old_title_and_export_preserved": true
+    },
+    "evidence_sha256": "55065d5c5da6d6bcaf03435224357873f57a5b1f197aa512e4dc5f14d12b16c6",
+    "inheritance": "All frontend and public schema bytes are unchanged; v2 native HTTP/export/restart is separately executed. The browser run is not relabelled v2 or v3."
+  },
+  "actual_browser_exports": {
+    "duration_ms": 28000,
+    "frames": 840,
+    "width": 360,
+    "height": 640,
+    "independent_ffmpeg_decode": true,
+    "source_audio": false,
+    "export_audio": "AAC silence; no voice/music qualification",
+    "files": {
+      "video": {
+        "size": 99288,
+        "sha256": "a014cff5703249818d6ae20a682f1613356ed1ef55028dcebad729fadc4c0da1"
+      },
+      "subtitles_srt": {
+        "size": 2,
+        "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6"
+      },
+      "subtitles_vtt": {
+        "size": 10,
+        "sha256": "6780f75f27ae7bc4ad240abd1c65cc15d28aa1c0b6e732700a9d9e8614e5b336"
+      },
+      "package": {
+        "size": 117506,
+        "sha256": "95ef459da50938dd6797074c83a1be4484ef394bc143a13302dfd4034541c0db"
+      }
+    },
+    "subtitle_note": "Silent example: empty SRT and header-only VTT."
+  },
+  "frontend": {
+    "typecheck_passed": true,
+    "build_passed": true,
+    "modules": 3214,
+    "vite_seconds": 19.89,
+    "openapi_update_passed": true,
+    "public_paths": 235,
+    "public_schemas": 552,
+    "private_rpc_excluded": true,
+    "schema_semantic_equal": true
+  },
+  "count_note": "900 contains existing regressions and added/reintroduced portable cases. Independent59 belongs to v1; v2 cancellation7/private3/actual worker1 are separate overlapping runs. Never sum these as new coverage.",
+  "software_verified_locally": true,
+  "model_calls": 0,
+  "paid_authorization": 0,
+  "model_quality_qualified": false,
+  "complete_film_qualified": false,
+  "public_deployment_verified": false,
+  "full_paid_execution_isolation_qualified": false,
+  "historical_upgrade_qualified": false,
+  "original_data_or_keys_used": false,
+  "original_checkout_writes": 0,
+  "current_commit_ci": "pending_publication_and_exact_commit_CI",
+  "new_container_ci": "pending_exact_candidate_image",
+  "limits": [
+    "Fixed7 silent4s geometry clips; source12fps, export360x640/30fps.",
+    "All7 retention declarations start unconfirmed; user must save and freeze.",
+    "One worker lane,3 bounded attempts and shared20 new-intent quota; uncertain private files retained.",
+    "Completed replay preserves later edits and refuses missing/changed media rather than repairing.",
+    "Legacy app without managed identity and imported execution-locked space refuse new media examples.",
+    "No real model, voice, film, public hosting, historical private-snapshot upgrade or autonomous code-execution qualification."
+  ]
+}

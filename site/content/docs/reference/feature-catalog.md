@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-11-02.2`，更新日期：2026-11-02。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-11-02.3`，更新日期：2026-11-02。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-资源隔离、项目独立预算和离线迁移副本演练保留；六类有界模型协议接原项目费用，四种AI剧本候选完成软件闭环。全部收费身份执行、社区研发、完整成片与公网仍待完成。
+资源隔离、项目独立预算和离线迁移副本演练保留；六类有界协议、四种AI剧本候选继续接原项目记录。原创示例可编辑并本地导出。全部收费身份执行、社区研发、真实模型/成片与公网仍待完成。
 
-2ced83d新增容器CI通过实际镜像构建与40断言；原8安全方法及30原生断言分记，主后端/前端CI另行登记。45已实现/7部分/12计划，current18与longterm1不变；费用授权0，公网和完整功能未交付。
+原创示例35路径源码经独立复核，两个取消P2关闭；固定v2回归900通过、2项私有历史升级未运行。实际浏览器与v2原生导出分开归属，不能合计。46已实现/6部分/12计划，current17与longterm1；费用授权0，公网和完整平台未交付。
 
 ## F-001 身份与工作空间
 
@@ -796,7 +796,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | 编号 / 子功能 | 实现 | 软件验证 | 真实模型 | 部署 | 实际入口 |
 | --- | --- | --- | --- | --- | --- |
 | [F-012.01 独立测试账号A/B与安全领取](#f-012-01) | 部分实现 | 未验收 | 不适用 | 仅本机 | /projects · 新18000本机A/B账号；凭据由维护者安全提供 |
-| [F-012.02 可重置、有许可的示例工程](#f-012-02) | 部分实现 | 未验收 | 不适用 | 仅本机 | API POST /api/v1/identity/demo · 项目大厅：建立 / 重置体验示例（已登录） |
+| [F-012.02 可重置、有许可的示例工程](#f-012-02) | 已实现 | 本阶段已验证 | 不适用 | 仅本机 | API POST /api/v1/identity/demo-exportable · 项目大厅：创建可导出示例 / 创建文字分镜示例（已登录） |
 | [F-012.03 社区注册/独立体验空间与额度](#f-012-03) | 部分实现 | 未验收 | 不适用 | 仅本机 | API /api/v1/identity/register · 维护者可显式开放注册；当前本机默认领取独立账号 |
 
 <a id="f-012-01"></a>
@@ -817,13 +817,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-012.02 可重置、有许可的示例工程
 
-需求：R-005, R-007；验收阶段：C；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-005, R-007；验收阶段：C；范围：本阶段交付；实现版本：`source-tree-06c9c5fcbc16`；发布版本：`未发布`。
 
-代码：[`backend/app/controlplane/demo.py`](../../../../backend/app/controlplane/demo.py)、[`backend/app/controlplane/routes.py`](../../../../backend/app/controlplane/routes.py)、[`backend/app/core/contracts/identity.py`](../../../../backend/app/core/contracts/identity.py)。
+代码：[`backend/app/controlplane/local_example.py`](../../../../backend/app/controlplane/local_example.py)、[`backend/app/controlplane/demo.py`](../../../../backend/app/controlplane/demo.py)、[`backend/app/controlplane/routes.py`](../../../../backend/app/controlplane/routes.py)、[`backend/app/api/local_example_rpc.py`](../../../../backend/app/api/local_example_rpc.py)、[`backend/app/core/contracts/local_example.py`](../../../../backend/app/core/contracts/local_example.py)、[`backend/app/core/owned_tasks.py`](../../../../backend/app/core/owned_tasks.py)、[`backend/app/models/local_example.py`](../../../../backend/app/models/local_example.py)、[`backend/app/services/studio/local_example.py`](../../../../backend/app/services/studio/local_example.py)、[`backend/app/services/studio/local_example_install.py`](../../../../backend/app/services/studio/local_example_install.py)、[`backend/app/services/studio/local_example_media.py`](../../../../backend/app/services/studio/local_example_media.py)、[`backend/app/services/studio/demo_media_child.py`](../../../../backend/app/services/studio/demo_media_child.py)、[`front/src/identity/DemoStarter.tsx`](../../../../front/src/identity/DemoStarter.tsx)。
 
-限制：纯自作《点亮小岛》文字示例，7个pending镜头、每镜首/尾/关键帧3条可编辑提示词，无图片/视频或模型调用；重建创建全新工程保留旧例；成功原请求重放不覆盖编辑，部分结果改/删后返回409；每空间最多20次新示例请求，旧请求恢复不占新名额；服务与按钮通过本地HTTP/SQLite和实际浏览器检查；未提供媒体成片或公网平台。
+限制：本地原创几何：7段4秒无声视频、7张PNG、剧本/计划/明确导入采用/28秒剪辑草稿；源码Apache-2.0，不用用户原片或模型。；文字v1仍提供7个pending镜头与21提示词；两种入口共享20次新请求，原key恢复不增名额，新建保留旧工程与编辑。；新素材一次事务保存，7条剧情标记默认未确认；确认、保存、锁定后导出MP4/SRT/VTT/ZIP。无对白字幕为空，不提供配音或音乐。；完成回放保留后来编辑/采用，缺失或改变的素材409且不修复；每worker单制作槽、每请求3次尝试，未知文件保留。；需要独立登录空间及受信本地媒体工具；旧独立入口与迁移执行锁拒绝新媒体制作。软件本机通过，公网、真实模型/成片及两项私有历史升级未验收。。
 
-验证依据：`EV-DEMO-LOCAL`、`EV-IDENTITY-BROWSER`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-DEMO-LOCAL`、`EV-IDENTITY-BROWSER`、`EV-ORIGINAL-EXAMPLE`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1085,6 +1085,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-WORKSPACE-LOCAL-MODELS | software | repository · `capabilities/workspace-local-models-validation.json` | 762主回归含38新检查；独立38重跑及2窄补测分记。固定worker只读自身本机端口配置；六费用协议通过自作回环与原项目记录验证。公开收费仍503；Native到接收/查询，无MP4或真实模型/账单/公网资格；整项状态不提升。 |
 | EV-COMMUNITY-INTAKE | software | repository · `capabilities/community-intake-validation.json` | 43冻结专项、独立43/原反例5/补测4分记；HMAC公开源/投递去重/最小时钟/不可变版本已本机验证，两P2一P3关闭。真实App/HTTPS事件、实时源复验及后续AI研发未接通，整项软件仍未验收；旧36通过及5失败不累加。 |
 | EV-CONTAINER-RUNTIME-PREPARATION | software | repository · `capabilities/container-runtime-validation.json` | 2ced83d精确GitHub镜像构建及40项Compose容器检查通过，完整报告公开，双账号/独立卷/删除重建持久数据及资源清理有实际证据；原8安全方法与30原生断言分记。公网、浏览器、备份回退及真实模型未验收。 |
+| EV-ORIGINAL-EXAMPLE | software | repository · `capabilities/original-example-validation.json` | 900项固定v2可复现回归通过，2项历史私有升级未运行；独立v1基线59与v2取消7/私补3/真实worker1分记，两个P2关闭。实际浏览器v1完成创建/恢复/声明保存/锁定/四格式下载及换账号拦截，前端及公开schema与v3相同；v2原生HTTP另实跑导出与重启。无真实模型、成片或公网资格。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

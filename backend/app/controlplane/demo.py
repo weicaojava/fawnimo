@@ -15,6 +15,7 @@ import time
 
 import httpx
 from fastapi import HTTPException
+from app.core.contracts.demo_example import original_demo_document
 
 DEMO_VERSION = "original-light-island-v1"
 REQUEST_KEY = re.compile(r"[A-Za-z0-9_-]{8,128}\Z")
@@ -23,43 +24,8 @@ MAX_REQUESTS_PER_WORKSPACE = 20
 
 
 def _document(project_id: str) -> list[dict]:
-    """Build only self-authored text and deterministic resource IDs for the current template."""
-    chapter = project_id + "-chapter"
-    story = [
-        ("雾中的小岛", "透明小岛静置于深蓝桌面，岛中央的空心方块仍未亮起。", "ELS", "STATIC"),
-        ("第一缕光", "一颗金色光点从画面左侧进入，在方块的左边停下。", "MS", "PAN"),
-        ("轻轻触碰", "光点触碰方块，方块的第一条边线亮起。", "CU", "STATIC"),
-        ("沿边行走", "金色光点沿方块外缘缓慢绕行，留下连续柔和的光线。", "MCU", "TRACK"),
-        ("小岛回应", "方块亮起后，三枚小三角片依次发出淡蓝微光。", "MS", "DOLLY_OUT"),
-        ("光的汇合", "金色光点回到方块上方，与三枚三角片的微光汇合。", "LS", "STATIC"),
-        ("点亮小岛", "全岛保持温暖微光，镜头缓慢拉远，画面安静收束。", "ELS", "DOLLY_OUT"),
-    ]
-    provenance = "纯自作几何光影练习文本；未使用用户原片或第三方素材；没有模型调用或已生成成片。"
-    description = provenance + "示例可自由编辑；重新建立示例会新建工程，保留所有旧示例和编辑。"
-    project = {"id": project_id, "name": "体验示例 · 点亮小岛", "description": description,
-               "style": "动漫3D", "visual_style": "动漫", "seed": 20261029,
-               "unify_style": True, "default_video_ratio": "9:16"}
-    raw = "《点亮小岛》\n" + provenance + "\n\n" + "\n".join(f"{i}. {title}：{text}" for i, (title, text, _, _) in enumerate(story, 1))
-    steps = [
-        {"collection": "projects", "body": project},
-        {"collection": "chapters", "body": {"id": chapter, "project_id": project_id, "index": 1,
-            "title": "第一章 · 光的旅程", "summary": provenance, "raw_text": raw,
-            "condensed_text": "金色光点点亮几何小岛。", "storyboard_count": 7, "status": "draft"}},
-    ]
-    for index, (title, text, camera, movement) in enumerate(story, 1):
-        shot = f"{project_id}-shot-{index}"
-        steps.append({"collection": "shots", "body": {"id": shot, "chapter_id": chapter,
-            "index": index, "title": title, "status": "pending", "skip_extraction": False,
-            "script_excerpt": text}})
-        prefix = f"原创几何光影练习，竖屏9:16，透明小岛、空心方块与金色光点，镜头{index}：{text}"
-        steps.append({"collection": "shot-details", "body": {"id": shot, "camera_shot": camera,
-            "angle": "EYE_LEVEL", "movement": movement, "duration": 4,
-            "atmosphere": "安静、克制、暖光与冷蓝背景", "mood_tags": ["安静", "希望"],
-            "action_beats": [text], "has_bgm": False,
-            "first_frame_prompt": prefix + "。首帧：展示动作发生前的稳定构图。",
-            "last_frame_prompt": prefix + "。尾帧：展示动作完成后的稳定构图。",
-            "key_frame_prompt": prefix + "。关键帧：保留方块、光点和小岛的空间关系。"}})
-    return steps
+    """Preserve the original v1 text-demo template exactly while sharing its inert source with local examples."""
+    return original_demo_document(project_id)
 
 
 def _schema(store) -> None:
@@ -82,15 +48,16 @@ def _schema(store) -> None:
         """)
 
 
-def _member(db, workspace: str, actor: str) -> None:
+def _member(db, workspace: str, actor: str) -> str:
     """Recheck the real member role rather than trusting a caller-supplied role field."""
     row = db.execute("""SELECT m.role FROM memberships m JOIN users u ON u.id=m.user_id
         WHERE m.workspace_id=? AND m.user_id=? AND u.disabled=0""", (workspace, actor)).fetchone()
     if row is None or row["role"] not in {"owner", "editor"}:
         raise HTTPException(403, "当前身份没有创建示例的权限")
+    return row['role']
 
 
-def _claim(store, workspace: str, actor: str, key: str, digest: str, project_id: str) -> dict:
+def _claim(store, workspace: str, actor: str, key: str, digest: str, project_id: str, *, template_version: str = DEMO_VERSION) -> dict:
     """Atomically bind one request to one project, allowing only fenced same-key recovery."""
     now, token = int(time.time()), secrets.token_hex(24)
     with store.connect() as db:
@@ -98,7 +65,7 @@ def _claim(store, workspace: str, actor: str, key: str, digest: str, project_id:
         _member(db, workspace, actor)
         row = db.execute("SELECT * FROM demo_requests WHERE workspace_id=? AND submitted_by=? AND request_key=?", (workspace, actor, key)).fetchone()
         if row is not None:
-            if row["request_hash"] != digest or row["template_version"] != DEMO_VERSION or row["project_id"] != project_id:
+            if row["request_hash"] != digest or row["template_version"] != template_version or row["project_id"] != project_id:
                 raise HTTPException(409, "原示例请求的版本或内容不一致，请保留原标识核对，不能覆盖旧工程")
             if row["state"] == "succeeded":
                 return dict(row)
@@ -115,7 +82,7 @@ def _claim(store, workspace: str, actor: str, key: str, digest: str, project_id:
                 raise HTTPException(429, "此空间已达到20次示例建立上限；旧工程和原请求仍保留，请继续编辑已有示例")
             db.execute("""INSERT INTO demo_requests(workspace_id,submitted_by,request_key,request_hash,template_version,
                 project_id,state,lease_token,lease_until,created_at,updated_at) VALUES(?,?,?,?,?,?,'pending',?,?,?,?)""",
-                (workspace, actor, key, digest, DEMO_VERSION, project_id, token, now + LEASE_SECONDS, now, now))
+                (workspace, actor, key, digest, template_version, project_id, token, now + LEASE_SECONDS, now, now))
         return dict(db.execute("SELECT * FROM demo_requests WHERE workspace_id=? AND submitted_by=? AND request_key=?", (workspace, actor, key)).fetchone())
 
 

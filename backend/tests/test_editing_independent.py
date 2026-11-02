@@ -3,7 +3,9 @@ import hashlib
 import asyncio
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
+import shutil
 import subprocess
 from fractions import Fraction
 import av
@@ -13,7 +15,7 @@ from PIL import Image
 from app.services.editing.media import run_child,covers
 
 ROOT=Path(__file__).resolve().parents[5]
-FFMPEG=ROOT/'work/ffmpeg.exe'
+FFMPEG=Path(os.environ.get('FAWNIMO_TEST_FFMPEG') or os.environ.get('TEST_MEDIA_PROBE') or shutil.which('ffmpeg') or ROOT/'work/ffmpeg.exe')
 
 
 def digest(path):

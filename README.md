@@ -11,7 +11,7 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 <!-- features:begin -->
 ## 当前开发与验收状态
 
-本分支继续开发开源AI短视频制作工具，登记15个功能区、64项子功能：45项已实现、7项部分实现、12项待实现。实现、软件验证、真实模型验证和部署分别记录，数量不表示全部验收通过。
+本分支继续开发开源AI短视频制作工具，登记15个功能区、64项子功能：46项已实现、6项部分实现、12项待实现。实现、软件验证、真实模型验证和部署分别记录，数量不表示全部验收通过。
 
 - [功能总表与代码/入口/验证矩阵](site/content/docs/reference/feature-catalog.md)
 - [逐项验收指南](site/content/docs/guide/feature-acceptance.md)
@@ -19,7 +19,7 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 - [公开路线图](site/content/docs/plans/public-roadmap.md)
 - [单一功能登记源](capabilities/features.json)，检查/生成：`python scripts/features.py --check` / `python scripts/features.py`
 
-身份、个人空间、文字示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
+身份、个人空间、文字/原创可导出示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
 
 代码保留并基于[Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish)继续开发，遵循[现有许可证](LICENSE)，来源和发布边界见[UPSTREAM.md](UPSTREAM.md)。现有代码包含上游、既有改动和AI辅助开发成果，不能宣称全部从零AI原创。仓库里的上游Issues、Actions、Pages与镜像链接属于上游，不是已交付的自有平台。
 <!-- features:end -->
@@ -28,7 +28,7 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 
 - 项目、章节、分镜、演员、服装、场景、道具、提示词和文件的持久编辑。
 - 独立身份入口、个人空间和固定空间工作进程；旧本地模式保留。
-- 可建立并重新建立的纯自作文字示例，含7镜、21条可编辑提示词，保留旧工程与编辑。
+- 两种纯自作示例：7镜、21条提示词的文字练习，以及含7段无声视频、图片与28秒剪辑草稿的[可导出示例](site/content/docs/guide/original-example.md)；新建保留旧工程与编辑。
 - 有界顺序文本Agent、图片候选与采用、视频理解候选、视频执行及项目独立预算等软件协议；文本、图片、原片视觉/ASR及托管原生视频已接原项目费用；完整收费执行隔离仍待验，新身份空间收费提交保持关闭。
 - 不可变剪辑版本、硬切与交叉淡化、本地FFmpeg渲染和字幕导出；适用范围及验证证据以功能登记为准。
 
@@ -57,7 +57,7 @@ python run_controlplane.py --root ./local-identity --provision-account demo-a --
 
 ## 自行部署
 
-[工作空间部署准备](deploy/workspace/README.md)提供含静态前端、身份网关、独立空间进程与FFmpeg的单节点方案，稳定与预览使用不同数据卷。当前仅通过静态配置检查，镜像、容器和公网部署尚未完成验收。旧MySQL/Celery Compose与上游镜像配置保留为来源资料，不能替代当前功能的部署验证。
+[工作空间部署准备](deploy/workspace/README.md)提供含静态前端、身份网关、独立空间进程与FFmpeg的单节点方案，稳定与预览使用不同数据卷。`2ced83d`版本已在GitHub Linux runner实际构建并通过40项容器检查，资格绑定该提交与镜像；当前改动按对应CI结果单独判断。公网尚未部署。旧MySQL/Celery Compose与上游镜像配置保留为来源资料，不能替代当前功能的部署验证。
 
 ## 开发与功能登记
 
@@ -72,7 +72,7 @@ python scripts/features_check.py
 
 ## 社区与来源
 
-功能需求可通过[本仓库Issues](https://github.com/weicaojava/fawnimo/issues)提交。社区需求评估、排期、隔离开发、独立审核、预览和策略发布的服务仍在规划中；现有顺序文本Agent不等同于研发Agent。
+功能需求可通过[本仓库Issues](https://github.com/weicaojava/fawnimo/issues)提交。已有默认关闭的独立本机签名登记与版本基础；真实事件接入、需求评估、排期、隔离研发、审核与预览发布仍在推进。现有顺序文本Agent不等同于研发Agent。
 
 - [公开路线图](site/content/docs/plans/public-roadmap.md)
 - [来源与发布边界](UPSTREAM.md)

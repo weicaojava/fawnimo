@@ -62,6 +62,33 @@ async def history_check(db,resolved,body,proof=None):
         return None
 
 
+async def apply_verified_selection(db,project_id,body,source,evidence):
+    """Append a validated source under the caller's writer transaction, without committing or decoding.
+
+    Callers must resolve and validate the plan/source and recheck real prior media
+    evidence inside this same transaction before invoking this shared writer.
+    """
+    state=await cursor_state(db,project_id,body.shot_id)
+    if state['revision']!=body.expected_revision:raise HTTPException(409,'当前采用已改变，请刷新后确认')
+    take=source['take']
+    if take is None:
+        versions=[v['version_id'] for v in source['entry']['versions']]
+        take=ProductionTake(id=str(uuid.uuid4()),project_id=project_id,shot_id=body.shot_id,media_id=source['media_id'],provenance=source['kind'],version_ids=versions)
+        db.add(take);await db.flush()
+        for version in versions:db.add(TakeVersion(take_id=take.id,version_id=version,project_id=project_id))
+        db.add(TakeOrigin(take_id=take.id,project_id=project_id,job_id=body.job_id,plan_id=source['plan'].id,shot_id=body.shot_id,entry_hash=source['entry']['entry_hash'],origin_kind=source['kind'],evidence=evidence))
+        await db.flush()
+    selection=await db.get(ShotSelection,body.shot_id)
+    if selection:selection.take_id=take.id
+    else:db.add(ShotSelection(shot_id=body.shot_id,project_id=project_id,take_id=take.id))
+    cursor=await db.get(SelectionCursor,body.shot_id)
+    revision=state['revision']+1
+    if cursor:cursor.revision=revision
+    else:db.add(SelectionCursor(shot_id=body.shot_id,project_id=project_id,revision=revision))
+    event=SelectionEvent(id=str(uuid.uuid4()),project_id=project_id,request_key=body.request_key,request_hash=content_hash(body.model_dump()),shot_id=body.shot_id,take_id=take.id,revision=revision,origin_kind=source['kind'],change_note=body.change_note)
+    db.add(event);await db.flush();return event_view(event)
+
+
 async def write_selection(factory,project_id,body):
     """Probe without a writer lock, then atomically append origin/event and select once."""
     from app.services.editing.media import probe_owned,recheck_media
@@ -83,25 +110,7 @@ async def write_selection(factory,project_id,body):
             if current_fingerprint[:3]!=fingerprint[:3]:raise HTTPException(409,'候选身份已改变，请重新核对')
             if source['plan'] is not None and proof is not None:await history_check(db,source,body,proof)
             await recheck_media(db,project_id,evidence)
-            state=await cursor_state(db,project_id,body.shot_id)
-            if state['revision']!=body.expected_revision:raise HTTPException(409,'当前采用已改变，请刷新后确认')
-            take=source['take']
-            if take is None:
-                versions=[v['version_id'] for v in source['entry']['versions']]
-                take=ProductionTake(id=str(uuid.uuid4()),project_id=project_id,shot_id=body.shot_id,media_id=source['media_id'],provenance=source['kind'],version_ids=versions)
-                db.add(take);await db.flush()
-                for version in versions:db.add(TakeVersion(take_id=take.id,version_id=version,project_id=project_id))
-                db.add(TakeOrigin(take_id=take.id,project_id=project_id,job_id=body.job_id,plan_id=source['plan'].id,shot_id=body.shot_id,entry_hash=source['entry']['entry_hash'],origin_kind=source['kind'],evidence=evidence))
-                await db.flush()
-            selection=await db.get(ShotSelection,body.shot_id)
-            if selection:selection.take_id=take.id
-            else:db.add(ShotSelection(shot_id=body.shot_id,project_id=project_id,take_id=take.id))
-            cursor=await db.get(SelectionCursor,body.shot_id)
-            revision=state['revision']+1
-            if cursor:cursor.revision=revision
-            else:db.add(SelectionCursor(shot_id=body.shot_id,project_id=project_id,revision=revision))
-            event=SelectionEvent(id=str(uuid.uuid4()),project_id=project_id,request_key=body.request_key,request_hash=content_hash(body.model_dump()),shot_id=body.shot_id,take_id=take.id,revision=revision,origin_kind=source['kind'],change_note=body.change_note)
-            db.add(event);await db.flush();return event_view(event)
+            return await apply_verified_selection(db,project_id,body,source,evidence)
 
 
 async def selection_history(db,project_id,shot_id):

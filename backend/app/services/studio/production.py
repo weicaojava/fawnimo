@@ -31,13 +31,18 @@ async def asset_in_project(db: AsyncSession, project_id: str, asset_id: str) -> 
     return asset
 
 
-async def add_version(db: AsyncSession, asset: ProductionAsset, body: VersionWrite) -> AssetVersion:
-    """Publish once under optimistic concurrency; older versions are never modified."""
+async def add_version(db: AsyncSession, asset: ProductionAsset, body: VersionWrite, *, verified_media=None) -> AssetVersion:
+    """Publish once; a server-only prior byte proof permits a stat recheck inside an atomic installer."""
     if asset.archived:raise HTTPException(409,'请先恢复归档资产')
     current=int((await db.execute(select(func.max(AssetVersion.revision)).where(AssetVersion.asset_id==asset.id))).scalar() or 0)
     if body.expected_revision!=current:raise HTTPException(409,'资产已更新，请刷新后重新提交')
     ids=list(dict.fromkeys(body.media_ids))
-    for media_id in ids:await scoped_media(db,asset.project_id,media_id)
+    for media_id in ids:
+        if verified_media is None:
+            await scoped_media(db,asset.project_id,media_id)
+        else:
+            from app.services.shot_plan.compiler import media_evidence
+            await media_evidence(db,asset.project_id,media_id,verified_media.get(media_id,{}))
     payload={'name':asset.name,'kind':asset.kind,'subject_id':asset.subject_id,'entity_id':asset.entity_id,'description':body.description,'media_ids':ids}
     canonical=json.dumps(payload,ensure_ascii=False,sort_keys=True,separators=(',',':'))
     version=AssetVersion(id=str(uuid.uuid4()),asset_id=asset.id,project_id=asset.project_id,revision=current+1,payload=payload,content_hash=hashlib.sha256(canonical.encode()).hexdigest())
@@ -47,7 +52,7 @@ async def add_version(db: AsyncSession, asset: ProductionAsset, body: VersionWri
     return version
 
 
-async def create_asset(db: AsyncSession, project_id: str, body: AssetWrite) -> dict:
+async def create_asset(db: AsyncSession, project_id: str, body: AssetWrite, *, verified_media=None) -> dict:
     """Create the legacy library identity and its initial immutable snapshot together."""
     project=await project_exists(db,project_id)
     if body.expected_revision!=0:raise HTTPException(409,'新资产的预期版本必须为0')
@@ -61,7 +66,7 @@ async def create_asset(db: AsyncSession, project_id: str, body: AssetWrite) -> d
         await create_entity(db,entity_type=body.kind,body={'id':entity_id,'project_id':project_id,'name':body.name,'description':body.description,'style':project.style,'visual_style':project.visual_style})
     asset=ProductionAsset(id=asset_id,project_id=project_id,kind=body.kind,name=body.name,subject_id=body.subject_id,entity_id=entity_id)
     db.add(asset);await db.flush()
-    version=await add_version(db,asset,body)
+    version=await add_version(db,asset,body,verified_media=verified_media)
     return {'asset':serialize(asset),'version':serialize(version)}
 
 

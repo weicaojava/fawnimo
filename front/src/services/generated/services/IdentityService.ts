@@ -6,7 +6,9 @@ import type { ApiResponse_DemoRead_ } from '../models/ApiResponse_DemoRead_';
 import type { ApiResponse_dict_ } from '../models/ApiResponse_dict_';
 import type { ApiResponse_IdentityRead_ } from '../models/ApiResponse_IdentityRead_';
 import type { ApiResponse_IdentityStatus_ } from '../models/ApiResponse_IdentityStatus_';
+import type { ApiResponse_LocalExampleRead_ } from '../models/ApiResponse_LocalExampleRead_';
 import type { DemoCreate } from '../models/DemoCreate';
+import type { LocalExampleInput } from '../models/LocalExampleInput';
 import type { LoginRequest } from '../models/LoginRequest';
 import type { ProfileRequest } from '../models/ProfileRequest';
 import type { RegisterRequest } from '../models/RegisterRequest';
@@ -149,6 +151,27 @@ export class IdentityService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/identity/demo',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create Exportable Example
+     * Create a separate original-media example with a recoverable key, keeping all existing projects and edits.
+     * @returns ApiResponse_LocalExampleRead_ Successful Response
+     * @throws ApiError
+     */
+    public static createExportableExampleApiV1IdentityDemoExportablePost({
+        requestBody,
+    }: {
+        requestBody: LocalExampleInput,
+    }): CancelablePromise<ApiResponse_LocalExampleRead_> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/identity/demo-exportable',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

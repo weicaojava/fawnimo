@@ -89,6 +89,7 @@ export type { ApiResponse_list_ShotExtractedDialogueCandidateRead__ } from './mo
 export type { ApiResponse_list_ShotRuntimeSummaryRead__ } from './models/ApiResponse_list_ShotRuntimeSummaryRead__';
 export type { ApiResponse_list_TransitionDraftRead__ } from './models/ApiResponse_list_TransitionDraftRead__';
 export type { ApiResponse_list_UnderstandingJobRead__ } from './models/ApiResponse_list_UnderstandingJobRead__';
+export type { ApiResponse_LocalExampleRead_ } from './models/ApiResponse_LocalExampleRead_';
 export type { ApiResponse_ModelRead_ } from './models/ApiResponse_ModelRead_';
 export type { ApiResponse_ModelSettingsRead_ } from './models/ApiResponse_ModelSettingsRead_';
 export type { ApiResponse_NoneType_ } from './models/ApiResponse_NoneType_';
@@ -317,6 +318,8 @@ export type { ImageGenerationOptionsRead } from './models/ImageGenerationOptions
 export type { ImageModelChoice } from './models/ImageModelChoice';
 export type { ImportedMedia } from './models/ImportedMedia';
 export type { Issue } from './models/Issue';
+export type { LocalExampleInput } from './models/LocalExampleInput';
+export type { LocalExampleRead } from './models/LocalExampleRead';
 export type { LoginRequest } from './models/LoginRequest';
 export type { LogLevel } from './models/LogLevel';
 export type { ModelCategoryKey } from './models/ModelCategoryKey';

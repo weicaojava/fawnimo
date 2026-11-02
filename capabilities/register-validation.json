@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-02",
+  "date": "2026-10-29",
   "scope": "feature register integrity and generated document consistency only",
   "status": "passed",
   "checks": [
@@ -100,7 +100,7 @@
   "failed": 0,
   "groups": 15,
   "features": 64,
-  "source_sha256": "9e47ffcd75d7d2290b02f44a2314f92ff6bdb59692360bdaeb8183c5847284da",
+  "source_sha256": "90a6d669139202b00e04f134b1052b55219d74065c0de4206a2d8ad8d5e5f46e",
   "generator_sha256": "3f8742199b4a97e2ad42c5de72c9879f6b277220dedf0b93a8bf8a90bbc05b2c",
   "command": "python scripts/features_check.py",
   "application_qualified": false,

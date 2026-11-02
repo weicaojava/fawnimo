@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.core.contracts.identity import IdentityRead, IdentityStatus, LoginRequest, RegisterRequest, ProfileRequest, WorkspaceSwitch
 from app.core.contracts.identity import DemoCreate, DemoRead
+from app.core.contracts.local_example import LocalExampleInput, LocalExampleRead
 from app.schemas.common import ApiResponse, success_response
 
 router = APIRouter(prefix='/identity', tags=['identity'])
@@ -122,3 +123,13 @@ async def create_example(body: DemoCreate, request: Request):
     identity = current_context(request)
     from app.controlplane.demo import create_demo
     return success_response(await create_demo(store_for(request), request.app.state.workers, identity, body.request_key))
+
+
+@router.post('/demo-exportable', response_model=ApiResponse[LocalExampleRead])
+async def create_exportable_example(body: LocalExampleInput, request: Request, response: Response):
+    """Create a separate original-media example with a recoverable key, keeping all existing projects and edits."""
+    check_origin(request)
+    identity = current_context(request)
+    response.headers['Cache-Control'] = 'no-store'
+    from app.controlplane.local_example import create_exportable_demo
+    return success_response(await create_exportable_demo(store_for(request),request.app.state.workers,identity,body.request_key))

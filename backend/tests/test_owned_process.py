@@ -5,6 +5,7 @@ from ctypes import wintypes
 import os
 from pathlib import Path
 import sys
+import threading
 import pytest
 from app.core.owned_process import run_owned_process, WindowsProcessJob
 
@@ -92,3 +93,64 @@ async def test_failed_windows_job_assignment_never_opens_stdin_gate(tmp_path, mo
     with pytest.raises(OSError, match='assignment failure'):
         await run_owned_process([sys.executable, str(helper), 'success', str(marker)], b'{}', timeout=10)
     assert not marker.exists() and not Path(str(marker) + '.ready').exists()
+
+
+@pytest.mark.asyncio
+async def test_repeated_cancellation_waits_until_owned_cleanup_actually_finishes(tmp_path, monkeypatch):
+    """Repeated requests to cancel cannot release the caller while its actual owned cleanup is still pending."""
+    helper, marker = tmp_path / 'repeated_cancel_fixture.py', tmp_path / 'repeated_descendant.pid'
+    helper.write_text(HELPER, 'utf8')
+    loop = asyncio.get_running_loop()
+    entered, finished = asyncio.Event(), asyncio.Event()
+    release_thread, release_async = threading.Event(), asyncio.Event()
+    if os.name == 'nt':
+        original_close = WindowsProcessJob.terminate_and_close
+
+        def delayed_close(job):
+            """Hold the real kill-on-close operation so the private descendant demonstrably remains alive."""
+            loop.call_soon_threadsafe(entered.set)
+            release_thread.wait(8)
+            try:
+                original_close(job)
+            finally:
+                loop.call_soon_threadsafe(finished.set)
+
+        monkeypatch.setattr(WindowsProcessJob, 'terminate_and_close', delayed_close)
+    else:
+        original_wait = asyncio.subprocess.Process.wait
+
+        async def delayed_wait(process):
+            """Hold the final POSIX process join without blocking the event loop that sends repeated cancels."""
+            result = await original_wait(process)
+            entered.set()
+            await release_async.wait()
+            finished.set()
+            return result
+
+        monkeypatch.setattr(asyncio.subprocess.Process, 'wait', delayed_wait)
+    task = asyncio.create_task(run_owned_process([sys.executable, str(helper), 'cancel', str(marker)], b'{}', timeout=20))
+    pid = await marker_pid(marker)
+    try:
+        task.cancel()
+        await asyncio.wait_for(entered.wait(), timeout=5)
+        if os.name == 'nt':
+            assert process_alive(pid), 'The delayed real Windows cleanup should not already have killed the fixture'
+        for _ in range(4):
+            task.cancel()
+            await asyncio.sleep(0)
+        assert not task.done(), 'Caller returned before its owned cleanup completed'
+        release_thread.set(); release_async.set()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+    finally:
+        release_thread.set(); release_async.set()
+        await asyncio.wait_for(finished.wait(), timeout=12)
+        await asyncio.gather(task, return_exceptions=True)
+    # Windows may report zero job members before the killed descendant's process
+    # handle is signalled. This bounded observation proves eventual exit only;
+    # the gated assertion above proves repeated cancellation joins cleanup.
+    for _ in range(100):
+        if not process_alive(pid):
+            break
+        await asyncio.sleep(.01)
+    assert not process_alive(pid), 'An actual private descendant survived repeated cancellation cleanup'
