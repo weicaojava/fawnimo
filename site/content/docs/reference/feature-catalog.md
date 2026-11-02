@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-11-03.3`，更新日期：2026-11-03。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-11-03.4`，更新日期：2026-11-03。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。 社区独立维护者评估/澄清/复议已有本机软件记录；AI自动评估、排队与研发仍待完成。
+项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。 社区独立维护者评估/澄清/复议已有本机软件记录；另有明确维护者估值的版本路线图和仅限准备的租约；AI自动评估与实际研发仍待完成。
 
-社区后续锁定版本122通过/2Linux专项本机跳过，实际升级/旧新兼容CLI6次保持全部行与ID；显式rowid替换反例和51599全量1失败/1160通过均保留，新精确CI待验。主249/589和独立2/2接口不变，作者审阅。声音b364精确CI1105与通用容器40/清理已单列。46已实现/10部分/8计划，current17与longterm1；费用授权0，自动研发/完整平台/公网未交付。
+路线图/准备租约锁定214通过/2本机平台跳过，实际独立进程CLI包含保存、切换、取消及原领取/续租恢复，作者审阅；新精确CI待验。91a3评估/历史保护精确CI1172通过/2跳过/2历史未选及通用容器40/清理已单列，旧失败不改写。主249/589和独立2/2接口不变。46已实现/12部分/6计划，current17与longterm1；费用授权0，无编码执行器/完整平台/公网交付。
 
 ## F-001 身份与工作空间
 
@@ -855,8 +855,8 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | --- | --- | --- | --- | --- | --- |
 | [F-013.01 GitHub需求接入、事件去重与需求版本](#f-013-01) | 部分实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 独立维护者服务与命令行；真实GitHub事件尚未接通 |
 | [F-013.02 AI查重、澄清、合理性评估与复议](#f-013-02) | 部分实现 | 本阶段已验证 | 未验收 | 仅本机 | CLI: backend/review_community.py · 维护者独立需求库：建议、评估与历史 |
-| [F-013.03 依赖、价值、成本与容量排队](#f-013-03) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
-| [F-013.04 租约、幂等、取消与资源上限](#f-013-04) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
+| [F-013.03 依赖、价值、成本与容量排队](#f-013-03) | 部分实现 | 本阶段已验证 | 不适用 | 仅本机 | CLI: backend/queue_community.py · 维护者路线图与准备租约；没有编码执行器 |
+| [F-013.04 租约、幂等、取消与资源上限](#f-013-04) | 部分实现 | 本阶段已验证 | 不适用 | 仅本机 | CLI: backend/queue_community.py · 维护者路线图与准备租约；没有编码执行器 |
 | [F-013.05 隔离开发、变更提交与PR追溯](#f-013-05) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
 | [F-013.06 独立审查、客观测试与CI触发验证](#f-013-06) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
 | [F-013.07 隔离预览、策略发布、回退与反馈](#f-013-07) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
@@ -869,9 +869,9 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`backend/app/api/community_intake.py`](../../../../backend/app/api/community_intake.py)、[`backend/app/controlplane/community.py`](../../../../backend/app/controlplane/community.py)、[`backend/app/core/contracts/community_requests.py`](../../../../backend/app/core/contracts/community_requests.py)、[`backend/app/services/community/__init__.py`](../../../../backend/app/services/community/__init__.py)、[`backend/app/services/community/events.py`](../../../../backend/app/services/community/events.py)、[`backend/app/services/community/store.py`](../../../../backend/app/services/community/store.py)、[`backend/community-openapi.json`](../../../../backend/community-openapi.json)、[`backend/run_community.py`](../../../../backend/run_community.py)、[`backend/app/services/community/rowid_guards.py`](../../../../backend/app/services/community/rowid_guards.py)、[`backend/migrate_community_guards.py`](../../../../backend/migrate_community_guards.py)。
 
-限制：公开目标weicaojava/fawnimo及数字ID已只读核验；当前为默认关闭的独立本机接入，不读取个人视频空间。；真实GitHub App/公网签名投递仍待接通；已提供固定公开REST源复查及本机维护者评估记录的软件流程，实际外部源、AI、排队/自动研发/发布未授予资格，整项software仍not_verified。；未入选公开需求只留最小源时钟，不留无关正文；Issue文本是数据，source_eligible不是执行授权或部署完成。；43本机专项和独立43/5/4有界软件证据不代表真实外部接入、模型或公网资格；本轮实际费用授权0。；旧独立需求库须明确增量升级历史保护触发器；不重写已有行。升级仅接受准确旧表/源配置/原约束，显式rowid替换保护不依赖递归触发器开关。。
+限制：公开目标weicaojava/fawnimo及数字ID已只读核验；当前为默认关闭的独立本机接入，不读取个人视频空间。；真实GitHub App/公网签名投递仍待接通；已有固定公开源复查、维护者评估、版本路线图和准备租约的软件流程，实际外部源、AI、研发执行及发布未授予资格，整项software仍not_verified。；未入选公开需求只留最小源时钟，不留无关正文；Issue文本是数据，source_eligible不是执行授权或部署完成。；43本机专项和独立43/5/4有界软件证据不代表真实外部接入、模型或公网资格；本轮实际费用授权0。；旧独立需求库须明确增量升级历史保护触发器；不重写已有行。升级仅接受准确旧表/源配置/原约束，显式rowid替换保护不依赖递归触发器开关。。
 
-验证依据：`EV-COMMUNITY-INTAKE`、`EV-COMMUNITY-EVALUATION-LOCAL`、`EV-COMMUNITY-INTEGRITY-FOLLOWUP`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-COMMUNITY-INTAKE`、`EV-COMMUNITY-EVALUATION-LOCAL`、`EV-COMMUNITY-INTEGRITY-FOLLOWUP`、`EV-COMMUNITY-ASSESSMENT-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -883,9 +883,9 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`backend/app/core/contracts/community_evaluations.py`](../../../../backend/app/core/contracts/community_evaluations.py)、[`backend/app/services/community/public_source.py`](../../../../backend/app/services/community/public_source.py)、[`backend/app/services/community/source_check_child.py`](../../../../backend/app/services/community/source_check_child.py)、[`backend/app/services/community/evaluations.py`](../../../../backend/app/services/community/evaluations.py)、[`backend/app/services/community/store.py`](../../../../backend/app/services/community/store.py)、[`backend/review_community.py`](../../../../backend/review_community.py)、[`backend/app/services/community/rowid_guards.py`](../../../../backend/app/services/community/rowid_guards.py)、[`backend/migrate_community_guards.py`](../../../../backend/migrate_community_guards.py)。
 
-限制：当前是本机维护者明确决定及有界Unicode文字相似建议；不是AI查重，advisory_note只保存未验证文字，不调用模型。；新评估须准确公开源复查，原请求可在来源后来变化后恢复；真实GitHub App/公网接入及当前外部Issue联合验收尚未通过。；合理/待澄清/重复与优先、排队、执行、软件验收和上线分开；无公开评估写接口，不自动发送澄清/复议或理由留言。；独立维护者模型与费用额度、AI评估质量、独立审核、队列/自动研发与公网仍待完成，整项部分实现。；旧独立需求库须明确增量升级历史保护触发器；不重写已有行。升级仅接受准确旧表/源配置/原约束，显式rowid替换保护不依赖递归触发器开关。。
+限制：当前是本机维护者明确决定及有界Unicode文字相似建议；不是AI查重，advisory_note只保存未验证文字，不调用模型。；新评估须准确公开源复查，原请求可在来源后来变化后恢复；真实GitHub App/公网接入及当前外部Issue联合验收尚未通过。；合理/待澄清/重复与优先、排队、执行、软件验收和上线分开；无公开评估写接口，不自动发送澄清/复议或理由留言。；独立维护者模型与费用额度、AI评估质量、独立审核、自动研发及公网仍待完成；本机明确估值的路线图/准备租约另有入口，整项部分实现。；旧独立需求库须明确增量升级历史保护触发器；不重写已有行。升级仅接受准确旧表/源配置/原约束，显式rowid替换保护不依赖递归触发器开关。。
 
-验证依据：`EV-COMMUNITY-EVALUATION-LOCAL`、`EV-COMMUNITY-INTEGRITY-FOLLOWUP`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-COMMUNITY-EVALUATION-LOCAL`、`EV-COMMUNITY-INTEGRITY-FOLLOWUP`、`EV-COMMUNITY-ASSESSMENT-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -893,11 +893,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-013.03 依赖、价值、成本与容量排队
 
-需求：R-003；验收阶段：E；范围：本阶段交付；实现版本：`未实现`；发布版本：`未发布`。
+需求：R-003；验收阶段：E；范围：本阶段交付；实现版本：`source-tree-b56fd6080c1f`；发布版本：`未发布`。
 
-限制：优先不等于已开发/验证/上线；不擅自承诺交付日期。
+代码：[`backend/app/core/contracts/community_queue.py`](../../../../backend/app/core/contracts/community_queue.py)、[`backend/app/services/community/queue_planning.py`](../../../../backend/app/services/community/queue_planning.py)、[`backend/app/services/community/queue_schema.py`](../../../../backend/app/services/community/queue_schema.py)、[`backend/app/services/community/queue_store.py`](../../../../backend/app/services/community/queue_store.py)、[`backend/app/services/community/queue_lease_schema.py`](../../../../backend/app/services/community/queue_lease_schema.py)、[`backend/app/services/community/queue_leases.py`](../../../../backend/app/services/community/queue_leases.py)、[`backend/app/services/community/store.py`](../../../../backend/app/services/community/store.py)、[`backend/queue_community.py`](../../../../backend/queue_community.py)。
 
-验证依据：尚无通过证据。测试文件是待运行目标，文件存在不代表测试通过。
+限制：当前是本机明确评估/估值的版本路线图及preparation_lease_v1准备预留，不是AI研发attempt；prepared不表示代码已开发。；绑定准确评估、源版本、功能登记和选择修订号；费用0分、并发/活跃预计工作量/租约/硬时限/最多3次均有界，个人视频项目预算不变。；原请求恢复保留后来选择/attempt，过期预留要明确恢复；仅无副作用准备可有限重排，真实未知外部结果不得复用该协议。；新领取/准备成功复查固定公开源；自作来源、实际SQLite/CLI通过不等于真实GitHub App或外部源联合验收。；旧代码不识别12/15表扩展，升级前一致备份，回退到新专用目录保留新历史；同一系统用户权限隔离不由SQLite约束提供。；作者审阅；独立审核、实际编码/PR/CI晋级、进程故障对账及公网仍待完成，整项保持部分实现。。
+
+验证依据：`EV-COMMUNITY-QUEUE-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -905,11 +907,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-013.04 租约、幂等、取消与资源上限
 
-需求：R-003, R-010；验收阶段：E；范围：本阶段交付；实现版本：`未实现`；发布版本：`未发布`。
+需求：R-003, R-010；验收阶段：E；范围：本阶段交付；实现版本：`source-tree-b56fd6080c1f`；发布版本：`未发布`。
 
-限制：开发环境独立于用户数据；未知外部结果不盲目重放。
+代码：[`backend/app/core/contracts/community_queue.py`](../../../../backend/app/core/contracts/community_queue.py)、[`backend/app/services/community/queue_planning.py`](../../../../backend/app/services/community/queue_planning.py)、[`backend/app/services/community/queue_schema.py`](../../../../backend/app/services/community/queue_schema.py)、[`backend/app/services/community/queue_store.py`](../../../../backend/app/services/community/queue_store.py)、[`backend/app/services/community/queue_lease_schema.py`](../../../../backend/app/services/community/queue_lease_schema.py)、[`backend/app/services/community/queue_leases.py`](../../../../backend/app/services/community/queue_leases.py)、[`backend/app/services/community/store.py`](../../../../backend/app/services/community/store.py)、[`backend/queue_community.py`](../../../../backend/queue_community.py)。
 
-验证依据：尚无通过证据。测试文件是待运行目标，文件存在不代表测试通过。
+限制：当前是本机明确评估/估值的版本路线图及preparation_lease_v1准备预留，不是AI研发attempt；prepared不表示代码已开发。；绑定准确评估、源版本、功能登记和选择修订号；费用0分、并发/活跃预计工作量/租约/硬时限/最多3次均有界，个人视频项目预算不变。；原请求恢复保留后来选择/attempt，过期预留要明确恢复；仅无副作用准备可有限重排，真实未知外部结果不得复用该协议。；新领取/准备成功复查固定公开源；自作来源、实际SQLite/CLI通过不等于真实GitHub App或外部源联合验收。；旧代码不识别12/15表扩展，升级前一致备份，回退到新专用目录保留新历史；同一系统用户权限隔离不由SQLite约束提供。；作者审阅；独立审核、实际编码/PR/CI晋级、进程故障对账及公网仍待完成，整项保持部分实现。。
+
+验证依据：`EV-COMMUNITY-QUEUE-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1103,6 +1107,8 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-COMMUNITY-EVALUATION-LOCAL | software | repository · `capabilities/community-evaluation-validation.json` | 106项在准确锁定版本执行，含原接入/新评估源边界/生命周期；实际CLI4次覆盖建议、原请求恢复、复议与历史。作者审阅；源响应为自作受信夹具，不授予真实GitHub App/外部源、AI、独立审核、自动研发/公网资格。 |
 | EV-SOUND-PUBLISHED-CI | software | repository · `capabilities/sound-timeline-ci-validation.json` | 声音后续b364精确提交CI1105通过/2跳过/2历史未选、登记23、前端3219；通用容器40项/清理。原c1全量1失败/1100通过保留，仅修测试夹具；私有M4B副本升级3项另列，不冒充CI通过或正式切换。 |
 | EV-COMMUNITY-INTEGRITY-FOLLOWUP | software | repository · `capabilities/community-integrity-followup.json` | 显式rowid替换反例保留并修复；准确旧库仅增量补充7个触发器、六次实际旧/新CLI保持全部行及ID，122通过/2Linux专项本机跳过。作者审阅，原51599CI1失败/1160通过保留，新精确CI待验；不授予真实GitHub/AI/自动研发/公网资格。 |
+| EV-COMMUNITY-QUEUE-LOCAL | software | repository · `capabilities/community-queue-local-validation.json` | 锁定源码214通过/2本机Linux专项跳过；版本路线图、确定排序、容量/费用阻塞、准备租约争抢/取消/超时/有限恢复及实际独立CLI。作者审阅；不是研发attempt或独立审核，精确CI待验。 |
+| EV-COMMUNITY-ASSESSMENT-CI | software | repository · `capabilities/community-assessment-ci-validation.json` | 91a3精确后续CI：1172通过/2跳过/2历史用例未选择，前端与通用容器40/清理通过；保留51599失败与物理行号替换反例。该范围不包含新准备队列、真实GitHub/AI/研发或公网。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

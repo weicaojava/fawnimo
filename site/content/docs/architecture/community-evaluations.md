@@ -12,7 +12,7 @@ title: 公开需求评估与复议记录
 
 来源复核核对数字repo/Issue/作者身份、准确路径、原文fingerprint及源时钟。观察最多有效60秒，保存事务内再次核对本地最新源；校验后收到的新事件不能让旧评估覆盖新源。观察只是当时快照，后续排队/执行必须另做新鲜复核。署名webhook和本机自作响应不等于真实GitHub App、当前外部源或自动执行资格。
 
-评估正文与观察证明、查重建议在单个短SQLite事务固定；更新、删除、REPLACE和跨需求复议被禁止。原需求版本变化后，旧评估标为来源不再当前，仍可查询与恢复原请求。最多保存10000项本地评估、单个逻辑需求200项。`advisory_note`只保存未验证文字；当前没有AI评估模型调用，未接独立模型费用额度、自动澄清留言、排队、编码、PR、独立审查、预览或发布。
+评估正文与观察证明、查重建议在单个短SQLite事务固定；更新、删除、REPLACE和跨需求复议被禁止。原需求版本变化后，旧评估标为来源不再当前，仍可查询与恢复原请求。最多保存10000项本地评估、单个逻辑需求200项。`advisory_note`只保存未验证文字；当前没有AI评估模型调用，未接独立模型费用额度、自动澄清留言、编码、PR、独立审查、预览或发布；另有明确维护者估值的[本机路线图与准备队列](../community-queue/)，它不赋予研发执行权。
 
 当前软件证据及真实边界见[功能登记](../../reference/feature-catalog/)；操作见[维护者评估指南](../../guide/community-review/)。协议依据：[Issue读取](https://docs.github.com/en/rest/issues/issues#get-an-issue)、[REST版本](https://docs.github.com/en/rest/about-the-rest-api/api-versions)、[限流与停止重试](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api)。
 

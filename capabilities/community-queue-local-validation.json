@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-03",
+  "features": [
+    "F-013.03",
+    "F-013.04"
+  ],
+  "base_published_commit": "91a3b84f5804a89d2ed68ca18fd11f72484ab632",
+  "selected_source_tree": "b56fd6080c1f1fe5a00afd6ca202cf23e9ccc8bd",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "fd4f77e12f02f0970e742035a33b19ce9e1b4ee824c036fffc775b566886083c",
+    "backend/app/core/contracts/community_queue.py": "b8aab8e8adb34f11f44970554314aa051ba310c734860c39079fd0aaa7bf6b5b",
+    "backend/app/services/community/queue_planning.py": "0735dedb66fb7abbe89778dce2f76671449c54b9e6d2db134b1fb76ca4fc2bd3",
+    "backend/app/services/community/queue_schema.py": "8a58ae8baa5e5d3a87fd9681a4bc48b37523b5738b63041065dc6fdf6c5d6a4d",
+    "backend/app/services/community/queue_store.py": "05023f5148cf6f1e94de996eb422a0d0f3856a3157fd9df631afaae2e99272fa",
+    "backend/app/services/community/queue_lease_schema.py": "d41ba58436a7b4f23262824a4c5af27715e9b21eec89a9fb2d15b867ab9a1ce8",
+    "backend/app/services/community/queue_leases.py": "875eeee5a5d6ed3540194b4a5d49779775c831b071b6f02e351c077403b73252",
+    "backend/app/services/community/store.py": "2b43a5bc932b7f3819d14b7140e1f145ffbca49c59e42ed2a4666674917d052a",
+    "backend/queue_community.py": "97a3fe1d96e5b109289bb2745047e7e86202fb93b2a80c4b81419b8b20f1b14d",
+    "backend/tests/test_community_queue_planning.py": "1fa9ff372f79451a564c578473a99a4530ecaa59cf2e87d766c42806cb6f3a6b",
+    "backend/tests/test_community_queue_store.py": "0262c438f348ba9e129a6838c19cbd2fd50d3c1938a1b64abc344e02d7c27bfc",
+    "backend/tests/test_community_queue_leases.py": "0da4af08474644f310118bff269f420d0caa26c9548187a56fdf19588f57fe05",
+    "backend/tests/test_community_queue_cli.py": "802b73fdaef3f4f2cdcc2dd9971252922ea2d1a8eb7f1f362a02e9a841132c83",
+    "backend/tests/test_owned_process.py": "0b4d3620ddc43a5f98478a01dd8f0f55cce883480fd96f4f12e0aa21fd45c39a"
+  },
+  "scope": "Versioned local-maintainer roadmaps and preparation_lease_v1 reservations only; no development executor",
+  "source_review": {
+    "method": "author source review",
+    "independent": false,
+    "sha256": "3d739367915cad5032f3e01e226bbd485de13db64c8f866dfb93b7075338bea5",
+    "open_findings": 0
+  },
+  "regression": {
+    "tests": 216,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "passed": 214,
+    "seconds": 45.089,
+    "junit_sha256": "585d1c2e4ace3fcc846b44cf7c34d11cd26dc8442726755a5b510fa4a049366d"
+  },
+  "count_note": "214 exact frozen passes/2 Windows platform skips. Earlier206/146/134 and CLI subprocess checks overlap and are not summed.",
+  "schemas": {
+    "main_paths": 249,
+    "main_schemas": 589,
+    "community_paths": 2,
+    "community_schemas": 2,
+    "schemas_unchanged": true,
+    "lifespan_started": false
+  },
+  "actual_separate_process_cli_tests": 7,
+  "cli_scope": "Plan/select/materialize/cancel/read/history/original claim and heartbeat recovery, strict input rejection; authored sources only",
+  "queue_profile": "preparation_lease_v1",
+  "default_policy": {
+    "max_concurrent": 1,
+    "max_attempts": 3,
+    "lease_seconds": 30,
+    "attempt_timeout_seconds": 300,
+    "max_plan_effort_minutes": 120,
+    "max_active_effort_minutes": 60,
+    "external_fee_limit_fen": 0
+  },
+  "metadata_review": {
+    "method": "author review",
+    "independent": false,
+    "scope": "Exact source/tests, preparation-only authority, no-unknown-side-effect-replay boundary, honest legacy ordering, backup/rollback, separate parent exact CI and current limitations"
+  },
+  "current_commit_ci": "pending_publication_and_exact_commit_CI",
+  "independent_review_completed": false,
+  "development_complete": false,
+  "execution_authorized": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "github_issue_or_comment_writes": 0,
+  "original_user_database_or_keys_used": false,
+  "live_github_source_qualified": false,
+  "ai_evaluation_qualified": false,
+  "automatic_development_qualified": false,
+  "full_feature_qualified": false,
+  "public_deployment_verified": false,
+  "overall_goal_complete": false
+}

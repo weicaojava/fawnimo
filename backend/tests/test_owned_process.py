@@ -61,6 +61,9 @@ def test_linux_liveness_observation_handles_process_exit_during_stat_read(monkey
         """Represent the exact open/read race seen after an owned descendant exits."""
         raise error('Authored vanished private process')
     monkeypatch.setattr(Path,'read_text',disappeared)
+    # Force the earlier exists/read sequence to enter the exact failing read,
+    # so reverting the fix cannot pass merely because this fake PID is absent.
+    monkeypatch.setattr(Path,'exists',lambda _path:True)
     assert not process_alive(123456789)
 
 

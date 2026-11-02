@@ -40,7 +40,9 @@ class CommunityRequestStore:
             tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'") if not row[0].startswith('sqlite_')}
             expected = {'community_repository', 'community_requests', 'community_versions', 'community_deliveries', 'community_source_clocks'}
             from app.services.community.evaluations import REVIEW_TABLES, validate_review_schema
-            if tables and tables not in (expected, expected | REVIEW_TABLES):
+            from app.services.community.queue_schema import QUEUE_TABLES, validate_queue_schema
+            from app.services.community.queue_lease_schema import LEASE_TABLES, validate_lease_schema
+            if tables and tables not in (expected, expected | REVIEW_TABLES, expected | REVIEW_TABLES | QUEUE_TABLES, expected | REVIEW_TABLES | QUEUE_TABLES | LEASE_TABLES):
                 raise CommunityStoreConflict('Community store schema is not recognized')
             if not tables:
                 if not initialize:
@@ -53,6 +55,10 @@ class CommunityRequestStore:
             self.check_guards(db, allow_legacy_rowid_guards=allow_legacy_rowid_guards)
             if tables & REVIEW_TABLES:
                 validate_review_schema(db, allow_legacy_rowid_guards=allow_legacy_rowid_guards)
+            if tables & QUEUE_TABLES:
+                validate_queue_schema(db)
+            if tables & LEASE_TABLES:
+                validate_lease_schema(db)
             if db.execute('PRAGMA foreign_key_check').fetchone():
                 raise CommunityStoreConflict('Community source references are inconsistent')
 
@@ -148,6 +154,8 @@ class CommunityRequestStore:
     def upgrade_rowid_guards(self):
         """Install only missing known supplemental guards on an exact legacy schema; no row, table or old guard is rewritten."""
         from app.services.community.evaluations import REVIEW_TABLES,review_definitions,validate_review_schema
+        from app.services.community.queue_schema import QUEUE_TABLES,queue_definitions,validate_queue_schema
+        from app.services.community.queue_lease_schema import LEASE_TABLES,lease_definitions,validate_lease_schema
         with closing(self.connect()) as db:
             db.execute('BEGIN IMMEDIATE')
             try:
@@ -155,19 +163,27 @@ class CommunityRequestStore:
                 self.check_guards(db,allow_legacy_rowid_guards=True)
                 tables={row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'") if not row[0].startswith('sqlite_')}
                 expected=set(self.source_table_definitions())
-                if tables not in (expected,expected|REVIEW_TABLES):raise CommunityStoreConflict('Unsupported community source schema')
+                if tables not in (expected,expected|REVIEW_TABLES,expected|REVIEW_TABLES|QUEUE_TABLES,expected|REVIEW_TABLES|QUEUE_TABLES|LEASE_TABLES):raise CommunityStoreConflict('Unsupported community source schema')
                 identity=db.execute('SELECT singleton,repository_id,repository_name,proposal_label,schema_version FROM community_repository').fetchall()
                 if identity!=[(1,self.config.repository_id,self.config.repository_name.casefold(),self.config.proposal_label,1)]:raise CommunityStoreConflict('Community store belongs to another source configuration')
                 definitions=self.guard_definitions()
                 if tables & REVIEW_TABLES:
                     validate_review_schema(db,allow_legacy_rowid_guards=True)
                     definitions={**definitions,**review_definitions()[1]}
+                if tables & QUEUE_TABLES:
+                    validate_queue_schema(db)
+                    definitions={**definitions,**queue_definitions()[1]}
+                if tables & LEASE_TABLES:
+                    validate_lease_schema(db)
+                    definitions={**definitions,**lease_definitions()[1]}
                 added=[]
                 for name,sql in definitions.items():
                     if name.endswith('_no_rowid_replace') and db.execute("SELECT 1 FROM sqlite_master WHERE type='trigger' AND name=?",(name,)).fetchone() is None:
                         db.execute(sql);added.append(name)
                 self.check_guards(db)
                 if tables & REVIEW_TABLES:validate_review_schema(db)
+                if tables & QUEUE_TABLES:validate_queue_schema(db)
+                if tables & LEASE_TABLES:validate_lease_schema(db)
                 if db.execute('PRAGMA foreign_key_check').fetchone():raise CommunityStoreConflict('Community source references are inconsistent')
                 db.commit()
                 return {'status':'upgraded','added_guards':len(added),'rows_rewritten':0}
