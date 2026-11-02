@@ -62,7 +62,7 @@ export class AssetImageGenerationService {
     }
     /**
      * Create Asset Image Job
-     * Admit an explicitly confirmed single text-to-image request without changing an image slot.
+     * Admit one explicitly confirmed image with only supported exact inputs, keeping slot adoption separate.
      * @returns ApiResponse_AssetImageJobRead_ Successful Response
      * @throws ApiError
      */

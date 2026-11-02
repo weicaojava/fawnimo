@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-11-02.3`，更新日期：2026-11-02。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-11-02.4`，更新日期：2026-11-02。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-资源隔离、项目独立预算和离线迁移副本演练保留；六类有界协议、四种AI剧本候选继续接原项目记录。原创示例可编辑并本地导出。全部收费身份执行、社区研发、真实模型/成片与公网仍待完成。
+项目隔离及独立预算保留；六类费用kind、AI剧本候选、原创可导出示例和已声明Seedream参考图的软件流程可用。全部收费身份执行、其他协议、真实模型/成片、社区研发及公网仍待完成。
 
-原创示例35路径源码经独立复核，两个取消P2关闭；固定v2回归900通过、2项私有历史升级未运行。实际浏览器与v2原生导出分开归属，不能合计。46已实现/6部分/12计划，current17与longterm1；费用授权0，公网和完整平台未交付。
+参考图v2相关回归228通过，独立50/8与React6+7+3分记且不合计；旧P2/P3关闭，v3仅一处说明文案。实际浏览器满额丢响应恢复不增加任务/POST；858a915后续CI与40项容器证据独立补记。46已实现/7部分/11计划，current17与longterm1；费用授权0，公网和完整平台未交付。
 
 ## F-001 身份与工作空间
 
@@ -403,9 +403,9 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 | 编号 / 子功能 | 实现 | 软件验证 | 真实模型 | 部署 | 实际入口 |
 | --- | --- | --- | --- | --- | --- |
-| [F-006.01 单张文本生图协议与PNG/JPEG候选](#f-006-01) | 已实现 | 历史软件基线通过 | 未验收 | 仅本机 | /assets/scenes/:sceneId/edit · 四类资产编辑页：文本生成图片 |
+| [F-006.01 单张文本生图协议与PNG/JPEG候选](#f-006-01) | 已实现 | 历史软件基线通过 | 未验收 | 仅本机 | /assets/scenes/:sceneId/edit · 四类资产编辑页：生成图片候选（兼容文本协议） |
 | [F-006.02 图片候选CAS采用与原图保护](#f-006-02) | 已实现 | 历史软件基线通过 | 未验收 | 仅本机 | /assets/costumes/:costumeId/edit · 生成候选→确认采用到槽位 |
-| [F-006.03 参考条件图像与更多返回协议](#f-006-03) | 待实现 | 未验收 | 未验收 | 未部署 | 尚无入口 · 尚无可验收入口 |
+| [F-006.03 参考条件图像与更多返回协议](#f-006-03) | 部分实现 | 本阶段已验证 | 未验收 | 仅本机 | /assets/actors/:actorId/edit#asset-image-generation · 生成图片候选：选择原项目参考图、用途和顺序 |
 
 <a id="f-006-01"></a>
 
@@ -415,9 +415,9 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`backend/app/services/asset_image_generation.py`](../../../../backend/app/services/asset_image_generation.py)、[`backend/app/core/integrations/asset_image.py`](../../../../backend/app/core/integrations/asset_image.py)。
 
-限制：仅单张方图文本生成，不发送参考图，不保证任意供应商兼容；须显式选择费用项目和确认协议价格。；单独SQLite候选和采用已连接费用保护；新身份收费入口仍关闭，真实画面质量待验收。。
+限制：本项openai_b64_v1保持单张方图文本协议、无参考图和URL；新参考协议另列F-006.03。须明确费用项目和受信报价。；单独SQLite候选和采用已连接费用保护；新身份收费入口仍关闭，真实画面质量待验收。。
 
-验证依据：`EV-LOCAL-20261029`、`EV-MODEL-RUNTIME`、`EV-QUOTE-IDENTITY`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-20261029`、`EV-MODEL-RUNTIME`、`EV-QUOTE-IDENTITY`、`EV-REFERENCE-IMAGE-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -431,7 +431,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 限制：画面可解码或采用成功不能证明人物一致性或模型质量。
 
-验证依据：`EV-LOCAL-20261029`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-20261029`、`EV-REFERENCE-IMAGE-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -439,11 +439,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-006.03 参考条件图像与更多返回协议
 
-需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`未实现`；发布版本：`未发布`。
+需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`source-tree-d75edd8c6f26`；发布版本：`未发布`。
 
-限制：各适配器及真实账号质量需要独立预算和验收。
+代码：[`backend/app/api/v1/routes/asset_image_generation.py`](../../../../backend/app/api/v1/routes/asset_image_generation.py)、[`backend/app/api/v1/routes/studio/production.py`](../../../../backend/app/api/v1/routes/studio/production.py)、[`backend/app/core/contracts/asset_image_generation.py`](../../../../backend/app/core/contracts/asset_image_generation.py)、[`backend/app/core/contracts/asset_image_protocols.py`](../../../../backend/app/core/contracts/asset_image_protocols.py)、[`backend/app/core/contracts/production_media.py`](../../../../backend/app/core/contracts/production_media.py)、[`backend/app/core/db.py`](../../../../backend/app/core/db.py)、[`backend/app/core/integrations/seedream_asset_image.py`](../../../../backend/app/core/integrations/seedream_asset_image.py)、[`backend/app/core/integrations/verified_image.py`](../../../../backend/app/core/integrations/verified_image.py)、[`backend/app/core/integrations/verified_image_child.py`](../../../../backend/app/core/integrations/verified_image_child.py)、[`backend/app/models/asset_image_inputs.py`](../../../../backend/app/models/asset_image_inputs.py)、[`backend/app/services/asset_image_generation.py`](../../../../backend/app/services/asset_image_generation.py)、[`backend/app/services/asset_image_input_schema.py`](../../../../backend/app/services/asset_image_input_schema.py)、[`backend/app/services/asset_image_inputs.py`](../../../../backend/app/services/asset_image_inputs.py)、[`front/src/pages/aiStudio/assets/components/AssetImageGenerationPanel.tsx`](../../../../front/src/pages/aiStudio/assets/components/AssetImageGenerationPanel.tsx)、[`front/src/pages/aiStudio/assets/components/AssetEditPageBase.tsx`](../../../../front/src/pages/aiStudio/assets/components/AssetEditPageBase.tsx)、[`front/src/pages/aiStudio/assets/components/AssetImageReferencePicker.tsx`](../../../../front/src/pages/aiStudio/assets/components/AssetImageReferencePicker.tsx)、[`front/src/pages/aiStudio/assets/components/useImageActionScope.ts`](../../../../front/src/pages/aiStudio/assets/components/useImageActionScope.ts)、[`front/src/pages/aiStudio/project/ModelSubmissionRecovery.tsx`](../../../../front/src/pages/aiStudio/project/ModelSubmissionRecovery.tsx)、[`front/src/pages/aiStudio/models/ModelsTab.tsx`](../../../../front/src/pages/aiStudio/models/ModelsTab.tsx)。
 
-验证依据：尚无通过证据。测试文件是待运行目标，文件存在不代表测试通过。
+限制：明确声明的Seedream单张v4/v5协议，原项目最多3张PNG/JPEG；固定模型/尺寸，参考证明与费用同事务密封。；base64及受限URL软件边界已实现；URL正向仅受控传输验证，实际外部CDN、真实模型质量与账单未验收。；实际浏览器为单独操作者和自作本地服务；身份收费门禁保持关闭，不授予完整收费A/B或公网资格。；其他参考模型/返回协议、视频参考和人物一致性仍待独立实现及验收，因此整项部分实现。。
+
+验证依据：`EV-REFERENCE-IMAGE-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -823,7 +825,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 限制：本地原创几何：7段4秒无声视频、7张PNG、剧本/计划/明确导入采用/28秒剪辑草稿；源码Apache-2.0，不用用户原片或模型。；文字v1仍提供7个pending镜头与21提示词；两种入口共享20次新请求，原key恢复不增名额，新建保留旧工程与编辑。；新素材一次事务保存，7条剧情标记默认未确认；确认、保存、锁定后导出MP4/SRT/VTT/ZIP。无对白字幕为空，不提供配音或音乐。；完成回放保留后来编辑/采用，缺失或改变的素材409且不修复；每worker单制作槽、每请求3次尝试，未知文件保留。；需要独立登录空间及受信本地媒体工具；旧独立入口与迁移执行锁拒绝新媒体制作。软件本机通过，公网、真实模型/成片及两项私有历史升级未验收。。
 
-验证依据：`EV-DEMO-LOCAL`、`EV-IDENTITY-BROWSER`、`EV-ORIGINAL-EXAMPLE`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-DEMO-LOCAL`、`EV-IDENTITY-BROWSER`、`EV-ORIGINAL-EXAMPLE`、`EV-ORIGINAL-EXAMPLE-PUBLISHED-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -973,9 +975,9 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`deploy/workspace/Dockerfile`](../../../../deploy/workspace/Dockerfile)、[`deploy/workspace/compose.yaml`](../../../../deploy/workspace/compose.yaml)、[`deploy/workspace/README.md`](../../../../deploy/workspace/README.md)、[`backend/run_controlplane.py`](../../../../backend/run_controlplane.py)、[`scripts/verify_workspace_container.py`](../../../../scripts/verify_workspace_container.py)、[`.github/workflows/verify-workspace-container.yml`](../../../../.github/workflows/verify-workspace-container.yml)。
 
-限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。。
+限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。；后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。。
 
-验证依据：`EV-DEPLOY-CONFIG`、`EV-CONTAINER-RUNTIME-PREPARATION`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-DEPLOY-CONFIG`、`EV-CONTAINER-RUNTIME-PREPARATION`、`EV-ORIGINAL-EXAMPLE-PUBLISHED-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1086,6 +1088,8 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-COMMUNITY-INTAKE | software | repository · `capabilities/community-intake-validation.json` | 43冻结专项、独立43/原反例5/补测4分记；HMAC公开源/投递去重/最小时钟/不可变版本已本机验证，两P2一P3关闭。真实App/HTTPS事件、实时源复验及后续AI研发未接通，整项软件仍未验收；旧36通过及5失败不累加。 |
 | EV-CONTAINER-RUNTIME-PREPARATION | software | repository · `capabilities/container-runtime-validation.json` | 2ced83d精确GitHub镜像构建及40项Compose容器检查通过，完整报告公开，双账号/独立卷/删除重建持久数据及资源清理有实际证据；原8安全方法与30原生断言分记。公网、浏览器、备份回退及真实模型未验收。 |
 | EV-ORIGINAL-EXAMPLE | software | repository · `capabilities/original-example-validation.json` | 900项固定v2可复现回归通过，2项历史私有升级未运行；独立v1基线59与v2取消7/私补3/真实worker1分记，两个P2关闭。实际浏览器v1完成创建/恢复/声明保存/锁定/四格式下载及换账号拦截，前端及公开schema与v3相同；v2原生HTTP另实跑导出与重启。无真实模型、成片或公网资格。 |
+| EV-REFERENCE-IMAGE-LOCAL | software | repository · `capabilities/reference-image-validation.json` | 固定v2相关228、独立50/私补8和React6+7+3分别记录，v3仅一处说明文字；两个旧发现关闭。实际浏览器完成上传/3图排序/生成/单独采用及满额响应丢失恢复，零追加任务与发送。URL正向仅传输边界，真实模型/账单/外部CDN/收费身份/公网未验收。 |
+| EV-ORIGINAL-EXAMPLE-PUBLISHED-CI | software | repository · `capabilities/original-example-ci-validation.json` | 858a915精确提交CI后续事件：Linux899通过/1跳过/2历史私有升级未选，登记23、前端3214构建、独立复核31；同提交镜像40项及清理通过。40为既有容器检查，不执行新增媒体示例渲染器，不授予公网或完整平台资格。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

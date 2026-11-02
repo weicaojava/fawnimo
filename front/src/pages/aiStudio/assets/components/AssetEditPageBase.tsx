@@ -793,7 +793,7 @@ export function AssetEditPageBase<TAsset extends BaseAsset, TImage extends BaseA
         </div>
       </header>
 
-      {!generation.available && <Alert className="mb-4" type="info" showIcon message="原生成入口与智能检测尚未接通" description="演员、服装、场景和道具可使用下方“文本生成图片”独立流程；手工编辑、上传、历史图片选择与保存仍可使用。" />}
+      {!generation.available && <Alert className="mb-4" type="info" showIcon message="原生成入口与智能检测尚未接通" description="演员、服装、场景和道具可使用下方“生成图片候选”独立流程；手工编辑、上传、历史图片选择与保存仍可使用。" />}
       {asset && asset.id === assetId && images.length > 0 && ['actor_image', 'costume_image', 'scene_image', 'prop_image'].includes(relationType) && <AssetImageGenerationPanel key={assetId} kind={relationType.replace('_image', '') as 'actor' | 'costume' | 'scene' | 'prop'} assetId={assetId!} initialPrompt={`${asset.name}\n${asset.description ?? ''}`} onAdopted={() => void loadData()} />}
 
       <Collapse

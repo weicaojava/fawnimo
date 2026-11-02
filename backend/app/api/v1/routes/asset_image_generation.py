@@ -34,7 +34,7 @@ async def list_asset_image_slots(kind: AssetImageKind, asset_id: str, db: AsyncS
 
 @router.post('/assets/{kind}/{asset_id}/slots/{slot_id}/jobs', response_model=ApiResponse[AssetImageJobRead], status_code=201, operation_id='create_asset_image_job')
 async def create_asset_image_job(kind: AssetImageKind, asset_id: str, slot_id: int, body: AssetImageSubmit, request: Request, db: AsyncSession = Depends(get_db, scope='function')):
-    """Admit an explicitly confirmed single text-to-image request without changing an image slot."""
+    """Admit one explicitly confirmed image with only supported exact inputs, keeping slot adoption separate."""
     return created_response(await service.job_read(db,await service.admit(db, getattr(request.app.state, 'asset_image_generation_runtime', None), kind, asset_id, slot_id, body,submitted_by=model_submitted_by(request))))
 
 

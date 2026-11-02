@@ -85,6 +85,7 @@ export default function ModelsTab() {
   const [providerOptionsLoading, setProviderOptionsLoading] = useState(true)
   const [form] = Form.useForm()
   const selectedFormCategory = Form.useWatch<ModelCategoryKey | undefined>('category', form)
+  const localImageProtocol = Form.useWatch<string | undefined>('local_image_protocol', form)
   const { lg } = Grid.useBreakpoint()
   const isLargeScreen = lg ?? false
 
@@ -210,12 +211,24 @@ export default function ModelsTab() {
         return
       }
       if (values.category === 'image' && values.local_image_generation) {
-        if (providers.find(provider => provider.id === values.provider_id)?.name.trim().toLowerCase() !== 'openai') {
-          message.error('本机单张图片生成需要配置 OpenAI-compatible 供应商；当前供应商协议不受支持')
-          return
-        }
-        params.asset_image_protocol = 'openai_b64_v1'
-      } else delete params.asset_image_protocol
+        const protocol = values.local_image_protocol || 'openai_b64_v1'
+        const providerName = providers.find(provider => provider.id === values.provider_id)?.name.trim().toLowerCase() || ''
+        const providerKey = supportedProviders.find(provider => [provider.key, provider.display_name, ...(provider.aliases ?? [])].some(alias => alias.trim().toLowerCase() === providerName))?.key
+          || (/volc|doubao|bytedance/.test(providerName) ? 'volcengine' : undefined)
+        if (protocol === 'openai_b64_v1') {
+          if (providerKey !== 'openai') { message.error('兼容文本生图接口需要对应的 OpenAI-compatible 供应商'); return }
+          delete params.asset_image_result_hosts
+        } else if (protocol === 'volcengine_seedream_json_v1') {
+          const supportedModels = ['doubao-seedream-5-0-pro-260628', 'doubao-seedream-5-0-flash-260915', 'doubao-seedream-4-5-251128', 'doubao-seedream-4-0-250828']
+          if (providerKey !== 'volcengine' || !supportedModels.includes(values.name)) { message.error('请选择火山供应商，并填写受支持的 Seedream 实际模型名称'); return }
+          const hosts = String(values.image_result_hosts || '').split(/\r?\n/).map(host => host.trim()).filter(Boolean)
+          if (hosts.length > 8 || new Set(hosts).size !== hosts.length || hosts.some(host => host !== host.toLowerCase() || !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(host) || !host.includes('.') || host.includes('..') || /^(\d+\.){3}\d+$/.test(host) || /\.(localhost|local|internal)$/.test(host))) {
+            message.error('图片下载域名须为不带协议、路径、端口或通配符的准确小写域名，每行一个，最多8项'); return
+          }
+          params.asset_image_result_hosts = hosts
+        } else { message.error('请选择受支持的图片接口类型'); return }
+        params.asset_image_protocol = protocol
+      } else { delete params.asset_image_protocol; delete params.asset_image_result_hosts }
       if (values.category === 'text' && values.local_vision_understanding) params.understanding_vision_protocol = 'openai_chat_image_v1'
       else delete params.understanding_vision_protocol
       if (values.category === 'audio' && values.local_audio_transcription) params.understanding_asr_protocol = 'openai_verbose_segments_v1'
@@ -291,14 +304,16 @@ export default function ModelsTab() {
         provider_id: m.provider_id,
         description: m.description,
         params: JSON.stringify(m.params ?? {}, null, 2),
-        local_image_generation: m.params?.asset_image_protocol === 'openai_b64_v1',
+        local_image_generation: ['openai_b64_v1', 'volcengine_seedream_json_v1'].includes(String(m.params?.asset_image_protocol)),
+        local_image_protocol: m.params?.asset_image_protocol || 'openai_b64_v1',
+        image_result_hosts: Array.isArray(m.params?.asset_image_result_hosts) ? m.params?.asset_image_result_hosts.join('\n') : '',
         local_vision_understanding: m.params?.understanding_vision_protocol === 'openai_chat_image_v1',
         local_audio_transcription: m.params?.understanding_asr_protocol === 'openai_verbose_segments_v1',
         local_native_video: m.params?.native_video_protocol === 'seedance25_text_v1',
       })
     } else {
       form.resetFields()
-      form.setFieldsValue({ category: 'text', local_image_generation: false })
+      form.setFieldsValue({ category: 'text', local_image_generation: false, local_image_protocol: 'openai_b64_v1', image_result_hosts: '' })
     }
     setModelModalOpen(true)
   }
@@ -313,7 +328,9 @@ export default function ModelsTab() {
       provider_id: source.provider_id,
       description: source.description ?? '',
       params: JSON.stringify(source.params ?? {}, null, 2),
-      local_image_generation: source.params?.asset_image_protocol === 'openai_b64_v1',
+      local_image_generation: ['openai_b64_v1', 'volcengine_seedream_json_v1'].includes(String(source.params?.asset_image_protocol)),
+      local_image_protocol: source.params?.asset_image_protocol || 'openai_b64_v1',
+      image_result_hosts: Array.isArray(source.params?.asset_image_result_hosts) ? source.params?.asset_image_result_hosts.join('\n') : '',
       local_vision_understanding: source.params?.understanding_vision_protocol === 'openai_chat_image_v1',
       local_audio_transcription: source.params?.understanding_asr_protocol === 'openai_verbose_segments_v1',
       local_native_video: source.params?.native_video_protocol === 'seedance25_text_v1',
@@ -809,7 +826,13 @@ export default function ModelsTab() {
               message={unsupportedProviderWarning}
             />
           )}
-          {selectedFormCategory === 'image' && <><Form.Item name="local_image_generation" label="用于本机单张图片生成" valuePropName="checked"><Switch aria-label="用于本机单张图片生成" /></Form.Item><Alert className="mb-4" type="info" showIcon message="单张文本生图，返回图片内容" description="仅兼容支持此协议的 OpenAI-compatible 图片供应商。不接受只返回图片网址的响应，不发送人物参考图；打开开关与保存配置不会测试或调用模型。" /></>}
+          {selectedFormCategory === 'image' && <><Form.Item name="local_image_generation" label="用于本机单张图片生成" valuePropName="checked"><Switch aria-label="用于本机单张图片生成" /></Form.Item>
+            <Form.Item name="local_image_protocol" label="图片接口类型"><Select aria-label="图片接口类型" options={[
+              { value: 'openai_b64_v1', label: '兼容单张文本生图（直接图片内容）' },
+              { value: 'volcengine_seedream_json_v1', label: '火山 Seedream（可选择参考图片）' },
+            ]} /></Form.Item>
+            {localImageProtocol === 'volcengine_seedream_json_v1' && <Form.Item name="image_result_hosts" label="图片下载域名（可选）" extra="仅在需要网址返回时填写供应商确认的准确下载域名，每行一个；留空时只接收直接图片内容。"><Input.TextArea aria-label="图片下载域名" rows={3} placeholder="填写准确下载域名，勿填写密钥或完整下载网址" /></Form.Item>}
+            <Alert className="mb-4" type="info" showIcon message="图片候选需单独确认生成和采用" description={localImageProtocol === 'volcengine_seedream_json_v1' ? '支持已声明的 Seedream 5.0 pro / flash，兼容4.5 / 4.0历史模型；请核对实际模型名称和供应商可用性。可发送明确选择的原项目 PNG/JPEG 参考图。保存不会测试或调用模型，真实画面质量与供应商账单仍需另行验收。' : '兼容单张文本生图接口仅发送提示词，直接接收图片内容，不发送人物参考图。打开开关与保存配置不会测试或调用模型。'} /></>}
           {selectedFormCategory === 'text' && <><Form.Item name="local_vision_understanding" label="用于原片画面理解" valuePropName="checked"><Switch aria-label="用于原片画面理解" /></Form.Item><Alert className="mb-4" type="info" showIcon message="读取原帧图片，形成拆解候选" description="需要模型接受图片输入并返回结构化内容。保存配置不会调用模型；实际识别能力与候选内容仍需核对。" /></>}
           {selectedFormCategory === 'audio' && <><Form.Item name="local_audio_transcription" label="用于原片语音转写" valuePropName="checked"><Switch aria-label="用于原片语音转写" /></Form.Item><Alert className="mb-4" type="info" showIcon message="语音转写，需要逐段时间" description="只用于返回带逐段时标的语音转写候选。保存不会调用模型；转写结果须人工核对，声音生成另行配置。" /></>}
           {selectedFormCategory === 'video' && <><Form.Item name="local_native_video" label="用于原生视频生成" valuePropName="checked"><Switch aria-label="用于原生视频生成" /></Form.Item><Alert className="mb-4" type="info" showIcon message="Seedance 2.5 文字生成视频" description="当前支持火山 Ark 的 doubao-seedance-2-5-260628，4–30整数秒、竖屏480p、无生成音频并保留水印。需另行登记项目费用与执行服务；保存不会生成视频。参考图片、首尾帧和模型质量仍需单独验收。" /></>}

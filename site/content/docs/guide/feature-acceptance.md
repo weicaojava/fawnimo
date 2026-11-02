@@ -282,14 +282,14 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 ### F-006.01 单张文本生图协议与PNG/JPEG候选
 
-入口：`/assets/scenes/:sceneId/edit`，四类资产编辑页：文本生成图片。当前：已实现 / 历史软件基线通过 / 仅本机。
+入口：`/assets/scenes/:sceneId/edit`，四类资产编辑页：生成图片候选（兼容文本协议）。当前：已实现 / 历史软件基线通过 / 仅本机。
 
 1. 显式配置openai_b64_v1模型，用本地夹具确认参数、单次发送和持久候选
 2. 拒绝URL-only、多张、坏base64和坏图片；取消与未知结果不自动重发
 
 软件回归目标：`backend/tests/test_asset_image_generation.py`、`backend/tests/test_agent_project_accounting.py`、`backend/tests/test_cross_model_project_budget.py`、`backend/tests/test_gateway_pricing_status.py`、`backend/tests/test_image_project_accounting.py`、`backend/tests/test_model_job_charges.py`、`backend/tests/test_model_price_workspace.py`、`backend/tests/test_quote_model_identity.py`。
 
-验收限制：仅单张方图文本生成，不发送参考图，不保证任意供应商兼容；须显式选择费用项目和确认协议价格。；单独SQLite候选和采用已连接费用保护；新身份收费入口仍关闭，真实画面质量待验收。。
+验收限制：本项openai_b64_v1保持单张方图文本协议、无参考图和URL；新参考协议另列F-006.03。须明确费用项目和受信报价。；单独SQLite候选和采用已连接费用保护；新身份收费入口仍关闭，真实画面质量待验收。。
 
 ### F-006.02 图片候选CAS采用与原图保护
 
@@ -304,12 +304,14 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 ### F-006.03 参考条件图像与更多返回协议
 
-入口：`尚无入口`，尚无可验收入口。当前：待实现 / 未验收 / 未部署。
+入口：`/assets/actors/:actorId/edit#asset-image-generation`，生成图片候选：选择原项目参考图、用途和顺序。当前：部分实现 / 本阶段已验证 / 仅本机。
 
 1. 按已声明能力发送真实参考图片并检查hash、用途和尺寸
 2. 分别验收URL/其他返回协议和下载边界，不支持时拒绝而不是丢弃参考输入
 
-验收限制：各适配器及真实账号质量需要独立预算和验收。
+软件回归目标：`backend/tests/test_asset_image_references.py`、`backend/tests/test_asset_image_generation.py`、`backend/tests/test_image_project_accounting.py`。
+
+验收限制：明确声明的Seedream单张v4/v5协议，原项目最多3张PNG/JPEG；固定模型/尺寸，参考证明与费用同事务密封。；base64及受限URL软件边界已实现；URL正向仅受控传输验证，实际外部CDN、真实模型质量与账单未验收。；实际浏览器为单独操作者和自作本地服务；身份收费门禁保持关闭，不授予完整收费A/B或公网资格。；其他参考模型/返回协议、视频参考和人物一致性仍待独立实现及验收，因此整项部分实现。。
 
 ## F-007 视频执行与质量
 
@@ -668,7 +670,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 软件回归目标：`scripts/tests/test_workspace_container_verifier.py`。
 
-验收限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。。
+验收限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。；后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。。
 
 ### F-014.03 公网实机、交付账号与关键制作链验收
 

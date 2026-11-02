@@ -7,6 +7,7 @@ from app.dependencies import get_db
 from app.models.production import ProductionAsset, ProductionMedia, ProductionTake
 from app.schemas.common import ApiResponse, success_response, created_response
 from app.schemas.studio.production import ArchiveWrite, AssetWrite, TakeWrite, VersionWrite
+from app.core.contracts.production_media import ProductionMediaRead
 from app.services.studio.production import add_version, adopt_take, asset_history, asset_in_project, create_asset, project_exists, read_take, select_take, serialize
 from app.services.studio.production_media import import_archive, media_path, read_bounded, scoped_media, store_batch
 
@@ -46,7 +47,7 @@ async def archive_asset(project_id: str, asset_id: str, body: ArchiveWrite, db: 
     return success_response(await asset_history(db,project_id,asset_id))
 
 
-@router.get('/media',response_model=ApiResponse[list[dict]])
+@router.get('/media',response_model=ApiResponse[list[ProductionMediaRead]])
 async def list_media(project_id: str, db: AsyncSession=Depends(get_db, scope='function')):
     """List only media owned by the selected project."""
     await project_exists(db,project_id)
@@ -54,14 +55,14 @@ async def list_media(project_id: str, db: AsyncSession=Depends(get_db, scope='fu
     return success_response([serialize(row) for row in rows])
 
 
-@router.post('/media',response_model=ApiResponse[list[dict]],status_code=201)
+@router.post('/media',response_model=ApiResponse[list[ProductionMediaRead]],status_code=201)
 async def post_media(project_id: str, file: UploadFile=File(...), db: AsyncSession=Depends(get_db, scope='function')):
     """Import bounded binary media; the supplied name is never a storage path."""
     rows=await store_batch(db,project_id,[(file.filename or '',await read_bounded(file))])
     return created_response([serialize(row) for row in rows])
 
 
-@router.post('/media-bundle',response_model=ApiResponse[list[dict]],status_code=201)
+@router.post('/media-bundle',response_model=ApiResponse[list[ProductionMediaRead]],status_code=201)
 async def post_bundle(project_id: str, file: UploadFile=File(...), db: AsyncSession=Depends(get_db, scope='function')):
     """Validate a complete media-only bundle before writing any member."""
     return created_response([serialize(row) for row in await import_archive(db,project_id,await read_bounded(file))])

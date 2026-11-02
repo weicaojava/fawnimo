@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-11-02.3",
+  "register_version": "2026-11-02.4",
   "updated_at": "2026-11-02",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -434,6 +434,29 @@
         "F-012.02"
       ],
       "scope": "900项固定v2可复现回归通过，2项历史私有升级未运行；独立v1基线59与v2取消7/私补3/真实worker1分记，两个P2关闭。实际浏览器v1完成创建/恢复/声明保存/锁定/四格式下载及换账号拦截，前端及公开schema与v3相同；v2原生HTTP另实跑导出与重启。无真实模型、成片或公网资格。"
+    },
+    {
+      "id": "EV-REFERENCE-IMAGE-LOCAL",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/reference-image-validation.json",
+      "features": [
+        "F-006.01",
+        "F-006.02",
+        "F-006.03"
+      ],
+      "scope": "固定v2相关228、独立50/私补8和React6+7+3分别记录，v3仅一处说明文字；两个旧发现关闭。实际浏览器完成上传/3图排序/生成/单独采用及满额响应丢失恢复，零追加任务与发送。URL正向仅传输边界，真实模型/账单/外部CDN/收费身份/公网未验收。"
+    },
+    {
+      "id": "EV-ORIGINAL-EXAMPLE-PUBLISHED-CI",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/original-example-ci-validation.json",
+      "features": [
+        "F-012.02",
+        "F-014.02"
+      ],
+      "scope": "858a915精确提交CI后续事件：Linux899通过/1跳过/2历史私有升级未选，登记23、前端3214构建、独立复核31；同提交镜像40项及清理通过。40为既有容器检查，不执行新增媒体示例渲染器，不授予公网或完整平台资格。"
     }
   ],
   "features": [
@@ -1690,7 +1713,8 @@
         "evidence": [
           "EV-LOCAL-20261029",
           "EV-MODEL-RUNTIME",
-          "EV-QUOTE-IDENTITY"
+          "EV-QUOTE-IDENTITY",
+          "EV-REFERENCE-IMAGE-LOCAL"
         ]
       },
       "deployment": {
@@ -1703,7 +1727,7 @@
       },
       "entry": {
         "route": "/assets/scenes/:sceneId/edit",
-        "label": "四类资产编辑页：文本生成图片"
+        "label": "四类资产编辑页：生成图片候选（兼容文本协议）"
       },
       "code": [
         "backend/app/services/asset_image_generation.py",
@@ -1724,7 +1748,7 @@
         "拒绝URL-only、多张、坏base64和坏图片；取消与未知结果不自动重发"
       ],
       "limits": [
-        "仅单张方图文本生成，不发送参考图，不保证任意供应商兼容；须显式选择费用项目和确认协议价格。",
+        "本项openai_b64_v1保持单张方图文本协议、无参考图和URL；新参考协议另列F-006.03。须明确费用项目和受信报价。",
         "单独SQLite候选和采用已连接费用保护；新身份收费入口仍关闭，真实画面质量待验收。"
       ],
       "depends_on": [],
@@ -1745,7 +1769,8 @@
         "software": "baseline_verified",
         "model": "not_verified",
         "evidence": [
-          "EV-LOCAL-20261029"
+          "EV-LOCAL-20261029",
+          "EV-REFERENCE-IMAGE-LOCAL"
         ]
       },
       "deployment": {
@@ -1788,32 +1813,61 @@
       "requirements": [
         "R-001"
       ],
-      "implementation": "planned",
+      "implementation": "partial",
       "validation": {
-        "software": "not_verified",
+        "software": "verified",
         "model": "not_verified",
-        "evidence": []
+        "evidence": [
+          "EV-REFERENCE-IMAGE-LOCAL"
+        ]
       },
       "deployment": {
-        "status": "not_deployed",
+        "status": "local_only",
         "url": null
       },
       "version": {
-        "implementation": null,
+        "implementation": "source-tree-d75edd8c6f26",
         "release": null
       },
       "entry": {
-        "route": "",
-        "label": "尚无可验收入口"
+        "route": "/assets/actors/:actorId/edit#asset-image-generation",
+        "label": "生成图片候选：选择原项目参考图、用途和顺序"
       },
-      "code": [],
-      "tests": [],
+      "code": [
+        "backend/app/api/v1/routes/asset_image_generation.py",
+        "backend/app/api/v1/routes/studio/production.py",
+        "backend/app/core/contracts/asset_image_generation.py",
+        "backend/app/core/contracts/asset_image_protocols.py",
+        "backend/app/core/contracts/production_media.py",
+        "backend/app/core/db.py",
+        "backend/app/core/integrations/seedream_asset_image.py",
+        "backend/app/core/integrations/verified_image.py",
+        "backend/app/core/integrations/verified_image_child.py",
+        "backend/app/models/asset_image_inputs.py",
+        "backend/app/services/asset_image_generation.py",
+        "backend/app/services/asset_image_input_schema.py",
+        "backend/app/services/asset_image_inputs.py",
+        "front/src/pages/aiStudio/assets/components/AssetImageGenerationPanel.tsx",
+        "front/src/pages/aiStudio/assets/components/AssetEditPageBase.tsx",
+        "front/src/pages/aiStudio/assets/components/AssetImageReferencePicker.tsx",
+        "front/src/pages/aiStudio/assets/components/useImageActionScope.ts",
+        "front/src/pages/aiStudio/project/ModelSubmissionRecovery.tsx",
+        "front/src/pages/aiStudio/models/ModelsTab.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_asset_image_references.py",
+        "backend/tests/test_asset_image_generation.py",
+        "backend/tests/test_image_project_accounting.py"
+      ],
       "acceptance": [
         "按已声明能力发送真实参考图片并检查hash、用途和尺寸",
         "分别验收URL/其他返回协议和下载边界，不支持时拒绝而不是丢弃参考输入"
       ],
       "limits": [
-        "各适配器及真实账号质量需要独立预算和验收"
+        "明确声明的Seedream单张v4/v5协议，原项目最多3张PNG/JPEG；固定模型/尺寸，参考证明与费用同事务密封。",
+        "base64及受限URL软件边界已实现；URL正向仅受控传输验证，实际外部CDN、真实模型质量与账单未验收。",
+        "实际浏览器为单独操作者和自作本地服务；身份收费门禁保持关闭，不授予完整收费A/B或公网资格。",
+        "其他参考模型/返回协议、视频参考和人物一致性仍待独立实现及验收，因此整项部分实现。"
       ],
       "depends_on": [
         "F-001.04"
@@ -3043,7 +3097,8 @@
         "evidence": [
           "EV-DEMO-LOCAL",
           "EV-IDENTITY-BROWSER",
-          "EV-ORIGINAL-EXAMPLE"
+          "EV-ORIGINAL-EXAMPLE",
+          "EV-ORIGINAL-EXAMPLE-PUBLISHED-CI"
         ]
       },
       "deployment": {
@@ -3545,7 +3600,8 @@
         "model": "not_required",
         "evidence": [
           "EV-DEPLOY-CONFIG",
-          "EV-CONTAINER-RUNTIME-PREPARATION"
+          "EV-CONTAINER-RUNTIME-PREPARATION",
+          "EV-ORIGINAL-EXAMPLE-PUBLISHED-CI"
         ]
       },
       "deployment": {
@@ -3579,7 +3635,8 @@
         "2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。",
         "14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。",
         "两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。",
-        "本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。"
+        "本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。",
+        "后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。"
       ],
       "depends_on": [
         "F-001.05",
@@ -3903,7 +3960,7 @@
         "各真实模型与费用验证单",
         "完整成片检查表和限制"
       ],
-      "progress": "四种有界AI剧本候选已接单项目费用、保存来源、明确采用和可恢复文本历史；713主回归与18整App浏览器通过。参考条件、声音、完整成片及其余D项继续；真实模型质量未验收。 原创无模型示例已实际跑通剧本/计划/采用/剪辑与本地四格式导出；这不替代真实模型、声音或完整成片验收。"
+      "progress": "四种有界AI剧本候选已接单项目费用、保存来源、明确采用和可恢复文本历史；713主回归与18整App浏览器通过。参考条件、声音、完整成片及其余D项继续；真实模型质量未验收。 原创无模型示例已实际跑通剧本/计划/采用/剪辑与本地四格式导出；这不替代真实模型、声音或完整成片验收。 已声明Seedream参考图的软件切片及实际浏览器闭环通过；其他协议、外部CDN和真实模型验收仍待完成。"
     },
     {
       "id": "E",
@@ -3953,7 +4010,7 @@
         "公网浏览器与隔离/恢复报告",
         "功能最终状态清单"
       ],
-      "progress": "源码与CI已公开；单节点镜像、Compose及40项容器检查在精确2ced83d提交通过，双账号/独立卷/删除重建及资源清理有证据。服务器尚未购置，公网、备份回退和关键制作链仍待验收。"
+      "progress": "源码与CI已公开；单节点镜像、Compose及40项容器检查在精确2ced83d提交通过，双账号/独立卷/删除重建及资源清理有证据。服务器尚未购置，公网、备份回退和关键制作链仍待验收。 后续858a915精确源码及镜像检查通过并单独记录，40项通用容器检查不覆盖新媒体渲染器。"
     }
   ],
   "external_inputs": [
@@ -3996,10 +4053,10 @@
     "缺失检查、旧PR版本、独立审核失败或费用/资源超限不晋级；失败有明确结果与有限恢复。"
   ],
   "current_state": {
-    "overview": "资源隔离、项目独立预算和离线迁移副本演练保留；六类有界协议、四种AI剧本候选继续接原项目记录。原创示例可编辑并本地导出。全部收费身份执行、社区研发、真实模型/成片与公网仍待完成。",
+    "overview": "项目隔离及独立预算保留；六类费用kind、AI剧本候选、原创可导出示例和已声明Seedream参考图的软件流程可用。全部收费身份执行、其他协议、真实模型/成片、社区研发及公网仍待完成。",
     "acceptance_setup": "使用独立本机A/B验收数据；项目大厅分别建立文字或可导出原创示例。新建保留旧工程，原请求恢复保留后来编辑；7条剧情声明默认未确认。尚无公网领取或部署平台。",
-    "readme_status": "身份、个人空间、文字/原创可导出示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。",
-    "verification_checkpoint": "原创示例35路径源码经独立复核，两个取消P2关闭；固定v2回归900通过、2项私有历史升级未运行。实际浏览器与v2原生导出分开归属，不能合计。46已实现/6部分/12计划，current17与longterm1；费用授权0，公网和完整平台未交付。",
+    "readme_status": "身份、个人空间、文字/原创可导出示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。 已声明Seedream参考图支持原项目最多3图、顺序用途、候选和单独采用；满额原提交恢复已实际验证，外部CDN及真实模型仍未验收。",
+    "verification_checkpoint": "参考图v2相关回归228通过，独立50/8与React6+7+3分记且不合计；旧P2/P3关闭，v3仅一处说明文案。实际浏览器满额丢响应恢复不增加任务/POST；858a915后续CI与40项容器证据独立补记。46已实现/7部分/11计划，current17与longterm1；费用授权0，公网和完整平台未交付。",
     "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {

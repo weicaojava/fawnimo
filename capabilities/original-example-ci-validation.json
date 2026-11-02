@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-11-02T09:58:58.704613+00:00",
+  "scope": "Subsequent exact-publication CI and candidate image qualification; previous pre-publication receipt is unchanged",
+  "qualified_source_commit": "858a9158dac09bceefc66c6745ba4f9c50390456",
+  "tree": "6cc232e476ec622ebdd5ac835be7b8a0922f6cab",
+  "verification_ci": {
+    "run_id": 41420362593,
+    "url": "https://github.com/weicaojava/fawnimo/actions/runs/41420362593",
+    "conclusion": "success",
+    "backend_job_id": 125194166242,
+    "frontend_job_id": 125194166389,
+    "backend_passed": 899,
+    "backend_skipped": 1,
+    "historical_upgrade_deselected": 2,
+    "backend_seconds": 639.14,
+    "register_checks_passed": 23,
+    "frontend_modules": 3214,
+    "frontend_vite_seconds": 9.44,
+    "typecheck_and_build_passed": true,
+    "count_note": "Linux CI has one platform skip. Windows frozen-v2 local regression separately passed900. Two private historical M4B upgrade cases remain excluded and unqualified; counts are not added."
+  },
+  "container_ci": {
+    "run_id": 41420362478,
+    "url": "https://github.com/weicaojava/fawnimo/actions/runs/41420362478",
+    "job_id": 125194165289,
+    "conclusion": "success",
+    "image_id": "sha256:13cd84adfd5dca1b7cc883d5d4408219acd18e59105c689fa61b87067fcf5532",
+    "checks_passed": 40,
+    "cleanup_verified": true,
+    "artifact_id": 13130125626,
+    "artifact_sha256": "d8d78951776fcc08892b7c1e035cd6ad94daeaf375c5ba00616efe3ea0b36278",
+    "report_sha256": "b68942b57f956601ffd2fed36deb5985ed7f7e2b2ca5334badd6bef8895ef887",
+    "count_note": "Existing40-assertion generic Compose identity, data, budget, legacy text-demo and persistence verifier. It does not execute the new media-example renderer in a container."
+  },
+  "prior_source_review_sha256": "d4dc03a84128b62888e9443afbb8a51cbb934ea2e7fb189109e5cebf0274eb9f",
+  "independent_metadata_review_sha256": "369cd2d0a9f87c7e258fb1b69ab54e3b7ba285ebd13e81db0f41d8d8c796ab39",
+  "logs_sha256": {
+    "backend-ci.log": "3d564b5fcdff0a14870a3aa93dd621b28578b55044810460f63250951b919f44",
+    "frontend-ci.log": "6ec5c76acf1e86a449175fda06ec708c960bf2060c394201463f69c985f190cb",
+    "container-ci.log": "185202034383dab95ca80594fe4acb3fef03bf1690747d2e983f64e3b91d386a"
+  },
+  "independent_ci_receipt_review": {
+    "status": "passed_for_bounded_original_example_published_ci",
+    "sha256": "f7cde4a4d2fb216f7132a2375ab07691aac5646faacc7220d272eb4cf1c83882",
+    "checks": 31,
+    "scope": "Exact858a CI/logs/artifact only; no application/browser/container rerun or extended qualification"
+  },
+  "external_model_calls": 0,
+  "model_quality_qualified": false,
+  "complete_film_qualified": false,
+  "public_deployment_verified": false,
+  "full_paid_execution_isolation_qualified": false,
+  "historical_private_upgrade_qualified": false,
+  "overall_goal_complete": false,
+  "event": "Subsequent exact-head CI qualification after the unchanged pre-publication receipt"
+}

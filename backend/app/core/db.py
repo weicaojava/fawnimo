@@ -105,6 +105,7 @@ async def init_db() -> None:
     import app.models.video_understanding  # noqa: F401
     import app.models.editing_v2  # noqa: F401
     import app.models.asset_image_generation  # noqa: F401
+    import app.models.asset_image_inputs  # noqa: F401
     import app.models.provider_connection_version  # noqa: F401
     import app.models.model_charge  # noqa: F401
     import app.models.model_billing  # noqa: F401

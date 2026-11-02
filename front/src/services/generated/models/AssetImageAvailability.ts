@@ -11,7 +11,7 @@ export type AssetImageAvailability = {
     message: string;
     default_model_id: (string | null);
     models: Array<ImageModelChoice>;
-    protocol?: string;
+    protocol?: 'openai_b64_v1' | 'volcengine_seedream_json_v1';
     supports_references?: boolean;
     real_model_qualified?: boolean;
 };

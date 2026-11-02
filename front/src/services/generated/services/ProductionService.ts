@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ApiResponse_dict_ } from '../models/ApiResponse_dict_';
 import type { ApiResponse_list_dict__ } from '../models/ApiResponse_list_dict__';
+import type { ApiResponse_list_ProductionMediaRead__ } from '../models/ApiResponse_list_ProductionMediaRead__';
 import type { ArchiveWrite } from '../models/ArchiveWrite';
 import type { AssetWrite } from '../models/AssetWrite';
 import type { Body_post_bundle_api_v1_studio_production_projects__project_id__media_bundle_post } from '../models/Body_post_bundle_api_v1_studio_production_projects__project_id__media_bundle_post';
@@ -148,14 +149,14 @@ export class ProductionService {
     /**
      * List Media
      * List only media owned by the selected project.
-     * @returns ApiResponse_list_dict__ Successful Response
+     * @returns ApiResponse_list_ProductionMediaRead__ Successful Response
      * @throws ApiError
      */
     public static listMediaApiV1StudioProductionProjectsProjectIdMediaGet({
         projectId,
     }: {
         projectId: string,
-    }): CancelablePromise<ApiResponse_list_dict__> {
+    }): CancelablePromise<ApiResponse_list_ProductionMediaRead__> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/studio/production/projects/{project_id}/media',
@@ -170,7 +171,7 @@ export class ProductionService {
     /**
      * Post Media
      * Import bounded binary media; the supplied name is never a storage path.
-     * @returns ApiResponse_list_dict__ Successful Response
+     * @returns ApiResponse_list_ProductionMediaRead__ Successful Response
      * @throws ApiError
      */
     public static postMediaApiV1StudioProductionProjectsProjectIdMediaPost({
@@ -179,7 +180,7 @@ export class ProductionService {
     }: {
         projectId: string,
         formData: Body_post_media_api_v1_studio_production_projects__project_id__media_post,
-    }): CancelablePromise<ApiResponse_list_dict__> {
+    }): CancelablePromise<ApiResponse_list_ProductionMediaRead__> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/studio/production/projects/{project_id}/media',
@@ -196,7 +197,7 @@ export class ProductionService {
     /**
      * Post Bundle
      * Validate a complete media-only bundle before writing any member.
-     * @returns ApiResponse_list_dict__ Successful Response
+     * @returns ApiResponse_list_ProductionMediaRead__ Successful Response
      * @throws ApiError
      */
     public static postBundleApiV1StudioProductionProjectsProjectIdMediaBundlePost({
@@ -205,7 +206,7 @@ export class ProductionService {
     }: {
         projectId: string,
         formData: Body_post_bundle_api_v1_studio_production_projects__project_id__media_bundle_post,
-    }): CancelablePromise<ApiResponse_list_dict__> {
+    }): CancelablePromise<ApiResponse_list_ProductionMediaRead__> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/studio/production/projects/{project_id}/media-bundle',

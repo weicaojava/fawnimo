@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AssetImageReferenceRead } from './AssetImageReferenceRead';
 /**
  * Return candidate identity and verified bytes metadata, never local paths or credentials.
  */
@@ -31,5 +32,8 @@ export type AssetImageJobRead = {
     provenance?: string;
     project_id?: (string | null);
     authorized_max_minor?: (string | null);
+    protocol?: ('openai_b64_v1' | 'volcengine_seedream_json_v1' | null);
+    response_format?: 'b64_json' | 'url';
+    references?: Array<AssetImageReferenceRead>;
 };
 
