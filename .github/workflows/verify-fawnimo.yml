@@ -95,6 +95,8 @@ jobs:
           tests/test_community_change_bundles.py tests/test_community_public_code.py
           tests/test_community_change_store.py tests/test_community_candidate_git.py
           tests/test_community_candidate_lock.py
+          tests/test_community_code_check_store.py tests/test_community_isolated_runner_contract.py
+          tests/test_community_code_check_docker.py tests/test_community_code_check_runtime.py
           tests/test_script_preparation.py tests/test_shot_extracted_candidates_api_responses.py
           tests/test_seedance25_independent.py tests/test_workspace_video_pipeline.py
 

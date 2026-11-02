@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "scope": "Explicit optional fixed Linux candidate-check local software; actual OCI/exact CI still pending",
+  "source_tree": "7294d27f03dd7071decd7fdff56641cc6da57442",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "9036510672da6c3380de87009a6501488b9f160e44dcd425c7cdd22d87f5580d",
+    ".github/workflows/verify-workspace-container.yml": "bc2e55b525748a45f3c068787aab7905b0a08439372b32bed324e995f5122ab8",
+    ".dockerignore": "9a81ed554392a51af6198ec433ae51e3e38efdf8790418a9c4ef9d991c755797",
+    "deploy/workspace/Dockerfile": "6ea1615111f166d94254e9bd395ee00cd282f4ff98cc781d0f7b405e6ecd18d4",
+    "backend/app/core/contracts/community_code_checks.py": "d1ba36959471e09c7d4d2214b582a37ba19f1bddc1d45c017f4a94e973b7fe49",
+    "backend/app/services/community/code_check_schema.py": "d88cb37f48a2cc2af03e7b5fec411fa12871ba21d3de91130867a759ec82c40b",
+    "backend/app/services/community/code_check_store.py": "75aa2a865f6d14427de5ad87a6fa952b1822bce80bd787841b99f7162ce04fec",
+    "backend/app/services/community/code_check_docker.py": "108ca66516d4e319806626b5fac24110cfb613a650b22424ad4f4ad3ad9fc25d",
+    "backend/app/services/community/code_check_runtime.py": "9ba408ce15e164018352db8951ab6155ce038d74fb3e9bf06a1a531360116d2c",
+    "backend/app/services/community/change_store.py": "400c3b50eda82ca54244c60d753e861ca45dff1450bf755a80cb0266c274dc2e",
+    "backend/app/services/community/candidate_git.py": "6c22a84aafa1a74287b4e26e47288553b3a32fffb5bd00b231af7828cd6dba48",
+    "backend/community_isolated_runner.py": "b27c59e3a44f75e371f4b61132ca634ad7b57418e3435b5f7bf3451afd33f9d8",
+    "backend/check_community.py": "356af904cadbf8a860ce53320cc4239680cd45d77d463181bfc4ec50d4523f9d",
+    "backend/tests/test_community_code_check_store.py": "25101150cb8eecc1eb569c0daaf22e43f5e626c7ed5dc75b18598b5554f86d56",
+    "backend/tests/test_community_isolated_runner_contract.py": "378d5e1ca90a63a4f948fc0ebaf747161eda8d2f6acad3c2edfa27dbb8e892b8",
+    "backend/tests/test_community_code_check_docker.py": "5d1cc622787fe84e6e781d351a294635a6ef41974ea6fbaed0ae424df775d427",
+    "backend/tests/test_community_code_check_runtime.py": "63adcf2986e6d40349d0157bf4e1f26225257846562aaf188b01038d658ce332",
+    "backend/tests/test_community_code_check_oci.py": "42b2e25670923e02a8d6139141e54191d6c9f68060207b43591b51970dabb822"
+  },
+  "regression": {
+    "tests": 446,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "passed": 444,
+    "seconds": 74.27,
+    "junit_sha256": "b7d161b099757019bfdf4a0c7f290853cfbf04ae805afb9aae7eb8357c4424a5"
+  },
+  "schemas": {
+    "main_paths": 249,
+    "main_schemas": 589,
+    "community_paths": 2,
+    "community_schemas": 2,
+    "schemas_unchanged": true,
+    "lifespan_started": false
+  },
+  "source_review": {
+    "method": "author review",
+    "independent": false,
+    "sha256": "0f3d5e331639ffc0bbe681127df691aa86f40563842c849f88cb5d102b462871"
+  },
+  "metadata_review": {
+    "method": "author combined-tree review",
+    "independent": false,
+    "scope": "Fixed optional Linux check implementation and honest unqualified real OCI/CI/independent flags; source provenance, durable unknown outcomes, bounded resources, exact ownership/cleanup, docs/register/links/privacy"
+  },
+  "current_commit_ci": "pending_publication_and_exact_commit_CI",
+  "actual_oci_cases_collected": 10,
+  "preparation_is_execution_authority": false,
+  "candidate_tests_are_independent": false,
+  "independent_review_completed": false,
+  "original_user_database_or_keys_used": false,
+  "live_github_source_qualified": false,
+  "isolated_code_execution_qualified": false,
+  "automatic_development_qualified": false,
+  "full_feature_qualified": false,
+  "public_deployment_verified": false,
+  "overall_goal_complete": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "github_issue_or_comment_writes": 0,
+  "github_candidate_pushes": 0,
+  "github_prs_created": 0
+}

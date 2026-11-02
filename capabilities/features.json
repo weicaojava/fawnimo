@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-11-03.5",
+  "register_version": "2026-11-03.6",
   "updated_at": "2026-11-03",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -575,6 +575,27 @@
         "F-013.04"
       ],
       "scope": "abba5c6精确CI1264通过/2跳过/2历史未选、前端与通用容器40/清理通过；版本路线图和准备租约，非代码执行器。此证据不覆盖新变更提案、真实GitHub/AI/研发/公网。"
+    },
+    {
+      "id": "EV-COMMUNITY-CODE-CHECK-LOCAL",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/community-code-check-local-validation.json",
+      "features": [
+        "F-013.04",
+        "F-013.05"
+      ],
+      "scope": "固定Linux检查程序、持久执行/取消/恢复记录和本地Docker边界已实现；锁定444通过/2平台跳过，作者审阅。10项真实OCI用例已收集，实际运行及精确CI待验，不授予独立审核或完整研发资格。"
+    },
+    {
+      "id": "EV-COMMUNITY-CHANGES-CI",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/community-change-ci-validation.json",
+      "features": [
+        "F-013.05"
+      ],
+      "scope": "fdcacf9准确CI1365通过/2跳过/2历史未选、前端及通用容器40/清理通过；仅覆盖前一惰性提案/本地提交版本，不覆盖新增代码执行器。"
     }
   ],
   "features": [
@@ -3623,7 +3644,8 @@
         "model": "not_required",
         "evidence": [
           "EV-COMMUNITY-QUEUE-LOCAL",
-          "EV-COMMUNITY-QUEUE-CI"
+          "EV-COMMUNITY-QUEUE-CI",
+          "EV-COMMUNITY-CODE-CHECK-LOCAL"
         ]
       },
       "deployment": {
@@ -3631,12 +3653,12 @@
         "url": null
       },
       "version": {
-        "implementation": "source-tree-b56fd6080c1f",
+        "implementation": "source-tree-7294d27f03dd",
         "release": null
       },
       "entry": {
-        "route": "CLI: backend/queue_community.py",
-        "label": "维护者路线图与准备租约；没有编码执行器"
+        "route": "CLI: backend/check_community.py",
+        "label": "维护者明确启用的Linux候选检查、取消与对账"
       },
       "code": [
         "backend/app/core/contracts/community_queue.py",
@@ -3646,25 +3668,39 @@
         "backend/app/services/community/queue_lease_schema.py",
         "backend/app/services/community/queue_leases.py",
         "backend/app/services/community/store.py",
-        "backend/queue_community.py"
+        "backend/queue_community.py",
+        "backend/app/core/contracts/community_code_checks.py",
+        "backend/app/services/community/code_check_schema.py",
+        "backend/app/services/community/code_check_store.py",
+        "backend/app/services/community/code_check_docker.py",
+        "backend/app/services/community/code_check_runtime.py",
+        "backend/app/services/community/change_store.py",
+        "backend/app/services/community/candidate_git.py",
+        "backend/community_isolated_runner.py",
+        "backend/check_community.py"
       ],
       "tests": [
         "backend/tests/test_community_queue_planning.py",
         "backend/tests/test_community_queue_store.py",
         "backend/tests/test_community_queue_leases.py",
-        "backend/tests/test_community_queue_cli.py"
+        "backend/tests/test_community_queue_cli.py",
+        "backend/tests/test_community_code_check_store.py",
+        "backend/tests/test_community_isolated_runner_contract.py",
+        "backend/tests/test_community_code_check_docker.py",
+        "backend/tests/test_community_code_check_runtime.py",
+        "backend/tests/test_community_code_check_oci.py"
       ],
       "acceptance": [
         "两个调度器竞争领取只产生一次开发attempt，租约失联进入可恢复状态",
         "覆盖重复事件、取消、重试、进程失败、时间/费用/并发限制和审计"
       ],
       "limits": [
-        "当前是本机明确评估/估值的版本路线图及preparation_lease_v1准备预留，不是AI研发attempt；prepared不表示代码已开发。",
-        "绑定准确评估、源版本、功能登记和选择修订号；费用0分、并发/活跃预计工作量/租约/硬时限/最多3次均有界，个人视频项目预算不变。",
-        "原请求恢复保留后来选择/attempt，过期预留要明确恢复；仅无副作用准备可有限重排，真实未知外部结果不得复用该协议。",
-        "新领取/准备成功复查固定公开源；自作来源、实际SQLite/CLI通过不等于真实GitHub App或外部源联合验收。",
-        "旧代码不识别12/15表扩展，升级前一致备份，回退到新专用目录保留新历史；同一系统用户权限隔离不由SQLite约束提供。",
-        "作者审阅；独立审核、实际编码/PR/CI晋级、进程故障对账及公网仍待完成，整项保持部分实现。"
+        "preparation_lease_v1只管理准备；新增linux_pytest_check_v1由维护者单独明确启用，不能把准备租约用于真实外部重试。",
+        "执行前持久预留并记录创建/启动意图；未知接受或清理结果保留并发名额，过期与查询暂时无资源不能自动释放；有限新尝试须先确认原资源清理。",
+        "固定费用0、并发1、每包3次、全库384次、事件4096及CPU/内存/进程/输出/时间上限；个人视频项目预算不变。",
+        "新执行复查准确公开源/准备/计划选择，Docker操作在事务外；取消先保存意图，原结果恢复不重复外部调用。",
+        "检查扩展库为5张业务表，旧代码不识别；一致备份、保留新历史后回退到专用目录。需求准备库12/15表独立保留。",
+        "444锁定本机检查/2平台跳过，作者审阅；真实Linux内核/容器运行与精确CI待验，独立审查/真实PR/完整平台未交付。"
       ],
       "depends_on": [
         "F-013.03"
@@ -3687,7 +3723,9 @@
         "software": "verified",
         "model": "not_required",
         "evidence": [
-          "EV-COMMUNITY-CHANGES-LOCAL"
+          "EV-COMMUNITY-CHANGES-LOCAL",
+          "EV-COMMUNITY-CODE-CHECK-LOCAL",
+          "EV-COMMUNITY-CHANGES-CI"
         ]
       },
       "deployment": {
@@ -3695,12 +3733,12 @@
         "url": null
       },
       "version": {
-        "implementation": "source-tree-003c8c6510ec",
+        "implementation": "source-tree-7294d27f03dd",
         "release": null
       },
       "entry": {
-        "route": "CLI: backend/develop_community.py",
-        "label": "惰性变更包与本地候选提交；无代码执行/PR入口"
+        "route": "CLI: backend/check_community.py",
+        "label": "维护者明确启用的Linux候选检查、取消与对账"
       },
       "code": [
         "backend/app/core/contracts/community_changes.py",
@@ -3711,26 +3749,38 @@
         "backend/app/services/community/change_preparation.py",
         "backend/app/services/community/candidate_git.py",
         "backend/app/services/community/candidate_lock.py",
-        "backend/develop_community.py"
+        "backend/develop_community.py",
+        "backend/app/core/contracts/community_code_checks.py",
+        "backend/app/services/community/code_check_schema.py",
+        "backend/app/services/community/code_check_store.py",
+        "backend/app/services/community/code_check_docker.py",
+        "backend/app/services/community/code_check_runtime.py",
+        "backend/community_isolated_runner.py",
+        "backend/check_community.py"
       ],
       "tests": [
         "backend/tests/test_community_change_bundles.py",
         "backend/tests/test_community_public_code.py",
         "backend/tests/test_community_change_store.py",
         "backend/tests/test_community_candidate_git.py",
-        "backend/tests/test_community_candidate_lock.py"
+        "backend/tests/test_community_candidate_lock.py",
+        "backend/tests/test_community_code_check_store.py",
+        "backend/tests/test_community_isolated_runner_contract.py",
+        "backend/tests/test_community_code_check_docker.py",
+        "backend/tests/test_community_code_check_runtime.py",
+        "backend/tests/test_community_code_check_oci.py"
       ],
       "acceptance": [
         "开发attempt绑定精确需求版本、功能ID、分支及允许的仓库",
         "独立工作目录、受限凭据、命令/网络/文件边界；产出可审阅PR及测试记录"
       ],
       "limits": [
-        "当前是public_python_change_v1源码提案和本地候选Git提交，不运行候选代码，不调用模型，不推送候选分支或创建PR。",
-        "新操作固定准确准备/源/公开main及Git对象和登记路径，复查来源后再次检查本地版本；控制器/审核规则/CI与依赖变更不在提案权限内。",
-        "独立索引只读取准确公开提交对象，不采用原工作树中已有的暂存、未暂存或未跟踪内容；原操作恢复保留同一个候选提交。",
-        "操作系统维护者与Git元数据仍属受信环境；内核互斥解决对象并发写入，不提供同系统用户之间的安全隔离。",
-        "候选测试文本和本地提交不构成独立审查或CI通过；真正受限执行器、未知结果对账、PR/准确头检查、独立审核和公网仍待完成。",
-        "实际本机SQLite/临时Git/进程检查通过，作者审阅；真实外部GitHub代码源与完整自动研发联合验收未通过，整项部分实现。"
+        "惰性提案/本地提交不会执行代码；维护者可另行明确启用固定Linux候选检查，不调用模型、不推送候选分支或创建PR。",
+        "检查绑定准确已准备需求、功能/评估/计划/选择及公开main/提交/树；完整基础/候选源码清单由Git对象核对，旧镜像或维护者暂存/工作树不能替代。",
+        "固定本地Docker端点/空白配置/镜像ID，无主机挂载/凭据/外网；标准库父程序与UID10001子程序分离，实际内核/资源/读写/超时能力仍须真实OCI验收。",
+        "私有所有权和具体容器身份核对后确认删除，未知结果不重放，候选输出只留哈希/长度且不能冒充可信结果。",
+        "本机维护者/守护程序/可信镜像仍受信；控制器强制结束可留下空白操作系统临时配置目录。",
+        "本机444通过/2平台跳过，作者审阅；10项真实OCI用例已收集而运行待验，独立审核/准确PR与CI晋级/真实来源联合验收/公网未完成，整项部分实现。"
       ],
       "depends_on": [
         "F-013.04",
@@ -4290,7 +4340,7 @@
         "独立审查与CI触发证明",
         "预览及回退报告"
       ],
-      "progress": "已有独立本机需求版本、维护者评估/澄清/复议、有界查重建议、明确估值路线图及准备租约。准备队列abba5c6精确CI1264通过/2跳过/2历史未选、前端和通用容器通过。惰性变更包与本地候选提交315项锁定本机检查通过/2平台跳过，实际Windows并发失败保留并修复；作者审阅，独立审核门槛保留。真实外部接入/AI评估、受限代码执行、PR/准确头独立检查、预览与发布仍待完成。"
+      "progress": "独立准备队列、惰性提案和本地候选提交已有准确CI；新增固定Linux候选检查程序、持久未知结果预留、取消/确认清理和可信父子身份门。444项锁定本机检查通过/2平台跳过，作者审阅；10项实际OCI用例已收集，真实容器与本提交准确CI待验。真实来源/AI评估、独立审核、PR准确头、预览与发布闭环仍待完成。"
     },
     {
       "id": "F",
@@ -4359,10 +4409,10 @@
     "缺失检查、旧PR版本、独立审核失败或费用/资源超限不晋级；失败有明确结果与有限恢复。"
   ],
   "current_state": {
-    "overview": "项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。 社区独立维护者评估/澄清/复议已有本机软件记录；另有明确维护者估值的版本路线图和仅限准备的租约；AI自动评估与实际研发仍待完成。 已prepared的需求可形成准确公开源码的惰性提案和本地候选Git提交；代码执行、PR和独立审核仍待完成。",
+    "overview": "项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。 社区独立维护者评估/澄清/复议已有本机软件记录；另有明确维护者估值的版本路线图和仅限准备的租约；AI自动评估与实际研发仍待完成。 已prepared的需求可形成准确公开源码的惰性提案和本地候选Git提交；单独固定Linux候选检查程序已实现，真实OCI/PR/独立审核仍待验。",
     "acceptance_setup": "使用独立本机A/B验收数据；项目大厅分别建立文字或可导出原创示例。新建保留旧工程，原请求恢复保留后来编辑；7条剧情声明默认未确认。尚无公网领取或部署平台。",
-    "readme_status": "身份、个人空间、文字/原创可导出示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。 已声明Seedream参考图支持原项目最多3图、顺序用途、候选和单独采用；满额原提交恢复已实际验证，外部CDN及真实模型仍未验收。 独立Seedance视频参考/首尾帧及有界素材交付支持明确原项目选择、候选与单独采用；参考费用另标记，原提交恢复和未知费用保留，真实远程交付与模型仍待验。 独立声音时间线支持本机原对白配音、WAV音效/配乐和明确采用后的混音导出；外部费用0，云声音和真实质量仍未验收。 独立需求库可由本机维护者查看文字相似建议并记录准确版本的评估、澄清和复议；不自动调用AI、发留言或执行研发。 维护者可保存依赖/价值/预计工作量/零费用容量路线图，并验证准备领取、取消和超时恢复；prepared不是研发完成。 维护者可保存绑定原需求/功能/源码哈希的变更包，用独立索引形成可恢复的本地候选提交；不执行候选或自动创建PR。",
-    "verification_checkpoint": "惰性提案/本地候选提交锁定315通过/2本机平台跳过，实际临时Git/独立CLI/跨进程锁及进程退出恢复通过；Windows并发失败反例保留，作者审阅，新精确CI待验。abba5c6精确队列CI1264通过/2跳过/2历史未选和通用容器40/清理单列，主249/589与独立2/2接口不变。46已实现/13部分/5计划，current17与longterm1；费用授权0，受限代码执行/独立审核/真实PR和完整平台/公网未交付。",
+    "readme_status": "身份、个人空间、文字/原创可导出示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。 已声明Seedream参考图支持原项目最多3图、顺序用途、候选和单独采用；满额原提交恢复已实际验证，外部CDN及真实模型仍未验收。 独立Seedance视频参考/首尾帧及有界素材交付支持明确原项目选择、候选与单独采用；参考费用另标记，原提交恢复和未知费用保留，真实远程交付与模型仍待验。 独立声音时间线支持本机原对白配音、WAV音效/配乐和明确采用后的混音导出；外部费用0，云声音和真实质量仍未验收。 独立需求库可由本机维护者查看文字相似建议并记录准确版本的评估、澄清和复议；不自动调用AI、发留言或执行研发。 维护者可保存依赖/价值/预计工作量/零费用容量路线图，并验证准备领取、取消和超时恢复；prepared不是研发完成。 维护者可保存绑定原需求/功能/源码哈希的变更包，用独立索引形成可恢复的本地候选提交；另有明确启用的固定Linux候选检查与取消/对账；实际容器及精确CI待验，PR与独立审核闭环未完成。",
+    "verification_checkpoint": "新增固定Linux检查源码锁定444通过/2本机平台跳过，10项真实OCI用例只已收集；作者审阅，新精确CI/实际OCI待验。前一fdcacf9精确CI1365通过/2跳过/2历史未选、前端和通用容器40/清理单列。主249/589和独立2/2接口不变；46已实现/13部分/5计划，current17与longterm1，费用0；真实来源/AI/独立PR审核/完整成片/公网未交付。",
     "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {

@@ -96,7 +96,9 @@ class CommunityChangeStore:
     def validate(self, db):
         """Accept only the complete known store, and verify all retained original-source relationships rather than just JSON hashes."""
         tables, guards = change_definitions()
-        if {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")} != set(tables):
+        from app.services.community.code_check_schema import CHECK_TABLES, validate_check_schema
+        present = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'") if not row[0].startswith('sqlite_')}
+        if present not in (set(tables), set(tables) | CHECK_TABLES):
             raise CommunityStoreConflict('Unknown public change schema')
         for kind, definitions in (('table', tables), ('trigger', guards)):
             for name, expected in definitions.items():
@@ -107,6 +109,8 @@ class CommunityChangeStore:
             raise CommunityStoreConflict('Public change store belongs to another source or profile')
         for row in db.execute('SELECT id,request_key,intent_hash,work_id,payload FROM community_change_bundles'):
             self._decode(row)
+        if present & CHECK_TABLES:
+            validate_check_schema(db)
 
     def _decode(self, row):
         """Bind the immutable SQLite keys to the verified bundle, its original intent and the root's public source."""

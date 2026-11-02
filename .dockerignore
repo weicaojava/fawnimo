@@ -12,6 +12,12 @@
 !backend/app/**
 !backend/sql/
 !backend/sql/**
+!backend/tests/
+!backend/tests/**
+!scripts/
+!scripts/features.py
+!capabilities/
+!capabilities/features.json
 !front/
 !front/package.json
 !front/pnpm-lock.yaml

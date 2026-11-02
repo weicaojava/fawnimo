@@ -25,6 +25,8 @@ COPY backend/pyproject.toml backend/uv.lock backend/README.md ./
 # needed by the text runtime. Keep that extra until runtime dependencies move.
 RUN uv sync --frozen --no-dev --extra dev --no-install-project
 COPY backend/ ./
+COPY scripts/features.py /app/scripts/features.py
+COPY capabilities/features.json /app/capabilities/features.json
 RUN uv sync --locked --no-dev --extra dev \
     && groupadd --gid 10001 studio \
     && useradd --uid 10001 --gid studio --no-create-home studio \

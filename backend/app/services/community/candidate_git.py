@@ -181,3 +181,21 @@ class CandidateGitRepository:
         if result is None:
             raise CommunityStoreConflict('Local candidate reference was not committed; no remote push was attempted')
         return result
+
+    @bounded_git_operation
+    def code_manifest(self, tree):
+        """Read the complete fixed code/resource subset from an exact committed tree, so an old image cannot silently test a different base."""
+        from app.core.contracts.community_code_checks import checked_source_path
+        if not isinstance(tree, str) or re.fullmatch(r'[0-9a-f]{40}', tree) is None:
+            raise CommunityStoreConflict('Exact public/candidate tree ID required')
+        result = {}
+        for entry in self._git('ls-tree', '-r', '-z', tree).stdout.split(b'\0'):
+            if not entry: continue
+            header, name = entry.split(b'\t', 1); mode, kind, blob = header.decode().split(); path = name.decode('utf8')
+            if not checked_source_path(path): continue
+            if mode != '100644' or kind != 'blob' or re.fullmatch(r'[0-9a-f]{40}', blob) is None:
+                raise CommunityStoreConflict('Pinned code tree contains an unsupported source file type or mode')
+            result[path] = {'mode': mode, 'sha': blob}
+        if not 1 <= len(result) <= 4096:
+            raise CommunityStoreConflict('Pinned code/resource manifest is empty or exceeds profile capacity')
+        return dict(sorted(result.items()))

@@ -622,25 +622,25 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 ### F-013.04 租约、幂等、取消与资源上限
 
-入口：`CLI: backend/queue_community.py`，维护者路线图与准备租约；没有编码执行器。当前：部分实现 / 本阶段已验证 / 仅本机。
+入口：`CLI: backend/check_community.py`，维护者明确启用的Linux候选检查、取消与对账。当前：部分实现 / 本阶段已验证 / 仅本机。
 
 1. 两个调度器竞争领取只产生一次开发attempt，租约失联进入可恢复状态
 2. 覆盖重复事件、取消、重试、进程失败、时间/费用/并发限制和审计
 
-软件回归目标：`backend/tests/test_community_queue_planning.py`、`backend/tests/test_community_queue_store.py`、`backend/tests/test_community_queue_leases.py`、`backend/tests/test_community_queue_cli.py`。
+软件回归目标：`backend/tests/test_community_queue_planning.py`、`backend/tests/test_community_queue_store.py`、`backend/tests/test_community_queue_leases.py`、`backend/tests/test_community_queue_cli.py`、`backend/tests/test_community_code_check_store.py`、`backend/tests/test_community_isolated_runner_contract.py`、`backend/tests/test_community_code_check_docker.py`、`backend/tests/test_community_code_check_runtime.py`、`backend/tests/test_community_code_check_oci.py`。
 
-验收限制：当前是本机明确评估/估值的版本路线图及preparation_lease_v1准备预留，不是AI研发attempt；prepared不表示代码已开发。；绑定准确评估、源版本、功能登记和选择修订号；费用0分、并发/活跃预计工作量/租约/硬时限/最多3次均有界，个人视频项目预算不变。；原请求恢复保留后来选择/attempt，过期预留要明确恢复；仅无副作用准备可有限重排，真实未知外部结果不得复用该协议。；新领取/准备成功复查固定公开源；自作来源、实际SQLite/CLI通过不等于真实GitHub App或外部源联合验收。；旧代码不识别12/15表扩展，升级前一致备份，回退到新专用目录保留新历史；同一系统用户权限隔离不由SQLite约束提供。；作者审阅；独立审核、实际编码/PR/CI晋级、进程故障对账及公网仍待完成，整项保持部分实现。。
+验收限制：preparation_lease_v1只管理准备；新增linux_pytest_check_v1由维护者单独明确启用，不能把准备租约用于真实外部重试。；执行前持久预留并记录创建/启动意图；未知接受或清理结果保留并发名额，过期与查询暂时无资源不能自动释放；有限新尝试须先确认原资源清理。；固定费用0、并发1、每包3次、全库384次、事件4096及CPU/内存/进程/输出/时间上限；个人视频项目预算不变。；新执行复查准确公开源/准备/计划选择，Docker操作在事务外；取消先保存意图，原结果恢复不重复外部调用。；检查扩展库为5张业务表，旧代码不识别；一致备份、保留新历史后回退到专用目录。需求准备库12/15表独立保留。；444锁定本机检查/2平台跳过，作者审阅；真实Linux内核/容器运行与精确CI待验，独立审查/真实PR/完整平台未交付。。
 
 ### F-013.05 隔离开发、变更提交与PR追溯
 
-入口：`CLI: backend/develop_community.py`，惰性变更包与本地候选提交；无代码执行/PR入口。当前：部分实现 / 本阶段已验证 / 仅本机。
+入口：`CLI: backend/check_community.py`，维护者明确启用的Linux候选检查、取消与对账。当前：部分实现 / 本阶段已验证 / 仅本机。
 
 1. 开发attempt绑定精确需求版本、功能ID、分支及允许的仓库
 2. 独立工作目录、受限凭据、命令/网络/文件边界；产出可审阅PR及测试记录
 
-软件回归目标：`backend/tests/test_community_change_bundles.py`、`backend/tests/test_community_public_code.py`、`backend/tests/test_community_change_store.py`、`backend/tests/test_community_candidate_git.py`、`backend/tests/test_community_candidate_lock.py`。
+软件回归目标：`backend/tests/test_community_change_bundles.py`、`backend/tests/test_community_public_code.py`、`backend/tests/test_community_change_store.py`、`backend/tests/test_community_candidate_git.py`、`backend/tests/test_community_candidate_lock.py`、`backend/tests/test_community_code_check_store.py`、`backend/tests/test_community_isolated_runner_contract.py`、`backend/tests/test_community_code_check_docker.py`、`backend/tests/test_community_code_check_runtime.py`、`backend/tests/test_community_code_check_oci.py`。
 
-验收限制：当前是public_python_change_v1源码提案和本地候选Git提交，不运行候选代码，不调用模型，不推送候选分支或创建PR。；新操作固定准确准备/源/公开main及Git对象和登记路径，复查来源后再次检查本地版本；控制器/审核规则/CI与依赖变更不在提案权限内。；独立索引只读取准确公开提交对象，不采用原工作树中已有的暂存、未暂存或未跟踪内容；原操作恢复保留同一个候选提交。；操作系统维护者与Git元数据仍属受信环境；内核互斥解决对象并发写入，不提供同系统用户之间的安全隔离。；候选测试文本和本地提交不构成独立审查或CI通过；真正受限执行器、未知结果对账、PR/准确头检查、独立审核和公网仍待完成。；实际本机SQLite/临时Git/进程检查通过，作者审阅；真实外部GitHub代码源与完整自动研发联合验收未通过，整项部分实现。。
+验收限制：惰性提案/本地提交不会执行代码；维护者可另行明确启用固定Linux候选检查，不调用模型、不推送候选分支或创建PR。；检查绑定准确已准备需求、功能/评估/计划/选择及公开main/提交/树；完整基础/候选源码清单由Git对象核对，旧镜像或维护者暂存/工作树不能替代。；固定本地Docker端点/空白配置/镜像ID，无主机挂载/凭据/外网；标准库父程序与UID10001子程序分离，实际内核/资源/读写/超时能力仍须真实OCI验收。；私有所有权和具体容器身份核对后确认删除，未知结果不重放，候选输出只留哈希/长度且不能冒充可信结果。；本机维护者/守护程序/可信镜像仍受信；控制器强制结束可留下空白操作系统临时配置目录。；本机444通过/2平台跳过，作者审阅；10项真实OCI用例已收集而运行待验，独立审核/准确PR与CI晋级/真实来源联合验收/公网未完成，整项部分实现。。
 
 ### F-013.06 独立审查、客观测试与CI触发验证
 

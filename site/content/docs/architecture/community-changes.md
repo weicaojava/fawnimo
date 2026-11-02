@@ -2,7 +2,7 @@
 title: 公开源码提案与本地候选提交
 ---
 
-`develop_community.py`将准确已prepared的公开需求准备记录转成惰性Python源码提案，并可形成本地候选Git提交。提案绑定原需求、功能编号、评估顺序、计划哈希、选择修订号及公开代码版本。当前没有候选代码执行器、模型调用、GitHub推送、PR创建或部署操作；`execution_authorized`、`development_complete`、独立审核和CI资格始终分别保持false。候选测试也是待审源码，保存测试文字不表示测试运行或通过。
+`develop_community.py`将准确已prepared的公开需求准备记录转成惰性Python源码提案，并可形成本地候选Git提交。提案绑定原需求、功能编号、评估顺序、计划哈希、选择修订号及公开代码版本。提案程序本身不执行代码，也没有模型调用、GitHub推送、PR创建或部署操作；`execution_authorized`、`development_complete`、独立审核和CI资格始终分别保持false。候选测试也是待审源码，保存测试文字不表示测试运行或通过。
 
 `public_python_change_v1`接收最多16个文件修改、8个明确的新候选测试、完整原输入2MiB。每个替换文件最多128KiB、全部新文字最多1MiB；新文字为UTF8/LF并保留末尾换行，修改前哈希绑定原始公开字节，原文件CRLF不被默默当成LF。既有文件修改只限准确功能登记的Python代码路径，新测试只限`backend/tests/test_community_candidate_*.py`。路径拒绝穿越、反斜杠、Windows设备名、大小写别名及模糊分段。控制器、来源校验、存储/租约/审核边界、CI、依赖或任意命令不在此提案权限内，即使功能登记提到它们也不放开。
 
@@ -20,4 +20,4 @@ title: 公开源码提案与本地候选提交
 
 曾实际复现Windows下多个控制器使用不同index仍同时写同一Git对象，`git-write-tree`返回Permission denied；原失败记录与锁定修正证据保留。现在按实际共享Git objects目录取得跨进程内核写锁，覆盖不同工作目录，线程内嵌套可重入。标识文件位于`objects/info/fawnimo-community-writes.lock`，先取得内核锁再读标识，以适配Windows字节锁的强制读取限制。进程异常退出后等待实际内核所有权释放，不根据PID死亡删锁文件；未知或不完整标识停止，不自动覆盖。锁解决对象写入互斥，不把Git或本机进程提升为安全执行环境。
 
-原提案请求恢复和已存在本地候选恢复均先于当前网络/来源门禁。来源后来变化时旧结果仍可读取，新提案或新候选须按当前准确来源重新验证。准备租约不会变成代码执行能力。真实受限执行、未知运行结果对账、远程PR及准确头的独立审查/CI仍待完成。操作见[维护指南](../../guide/community-changes/)，当前软件证据和资格边界见[功能总表](../../reference/feature-catalog/)。
+原提案请求恢复和已存在本地候选恢复均先于当前网络/来源门禁。来源后来变化时旧结果仍可读取，新提案或新候选须按当前准确来源重新验证。准备租约不会变成代码执行能力。单独明确启用的[固定Linux检查程序](../community-code-checks/)实现了有界候选执行、未知结果保留及确认清理；实际OCI资格由独立准确CI记录证明。远程PR及准确头的独立审查/CI晋级仍待完成。操作见[维护指南](../../guide/community-changes/)，当前软件证据和资格边界见[功能总表](../../reference/feature-catalog/)。
