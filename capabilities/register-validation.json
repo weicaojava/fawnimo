@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-30",
+  "date": "2026-11-02",
   "scope": "feature register integrity and generated document consistency only",
   "status": "passed",
   "checks": [
@@ -100,7 +100,7 @@
   "failed": 0,
   "groups": 15,
   "features": 64,
-  "source_sha256": "d12891a494917354d7f8fe1b3f1f959a8ad3a5fd5d2c0f992f456690d73a7616",
+  "source_sha256": "09646d454ef8df5100c5547faabe70de6b4ece1e85ec6b3027b046d40cbe464a",
   "generator_sha256": "3f8742199b4a97e2ad42c5de72c9879f6b277220dedf0b93a8bf8a90bbc05b2c",
   "command": "python scripts/features_check.py",
   "application_qualified": false,
@@ -108,5 +108,5 @@
   "deployment_qualified": false,
   "external_model_calls": 0,
   "private_database_access": false,
-  "independent_review": "private_external:stage-g-community-intake/independent-metadata-review.json"
+  "independent_review": "pending"
 }

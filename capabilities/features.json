@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "register_version": "2026-10-30.9",
-  "updated_at": "2026-10-30",
+  "register_version": "2026-11-02.1",
+  "updated_at": "2026-11-02",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
     "branch": "local/hallmark-dual-theme",
@@ -414,6 +414,16 @@
         "F-013.01"
       ],
       "scope": "43冻结专项、独立43/原反例5/补测4分记；HMAC公开源/投递去重/最小时钟/不可变版本已本机验证，两P2一P3关闭。真实App/HTTPS事件、实时源复验及后续AI研发未接通，整项软件仍未验收；旧36通过及5失败不累加。"
+    },
+    {
+      "id": "EV-CONTAINER-RUNTIME-PREPARATION",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/container-runtime-validation.json",
+      "features": [
+        "F-014.02"
+      ],
+      "scope": "8项生命周期拒绝方法及30项本机HTTPS断言分记；实际镜像/Compose运行与持久卷重建CI已准备，尚未运行。不授予公网、浏览器、备份回退或真实模型资格。"
     }
   ],
   "features": [
@@ -3506,7 +3516,8 @@
         "software": "not_verified",
         "model": "not_required",
         "evidence": [
-          "EV-DEPLOY-CONFIG"
+          "EV-DEPLOY-CONFIG",
+          "EV-CONTAINER-RUNTIME-PREPARATION"
         ]
       },
       "deployment": {
@@ -3514,7 +3525,7 @@
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "working-tree-2026-11-02",
         "release": null
       },
       "entry": {
@@ -3525,18 +3536,22 @@
         "deploy/workspace/Dockerfile",
         "deploy/workspace/compose.yaml",
         "deploy/workspace/README.md",
-        "backend/run_controlplane.py"
+        "backend/run_controlplane.py",
+        "scripts/verify_workspace_container.py",
+        ".github/workflows/verify-workspace-container.yml"
       ],
-      "tests": [],
+      "tests": [
+        "scripts/tests/test_workspace_container_verifier.py"
+      ],
       "acceptance": [
         "在已授权资源部署稳定和预览，执行真实数据库迁移、并发、恢复和持久文件验证",
         "预览使用独立账号数据/凭据/额度；稳定可回退，重启与升级不丢任务/媒体"
       ],
       "limits": [
-        "14项静态Compose/config检查通过；Docker engine不可用，镜像未构建、容器未验证",
-        "稳定/预览卷与端口分开只是配置，运行隔离、迁移、并发、恢复和回退未通过",
-        "无本项目公网平台；本机18000不是稳定/预览公网交付",
-        "仅单节点SQLite方案，不支持多副本网关共享数据库或服务器数据库资格"
+        "保留14项静态Compose检查；8项安全拒绝方法、30项原生HTTPS断言通过，不能相加或当作真实容器通过。",
+        "实际容器镜像构建、双服务/双账号、独立卷与删除后重建流水线已准备，精确提交CI待运行。",
+        "无本项目公网平台；备份恢复、跨版本升级/回退与公网关键制作链仍未验收。",
+        "仅单节点SQLite方案；没有共享数据库多副本或社区任意代码执行器资格。"
       ],
       "depends_on": [
         "F-001.05",
@@ -3910,7 +3925,7 @@
         "公网浏览器与隔离/恢复报告",
         "功能最终状态清单"
       ],
-      "progress": "Fawnimo源码与只读CI已公开，旧上游镜像/Pages发布实际跳过；源码发布不等于应用部署。稳定/预览公网运行、部署资源和域名仍未完成。"
+      "progress": "Fawnimo源码与CI已公开；本机容器复验入口已通过8项拒绝方法和30项原生HTTPS断言，实际镜像/Compose CI待运行。服务器尚未购置，公网与备份回退仍未完成。"
     }
   ],
   "external_inputs": [
@@ -3956,7 +3971,7 @@
     "overview": "资源隔离、项目独立预算和离线迁移副本演练保留；六类有界模型协议接原项目费用，四种AI剧本候选完成软件闭环。全部收费身份执行、社区研发、完整成片与公网仍待完成。",
     "acceptance_setup": "使用独立验收数据和本机A/B账号。项目大厅可建立/重置纯自作7镜、21条可编辑提示词示例；每次重建新工程保留旧编辑，同一请求恢复返回原结果。本机入口与账号交付已可复验，尚无公网平台。",
     "readme_status": "身份、个人空间、文字示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。",
-    "verification_checkpoint": "f481提交CI762/登记23与前端通过。后续社区接入43冻结专项通过，独立43/5/4分记；两P2和一P3关闭。F01301由planned到partial，整项验收仍not_verified；45已实现/7部分/12待实现，current18不变。无真实模型、外部写入、GitHub App/实时源或公网资格。",
+    "verification_checkpoint": "0ffcc34精确CI通过805后端、23登记和前端3214。本批8安全拒绝方法及30原生HTTPS断言分记；实际容器流水线待运行，不升级整项部署资格。45已实现/7部分/12计划，current18与longterm1不变。费用授权0。",
     "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {

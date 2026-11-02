@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-02",
+  "features": [
+    "F-014.02"
+  ],
+  "stage": "container_ci_prepared_pending_actual_build_and_runtime",
+  "base_published_commit": "0ffcc34040e49789c67602f8fb26b8e28818a901",
+  "selected_source_tree": "190e2dc0346cd00adbce58cab3a527f86e6b395b",
+  "source_sha256_lf_normalized": {
+    "scripts/verify_workspace_container.py": "292276e5c3474cf9874d8c348408f5de11bd0412697757260ef0c3bfeb94d380",
+    "scripts/tests/test_workspace_container_verifier.py": "f2e200b4a66c0682e9501db425f272a16eefcee9544ce0454dc3b225287822bb",
+    ".github/workflows/verify-workspace-container.yml": "3130f5d6a496191a15593fcc4b2a01b2d2fdf87bd62e4ed411a124e140f13d4b",
+    "deploy/workspace/README.md": "4984b3d130299e9acaf53e2e7b2be8857c380f2d7f2f08e8d3bc01a3da8b83de",
+    "site/content/docs/architecture/workspace-container.md": "489134243e5ce972fe2e4b9baeeea49c524c399470e61e3e14065192da3ac443",
+    "site/content/docs/guide/workspace-container.md": "14983270584ec6b92cbaf02af8ed3f997dbdd06faa63affd44f4b3fcff421591"
+  },
+  "guard_tests": {
+    "methods_passed": 8,
+    "evidence": "private_external:stage-h-container-runtime/guards-frozen.json",
+    "sha256": "747501ab78248f9aec912b3348fd912602d7e15c09105db0258de4e97cbac6d4",
+    "real_engine_used": false
+  },
+  "native_https": {
+    "assertions_passed": 30,
+    "evidence": "private_external:stage-h-container-runtime/native-https-flows.json",
+    "sha256": "00a172e04b80c542c6b0ca2cd89cf145346baf8f7c26fe92d07a10583f0c0763",
+    "source_tree": "fef395c6d2aab36baae3b65016e463e94e0eaa3e",
+    "same_http_projection_as_selected_source": true,
+    "container_runtime_verified": false
+  },
+  "before_failed_native": {
+    "file": "private_external:stage-h-container-runtime/native-https-before-contract-fix.json",
+    "sha256": "77514c8d9621a58e69399be5de7cd154e5e57c7ba5da1dbc05af98f77221746e",
+    "passed_before_error": 21,
+    "error": "Verifier attempted a service-only field absent from DemoRead; verifier now checks public DTO and actual chapter text. Product API unchanged."
+  },
+  "source_verification_sha256": "3db02d4feb33270aad866aa466af4173569870d7e834e676f760257a20551c5e",
+  "independent_review": false,
+  "count_note": "8 unit methods,30 native HTTPS assertions and parent805 regressions are separate evidence units, never summed. The failed before-run21 is not accepted coverage.",
+  "parent_ci": {
+    "commit": "0ffcc34040e49789c67602f8fb26b8e28818a901",
+    "run_id": 41020466016,
+    "backend_passed": 805,
+    "register_passed": 23,
+    "frontend_modules": 3214,
+    "scope": "Parent published source only; backend/frontend bytes unchanged in this preparation delta."
+  },
+  "ci_workflow": ".github/workflows/verify-workspace-container.yml",
+  "ci_status": "not_yet_run",
+  "image_built": false,
+  "container_runtime_verified": false,
+  "cleanup_verified": false,
+  "public_deployment_verified": false,
+  "browser_acceptance_verified": false,
+  "model_quality_qualified": false,
+  "external_model_calls": 0,
+  "user_paid_budget_authorized": 0,
+  "original_workspace_writes": 0,
+  "limits": [
+    "Actual image build and Compose runtime/persistence checks await the new workflow on this exact source.",
+    "Two services use the same candidate image in new independent volumes; this does not prove cross-version promotion, backup restore or rollback.",
+    "No public server, browser UI, real supplier, bill, film or autonomous coding runner qualification."
+  ]
+}

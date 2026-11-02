@@ -1,5 +1,5 @@
 {
-  "stage": "deployment_preparation",
+  "stage": "container_ci_prepared",
   "software_configuration_checks": [
     {
       "name": "compose_parses",
@@ -62,12 +62,17 @@
   "failed": 0,
   "docker_client_available": true,
   "docker_engine_available": false,
-  "docker_engine_failure": "Previously attempted desktop-linux engine named pipe is unavailable",
+  "docker_engine_failure": "2026-11-02 local desktop-linux named pipe unavailable; no local containers created",
   "image_built": false,
   "container_runtime_verified": false,
   "public_deployment_verified": false,
   "external_model_calls": 0,
   "limits": [
-    "Static configuration checks only; image, runtime, persistence, limits and public reachability remain unverified."
-  ]
+    "Historical14 static configuration checks are preserved. New8 refusal methods and30 native HTTPS assertions are separate.",
+    "Actual container image/runtime/persistence, backup/rollback and public hosting remain unverified until separately observed."
+  ],
+  "date": "2026-11-02",
+  "guard_test_methods_passed": 8,
+  "native_https_assertions_passed": 30,
+  "container_evidence": "capabilities/container-runtime-validation.json"
 }

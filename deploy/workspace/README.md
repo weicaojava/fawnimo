@@ -2,7 +2,20 @@
 
 此目录提供一个包含静态前端、身份网关、工作空间子进程和 FFmpeg 的本地镜像构建方案。持久数据完整保存在 `/data`。镜像使用本地名称，没有推送或发布动作。保留 Jellyfish 来源代码和根目录许可证。
 
-当前状态见 [validation.json](validation.json)。Compose 配置解析通过不等于镜像构建、容器运行或公网验收通过；在 Docker engine 可用的主机上完成以下检查后才能更新验证状态。目标服务器、域名和 GitHub 仓库仍需明确指定。
+当前状态见 [validation.json](validation.json)。Compose 配置解析通过不等于镜像构建、容器运行或公网验收通过；在 Docker engine 可用的主机上完成以下检查后才能更新验证状态。目标仓库已确定为 weicaojava/fawnimo，服务器尚未购置，域名与公网环境仍待明确。
+
+## 自动复验实际容器
+
+新增 `scripts/verify_workspace_container.py` 及 `Verify workspace container` 工作流：实际构建同源镜像，以本次全新命名卷运行 stable/preview，验证双账号、文件与项目预算，再删除/重建稳定容器检查持久数据。工作流不推送镜像或部署服务器，结果以精确提交的构建、检查与 JSON 报告为准。
+
+复验入口仅接受本地 Linux Docker engine，需要 Compose v2、Python 3.12 和 PATH 中的 OpenSSL；先使用新的镜像标签构建，再用唯一测试项目名执行：
+
+```sh
+docker build --file deploy/workspace/Dockerfile --tag fawnimo-container-check:local .
+python scripts/verify_workspace_container.py --image fawnimo-container-check:local --run-prefix fawnimo-check-local-20261030-001 --report container-verification-local-001.json
+```
+
+名称和报告路径每次更换。它拒绝已有同名项目，清理时逐项核对随机所有权与 Compose 项目标签，只删除本次测试资源，保留构建镜像。报告不含账号密码、Cookie、测试私钥或媒体。其临时 HTTPS 客户端信任本次自作证书，不修改系统证书库；这是 API 验收，不代表浏览器或公网 HTTPS 通过。只有 `status=passed`、`runtime_verified=true`、`cleanup_verified=true` 且全部检查通过，才能登记本轮容器证据。
 
 ## 构建和启动预览
 
