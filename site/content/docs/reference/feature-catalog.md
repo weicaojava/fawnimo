@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-11-03.1`，更新日期：2026-11-03。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-11-03.2`，更新日期：2026-11-03。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。
+项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。 社区独立维护者评估/澄清/复议已有本机软件记录；AI自动评估、排队与研发仍待完成。
 
-声音相关325项与声音/交叉淡化52项在各自锁定版本执行，不合计；最终前端3219构建、接口249/589一致性及真实浏览器恢复/混音/下载/重启通过。作者审阅，不称独立审核。8ccd后续CI1050/1跳过/2历史未选及通用容器40项单列。46已实现/9部分/9计划，current17与longterm1；费用授权0，公网和完整平台未交付。
+社区准确锁定版本106项和实际CLI4次通过，主249/589与独立2/2接口不变；作者审阅，不称独立审核。声音b364后续精确CI1105/2跳过/2历史未选、前端与通用容器40项/清理及私有历史副本3项分列，原c1失败保留。46已实现/10部分/8计划，current17与longterm1；实际费用授权0，自动研发/完整平台/公网未交付。
 
 ## F-001 身份与工作空间
 
@@ -724,7 +724,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 限制：独立声音v3支持明确采用的PCM16 WAV配音/音效/配乐，24/48kHz、单双声道、单项32MiB/300秒；10ms位置裁剪、整数dB与原对白人工确认。；windows_sapi_pcm_v1仅用Windows实际已安装声音生成原计划对白候选，外部费用0；Linux/容器不提供该系统引擎，仍支持WAV导入混音。；实际本机声音与短色片、两轨混音及五类下载、原提交恢复/真实重启/任务回跳仅验证软件；未声称完整短剧、音色/发声内容/语义/口型质量通过。；云端配音和生成式音效/音乐模型、更多格式/自动对齐/循环/压低背景音乐、托管A/B浏览器联合验收、独立审核及公网仍待完成，整项部分实现。。
 
-验证依据：`EV-SOUND-TIMELINE-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-SOUND-TIMELINE-LOCAL`、`EV-SOUND-PUBLISHED-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -854,7 +854,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | 编号 / 子功能 | 实现 | 软件验证 | 真实模型 | 部署 | 实际入口 |
 | --- | --- | --- | --- | --- | --- |
 | [F-013.01 GitHub需求接入、事件去重与需求版本](#f-013-01) | 部分实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 独立维护者服务与命令行；真实GitHub事件尚未接通 |
-| [F-013.02 AI查重、澄清、合理性评估与复议](#f-013-02) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
+| [F-013.02 AI查重、澄清、合理性评估与复议](#f-013-02) | 部分实现 | 本阶段已验证 | 未验收 | 仅本机 | CLI: backend/review_community.py · 维护者独立需求库：建议、评估与历史 |
 | [F-013.03 依赖、价值、成本与容量排队](#f-013-03) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
 | [F-013.04 租约、幂等、取消与资源上限](#f-013-04) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
 | [F-013.05 隔离开发、变更提交与PR追溯](#f-013-05) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
@@ -869,9 +869,9 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`backend/app/api/community_intake.py`](../../../../backend/app/api/community_intake.py)、[`backend/app/controlplane/community.py`](../../../../backend/app/controlplane/community.py)、[`backend/app/core/contracts/community_requests.py`](../../../../backend/app/core/contracts/community_requests.py)、[`backend/app/services/community/__init__.py`](../../../../backend/app/services/community/__init__.py)、[`backend/app/services/community/events.py`](../../../../backend/app/services/community/events.py)、[`backend/app/services/community/store.py`](../../../../backend/app/services/community/store.py)、[`backend/community-openapi.json`](../../../../backend/community-openapi.json)、[`backend/run_community.py`](../../../../backend/run_community.py)。
 
-限制：公开目标weicaojava/fawnimo及数字ID已只读核验；当前为默认关闭的独立本机接入，不读取个人视频空间。；真实GitHub App/公网签名投递、实时源复验和评估/队列/自动研发/发布仍待接通，整项software仍not_verified。；未入选公开需求只留最小源时钟，不留无关正文；Issue文本是数据，source_eligible不是执行授权或部署完成。；43本机专项和独立43/5/4有界软件证据不代表真实外部接入、模型或公网资格；本轮实际费用授权0。。
+限制：公开目标weicaojava/fawnimo及数字ID已只读核验；当前为默认关闭的独立本机接入，不读取个人视频空间。；真实GitHub App/公网签名投递仍待接通；已提供固定公开REST源复查及本机维护者评估记录的软件流程，实际外部源、AI、排队/自动研发/发布未授予资格，整项software仍not_verified。；未入选公开需求只留最小源时钟，不留无关正文；Issue文本是数据，source_eligible不是执行授权或部署完成。；43本机专项和独立43/5/4有界软件证据不代表真实外部接入、模型或公网资格；本轮实际费用授权0。。
 
-验证依据：`EV-COMMUNITY-INTAKE`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-COMMUNITY-INTAKE`、`EV-COMMUNITY-EVALUATION-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -879,11 +879,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-013.02 AI查重、澄清、合理性评估与复议
 
-需求：R-003；验收阶段：E；范围：本阶段交付；实现版本：`未实现`；发布版本：`未发布`。
+需求：R-003；验收阶段：E；范围：本阶段交付；实现版本：`source-tree-3520a47b4498`；发布版本：`未发布`。
 
-限制：维护者服务使用独立模型与费用额度；模型建议不越过确定性规则。
+代码：[`backend/app/core/contracts/community_evaluations.py`](../../../../backend/app/core/contracts/community_evaluations.py)、[`backend/app/services/community/public_source.py`](../../../../backend/app/services/community/public_source.py)、[`backend/app/services/community/source_check_child.py`](../../../../backend/app/services/community/source_check_child.py)、[`backend/app/services/community/evaluations.py`](../../../../backend/app/services/community/evaluations.py)、[`backend/app/services/community/store.py`](../../../../backend/app/services/community/store.py)、[`backend/review_community.py`](../../../../backend/review_community.py)。
 
-验证依据：尚无通过证据。测试文件是待运行目标，文件存在不代表测试通过。
+限制：当前是本机维护者明确决定及有界Unicode文字相似建议；不是AI查重，advisory_note只保存未验证文字，不调用模型。；新评估须准确公开源复查，原请求可在来源后来变化后恢复；真实GitHub App/公网接入及当前外部Issue联合验收尚未通过。；合理/待澄清/重复与优先、排队、执行、软件验收和上线分开；无公开评估写接口，不自动发送澄清/复议或理由留言。；独立维护者模型与费用额度、AI评估质量、独立审核、队列/自动研发与公网仍待完成，整项部分实现。。
+
+验证依据：`EV-COMMUNITY-EVALUATION-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -979,9 +981,9 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`deploy/workspace/Dockerfile`](../../../../deploy/workspace/Dockerfile)、[`deploy/workspace/compose.yaml`](../../../../deploy/workspace/compose.yaml)、[`deploy/workspace/README.md`](../../../../deploy/workspace/README.md)、[`backend/run_controlplane.py`](../../../../backend/run_controlplane.py)、[`scripts/verify_workspace_container.py`](../../../../scripts/verify_workspace_container.py)、[`.github/workflows/verify-workspace-container.yml`](../../../../.github/workflows/verify-workspace-container.yml)。
 
-限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。；后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。；4a38精确CI938通过、前端和既有容器40项/清理及独立31另行记录；不将通用容器文字检查当作新参考协议的容器验收。；8ccd精确CI1050通过/1跳过/2历史未选及既有容器40项/清理单列；不把通用容器检查算作新参考或声音链容器验收。。
+限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。；后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。；4a38精确CI938通过、前端和既有容器40项/清理及独立31另行记录；不将通用容器文字检查当作新参考协议的容器验收。；8ccd精确CI1050通过/1跳过/2历史未选及既有容器40项/清理单列；不把通用容器检查算作新参考或声音链容器验收。；b364精确CI1105/2跳过/2历史未选、通用容器40/清理另列；原c1生命周期夹具失败完整保留，实际M4B副本3项不等于正式旧数据切换或所有恢复资格。。
 
-验证依据：`EV-DEPLOY-CONFIG`、`EV-CONTAINER-RUNTIME-PREPARATION`、`EV-ORIGINAL-EXAMPLE-PUBLISHED-CI`、`EV-REFERENCE-IMAGE-PUBLISHED-CI`、`EV-VIDEO-REFERENCE-PUBLISHED-CI`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-DEPLOY-CONFIG`、`EV-CONTAINER-RUNTIME-PREPARATION`、`EV-ORIGINAL-EXAMPLE-PUBLISHED-CI`、`EV-REFERENCE-IMAGE-PUBLISHED-CI`、`EV-VIDEO-REFERENCE-PUBLISHED-CI`、`EV-SOUND-PUBLISHED-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1098,6 +1100,8 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-REFERENCE-IMAGE-PUBLISHED-CI | software | repository · `capabilities/reference-image-ci-validation.json` | 上次4a38参考图精确提交CI后续事件：938通过/1跳过/2历史未选、登记23、前端3216构建；既有容器40项与清理及独立复核31。通用容器检查不执行新参考链或示例渲染器。 |
 | EV-SOUND-TIMELINE-LOCAL | software | repository · `capabilities/sound-timeline-validation.json` | 独立声音v3、实际Windows系统配音、WAV样本与原对白区间、显式采用/混音/五类导出、原请求恢复和重启；325与52分记继承未变来源，作者审阅不称独立审核。云声音/模型质量/全片/收费身份/公网均未授予资格。 |
 | EV-VIDEO-REFERENCE-PUBLISHED-CI | software | repository · `capabilities/video-reference-ci-validation.json` | 上次8ccd参考视频精确提交CI后续事件：1050通过/1跳过/2历史未选、登记23、前端3217构建；既有容器40项及清理。CI回执由作者核对，不声称独立复核；通用容器检查未执行新参考或声音流水线。 |
+| EV-COMMUNITY-EVALUATION-LOCAL | software | repository · `capabilities/community-evaluation-validation.json` | 106项在准确锁定版本执行，含原接入/新评估源边界/生命周期；实际CLI4次覆盖建议、原请求恢复、复议与历史。作者审阅；源响应为自作受信夹具，不授予真实GitHub App/外部源、AI、独立审核、自动研发/公网资格。 |
+| EV-SOUND-PUBLISHED-CI | software | repository · `capabilities/sound-timeline-ci-validation.json` | 声音后续b364精确提交CI1105通过/2跳过/2历史未选、登记23、前端3219；通用容器40项/清理。原c1全量1失败/1100通过保留，仅修测试夹具；私有M4B副本升级3项另列，不冒充CI通过或正式切换。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

@@ -38,7 +38,8 @@ class CommunityRequestStore:
         with closing(self.connect()) as db:
             tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'") if not row[0].startswith('sqlite_')}
             expected = {'community_repository', 'community_requests', 'community_versions', 'community_deliveries', 'community_source_clocks'}
-            if tables and tables != expected:
+            from app.services.community.evaluations import REVIEW_TABLES, validate_review_schema
+            if tables and tables not in (expected, expected | REVIEW_TABLES):
                 raise CommunityStoreConflict('Community store schema is not recognized')
             if not tables:
                 if not initialize:
@@ -48,6 +49,8 @@ class CommunityRequestStore:
             if identity != [(1, config.repository_id, config.repository_name.casefold(), config.proposal_label, 1)]:
                 raise CommunityStoreConflict('Community store belongs to another source configuration')
             self.check_guards(db)
+            if tables & REVIEW_TABLES:
+                validate_review_schema(db)
             if db.execute('PRAGMA foreign_key_check').fetchone():
                 raise CommunityStoreConflict('Community source references are inconsistent')
 

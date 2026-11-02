@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-03",
+  "feature": "F-013.02",
+  "base_published_commit": "b364db1643cbb27baa29983ff734a9338dbb7019",
+  "selected_source_tree": "3520a47b44983dda5ea0a12f4d88b7754f8f87c9",
+  "scope": "Optional isolated maintainer assessment/clarification/reconsideration and bounded source/duplicate software only; broader AI community feature remains partial",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "2ecc0bf2300d1c7c2a09b4910b53bfd94eb6fb121e0c5c5d33c4034606d115de",
+    "backend/app/core/contracts/community_evaluations.py": "5162c6fa8493a9f020a80a4aed5a9fd8765d13094e6432dd306bf40dfe48fd67",
+    "backend/app/services/community/public_source.py": "9df0eb2cbc82974a8327e09dfebb0c178c9ed1215d576573357d54033c04d347",
+    "backend/app/services/community/source_check_child.py": "03c4ddb3ef18c29a8f08dca9eff5f313f15961c494ec7c4e0991e0a2c21776a6",
+    "backend/app/services/community/evaluations.py": "089516b7730ba812c75ce2f52a370fb2e60983b240ecf5d8893aeb995f182a23",
+    "backend/app/services/community/store.py": "b2a7a806d8577ecb34021cf8fd80b47b79206da1b6ab676d6bd3edf6e514aa26",
+    "backend/review_community.py": "8dfdc63b3dc57b99e720c5fe1b295052a24140ddcc3ebc351b0268238edba994",
+    "backend/tests/test_community_evaluations.py": "3aa34361f70b82c53bad5eda0548b4e79bdee86125ea1a8445b722a385fbfe7f"
+  },
+  "source_review": {
+    "method": "author_source_and_saved_evidence_review",
+    "independent": false,
+    "sha256": "ab1eb096d1bced3e813d3067a71f1a37914b6b159656397dd98c00df9df36d2b",
+    "open_findings": 0
+  },
+  "regression": {
+    "tests": 106,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 106,
+    "seconds": 21.785,
+    "junit_sha256": "72f7591ee4f6df2cff1fcca7a44e65dfc51c44a47b3f03bb011d3847f02ca501"
+  },
+  "count_note": "106 includes43 intake,56 review/source and7 lifecycle cases. Earlier99 runs overlap and are not added.",
+  "schemas": {
+    "main_paths": 249,
+    "main_schemas": 589,
+    "community_paths": 2,
+    "community_schemas": 2,
+    "schemas_unchanged": true,
+    "lifespan_started": false
+  },
+  "api_or_frontend_changed": false,
+  "actual_cli": {
+    "commands": 4,
+    "checks": {
+      "advisory_duplicate_suggestions": true,
+      "original_input_replay": true,
+      "new_source_version_reconsideration": true,
+      "old_questions_and_reasons_preserved": true,
+      "stale_original_replay_after_new_version": true,
+      "no_execution_or_priority_grant": true
+    },
+    "evidence_sha256": "eab3a6d4e4a4c5cd0caebbe7e1702d86fcd9c0ec3df10bc1306a7e8fea2045ef",
+    "scope": "Actual CLI on authored signed ASGI intake and trusted authored public-source proofs. New live-decision HTTPS path is separately bounded/injected in tests; no live issue or GitHub App qualification."
+  },
+  "source_protocol": {
+    "profile": "github-public-rest-2022-11-28",
+    "host": "api.github.com",
+    "methods": [
+      "GET"
+    ],
+    "authorization": "No credential, token or model configuration; new CLI decisions always check original public source",
+    "bounds": "Owned20s helper,1MiB per response,3s socket and10s per read, strict full JSON; no redirect or automatic retry",
+    "affinity": "Exact repo/Issue/author/fingerprint/clock; observation≤60s and local latest source checked in writer",
+    "qualification": "Actual public Issue/GitHub App not qualified; source network boundaries tested with trusted authored transports only"
+  },
+  "duplicate_advice": {
+    "algorithm": "unicode-bigram-dice-title3-body1-v1",
+    "latest_selected_requirements": 100,
+    "body_prefix_characters": 4096,
+    "matches": 5,
+    "advisory_only": true,
+    "ai_model_called": false,
+    "explicit_duplicate_requires_both_current_sources": true
+  },
+  "decisions": [
+    "reasonable",
+    "needs_clarification",
+    "not_actionable",
+    "duplicate"
+  ],
+  "decisions_are_local_maintainer_records": true,
+  "source_version_and_appeal_history_immutable": true,
+  "original_request_replay_before_current_network_gates": true,
+  "priority_assigned": false,
+  "execution_authorized": false,
+  "public_feedback_sent": false,
+  "independent_review_completed": false,
+  "metadata_review": {
+    "method": "author review",
+    "independent": false,
+    "scope": "Exact source/results, current documentation/links, feature gates and public-tree privacy; E-phase independent gate remains pending"
+  },
+  "current_commit_ci": "pending_publication_and_exact_commit_CI",
+  "raw_run_evidence_visibility": "Local authored logs, JUnit and CLI data retained privately; hashes/bounded results only",
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "github_writes": 0,
+  "original_data_or_keys_used": false,
+  "original_checkout_writes": 0,
+  "live_github_source_qualified": false,
+  "ai_evaluation_qualified": false,
+  "automatic_development_qualified": false,
+  "full_feature_qualified": false,
+  "public_deployment_verified": false,
+  "overall_goal_complete": false
+}

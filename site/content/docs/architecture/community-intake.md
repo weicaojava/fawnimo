@@ -11,8 +11,8 @@ description: "默认关闭的独立维护者服务，源时钟与不可变版本
 
 投递回执与源版本在单一短事务提交；同delivery相同原字节/上下文重放，同源内容/时钟只建一版本。旧事件不能覆盖新源，INSERT仅允许空初始request，current指针须同源/最新clock，delivery两ID/outcome须配对，主键与自然键REPLACE拒绝。列表还联合clock检查，未确认来源不显示可选择。
 
-`source_eligible` 仅表示最近已选快照，不证明GitHub当前仍存在、公开、未转移或允许执行。后续评估/排队必须独立复查原公开源；这些阶段目前尚未接通。HMAC本机自作事件不等于真实GitHub App/公网投递资格，真实源连接和自动研发继续推进。
+`source_eligible` 仅表示最近已选快照，不证明GitHub当前仍存在、公开、未转移或允许执行。新评估已提供固定公开REST源复查、本机维护者决定及澄清/复议记录，见[评估架构](../community-evaluations/)；后续排队仍须再次复查。AI自动评估、队列与自动研发尚未接通。HMAC本机自作事件不等于真实GitHub App/公网投递资格，真实源连接和自动研发继续推进。
 
-43冻结专项、独立43以及原5反例/额外4补测分记于 `capabilities/community-intake-validation.json`；v1两P2一P3关闭，旧失败保留。主工作室OpenAPI234/549和前端同父；独立schema为backend/community-openapi.json（2路径/2schema）。本轮不调用真实模型、不外发GitHub写动作、不部署公网。
+43冻结专项、独立43以及原5反例/额外4补测分记于 `capabilities/community-intake-validation.json`；v1两P2一P3关闭，旧失败保留。该初次验证时主工作室OpenAPI为234/549且前端同当时父版本；当前主schema为249/589，独立schema仍为backend/community-openapi.json（2路径/2schema）。本机评估不新增HTTP入口，新的106项及命令行证据和作者审阅另记，不冒用当时独立审核。本轮不调用真实模型、不外发GitHub写动作、不部署公网。
 
 协议依据：[GitHub签名校验](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries)、[事件与payload](https://docs.github.com/en/webhooks/webhook-events-and-payloads)、[投递去重](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks)、[事件乱序](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/troubleshooting-webhooks)。

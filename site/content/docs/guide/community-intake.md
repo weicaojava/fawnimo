@@ -9,4 +9,4 @@ description: "维护者独立目录、源标识和事件回执的操作方式。
 4. 使用GitHub真实投递标识处理重投。响应包含已提交的receipt和可选request/version ID；ignored表示未保留提案正文，仍可能保留防乱序的最小源时钟。stale_version不能覆盖新源，source_conflict须等待更明确的新源时钟并核对GitHub当前状态。
 5. 在相同源配置下运行 `python run_community.py --root <独立目录> --repository-id <数字ID> --repository-name <owner/repo> --list` 查看有界登记摘要。原文版本不因迟到事件或SQL替换被改写。已关闭/撤回只表示源状态，不表示功能已开发、验收或上线。
 
-当前43项自作签名HTTP/SQLite软件检查与独立复核通过；真实GitHub App、实时源复验、AI评估、队列、隔离编码/PR/CI/预览和公网发布仍未接通。详见[当前架构](../../architecture/community-intake/)。
+当前43项自作签名HTTP/SQLite软件检查与独立复核通过；已有固定公开源复查与本机维护者评估/澄清/复议的软件流程，见[评估指南](../community-review/)；真实GitHub App、当前外部源联合验收、AI模型评估、队列、隔离编码/PR/CI/预览和公网发布仍待完成。详见[当前架构](../../architecture/community-intake/)。

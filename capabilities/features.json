@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-11-03.1",
+  "register_version": "2026-11-03.2",
   "updated_at": "2026-11-03",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -499,6 +499,28 @@
         "F-014.02"
       ],
       "scope": "上次8ccd参考视频精确提交CI后续事件：1050通过/1跳过/2历史未选、登记23、前端3217构建；既有容器40项及清理。CI回执由作者核对，不声称独立复核；通用容器检查未执行新参考或声音流水线。"
+    },
+    {
+      "id": "EV-COMMUNITY-EVALUATION-LOCAL",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/community-evaluation-validation.json",
+      "features": [
+        "F-013.01",
+        "F-013.02"
+      ],
+      "scope": "106项在准确锁定版本执行，含原接入/新评估源边界/生命周期；实际CLI4次覆盖建议、原请求恢复、复议与历史。作者审阅；源响应为自作受信夹具，不授予真实GitHub App/外部源、AI、独立审核、自动研发/公网资格。"
+    },
+    {
+      "id": "EV-SOUND-PUBLISHED-CI",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/sound-timeline-ci-validation.json",
+      "features": [
+        "F-010.04",
+        "F-014.02"
+      ],
+      "scope": "声音后续b364精确提交CI1105通过/2跳过/2历史未选、登记23、前端3219；通用容器40项/清理。原c1全量1失败/1100通过保留，仅修测试夹具；私有M4B副本升级3项另列，不冒充CI通过或正式切换。"
     }
   ],
   "features": [
@@ -2885,7 +2907,8 @@
         "software": "verified",
         "model": "not_verified",
         "evidence": [
-          "EV-SOUND-TIMELINE-LOCAL"
+          "EV-SOUND-TIMELINE-LOCAL",
+          "EV-SOUND-PUBLISHED-CI"
         ]
       },
       "deployment": {
@@ -3352,7 +3375,8 @@
         "software": "not_verified",
         "model": "not_required",
         "evidence": [
-          "EV-COMMUNITY-INTAKE"
+          "EV-COMMUNITY-INTAKE",
+          "EV-COMMUNITY-EVALUATION-LOCAL"
         ]
       },
       "deployment": {
@@ -3386,7 +3410,7 @@
       ],
       "limits": [
         "公开目标weicaojava/fawnimo及数字ID已只读核验；当前为默认关闭的独立本机接入，不读取个人视频空间。",
-        "真实GitHub App/公网签名投递、实时源复验和评估/队列/自动研发/发布仍待接通，整项software仍not_verified。",
+        "真实GitHub App/公网签名投递仍待接通；已提供固定公开REST源复查及本机维护者评估记录的软件流程，实际外部源、AI、排队/自动研发/发布未授予资格，整项software仍not_verified。",
         "未入选公开需求只留最小源时钟，不留无关正文；Issue文本是数据，source_eligible不是执行授权或部署完成。",
         "43本机专项和独立43/5/4有界软件证据不代表真实外部接入、模型或公网资格；本轮实际费用授权0。"
       ],
@@ -3405,32 +3429,47 @@
       "requirements": [
         "R-003"
       ],
-      "implementation": "planned",
+      "implementation": "partial",
       "validation": {
-        "software": "not_verified",
-        "model": "not_required",
-        "evidence": []
+        "software": "verified",
+        "model": "not_verified",
+        "evidence": [
+          "EV-COMMUNITY-EVALUATION-LOCAL"
+        ]
       },
       "deployment": {
-        "status": "not_deployed",
+        "status": "local_only",
         "url": null
       },
       "version": {
-        "implementation": null,
+        "implementation": "source-tree-3520a47b4498",
         "release": null
       },
       "entry": {
-        "route": "",
-        "label": "尚无可验收入口"
+        "route": "CLI: backend/review_community.py",
+        "label": "维护者独立需求库：建议、评估与历史"
       },
-      "code": [],
-      "tests": [],
+      "code": [
+        "backend/app/core/contracts/community_evaluations.py",
+        "backend/app/services/community/public_source.py",
+        "backend/app/services/community/source_check_child.py",
+        "backend/app/services/community/evaluations.py",
+        "backend/app/services/community/store.py",
+        "backend/review_community.py"
+      ],
+      "tests": [
+        "backend/tests/test_community_intake.py",
+        "backend/tests/test_community_evaluations.py"
+      ],
       "acceptance": [
         "评估保存依据、需求版本、重复候选及合理性结果，给出公开理由",
         "资料不足进入澄清，允许补充/复议；合理与优先分别记录"
       ],
       "limits": [
-        "维护者服务使用独立模型与费用额度；模型建议不越过确定性规则"
+        "当前是本机维护者明确决定及有界Unicode文字相似建议；不是AI查重，advisory_note只保存未验证文字，不调用模型。",
+        "新评估须准确公开源复查，原请求可在来源后来变化后恢复；真实GitHub App/公网接入及当前外部Issue联合验收尚未通过。",
+        "合理/待澄清/重复与优先、排队、执行、软件验收和上线分开；无公开评估写接口，不自动发送澄清/复议或理由留言。",
+        "独立维护者模型与费用额度、AI评估质量、独立审核、队列/自动研发与公网仍待完成，整项部分实现。"
       ],
       "depends_on": [
         "F-013.01"
@@ -3731,7 +3770,8 @@
           "EV-CONTAINER-RUNTIME-PREPARATION",
           "EV-ORIGINAL-EXAMPLE-PUBLISHED-CI",
           "EV-REFERENCE-IMAGE-PUBLISHED-CI",
-          "EV-VIDEO-REFERENCE-PUBLISHED-CI"
+          "EV-VIDEO-REFERENCE-PUBLISHED-CI",
+          "EV-SOUND-PUBLISHED-CI"
         ]
       },
       "deployment": {
@@ -3768,7 +3808,8 @@
         "本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。",
         "后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。",
         "4a38精确CI938通过、前端和既有容器40项/清理及独立31另行记录；不将通用容器文字检查当作新参考协议的容器验收。",
-        "8ccd精确CI1050通过/1跳过/2历史未选及既有容器40项/清理单列；不把通用容器检查算作新参考或声音链容器验收。"
+        "8ccd精确CI1050通过/1跳过/2历史未选及既有容器40项/清理单列；不把通用容器检查算作新参考或声音链容器验收。",
+        "b364精确CI1105/2跳过/2历史未选、通用容器40/清理另列；原c1生命周期夹具失败完整保留，实际M4B副本3项不等于正式旧数据切换或所有恢复资格。"
       ],
       "depends_on": [
         "F-001.05",
@@ -4116,7 +4157,7 @@
         "独立审查与CI触发证明",
         "预览及回退报告"
       ],
-      "progress": "已完成独立本机签名接入、去重、最小源时钟和不可变需求版本的软件基础；43专项/独立43与5/4补测通过。真实GitHub事件、AI评估、队列、隔离研发、PR/CI/预览及发布闭环继续推进。"
+      "progress": "已完成独立本机签名接入、去重、最小源时钟和不可变需求版本的软件基础；43专项/独立43与5/4补测通过。真实GitHub事件、AI评估、队列、隔离研发、PR/CI/预览及发布闭环继续推进。 本机维护者评估/澄清/复议及有界查重建议、固定公开源复查的软件切片通过106项和实际CLI；作者审阅，独立审核门槛保留，AI模型、真实外部事件/源、排队及自动研发未通过。"
     },
     {
       "id": "F",
@@ -4185,10 +4226,10 @@
     "缺失检查、旧PR版本、独立审核失败或费用/资源超限不晋级；失败有明确结果与有限恢复。"
   ],
   "current_state": {
-    "overview": "项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。",
+    "overview": "项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。 社区独立维护者评估/澄清/复议已有本机软件记录；AI自动评估、排队与研发仍待完成。",
     "acceptance_setup": "使用独立本机A/B验收数据；项目大厅分别建立文字或可导出原创示例。新建保留旧工程，原请求恢复保留后来编辑；7条剧情声明默认未确认。尚无公网领取或部署平台。",
-    "readme_status": "身份、个人空间、文字/原创可导出示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。 已声明Seedream参考图支持原项目最多3图、顺序用途、候选和单独采用；满额原提交恢复已实际验证，外部CDN及真实模型仍未验收。 独立Seedance视频参考/首尾帧及有界素材交付支持明确原项目选择、候选与单独采用；参考费用另标记，原提交恢复和未知费用保留，真实远程交付与模型仍待验。 独立声音时间线支持本机原对白配音、WAV音效/配乐和明确采用后的混音导出；外部费用0，云声音和真实质量仍未验收。",
-    "verification_checkpoint": "声音相关325项与声音/交叉淡化52项在各自锁定版本执行，不合计；最终前端3219构建、接口249/589一致性及真实浏览器恢复/混音/下载/重启通过。作者审阅，不称独立审核。8ccd后续CI1050/1跳过/2历史未选及通用容器40项单列。46已实现/9部分/9计划，current17与longterm1；费用授权0，公网和完整平台未交付。",
+    "readme_status": "身份、个人空间、文字/原创可导出示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。 已声明Seedream参考图支持原项目最多3图、顺序用途、候选和单独采用；满额原提交恢复已实际验证，外部CDN及真实模型仍未验收。 独立Seedance视频参考/首尾帧及有界素材交付支持明确原项目选择、候选与单独采用；参考费用另标记，原提交恢复和未知费用保留，真实远程交付与模型仍待验。 独立声音时间线支持本机原对白配音、WAV音效/配乐和明确采用后的混音导出；外部费用0，云声音和真实质量仍未验收。 独立需求库可由本机维护者查看文字相似建议并记录准确版本的评估、澄清和复议；不自动调用AI、发留言或执行研发。",
+    "verification_checkpoint": "社区准确锁定版本106项和实际CLI4次通过，主249/589与独立2/2接口不变；作者审阅，不称独立审核。声音b364后续精确CI1105/2跳过/2历史未选、前端与通用容器40项/清理及私有历史副本3项分列，原c1失败保留。46已实现/10部分/8计划，current17与longterm1；实际费用授权0，自动研发/完整平台/公网未交付。",
     "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {
