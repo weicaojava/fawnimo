@@ -41,10 +41,27 @@ def process_alive(pid):
         if not handle: return False
         try: return kernel.WaitForSingleObject(handle, 0) == 258
         finally: kernel.CloseHandle(handle)
-    proc = Path(f'/proc/{pid}/stat')
-    if proc.exists() and proc.read_text().split(') ', 1)[1].startswith('Z'): return False
+    if sys.platform.startswith('linux'):
+        proc = Path(f'/proc/{pid}/stat')
+        try:
+            if proc.read_text().split(') ', 1)[1].startswith('Z'): return False
+        except (FileNotFoundError,ProcessLookupError):
+            # The owned process may exit after path lookup or after opening stat.
+            # Permission and unexpected I/O failures still fail the test.
+            return False
     try: os.kill(pid, 0); return True
     except ProcessLookupError: return False
+
+
+@pytest.mark.skipif(not sys.platform.startswith('linux'),reason='Linux procfs observation race')
+@pytest.mark.parametrize('error',[FileNotFoundError,ProcessLookupError])
+def test_linux_liveness_observation_handles_process_exit_during_stat_read(monkeypatch,error):
+    """A vanished owned PID is dead even if procfs disappears during the read; unrelated errors are not suppressed."""
+    def disappeared(_path,*_args,**_kwargs):
+        """Represent the exact open/read race seen after an owned descendant exits."""
+        raise error('Authored vanished private process')
+    monkeypatch.setattr(Path,'read_text',disappeared)
+    assert not process_alive(123456789)
 
 
 async def marker_pid(marker):

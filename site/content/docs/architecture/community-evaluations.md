@@ -15,3 +15,5 @@ title: 公开需求评估与复议记录
 评估正文与观察证明、查重建议在单个短SQLite事务固定；更新、删除、REPLACE和跨需求复议被禁止。原需求版本变化后，旧评估标为来源不再当前，仍可查询与恢复原请求。最多保存10000项本地评估、单个逻辑需求200项。`advisory_note`只保存未验证文字；当前没有AI评估模型调用，未接独立模型费用额度、自动澄清留言、排队、编码、PR、独立审查、预览或发布。
 
 当前软件证据及真实边界见[功能登记](../../reference/feature-catalog/)；操作见[维护者评估指南](../../guide/community-review/)。协议依据：[Issue读取](https://docs.github.com/en/rest/issues/issues#get-an-issue)、[REST版本](https://docs.github.com/en/rest/about-the-rest-api/api-versions)、[限流与停止重试](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api)。
+
+历史保护还包含显式SQLite rowid碰撞的独立INSERT约束；不能只依赖逻辑主键或DELETE触发器来阻止REPLACE。补充约束在recursive_triggers关闭时仍生效，原表、旧约束与记录不重写。普通启动拒绝缺少这些约束的旧库；维护命令仅在准确旧表定义、源配置和原约束均匹配时补齐已知缺项，不接受损坏或改写的结构。参见[SQLite冲突处理](https://sqlite.org/lang_conflict.html)和[升级操作](../../guide/community-review/)。同一操作系统用户的权限隔离不由这些数据库约束提供。

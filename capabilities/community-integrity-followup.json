@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-03",
+  "features": [
+    "F-013.01",
+    "F-013.02"
+  ],
+  "base_published_commit": "51599e774bc8c56a89e815c9be8e8994dd4e80f6",
+  "selected_source_tree": "c3fbbcbb6689bdae1c10c06754ebeda2194fb14a",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "268717f16c91cbeec8f5cad5fcb3967960f70076c9904e9ab03fcac2f1372cb4",
+    "backend/app/services/community/rowid_guards.py": "7b4f80740181c5b89d9f30bf7a74a310a7fe06fd4328eae7fdf1eace4f28ee8a",
+    "backend/app/services/community/store.py": "da4d294476bebb565beefb67e83ac1aa67aa68f5db14648f82d84bb0e17a2096",
+    "backend/app/services/community/evaluations.py": "db500215fa129722bc0dc3089bb8495e6b4e882b0cd0696e0a1a4e99a1b7deb3",
+    "backend/migrate_community_guards.py": "29d737dddfdeb959ff3db45f4c82f098866f2382b8669cc7a48fd1577cde5c42",
+    "backend/tests/test_community_rowid_guards.py": "5dd629cf74a97c1b6fc0cfaf3a12f065d06e3d40c281fc2fc692227ca5e3e51a",
+    "backend/tests/test_owned_process.py": "f86fd11e9fc5a49e63b2baa99a2bc1391831428283bbe833f3d50a31a622a33f"
+  },
+  "scope": "Supplemental explicit-rowid history guards, exact additive legacy-guard migration, and a Linux test-observer race correction; no new AI or execution feature",
+  "source_review": {
+    "method": "author source review",
+    "independent": false,
+    "sha256": "9074995b9902f4c21cd88e4460b7df9046baf480b5aed5efdc71a59fa72775b6",
+    "open_findings": 0
+  },
+  "closed_findings": [
+    "Explicit physical rowid REPLACE can remove immutable assessments with different logical keys; supplemental guards block it even with recursive triggers OFF",
+    "Guard-only legacy upgrades require exact original source table definitions/configuration and unchanged old guards, rechecked inside the short writer",
+    "Linux process-liveness observation can raise ESRCH after the private process has actually exited; catch only missing/vanished procfs reads, preserve other errors and non-Linux fallback"
+  ],
+  "regression": {
+    "tests": 124,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "passed": 122,
+    "seconds": 25.304,
+    "junit_sha256": "e0c6e5ef34c6acc62e10c82f30b05c4fd2825d53405ca280b4338923a1de1cc2"
+  },
+  "count_note": "122 passes/2 platform skips on exact frozen source; earlier115/2 and parent106/99 overlap, not summed. Linux branches require exact CI.",
+  "schemas": {
+    "main_paths": 249,
+    "main_schemas": 589,
+    "community_paths": 2,
+    "community_schemas": 2,
+    "schemas_unchanged": true,
+    "lifespan_started": false
+  },
+  "retained_counterexample": {
+    "source_tree": "3520a47b44983dda5ea0a12f4d88b7754f8f87c9",
+    "explicit_rowid_replace_succeeded": true,
+    "original_receipt_preserved": false,
+    "scope": "Authored standalone seven-table review DB only; no original data or model configuration",
+    "evidence_sha256": "e60571ec3225015fda215aec3be382a2512060cd3b27175ab9ec8bbbb9a737a9"
+  },
+  "actual_upgrade_cli": {
+    "commands": 6,
+    "evidence_sha256": "c3f28b6ab655d0922834aa7b305ce902d78cc9c35ce10187777d4a4f2794fa9a",
+    "all_existing_rows_and_rowids_unchanged": true,
+    "original_receipt_id_preserved": true,
+    "supplemental_guards_added": 7,
+    "repeat_upgrade_added": 0,
+    "old_M_code_still_reads_upgraded_schema": true,
+    "table_or_row_rewrites": 0
+  },
+  "retained_failed_parent_ci": {
+    "commit": "51599e774bc8c56a89e815c9be8e8994dd4e80f6",
+    "run_id": 41492147585,
+    "backend_job_id": 125437624786,
+    "passed": 1160,
+    "failed": 1,
+    "skipped": 2,
+    "deselected": 2,
+    "seconds": 1034.58,
+    "log_sha256": "45b2715147a08ee2632eb7f1d7882f0a5f6637e4da934e23921c77620339f5f6",
+    "cause": "Owned process already exited while the Linux test observer read procfs; no successful full-CI claim for this parent"
+  },
+  "metadata_review": {
+    "method": "author review",
+    "independent": false,
+    "scope": "Exact source/results, strict migration and rollback instructions, prior failure/counterexample retention and bounded current claims; independent gates remain pending"
+  },
+  "current_commit_ci": "pending_publication_and_exact_commit_CI",
+  "independent_review_completed": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "github_writes": 0,
+  "original_user_database_or_keys_used": false,
+  "original_checkout_writes": 0,
+  "live_github_source_qualified": false,
+  "ai_evaluation_qualified": false,
+  "automatic_development_qualified": false,
+  "full_feature_qualified": false,
+  "public_deployment_verified": false,
+  "overall_goal_complete": false
+}

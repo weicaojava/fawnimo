@@ -9,6 +9,7 @@ import uuid
 
 from app.core.contracts.community_requests import CommunityDeliveryReceipt, CommunityRequestSummary
 from app.services.community.events import PublicIssueVersion
+from app.services.community.rowid_guards import rowid_guard_definitions
 
 
 class CommunityStoreConflict(ValueError):
@@ -17,7 +18,7 @@ class CommunityStoreConflict(ValueError):
 
 class CommunityRequestStore:
     """Bind a dedicated new SQLite store to one public repository; never import personal studio data or settings."""
-    def __init__(self, root: Path, config, *, initialize=True):
+    def __init__(self, root: Path, config, *, initialize=True, allow_legacy_rowid_guards=False):
         """Refuse redirected or mixed-use roots and validate repository identity before any additive schema setup."""
         self.root = Path(root).absolute()
         self.config = config
@@ -45,12 +46,13 @@ class CommunityRequestStore:
                 if not initialize:
                     raise CommunityStoreConflict('Community store has not been initialized')
                 self.create_schema(db)
+            self.validate_source_layout(db)
             identity = db.execute('SELECT singleton,repository_id,repository_name,proposal_label,schema_version FROM community_repository').fetchall()
             if identity != [(1, config.repository_id, config.repository_name.casefold(), config.proposal_label, 1)]:
                 raise CommunityStoreConflict('Community store belongs to another source configuration')
-            self.check_guards(db)
+            self.check_guards(db, allow_legacy_rowid_guards=allow_legacy_rowid_guards)
             if tables & REVIEW_TABLES:
-                validate_review_schema(db)
+                validate_review_schema(db, allow_legacy_rowid_guards=allow_legacy_rowid_guards)
             if db.execute('PRAGMA foreign_key_check').fetchone():
                 raise CommunityStoreConflict('Community source references are inconsistent')
 
@@ -101,30 +103,76 @@ class CommunityRequestStore:
             OR (NEW.outcome='ignored' AND NEW.request_id IS NOT NULL)
             OR (NEW.outcome='recorded' AND NOT EXISTS(SELECT 1 FROM community_requests r WHERE r.id=NEW.request_id AND r.current_version=NEW.version_id))
             BEGIN SELECT RAISE(ABORT,'Invalid delivery source pair'); END"""
+        guards.update(rowid_guard_definitions(('community_repository','community_versions','community_deliveries','community_requests','community_source_clocks')))
         return guards
+
+    def source_table_definitions(self):
+        """Define the exact supported source schema once for creation and explicit legacy-guard migration checks."""
+        return {
+            'community_repository':'CREATE TABLE community_repository(singleton INTEGER PRIMARY KEY CHECK(singleton=1),repository_id INTEGER NOT NULL,repository_name TEXT NOT NULL,proposal_label TEXT NOT NULL,schema_version INTEGER NOT NULL CHECK(schema_version=1))',
+            'community_source_clocks':'CREATE TABLE community_source_clocks(issue_number INTEGER PRIMARY KEY,github_issue_id INTEGER NOT NULL UNIQUE,author_id INTEGER NOT NULL,updated_us INTEGER NOT NULL CHECK(updated_us>=0),fingerprint TEXT NOT NULL CHECK(length(fingerprint)=64),source_eligible INTEGER NOT NULL CHECK(source_eligible IN(0,1)),conflict INTEGER NOT NULL DEFAULT 0 CHECK(conflict IN(0,1)),UNIQUE(issue_number,github_issue_id,author_id))',
+            'community_requests':'CREATE TABLE community_requests(id TEXT PRIMARY KEY NOT NULL,issue_number INTEGER NOT NULL UNIQUE,github_issue_id INTEGER NOT NULL UNIQUE,author_id INTEGER NOT NULL,current_version TEXT REFERENCES community_versions(id),current_updated_us INTEGER NOT NULL DEFAULT -1 CHECK(current_updated_us>=-1),requires_refresh INTEGER NOT NULL DEFAULT 0 CHECK(requires_refresh IN(0,1)),FOREIGN KEY(issue_number,github_issue_id,author_id) REFERENCES community_source_clocks(issue_number,github_issue_id,author_id))',
+            'community_versions':"CREATE TABLE community_versions(id TEXT PRIMARY KEY NOT NULL,request_id TEXT NOT NULL REFERENCES community_requests(id),fingerprint TEXT NOT NULL CHECK(length(fingerprint)=64),updated_us INTEGER NOT NULL CHECK(updated_us>=0),title TEXT NOT NULL,body TEXT NOT NULL,labels TEXT NOT NULL,source_state TEXT NOT NULL CHECK(source_state IN('open','closed')),source_eligible INTEGER NOT NULL CHECK(source_eligible IN(0,1)),UNIQUE(request_id,fingerprint))",
+            'community_deliveries':'CREATE TABLE community_deliveries(delivery_id TEXT PRIMARY KEY NOT NULL,body_sha256 TEXT NOT NULL CHECK(length(body_sha256)=64),event TEXT NOT NULL,action TEXT NOT NULL,outcome TEXT NOT NULL,request_id TEXT REFERENCES community_requests(id),version_id TEXT REFERENCES community_versions(id),received_at REAL NOT NULL)',
+        }
+
+    def validate_source_layout(self, db):
+        """Reject changed source columns, keys or constraints before initialization or guard-only upgrade."""
+        for name,expected in self.source_table_definitions().items():
+            saved=db.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?",(name,)).fetchone()
+            if saved is None or " ".join(saved[0].strip().rstrip(";").split())!=" ".join(expected.strip().rstrip(";").split()):
+                raise CommunityStoreConflict("Unsupported community source table layout")
 
     def create_schema(self, db):
         """Initialize only an empty dedicated database, atomically binding the target and immutable source guards."""
         db.execute('BEGIN IMMEDIATE')
         try:
-            db.execute('CREATE TABLE community_repository(singleton INTEGER PRIMARY KEY CHECK(singleton=1),repository_id INTEGER NOT NULL,repository_name TEXT NOT NULL,proposal_label TEXT NOT NULL,schema_version INTEGER NOT NULL CHECK(schema_version=1))')
+            for sql in self.source_table_definitions().values():
+                db.execute(sql)
             db.execute('INSERT INTO community_repository VALUES(1,?,?,?,1)', (self.config.repository_id, self.config.repository_name.casefold(), self.config.proposal_label))
-            db.execute('CREATE TABLE community_source_clocks(issue_number INTEGER PRIMARY KEY,github_issue_id INTEGER NOT NULL UNIQUE,author_id INTEGER NOT NULL,updated_us INTEGER NOT NULL CHECK(updated_us>=0),fingerprint TEXT NOT NULL CHECK(length(fingerprint)=64),source_eligible INTEGER NOT NULL CHECK(source_eligible IN(0,1)),conflict INTEGER NOT NULL DEFAULT 0 CHECK(conflict IN(0,1)),UNIQUE(issue_number,github_issue_id,author_id))')
-            db.execute('CREATE TABLE community_requests(id TEXT PRIMARY KEY NOT NULL,issue_number INTEGER NOT NULL UNIQUE,github_issue_id INTEGER NOT NULL UNIQUE,author_id INTEGER NOT NULL,current_version TEXT REFERENCES community_versions(id),current_updated_us INTEGER NOT NULL DEFAULT -1 CHECK(current_updated_us>=-1),requires_refresh INTEGER NOT NULL DEFAULT 0 CHECK(requires_refresh IN(0,1)),FOREIGN KEY(issue_number,github_issue_id,author_id) REFERENCES community_source_clocks(issue_number,github_issue_id,author_id))')
-            db.execute('CREATE TABLE community_versions(id TEXT PRIMARY KEY NOT NULL,request_id TEXT NOT NULL REFERENCES community_requests(id),fingerprint TEXT NOT NULL CHECK(length(fingerprint)=64),updated_us INTEGER NOT NULL CHECK(updated_us>=0),title TEXT NOT NULL,body TEXT NOT NULL,labels TEXT NOT NULL,source_state TEXT NOT NULL CHECK(source_state IN(\'open\',\'closed\')),source_eligible INTEGER NOT NULL CHECK(source_eligible IN(0,1)),UNIQUE(request_id,fingerprint))')
-            db.execute('CREATE TABLE community_deliveries(delivery_id TEXT PRIMARY KEY NOT NULL,body_sha256 TEXT NOT NULL CHECK(length(body_sha256)=64),event TEXT NOT NULL,action TEXT NOT NULL,outcome TEXT NOT NULL,request_id TEXT REFERENCES community_requests(id),version_id TEXT REFERENCES community_versions(id),received_at REAL NOT NULL)')
             for sql in self.guard_definitions().values():
                 db.execute(sql)
             db.commit()
         except BaseException:
             db.rollback(); raise
 
-    def check_guards(self, db):
+    def check_guards(self, db, *, allow_legacy_rowid_guards=False):
         """Refuse a reused database with missing or changed guard definitions instead of trusting trigger names alone."""
         for name, expected in self.guard_definitions().items():
             saved = db.execute("SELECT sql FROM sqlite_master WHERE type='trigger' AND name=?", (name,)).fetchone()
+            if saved is None and allow_legacy_rowid_guards and name.endswith('_no_rowid_replace'):
+                continue
             if saved is None or ' '.join(saved[0].strip().rstrip(';').split()) != ' '.join(expected.strip().rstrip(';').split()):
-                raise CommunityStoreConflict('Community source guard is missing or changed')
+                raise CommunityStoreConflict('Community source guard is missing or changed; use the explicit supported community guard migration')
+
+    def upgrade_rowid_guards(self):
+        """Install only missing known supplemental guards on an exact legacy schema; no row, table or old guard is rewritten."""
+        from app.services.community.evaluations import REVIEW_TABLES,review_definitions,validate_review_schema
+        with closing(self.connect()) as db:
+            db.execute('BEGIN IMMEDIATE')
+            try:
+                self.validate_source_layout(db)
+                self.check_guards(db,allow_legacy_rowid_guards=True)
+                tables={row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'") if not row[0].startswith('sqlite_')}
+                expected=set(self.source_table_definitions())
+                if tables not in (expected,expected|REVIEW_TABLES):raise CommunityStoreConflict('Unsupported community source schema')
+                identity=db.execute('SELECT singleton,repository_id,repository_name,proposal_label,schema_version FROM community_repository').fetchall()
+                if identity!=[(1,self.config.repository_id,self.config.repository_name.casefold(),self.config.proposal_label,1)]:raise CommunityStoreConflict('Community store belongs to another source configuration')
+                definitions=self.guard_definitions()
+                if tables & REVIEW_TABLES:
+                    validate_review_schema(db,allow_legacy_rowid_guards=True)
+                    definitions={**definitions,**review_definitions()[1]}
+                added=[]
+                for name,sql in definitions.items():
+                    if name.endswith('_no_rowid_replace') and db.execute("SELECT 1 FROM sqlite_master WHERE type='trigger' AND name=?",(name,)).fetchone() is None:
+                        db.execute(sql);added.append(name)
+                self.check_guards(db)
+                if tables & REVIEW_TABLES:validate_review_schema(db)
+                if db.execute('PRAGMA foreign_key_check').fetchone():raise CommunityStoreConflict('Community source references are inconsistent')
+                db.commit()
+                return {'status':'upgraded','added_guards':len(added),'rows_rewritten':0}
+            except BaseException:
+                db.rollback();raise
 
     def observe_source_clock(self, db, version):
         """Remember only source identity/clock/fingerprint for unrelated or withdrawn issues, never their body text.

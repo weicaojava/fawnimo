@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-11-03.2",
+  "register_version": "2026-11-03.3",
   "updated_at": "2026-11-03",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -521,6 +521,17 @@
         "F-014.02"
       ],
       "scope": "声音后续b364精确提交CI1105通过/2跳过/2历史未选、登记23、前端3219；通用容器40项/清理。原c1全量1失败/1100通过保留，仅修测试夹具；私有M4B副本升级3项另列，不冒充CI通过或正式切换。"
+    },
+    {
+      "id": "EV-COMMUNITY-INTEGRITY-FOLLOWUP",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/community-integrity-followup.json",
+      "features": [
+        "F-013.01",
+        "F-013.02"
+      ],
+      "scope": "显式rowid替换反例保留并修复；准确旧库仅增量补充7个触发器、六次实际旧/新CLI保持全部行及ID，122通过/2Linux专项本机跳过。作者审阅，原51599CI1失败/1160通过保留，新精确CI待验；不授予真实GitHub/AI/自动研发/公网资格。"
     }
   ],
   "features": [
@@ -3376,7 +3387,8 @@
         "model": "not_required",
         "evidence": [
           "EV-COMMUNITY-INTAKE",
-          "EV-COMMUNITY-EVALUATION-LOCAL"
+          "EV-COMMUNITY-EVALUATION-LOCAL",
+          "EV-COMMUNITY-INTEGRITY-FOLLOWUP"
         ]
       },
       "deployment": {
@@ -3399,10 +3411,13 @@
         "backend/app/services/community/events.py",
         "backend/app/services/community/store.py",
         "backend/community-openapi.json",
-        "backend/run_community.py"
+        "backend/run_community.py",
+        "backend/app/services/community/rowid_guards.py",
+        "backend/migrate_community_guards.py"
       ],
       "tests": [
-        "backend/tests/test_community_intake.py"
+        "backend/tests/test_community_intake.py",
+        "backend/tests/test_community_rowid_guards.py"
       ],
       "acceptance": [
         "真实目标仓库接收签名事件，重复delivery/issue版本只入库一次",
@@ -3412,7 +3427,8 @@
         "公开目标weicaojava/fawnimo及数字ID已只读核验；当前为默认关闭的独立本机接入，不读取个人视频空间。",
         "真实GitHub App/公网签名投递仍待接通；已提供固定公开REST源复查及本机维护者评估记录的软件流程，实际外部源、AI、排队/自动研发/发布未授予资格，整项software仍not_verified。",
         "未入选公开需求只留最小源时钟，不留无关正文；Issue文本是数据，source_eligible不是执行授权或部署完成。",
-        "43本机专项和独立43/5/4有界软件证据不代表真实外部接入、模型或公网资格；本轮实际费用授权0。"
+        "43本机专项和独立43/5/4有界软件证据不代表真实外部接入、模型或公网资格；本轮实际费用授权0。",
+        "旧独立需求库须明确增量升级历史保护触发器；不重写已有行。升级仅接受准确旧表/源配置/原约束，显式rowid替换保护不依赖递归触发器开关。"
       ],
       "depends_on": [
         "F-015.01"
@@ -3434,7 +3450,8 @@
         "software": "verified",
         "model": "not_verified",
         "evidence": [
-          "EV-COMMUNITY-EVALUATION-LOCAL"
+          "EV-COMMUNITY-EVALUATION-LOCAL",
+          "EV-COMMUNITY-INTEGRITY-FOLLOWUP"
         ]
       },
       "deployment": {
@@ -3455,11 +3472,14 @@
         "backend/app/services/community/source_check_child.py",
         "backend/app/services/community/evaluations.py",
         "backend/app/services/community/store.py",
-        "backend/review_community.py"
+        "backend/review_community.py",
+        "backend/app/services/community/rowid_guards.py",
+        "backend/migrate_community_guards.py"
       ],
       "tests": [
         "backend/tests/test_community_intake.py",
-        "backend/tests/test_community_evaluations.py"
+        "backend/tests/test_community_evaluations.py",
+        "backend/tests/test_community_rowid_guards.py"
       ],
       "acceptance": [
         "评估保存依据、需求版本、重复候选及合理性结果，给出公开理由",
@@ -3469,7 +3489,8 @@
         "当前是本机维护者明确决定及有界Unicode文字相似建议；不是AI查重，advisory_note只保存未验证文字，不调用模型。",
         "新评估须准确公开源复查，原请求可在来源后来变化后恢复；真实GitHub App/公网接入及当前外部Issue联合验收尚未通过。",
         "合理/待澄清/重复与优先、排队、执行、软件验收和上线分开；无公开评估写接口，不自动发送澄清/复议或理由留言。",
-        "独立维护者模型与费用额度、AI评估质量、独立审核、队列/自动研发与公网仍待完成，整项部分实现。"
+        "独立维护者模型与费用额度、AI评估质量、独立审核、队列/自动研发与公网仍待完成，整项部分实现。",
+        "旧独立需求库须明确增量升级历史保护触发器；不重写已有行。升级仅接受准确旧表/源配置/原约束，显式rowid替换保护不依赖递归触发器开关。"
       ],
       "depends_on": [
         "F-013.01"
@@ -4157,7 +4178,7 @@
         "独立审查与CI触发证明",
         "预览及回退报告"
       ],
-      "progress": "已完成独立本机签名接入、去重、最小源时钟和不可变需求版本的软件基础；43专项/独立43与5/4补测通过。真实GitHub事件、AI评估、队列、隔离研发、PR/CI/预览及发布闭环继续推进。 本机维护者评估/澄清/复议及有界查重建议、固定公开源复查的软件切片通过106项和实际CLI；作者审阅，独立审核门槛保留，AI模型、真实外部事件/源、排队及自动研发未通过。"
+      "progress": "已完成独立本机签名接入、去重、最小源时钟和不可变需求版本的软件基础；43专项/独立43与5/4补测通过。真实GitHub事件、AI评估、队列、隔离研发、PR/CI/预览及发布闭环继续推进。 本机维护者评估/澄清/复议及有界查重建议、固定公开源复查的软件切片通过106项和实际CLI；作者审阅，独立审核门槛保留，AI模型、真实外部事件/源、排队及自动研发未通过。 物理行号替换历史反例已补充约束和显式升级工具，准确锁定版本122通过/2本机平台跳过及实际CLI6次保持原行；Linux观察竞态修复须后续精确CI，不改独立审核/模型/研发/公网门槛。"
     },
     {
       "id": "F",
@@ -4229,7 +4250,7 @@
     "overview": "项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。 社区独立维护者评估/澄清/复议已有本机软件记录；AI自动评估、排队与研发仍待完成。",
     "acceptance_setup": "使用独立本机A/B验收数据；项目大厅分别建立文字或可导出原创示例。新建保留旧工程，原请求恢复保留后来编辑；7条剧情声明默认未确认。尚无公网领取或部署平台。",
     "readme_status": "身份、个人空间、文字/原创可导出示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。 已声明Seedream参考图支持原项目最多3图、顺序用途、候选和单独采用；满额原提交恢复已实际验证，外部CDN及真实模型仍未验收。 独立Seedance视频参考/首尾帧及有界素材交付支持明确原项目选择、候选与单独采用；参考费用另标记，原提交恢复和未知费用保留，真实远程交付与模型仍待验。 独立声音时间线支持本机原对白配音、WAV音效/配乐和明确采用后的混音导出；外部费用0，云声音和真实质量仍未验收。 独立需求库可由本机维护者查看文字相似建议并记录准确版本的评估、澄清和复议；不自动调用AI、发留言或执行研发。",
-    "verification_checkpoint": "社区准确锁定版本106项和实际CLI4次通过，主249/589与独立2/2接口不变；作者审阅，不称独立审核。声音b364后续精确CI1105/2跳过/2历史未选、前端与通用容器40项/清理及私有历史副本3项分列，原c1失败保留。46已实现/10部分/8计划，current17与longterm1；实际费用授权0，自动研发/完整平台/公网未交付。",
+    "verification_checkpoint": "社区后续锁定版本122通过/2Linux专项本机跳过，实际升级/旧新兼容CLI6次保持全部行与ID；显式rowid替换反例和51599全量1失败/1160通过均保留，新精确CI待验。主249/589和独立2/2接口不变，作者审阅。声音b364精确CI1105与通用容器40/清理已单列。46已实现/10部分/8计划，current17与longterm1；费用授权0，自动研发/完整平台/公网未交付。",
     "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {

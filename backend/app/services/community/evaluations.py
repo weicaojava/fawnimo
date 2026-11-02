@@ -11,6 +11,7 @@ import uuid
 from app.core.contracts.community_evaluations import CommunityEvaluationInput
 from app.services.community.public_source import PublicSourceProof, PROTOCOL, verify_public_issue
 from app.services.community.store import CommunityStoreConflict
+from app.services.community.rowid_guards import rowid_guard_definitions
 
 REVIEW_TABLES = frozenset({'community_review_schema', 'community_evaluations'})
 
@@ -67,15 +68,18 @@ def review_definitions():
             AND c.updated_us=v.updated_us AND c.fingerprint=v.fingerprint
             AND json_extract(NEW.payload,'$.duplicate_source.fingerprint')=v.fingerprint))
         BEGIN SELECT RAISE(ABORT,'Invalid evaluation source scope'); END"""
+    guards.update(rowid_guard_definitions(REVIEW_TABLES))
     return tables,guards
 
 
-def validate_review_schema(db):
+def validate_review_schema(db, *, allow_legacy_rowid_guards=False):
     """Refuse partial, substituted or downgraded extensions when an intake store is reopened."""
     tables,guards=review_definitions()
     for kind,definitions in [('table',tables),('trigger',guards)]:
         for name,expected in definitions.items():
             row=db.execute('SELECT sql FROM sqlite_master WHERE type=? AND name=?',(kind,name)).fetchone()
+            if row is None and kind=='trigger' and allow_legacy_rowid_guards and name.endswith('_no_rowid_replace'):
+                continue
             if row is None or ' '.join(row[0].strip().rstrip(';').split())!=' '.join(expected.strip().rstrip(';').split()):
                 raise CommunityStoreConflict('Community evaluation schema or guard changed')
     if db.execute('SELECT singleton,version FROM community_review_schema').fetchall()!=[(1,1)]:

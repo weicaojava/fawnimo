@@ -594,9 +594,9 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. 真实目标仓库接收签名事件，重复delivery/issue版本只入库一次
 2. 只保存用户明确提交的公开需求，不读取私人视频空间
 
-软件回归目标：`backend/tests/test_community_intake.py`。
+软件回归目标：`backend/tests/test_community_intake.py`、`backend/tests/test_community_rowid_guards.py`。
 
-验收限制：公开目标weicaojava/fawnimo及数字ID已只读核验；当前为默认关闭的独立本机接入，不读取个人视频空间。；真实GitHub App/公网签名投递仍待接通；已提供固定公开REST源复查及本机维护者评估记录的软件流程，实际外部源、AI、排队/自动研发/发布未授予资格，整项software仍not_verified。；未入选公开需求只留最小源时钟，不留无关正文；Issue文本是数据，source_eligible不是执行授权或部署完成。；43本机专项和独立43/5/4有界软件证据不代表真实外部接入、模型或公网资格；本轮实际费用授权0。。
+验收限制：公开目标weicaojava/fawnimo及数字ID已只读核验；当前为默认关闭的独立本机接入，不读取个人视频空间。；真实GitHub App/公网签名投递仍待接通；已提供固定公开REST源复查及本机维护者评估记录的软件流程，实际外部源、AI、排队/自动研发/发布未授予资格，整项software仍not_verified。；未入选公开需求只留最小源时钟，不留无关正文；Issue文本是数据，source_eligible不是执行授权或部署完成。；43本机专项和独立43/5/4有界软件证据不代表真实外部接入、模型或公网资格；本轮实际费用授权0。；旧独立需求库须明确增量升级历史保护触发器；不重写已有行。升级仅接受准确旧表/源配置/原约束，显式rowid替换保护不依赖递归触发器开关。。
 
 ### F-013.02 AI查重、澄清、合理性评估与复议
 
@@ -605,9 +605,9 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. 评估保存依据、需求版本、重复候选及合理性结果，给出公开理由
 2. 资料不足进入澄清，允许补充/复议；合理与优先分别记录
 
-软件回归目标：`backend/tests/test_community_intake.py`、`backend/tests/test_community_evaluations.py`。
+软件回归目标：`backend/tests/test_community_intake.py`、`backend/tests/test_community_evaluations.py`、`backend/tests/test_community_rowid_guards.py`。
 
-验收限制：当前是本机维护者明确决定及有界Unicode文字相似建议；不是AI查重，advisory_note只保存未验证文字，不调用模型。；新评估须准确公开源复查，原请求可在来源后来变化后恢复；真实GitHub App/公网接入及当前外部Issue联合验收尚未通过。；合理/待澄清/重复与优先、排队、执行、软件验收和上线分开；无公开评估写接口，不自动发送澄清/复议或理由留言。；独立维护者模型与费用额度、AI评估质量、独立审核、队列/自动研发与公网仍待完成，整项部分实现。。
+验收限制：当前是本机维护者明确决定及有界Unicode文字相似建议；不是AI查重，advisory_note只保存未验证文字，不调用模型。；新评估须准确公开源复查，原请求可在来源后来变化后恢复；真实GitHub App/公网接入及当前外部Issue联合验收尚未通过。；合理/待澄清/重复与优先、排队、执行、软件验收和上线分开；无公开评估写接口，不自动发送澄清/复议或理由留言。；独立维护者模型与费用额度、AI评估质量、独立审核、队列/自动研发与公网仍待完成，整项部分实现。；旧独立需求库须明确增量升级历史保护触发器；不重写已有行。升级仅接受准确旧表/源配置/原约束，显式rowid替换保护不依赖递归触发器开关。。
 
 ### F-013.03 依赖、价值、成本与容量排队
 

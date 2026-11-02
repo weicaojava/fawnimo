@@ -83,3 +83,5 @@ python scripts/features_check.py
 - [上游日文资料](docs/README.ja.md)，保留其原始产品名称及历史上下文。
 
 维护者可在独立公开需求库查看有界文字相似建议，并登记原需求版本的评估、澄清和复议历史，见[维护者指南](site/content/docs/guide/community-review.md)。当前通过本机命令操作；AI自动评估、公开留言、排队和自动研发尚未接通。
+
+已有独立社区需求库升级历史保护前，请按[维护者指南](site/content/docs/guide/community-review.md)运行明确的保护约束迁移；原记录保持原ID与内容。
