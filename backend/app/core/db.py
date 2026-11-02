@@ -112,6 +112,7 @@ async def init_db() -> None:
     import app.models.model_job_charge  # noqa: F401
     import app.models.understanding_charge  # noqa: F401
     import app.models.native_video_charge  # noqa: F401
+    import app.models.video_reference_inputs  # noqa: F401
     import app.models.script_candidate  # noqa: F401
     import app.models.local_example  # noqa: F401
 
@@ -164,6 +165,8 @@ async def init_db() -> None:
         await migrate_understanding_charges(engine)
         from app.services.worker.native_video_charge_schema import migrate_native_video_charges
         await migrate_native_video_charges(engine)
+        from app.services.worker.video_reference_schema import migrate_video_reference_inputs
+        await migrate_video_reference_inputs(engine)
         from app.services.script_preparation.candidate_schema import migrate_script_candidates
         await migrate_script_candidates(engine)
 

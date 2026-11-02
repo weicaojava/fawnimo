@@ -23,6 +23,7 @@ from app.services.worker.execution_budget import transaction
 from app.services.worker.project_budget import record_budget_change
 from app.services.worker.execution_runtime import ExecutionRuntime
 from app.core.integrations.volcengine.seedance25_payload import build_seedance25_body
+from app.core.contracts.seedance_references import REFERENCE_PROTOCOL,snapshot_reference_selection
 
 
 def setup_projection(config: VideoRuntimeConfiguration | None = None, *, issue_code='not_configured', message=None, credential_present=False) -> dict:
@@ -86,7 +87,8 @@ def configuration_template() -> dict:
     return VideoRuntimeConfiguration().model_dump(mode='json')
 
 
-async def build_managed_video_runtime(factory,filename,price_registry,*,trusted_local_host=None,trusted_local_port=None,transport_factory=Seedance25DurableTransport):
+async def build_managed_video_runtime(factory,filename,price_registry,*,trusted_local_host=None,trusted_local_port=None,transport_factory=Seedance25DurableTransport,
+                                     trusted_local_media_origin=None,reference_delivery_available=None):
     """Compose the application runtime from an explicit saved model and shared prices; legacy raw-key files cannot grant new execution.
 
     Disabling new submissions still permits only sealed original native jobs to
@@ -94,6 +96,9 @@ async def build_managed_video_runtime(factory,filename,price_registry,*,trusted_
     by the application's lifecycle and are never overridden here.
     """
     from app.services.worker.native_video_accounting import NativeVideoAccounting
+    if reference_delivery_available is None:
+        from app.config import settings
+        reference_delivery_available=settings.workspace_id is None and settings.api_v1_prefix=='/api/v1'
     if not filename:return None,setup_projection()
     try:
         path=Path(filename).expanduser()
@@ -106,7 +111,8 @@ async def build_managed_video_runtime(factory,filename,price_registry,*,trusted_
     if config.model_id is None:
         return None,setup_projection(config,issue_code='managed_model_required',message='请选择模型库中明确配置的原生视频模型；旧环境凭据与手填费用不授予新执行权限。')
     accountant=NativeVideoAccounting(factory,config,price_registry,trusted_local_host=trusted_local_host,
-        trusted_local_port=trusted_local_port,transport_factory=transport_factory)
+        trusted_local_port=trusted_local_port,transport_factory=transport_factory,
+        trusted_local_media_origin=trusted_local_media_origin,reference_delivery_available=reference_delivery_available)
     policies={};ready=False;quote=None;issue='disabled';message='新生成已关闭；只允许原任务使用未变化的原账号继续查询。'
     if config.enabled:
         try:
@@ -121,6 +127,11 @@ async def build_managed_video_runtime(factory,filename,price_registry,*,trusted_
     view=setup_projection(config,issue_code=issue,message=message,credential_present=ready)
     view.update(managed_model_id=config.model_id,price_fingerprint=quote.fingerprint if quote else None,
         quote_minor=quote.max_call_minor if quote else None,quote_note=quote.source_note if quote else '',original_control_available=True)
+    if await accountant.reference_model_declared():
+        video=bool(ready and 'video' in policy.capability.reference_kinds)
+        view.update(reference_protocol=REFERENCE_PROTOCOL,reference_kinds=['image','video'] if video else ['image'],
+            max_references=4 if video else 3,reference_video_delivery_available=video,
+            output_description='明确选择参考图片、首帧或首尾帧；素材参考最多三张图片，交付入口就绪后可加一个参考视频。4–30整数秒、竖屏480p、MP4、无生成音频、保留水印。素材在接受任务前实际解码核对。')
     return runtime,view
 
 
@@ -197,15 +208,27 @@ async def preview_executable_plan(db, project_id: str, plan_id: str, runtime) ->
     enabled = bool(runtime and runtime.allow_submission and runtime.running)
     if not enabled:
         problems.append({'code': 'runtime_off', 'message': '本机生成服务尚未启用，预览不会启动它。'})
+    reference=bool(policy and policy.capability.reference_protocol==REFERENCE_PROTOCOL)
     for entry in plan.payload.get('entries', []):
-        body, entry_issues = None, []
+        body, summary, entry_issues = None, None, []
         if not problems:
             try:
-                body = build_seedance25_body(entry['request'])
-            except (KeyError, TypeError, ValueError):
-                entry_issues.append({'code': 'unsupported_wire_input', 'message': '此镜头不符合当前文生视频固定规格。', 'shot_id': entry['shot_id']})
-        entries.append({'shot_id': entry['shot_id'], 'entry_hash': entry['entry_hash'], 'body': body, 'issues': entry_issues})
+                if reference:
+                    from app.services.worker.execution_admission import freeze_request
+                    snapshot,_digest=freeze_request(entry['request'],policy)
+                    selected=snapshot_reference_selection(snapshot)
+                    summary={'input_protocol':REFERENCE_PROTOCOL,'model':MODEL_ID,'duration':snapshot['duration'],
+                        'video_reference':selected.model_dump(mode='json'),'resolution':'480p',
+                        'ratio':'9:16' if selected.mode=='reference' else 'adaptive (9:16 input required)',
+                        'generate_audio':False,'watermark':True,
+                        'note':'仅核对计划与素材记录；接受任务前实际解码。实际发送内容含图片或一次性视频交付地址，因此不在预览中生成。'}
+                else:body = build_seedance25_body(entry['request'])
+            except (KeyError, TypeError, ValueError, HTTPException):
+                entry_issues.append({'code': 'unsupported_wire_input', 'message': '此镜头不符合当前生成服务的输入规格。', 'shot_id': entry['shot_id']})
+        entries.append({'shot_id': entry['shot_id'], 'entry_hash': entry['entry_hash'], 'body': body,
+            'request_summary':summary,'input_validation':'metadata_only' if reference else None,'issues': entry_issues})
     usable = not problems and not any(item['issues'] for item in entries)
-    wire_hash = hashlib.sha256(json.dumps([item['body'] for item in entries], ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest() if usable else None
+    wire_hash = hashlib.sha256(json.dumps([item['body'] for item in entries], ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest() if usable and not reference else None
+    summary_hash=hashlib.sha256(json.dumps([item['request_summary'] for item in entries],ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest() if usable and reference else None
     return {'plan_id': plan.id, 'content_hash': plan.content_hash, 'wire_hash': wire_hash, 'can_prepare': usable,
-            'can_submit': False, 'execution_enabled': enabled, 'model_qualified': False, 'issues': problems, 'entries': entries}
+            'summary_hash':summary_hash,'can_submit': False, 'execution_enabled': enabled, 'model_qualified': False, 'issues': problems, 'entries': entries}

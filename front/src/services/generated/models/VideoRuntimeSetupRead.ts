@@ -23,5 +23,9 @@ export type VideoRuntimeSetupRead = {
     managed_model_id?: (string | null);
     price_fingerprint?: (string | null);
     original_control_available?: boolean;
+    reference_protocol?: (string | null);
+    reference_kinds?: Array<string>;
+    max_references?: number;
+    reference_video_delivery_available?: boolean;
 };
 

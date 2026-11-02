@@ -5,15 +5,15 @@ description: "托管原生模型、单份项目预留、独立原账号控制与
 
 # 本机视频生成配置与项目预算
 
-默认目录只用于准备。应用使用 `build_managed_video_runtime`：服务器文件明确选择本空间库内model_id，模型标记 `seedance25_text_v1`，实际名称为 `doubao-seedance-2-5-260628`，受支持Ark供应商/固定origin和本协议独立命名报价一致时才允许新生成。只读配置检查不捕获key值、不发请求；发送前一次查询捕获同一连接时钟与临时key。
+默认目录只用于准备。应用使用 `build_managed_video_runtime`：服务器文件明确选择本空间库内model_id，模型明确标记原文字 `seedance25_text_v1` 或独立参考 `seedance25_reference_v1`，实际名称为 `doubao-seedance-2-5-260628`，受支持Ark供应商/固定origin和本协议独立命名报价一致时才允许新生成。只读配置检查不捕获key值、不发请求；发送前一次查询捕获同一连接时钟与临时key。
 
-单独工作室使用 `VIDEO_RUNTIME_CONFIG` / `--video-config` 和 `MODEL_PRICE_CONFIG`。固定身份worker只加载自身已标记、未导入空间的 `private/native-video.json` / `private/model-prices.json`，不继承主机路径或key。导入执行锁仍覆盖所有scanner。文件不接受key、端点、CDN或网络例外；生产固定Ark HTTPS/CDN，回环例外仅由受信测试服务独立注入。旧credential_env/account_version/quote_minor/quote_note字段可解析旧文件，当前应用不以它们授予新费用权限。
+单独工作室使用 `VIDEO_RUNTIME_CONFIG` / `--video-config` 和 `MODEL_PRICE_CONFIG`。固定身份worker只加载自身已标记、未导入空间的 `private/native-video.json` / `private/model-prices.json`，不继承主机路径或key。导入执行锁仍覆盖所有scanner。文件不接受key、控制端点或结果CDN覆盖；生产固定Ark HTTPS/CDN。新参考协议可另填服务器自有的准确HTTPS素材交付origin，省略时仅支持图片；回环例外仅由受信测试服务独立注入。旧credential_env/account_version/quote_minor/quote_note字段可解析旧文件，当前应用不以它们授予新费用权限。
 
-固定档案仍为文字输入、4至30整数秒、9:16/480p/MP4、无生成音频并保留水印；参考图/视频/音频不被静默忽略。准备档案、历史输入与只读预览不自动获得执行或模型质量资格。`GET /video-runtime/models` 只投影明确用途与报价，`setup`显示本机就绪状态，`configuration-template`默认关闭。旧Film/Celery动作继续关闭。
+原固定文字档案仍为4至30整数秒、9:16/480p/MP4、无生成音频并保留水印；不接受参考素材。新协议明确选择素材参考、首帧或首尾帧并单独核对完整费用，见[参考输入](../video-reference-inputs/)；不静默忽略不支持的输入。准备档案、历史输入与只读预览不自动获得执行或模型质量资格。`GET /video-runtime/models` 只投影明确用途与报价，`setup`显示本机就绪状态，`configuration-template`默认关闭。旧Film/Celery动作继续关闭。
 
 ## 准入与原请求恢复
 
-不可变计划按完整当前policy绑定；旧null报价准备计划须显式保存新修订并重新编译。请求预览GET不建任务、不预留、不访问模型，固定can_submit=false；页面新提交还须通过当前同计划预览与精确报价确认。当前UI/API逐镜提交，内部原子批次最多64项不等于已提供整章批量界面。
+不可变计划按完整当前policy绑定；旧null报价准备计划须显式保存新修订并重新编译。请求预览GET不建任务、不预留、不访问模型，固定can_submit=false；页面新提交还须通过当前同计划预览与精确报价确认。当前UI/API逐镜提交，原文字内部原子批次最多64项不等于已提供整章批量界面；新参考准入每次仅一镜。参考预览是元数据摘要，不含实际图片/交付URL或伪造wire哈希。
 
 原生job先创建其实际ledger预留，共同账单直接使用同一job.id，不再reserve第二份。全部job/调用/原项目/提交人/原计划与报价在同一SQLite writer事务封存。发送每项前检查完整集合、每个兄弟ledger/attempt/最终收据与差额及全部账单门禁，预算不足或结构失配没有已付前缀。准备unknown和真实attempt后才做唯一POST；响应头的账单请求ID与内容任务ID分开。
 

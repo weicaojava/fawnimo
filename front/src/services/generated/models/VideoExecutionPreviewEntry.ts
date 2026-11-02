@@ -4,12 +4,14 @@
 /* eslint-disable */
 import type { PlanIssue } from './PlanIssue';
 /**
- * Inspect the actual fixed wire body from an owned immutable compiled entry.
+ * Inspect text wire bodies or an explicitly labelled reference metadata summary, never inline media or delivery tokens.
  */
 export type VideoExecutionPreviewEntry = {
     shot_id: string;
     entry_hash: string;
     body: (Record<string, any> | null);
+    request_summary?: (Record<string, any> | null);
+    input_validation?: (string | null);
     issues: Array<PlanIssue>;
 };
 

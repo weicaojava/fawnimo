@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 from fastapi import HTTPException
+from app.core.contracts.seedance_references import REFERENCE_PROTOCOL, snapshot_reference_selection
 
 
 @dataclass(frozen=True)
@@ -11,6 +12,12 @@ class Capability:
     durations: frozenset[int]
     reference_kinds: frozenset[str]
     max_references: int
+    reference_protocol: str | None = None
+
+    def __post_init__(self):
+        """Only a named application protocol can extend the old durable reference contract."""
+        if self.reference_protocol not in (None, REFERENCE_PROTOCOL):
+            raise ValueError('Unsupported reference protocol')
 
 
 def preflight(request: dict, capability: Capability, *, quoted_cost: Decimal | None, remaining_budget: Decimal, iteration: int, iteration_limit: int) -> None:
@@ -19,7 +26,14 @@ def preflight(request: dict, capability: Capability, *, quoted_cost: Decimal | N
     This pure check does not reserve money. The eventual submission transaction
     must reserve the quoted amount atomically before a worker can send a request.
     """
-    if set(request)-{'model_id','duration','references','prompt','prompt_revision'}:
+    fields = {'model_id','duration','references','prompt','prompt_revision'}
+    if capability.reference_protocol == REFERENCE_PROTOCOL:
+        fields.add('video_reference')
+        try:
+            snapshot_reference_selection(request)
+        except (TypeError, ValueError):
+            raise HTTPException(422,'参考素材的模式、顺序或内容证明不一致') from None
+    if set(request)-fields:
         raise HTTPException(422,'包含未支持的生成参数')
     if request.get('model_id')!=capability.model_id:
         raise HTTPException(422,'模型与受信能力配置不一致')

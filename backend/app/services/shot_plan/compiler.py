@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from app.core.contracts.execution_binding import binding_fingerprint
 from app.core.contracts.shot_plan import PlanDocument
+from app.core.contracts.seedance_references import REFERENCE_PROTOCOL,VideoReferenceSelection
 from app.models.production import ProductionAsset,AssetVersion,VersionMedia,ProductionMedia
 from app.models.script_preparation import ScriptPublication
 from app.models.studio import Shot
@@ -54,7 +55,10 @@ async def preparation_issues(db,project_id,chapter_id,document):
 async def validate_document(db,project_id,chapter_id,document):
     """Validate actual scope and identity without requiring complete preparation."""
     await chapter_owned(db,project_id,chapter_id)
-    data=PlanDocument.model_validate(document).model_dump()
+    data=PlanDocument.model_validate(document).model_dump(mode='json')
+    # Preserve every historical document/hash: only the newly introduced empty field disappears.
+    for selection in data['shots']:
+        if selection['video_reference'] is None:selection.pop('video_reference')
     if len(canonical(data).encode())>256*1024:raise HTTPException(422,'镜头计划文档超过256KiB')
     unique([s['shot_id'] for s in data['shots']],'镜头')
     if data['script_snapshot_id']:
@@ -70,8 +74,36 @@ async def validate_document(db,project_id,chapter_id,document):
         for identity in selection['reference_media_ids']:
             row=await db.get(ProductionMedia,identity)
             if row is None or row.project_id!=project_id:raise HTTPException(422,'参考媒体不存在或不属于本工程')
+        if selection.get('video_reference'):
+            if selection['reference_media_ids']:raise HTTPException(422,'请先清除旧参考列表，再明确选择视频参考模式')
+            for reference in VideoReferenceSelection.model_validate(selection['video_reference']).references:
+                row=await db.get(ProductionMedia,reference.media_id)
+                allowed={'video/mp4'} if reference.kind=='video' else {'image/png','image/jpeg'}
+                limit=32*1024*1024 if reference.kind=='video' else 4*1024*1024
+                if row is None or row.project_id!=project_id or row.sha256!=reference.expected_sha256 or row.mime not in allowed or not 0<row.size<=limit:
+                    raise HTTPException(422,'所选参考素材的归属、内容、类型或大小已不符，请重新选择')
         selection['version_ids'].sort();selection['reference_media_ids'].sort()
     return data
+
+
+async def bound_reference_plan_media(db,project_id,data):
+    """Bound all unique reference-plan provenance before hashing any selected media bytes."""
+    if not any(s.get('video_reference') for s in data['shots']):return
+    identifiers=set()
+    for selection in data['shots']:
+        identifiers.update(selection['reference_media_ids'])
+        if selection.get('video_reference'):
+            identifiers.update(r['media_id'] for r in selection['video_reference']['references'])
+        for identity in selection['version_ids']:
+            version=await db.get(AssetVersion,identity)
+            identifiers.update(version.payload.get('media_ids',[]))
+        if len(identifiers)>128:raise HTTPException(409,'参考计划最多包含128份不同的素材与资产来源')
+    total=0
+    for identity in identifiers:
+        row=await db.get(ProductionMedia,identity)
+        if row is None or row.project_id!=project_id or row.size<0:raise HTTPException(409,'计划素材归属或大小不符')
+        total+=row.size
+        if total>64*1024*1024:raise HTTPException(409,'参考计划的素材与资产来源合计不能超过64MiB')
 
 
 def stat_identity(path):
@@ -100,12 +132,15 @@ async def media_evidence(db,project_id,media_id,verified=None):
 def public_policy(policy):
     """Freeze trusted public capability/quote identity without runtime or credentials."""
     cap=policy.capability
-    return {'binding_hash':binding_fingerprint(policy),'model_id':cap.model_id,'durations':sorted(cap.durations),'reference_kinds':sorted(cap.reference_kinds),'max_references':cap.max_references,'quote_minor':policy.quote_minor,'currency':policy.currency,'iteration_limit':policy.iteration_limit}
+    result={'binding_hash':binding_fingerprint(policy),'model_id':cap.model_id,'durations':sorted(cap.durations),'reference_kinds':sorted(cap.reference_kinds),'max_references':cap.max_references,'quote_minor':policy.quote_minor,'currency':policy.currency,'iteration_limit':policy.iteration_limit}
+    if cap.reference_protocol is not None:result['reference_protocol']=cap.reference_protocol
+    return result
 
 
 async def build_payload(db,project_id,chapter_id,document,runtime=None,verified=None,binding_override=_UNSET):
     """Resolve original requirements, actual scope and selected immutable input snapshots."""
     data=await validate_document(db,project_id,chapter_id,document)
+    await bound_reference_plan_media(db,project_id,data)
     if not data['model_id'].strip():raise HTTPException(409,'编译前请填写模型意向标识，未配置账号仍可准备')
     if not data['script_snapshot_id']:raise HTTPException(409,'请先选择本章已发布制作剧本')
     script=await db.get(ScriptPublication,data['script_snapshot_id'])
@@ -118,6 +153,8 @@ async def build_payload(db,project_id,chapter_id,document,runtime=None,verified=
     data['shots'].sort(key=lambda s:(shot_rows[s['shot_id']].index,s['shot_id']))
     policy=runtime.policies.get(data['model_id']) if runtime is not None else None
     binding=(public_policy(policy) if policy is not None else None) if binding_override is _UNSET else binding_override
+    reference_plan=any(s.get('video_reference') for s in data['shots'])
+    if binding and bool(binding.get('reference_protocol'))!=reference_plan:raise HTTPException(409,'当前模型的参考类型已变化，请明确选择对应素材并保存新修订')
     entries=[];proof={};all_versions={};all_media={}
     for selection in data['shots']:
         shot_id=selection['shot_id'];shot=shot_rows[shot_id];source=bindings[shot_id]
@@ -128,7 +165,10 @@ async def build_payload(db,project_id,chapter_id,document,runtime=None,verified=
         if basic:raise HTTPException(409,basic[0]['message'])
         dialogues=[d for d in original['dialogues'] if d['id'] in source['dialogue_ids']]
         if any(d['speaker_id'] not in source['character_ids'] for d in dialogues):raise HTTPException(409,'绑定对白的原说话角色未在镜头内')
+        explicit=VideoReferenceSelection.model_validate(selection['video_reference']) if selection.get('video_reference') else None
+        if binding and binding.get('reference_protocol')==REFERENCE_PROTOCOL and explicit is None:raise HTTPException(409,'参考模型要求每个镜头明确选择参考模式与素材')
         versions=[];seen_assets=set();characters=[];scenes=[];media_ids=set(selection['reference_media_ids'])
+        if explicit:media_ids.update(r.media_id for r in explicit.references)
         for version,asset in pairs:
             if asset is None or asset.project_id!=project_id or asset.archived or asset.id in seen_assets:raise HTTPException(409,'资产已归档、缺失或同资产选择多个版本')
             seen_assets.add(asset.id)
@@ -154,18 +194,25 @@ async def build_payload(db,project_id,chapter_id,document,runtime=None,verified=
         if sorted(characters)!=sorted(source['character_ids']) or scenes!=[source['scene_id']]:raise HTTPException(409,'每个镜头人物与场景必须恰好选定一个匹配资产版本')
         media=[]
         for media_id in sorted(media_ids):
-            frozen,evidence=await media_evidence(db,project_id,media_id,None if verified is None else verified.get(media_id,{}))
+            # Shared chapter inputs are hashed once; subsequent shots recheck the original proof's metadata/stat.
+            previous=proof.get(media_id) if reference_plan and media_id in proof else (None if verified is None else verified.get(media_id,{}))
+            frozen,evidence=await media_evidence(db,project_id,media_id,previous)
             media.append(frozen);proof[media_id]=evidence;all_media[media_id]=frozen
         media.sort(key=lambda m:(m['kind'],m['id']))
-        references=[{'media_id':m['id'],'kind':m['kind']} for m in media]
+        references=([{'media_id':r.media_id,'kind':r.kind} for r in explicit.references] if explicit else [{'media_id':m['id'],'kind':m['kind']} for m in media])
+        if explicit and any(all_media[r.media_id]['sha256']!=r.expected_sha256 for r in explicit.references):raise HTTPException(409,'参考素材内容已变化，请重新选择')
         seconds=source['duration_ms']//1000
         if binding and (seconds not in binding['durations'] or len(references)>binding['max_references'] or any(r['kind'] not in binding['reference_kinds'] for r in references)):raise HTTPException(409,'受信模型能力不支持镜头时长或参考模式')
         beats=[b for b in original['beats'] if b['id'] in source['beat_ids']]
-        prompt=canonical({'script_title':original['title'],'shot_id':shot_id,'duration_ms':source['duration_ms'],'beats':beats,'dialogues':dialogues,'assets':[v['payload'] for v in versions],'references':references,'user_addition':selection['prompt_addition']})
+        prompt_input={'script_title':original['title'],'shot_id':shot_id,'duration_ms':source['duration_ms'],'beats':beats,'dialogues':dialogues,'assets':[v['payload'] for v in versions],'references':references,'user_addition':selection['prompt_addition']}
+        if explicit:prompt_input['video_reference']=explicit.model_dump(mode='json')
+        prompt=canonical(prompt_input)
         if len(prompt)>32000:raise HTTPException(409,'编译提示词超过32000字，不允许截断')
         request={'model_id':data['model_id'],'duration':seconds,'references':references,'prompt':prompt}
+        if explicit:request['video_reference']=explicit.model_dump(mode='json')
         entry={'shot_id':shot_id,'order':len(entries),'duration_ms':source['duration_ms'],'mapping':source,'versions':versions,'media':media,'source_facts_hash':script.payload['facts_hash'],'request':request}
         entry_hash=content_hash(entry);entry['entry_hash']=entry_hash;request['prompt_revision']=entry_hash;entries.append(entry)
     payload={'schema_version':1,'compiler_version':'m4b-v1','project_id':project_id,'chapter_id':chapter_id,'script_snapshot_id':script.id,'script_snapshot_hash':script.content_hash,'script_facts_hash':script.payload['facts_hash'],'facts':actual_facts,'document':data,'binding':binding,'versions':[all_versions[k] for k in sorted(all_versions)],'media':sorted(all_media.values(),key=lambda m:(m['kind'],m['id'])),'entries':entries}
+    if reference_plan:payload['compiler_version']='m4b-reference-v1'
     if len(canonical(payload).encode())>1024*1024:raise HTTPException(409,'编译计划超过1MiB')
     return payload,proof

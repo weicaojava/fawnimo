@@ -7,6 +7,7 @@ from sqlalchemy import case, func, select
 
 from app.bootstrap import bootstrap_all_registries
 from app.core.contracts.seedance25 import ARK_BASE_URL, MODEL_ID
+from app.core.contracts.seedance_references import REFERENCE_PROTOCOL
 from app.core.contracts.video_runtime_setup import NativeVideoModelChoice
 from app.models.llm import Model, ModelCategoryKey, Provider
 from app.models.provider_connection_version import ProviderConnectionVersion
@@ -20,7 +21,7 @@ PROTOCOL = 'seedance25_text_v1'
 
 def compatible(category, params, provider_name, model_name):
     """Only the explicitly selected fixed native protocol can use this adapter; generation categories never imply it."""
-    if category!='video' or model_name!=MODEL_ID or not isinstance(params,dict) or params.get('native_video_protocol')!=PROTOCOL:
+    if category!='video' or model_name!=MODEL_ID or not isinstance(params,dict) or params.get('native_video_protocol') not in {PROTOCOL,REFERENCE_PROTOCOL}:
         return False
     try:
         bootstrap_all_registries()
@@ -54,7 +55,7 @@ def binding(model,provider,version,**network):
     if (type(version) is not int or not 0<=version<=9223372036854775806 or provider.status=='disabled'
             or not compatible(model.category,model.params,provider.name,model.name)):
         raise HTTPException(503,'所选模型没有明确配置受支持的原生视频协议，未接受调用')
-    return {'model_id':model.id,'model_name':model.name,'category':'video','protocol':PROTOCOL,
+    return {'model_id':model.id,'model_name':model.name,'category':'video','protocol':model.params['native_video_protocol'],
             'provider_id':provider.id,'provider_name':provider.name,'provider_connection_version':version,
             'base_url':checked_base(provider,**network)}
 
@@ -93,10 +94,10 @@ def credential(provider):
 
 async def original_material(db,original,*,trusted_local_host=None,trusted_local_port=None):
     """Removing a new-generation flag cannot reprice or disable an already sealed original-account read."""
-    if not isinstance(original,dict) or original.get('protocol')!=PROTOCOL or original.get('category')!='video':
+    if not isinstance(original,dict) or original.get('protocol') not in {PROTOCOL,REFERENCE_PROTOCOL} or original.get('category')!='video':
         raise HTTPException(409,'原生视频原协议授权缺失，未读取账号凭据')
     model,provider,version=await model_connection_snapshot(db,original.get('model_id'))
-    captured=SimpleNamespace(id=model.id,name=model.name,category=model.category,params={'native_video_protocol':PROTOCOL})
+    captured=SimpleNamespace(id=model.id,name=model.name,category=model.category,params={'native_video_protocol':original['protocol']})
     safe=binding(captured,provider,version,trusted_local_host=trusted_local_host,trusted_local_port=trusted_local_port)
     if safe!=original:raise HTTPException(409,'原生视频原模型或账号连接已经变化，未向新账号查询')
     return safe,credential(provider)
@@ -116,7 +117,8 @@ async def choices(db,registry=None,*,trusted_local_host=None,trusted_local_port=
         try:
             safe=await safe_binding(db,row.id,trusted_local_host=trusted_local_host,trusted_local_port=trusted_local_port)
             configured=True
-            candidate=registry.required('native_video',row.id)
+            input_protocol=REFERENCE_PROTOCOL if row.params.get('native_video_protocol')==REFERENCE_PROTOCOL else None
+            candidate=registry.required('native_video',row.id,input_protocol=input_protocol) if input_protocol is not None else registry.required('native_video',row.id)
             if (candidate.model_name,candidate.provider_id,candidate.provider_connection_version)!=(safe['model_name'],safe['provider_id'],safe['provider_connection_version']):
                 raise HTTPException(503,'原生视频实际模型名称或连接版本与受信报价不一致')
             quote=candidate;message='模型连接与原生视频费用已登记；此读取不授予执行或真实模型资格'
@@ -124,5 +126,6 @@ async def choices(db,registry=None,*,trusted_local_host=None,trusted_local_port=
             message=str(error.detail)
         result.append(NativeVideoModelChoice(id=row.id,name=row.name,provider_name=row.provider_name,configured=configured,
             message=message,priced=quote is not None,max_call_minor=quote.max_call_minor if quote else None,
-            price_fingerprint=quote.fingerprint if quote else None))
+            price_fingerprint=quote.fingerprint if quote else None,
+            reference_protocol=REFERENCE_PROTOCOL if row.params.get('native_video_protocol')==REFERENCE_PROTOCOL else None))
     return result

@@ -2,12 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { PlanDocument } from './PlanDocument';
+import type { PlanDocument_Input } from './PlanDocument_Input';
 /**
  * Save a replacement document at the revision shown to the user.
  */
 export type PlanPatch = {
     expected_revision: number;
-    document: PlanDocument;
+    document: PlanDocument_Input;
 };
 

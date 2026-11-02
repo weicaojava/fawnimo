@@ -53,7 +53,7 @@ description: "SQLite项目费用基础、固定连接版本、人工账单证据
 
 ## 托管原生视频费用
 
-`native_video_charge_batches` 封存原提交人、原项目、逻辑模型与实际名称/连接时钟、独立价格、固定服务profile及完整实际job集合。`native_video_job_charges` 使用真实job.id关联同一ledger和ModelCallCharge，挂接不再次增加余额预留。公开UI及两条提交入口当前每次一镜；内部服务支持1至64单元同事务，不宣称已有整章批量按钮。
+`native_video_charge_batches` 封存原提交人、原项目、逻辑模型与实际名称/连接时钟、独立价格、固定服务profile及完整实际job集合。`native_video_job_charges` 使用真实job.id关联同一ledger和ModelCallCharge，挂接不再次增加余额预留。公开UI及两条提交入口当前每次一镜；原文字内部服务支持1至64单元同事务，不宣称已有整章批量按钮；新参考协议每次仅接受一镜。
 
 发送任何单元前校对全部兄弟的预留/attempt/收据/超价差额配对及账单门禁；错误维护的后续released/planned、unknown/planned或不符收据会阻止首个POST。prepare、实际attempt与unknown同事务，之后才发HTTP；响应头请求ID与body任务ID分别保存。取消只释放原not_sent单位一次，旧finish/settle/recovery不能旁路退还prepared共同费用。
 
@@ -66,3 +66,5 @@ description: "SQLite项目费用基础、固定连接版本、人工账单证据
 
 
 自作本机模型回归继续使用原来的六类费用kind，不增加费用类型。各独立夹具分别验证文本/图片未知55、原生接收/查询再预留25、视觉/ASR再预留18；这些金额不属于同一个共享账号或真实供应商账单。正向请求均走私有测试worker，公开收费503不变，明细见 `capabilities/workspace-local-models-validation.json`。
+
+新视频参考仍使用native_video，但报价须明确input_protocol=seedance25_reference_v1并覆盖最大3图、1视频、30秒；旧文字报价不授权参考调用。typed输入完整证明与真实job及原财务批次同事务封存，未发送素材变化可释放原未发送预留，已prepared费用仍未知。见[参考输入](../video-reference-inputs/)。

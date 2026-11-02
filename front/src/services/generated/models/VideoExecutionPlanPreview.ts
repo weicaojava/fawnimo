@@ -11,6 +11,7 @@ export type VideoExecutionPlanPreview = {
     plan_id: string;
     content_hash: string;
     wire_hash?: (string | null);
+    summary_hash?: (string | null);
     can_prepare: boolean;
     can_submit?: boolean;
     execution_enabled: boolean;

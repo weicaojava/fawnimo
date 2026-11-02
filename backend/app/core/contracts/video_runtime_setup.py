@@ -16,6 +16,8 @@ class NativeVideoModelChoice(BaseModel):
     max_call_minor: int | None = None
     price_fingerprint: str | None = None
 
+    reference_protocol: Literal['seedance25_reference_v1'] | None = None
+
 
 class VideoRuntimeConfiguration(BaseModel):
     """A server-owned configuration file; project imports cannot supply credentials or origins."""
@@ -23,6 +25,7 @@ class VideoRuntimeConfiguration(BaseModel):
     schema_version: Literal[1] = 1
     enabled: StrictBool = False
     model_id: str | None = Field(default=None,min_length=1,max_length=64)
+    reference_media_origin: str | None = Field(default=None,max_length=512)
     credential_env: str = Field('JELLYFISH_VIDEO_API_KEY', pattern=r'^[A-Z][A-Z0-9_]{2,127}$')
     service_version: str = Field('workspace-seedance-v1', pattern=r'^[A-Za-z0-9_-]{1,128}$')
     account_version: str = Field('workspace-account-v1', pattern=r'^[A-Za-z0-9_-]{1,128}$')
@@ -50,6 +53,10 @@ class VideoRuntimeSetupRead(BaseModel):
     managed_model_id: str | None = None
     price_fingerprint: str | None = None
     original_control_available: bool = False
+    reference_protocol: Literal['seedance25_reference_v1'] | None = None
+    reference_kinds: list[str] = Field(default_factory=list)
+    max_references: int = 0
+    reference_video_delivery_available: bool = False
 
 
 class ProjectBudgetWrite(BaseModel):
@@ -102,10 +109,12 @@ class ProjectBudgetPage(BaseModel):
 
 
 class VideoExecutionPreviewEntry(BaseModel):
-    """Inspect the actual fixed wire body from an owned immutable compiled entry."""
+    """Inspect text wire bodies or an explicitly labelled reference metadata summary, never inline media or delivery tokens."""
     shot_id: str
     entry_hash: str
     body: dict | None
+    request_summary: dict | None = None
+    input_validation: Literal['metadata_only'] | None = None
     issues: list[PlanIssue]
 
 
@@ -114,6 +123,7 @@ class VideoExecutionPlanPreview(BaseModel):
     plan_id: str
     content_hash: str
     wire_hash: str | None = None
+    summary_hash: str | None = None
     can_prepare: bool
     can_submit: Literal[False] = False
     execution_enabled: bool

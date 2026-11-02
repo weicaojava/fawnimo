@@ -13,6 +13,7 @@ from fastapi import HTTPException
 from sqlalchemy import JSON, func, insert, literal, select
 from app.core.contracts.execution_capabilities import Capability, preflight
 from app.core.contracts.execution_binding import binding_fingerprint
+from app.core.contracts.seedance_references import REFERENCE_PROTOCOL, snapshot_reference_selection
 from app.core.contracts.task_safety import validate_task_payload
 from app.models.execution import ExecutionJob
 from app.models.script_preparation import ScriptDraft
@@ -38,7 +39,13 @@ def freeze_request(snapshot: dict, policy: AdmissionPolicy) -> tuple[dict, str]:
     """Validate inert JSON, detach caller-owned objects and calculate a canonical hash."""
     if not isinstance(snapshot,dict): raise HTTPException(422,'任务参数必须为对象')
     validate_task_payload(snapshot)
-    if set(snapshot)-{'model_id','duration','references','prompt','prompt_revision'}:
+    fields={'model_id','duration','references','prompt','prompt_revision'}
+    reference_profile=policy.capability.reference_protocol==REFERENCE_PROTOCOL
+    if reference_profile:
+        fields.add('video_reference')
+        try:snapshot_reference_selection(snapshot)
+        except (TypeError,ValueError):raise HTTPException(422,'参考素材的模式、顺序或内容证明不一致') from None
+    if set(snapshot)-fields:
         raise HTTPException(422,'包含未支持的生成参数')
     if not isinstance(snapshot.get('model_id'),str) or not snapshot['model_id'] or type(snapshot.get('duration')) is not int:
         raise HTTPException(422,'模型标识或时长不符合要求')
@@ -53,7 +60,7 @@ def freeze_request(snapshot: dict, policy: AdmissionPolicy) -> tuple[dict, str]:
     for reference in references:
         if not isinstance(reference,dict) or set(reference)!={'media_id','kind'} or not isinstance(reference['kind'],str) or not isinstance(reference['media_id'],str) or not reference['media_id']:
             raise HTTPException(422,'参考素材类型不符合要求')
-    if len({reference['media_id'] for reference in references})!=len(references):
+    if not reference_profile and len({reference['media_id'] for reference in references})!=len(references):
         raise HTTPException(422,'参考素材不能重复')
     try:
         encoded=json.dumps(snapshot,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False)

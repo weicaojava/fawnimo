@@ -3,10 +3,12 @@ import { useEffect, useRef, useState } from 'react'
 import { Alert, AutoComplete, Button, Card, Collapse, Drawer, Empty, Input, List, Modal, Select, Space, Table, Tag, message } from 'antd'
 import { Link, useNavigate } from 'react-router-dom'
 import { ExecutionService, ScriptPreparationService, ShotPlansService as S, VideoRuntimeService as V } from '../../../../services/generated'
-import type { CompiledPlanRead, PlanCatalog, PlanDocument, PlanPreflight, PlanRead, PlannedJobRead, PlannedSubmission, PlanVersionOption, ScriptCatalog, Seedance25PlanPreview, Seedance25ProfileRead, VideoExecutionPlanPreview, VideoRuntimeSetupRead } from '../../../../services/generated'
+import type { CompiledPlanRead, PlanCatalog, PlanDocument_Input as PlanDocument, PlanPreflight, PlanRead, PlannedJobRead, PlannedSubmission, PlanVersionOption, ScriptCatalog, Seedance25PlanPreview, Seedance25ProfileRead, VideoExecutionPlanPreview, VideoRuntimeSetupRead } from '../../../../services/generated'
 import { chargeMoney, readProjectCharge } from '../../project/ProjectChargePicker'
 import { resolveAssetUrl } from '../../assets/utils'
 import { useTaskUiStore } from '../../components/taskUiStore'
+import { useImageActionScope } from '../../assets/components/useImageActionScope'
+import VideoReferencePicker from './VideoReferencePicker'
 
 type Props = { projectId: string; chapterId: string; open: boolean; requestedPlanId?: string; onClose: () => void }
 type Entry = { shot_id: string; duration_ms: number; entry_hash: string; request: { prompt: string }; [key: string]: unknown }
@@ -35,6 +37,7 @@ function ReadOnlyJson({ value }: { value: unknown }) {
 
 /** Show validation feedback without exposing stacks or implementation details. */
 function explain(error: unknown) {
+  if (error instanceof Error && /页面、项目|登录身份/.test(error.message)) return error.message
   const body = (error as { body?: { message?: unknown; detail?: unknown } }).body
   return typeof body?.message === 'string' ? body.message : typeof body?.detail === 'string' ? body.detail : '操作失败，请检查当前版本、资产引用和服务状态。'
 }
@@ -76,6 +79,9 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
   const [jsonOpen, setJsonOpen] = useState(false)
   const [keyRevision, setKeyRevision] = useState(0)
   const [nativeIntent, setNativeIntent] = useState<NativeIntent | null>(null)
+  const [referenceReady, setReferenceReady] = useState<Record<string, boolean>>({})
+  const actionScope = useImageActionScope(JSON.stringify(['shot-plan', projectId, chapterId, open]))
+  const viewStamp = actionScope.capture()
   const nativeOperation = useRef(false)
   const nativeIntentKey = `jellyfish:native-planned-intent:${projectId}:${chapterId}`
   const identity = useRef({ projectId, chapterId, open })
@@ -88,11 +94,10 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
   const planNow = useRef(plan)
   const alive = useRef(true)
   const request = useRef(0)
-  const confirmation = useRef<ReturnType<typeof Modal.confirm> | null>(null)
   const navigate = useNavigate()
   const upsertTask = useTaskUiStore(state => state.upsertTask)
   const setTaskCenterOpen = useTaskUiStore(state => state.setOpen)
-  const scope = `${projectId}:${chapterId}:${open}`
+  const scope = `${projectId}:${chapterId}:${open}:${actionScope.key}`
   if (contextKey.current !== scope) { contextKey.current = scope; contextEpoch.current++ }
   const epoch = contextEpoch.current
   identity.current = { projectId, chapterId, open }
@@ -101,6 +106,10 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
   const bindings = catalog?.script && catalog.script.id === document.script_snapshot_id ? catalog.script.document.bindings ?? [] : []
   const entityNames = new Map([...entities.characters, ...entities.scenes].map(entity => [entity.id, entity.name]))
   const seedanceSelected = document.model_id === SEEDANCE25_MODEL_ID
+  const referenceSelected = seedanceSelected && (catalog?.models.find(model => model.model_id === document.model_id)?.reference_protocol === 'seedance25_reference_v1' || workspaceSetup?.reference_protocol === 'seedance25_reference_v1')
+  const referencePlan = (plan?.payload as { binding?: { reference_protocol?: string }; entries?: { request?: { video_reference?: unknown } }[] })?.binding?.reference_protocol === 'seedance25_reference_v1'
+    || !!(plan?.payload as { entries?: { request?: { video_reference?: unknown } }[] })?.entries?.some(entry => entry.request?.video_reference)
+  const referencesReady = !referenceSelected || (document.shots ?? []).every(shot => referenceReady[shot.shot_id] ?? !!shot.video_reference?.references.length)
   const seedancePlan = isSeedance25Plan(plan)
   const preparationOnlyPlan = isPreparationOnlySeedancePlan(plan)
   const currentPreview = plan && !dirty && wirePreview?.plan_id === plan.id && wirePreview.content_hash === plan.content_hash ? wirePreview : null
@@ -113,12 +122,12 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
   }
 
   /** A late response or confirmation must never act on a disposed workspace. */
-  function current() { return alive.current && contextEpoch.current === epoch && identity.current.open && identity.current.projectId === projectId && identity.current.chapterId === chapterId }
+  function current() { return actionScope.isCurrent(viewStamp) && alive.current && contextEpoch.current === epoch && identity.current.open && identity.current.projectId === projectId && identity.current.chapterId === chapterId }
 
   /** Own only this panel's confirmation, including when the route changes. */
-  function confirm(options: Parameters<typeof Modal.confirm>[0]) { confirmation.current?.destroy(); confirmation.current = Modal.confirm(options) }
+  function confirm(options: Parameters<typeof Modal.confirm>[0]) { actionScope.confirm(options, viewStamp) }
 
-  useEffect(() => { alive.current = true; return () => { alive.current = false; confirmation.current?.destroy() } }, [])
+  useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
   useEffect(() => {
     /** Browser refresh/close protection complements the explicit panel-close guard. */
     const warn = (event: BeforeUnloadEvent) => { if (open && dirty) { event.preventDefault(); event.returnValue = '' } }
@@ -128,6 +137,7 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
 
   /** Load one immutable history entry and current advisory submission checks. */
   async function loadPlan(planId: string) {
+    await actionScope.attest(viewStamp)
     const sequence = ++request.current
     const observedForm = formVersion.current
     setPlan(null); setPreflight(null); setJobs([]); setWirePreview(null); setWireError(''); setWireOpen(false)
@@ -136,10 +146,12 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
       S.preflightShotPlanApiV1ShotPlansProjectsProjectIdPlansPlanIdPreflightGet({ projectId, planId }),
       S.listPlannedShotJobsApiV1ShotPlansProjectsProjectIdPlansPlanIdJobsGet({ projectId, planId }),
     ])
+    const hasReferences = !!(saved.data?.payload as { entries?: { request?: { video_reference?: unknown } }[] })?.entries?.some(entry => entry.request?.video_reference)
     const preview = !isSeedance25Plan(saved.data ?? null) ? { data: null, error: '' }
-      : isPreparationOnlySeedancePlan(saved.data ?? null)
+      : isPreparationOnlySeedancePlan(saved.data ?? null) && !hasReferences
         ? await S.previewSeedance25Plan({ projectId, planId }).then(result => ({ data: result.data ?? null, error: '' }), failure => ({ data: null, error: explain(failure) }))
         : await V.previewExecutableVideoPlan({ projectId, planId }).then(result => ({ data: result.data ?? null, error: '' }), failure => ({ data: null, error: explain(failure) }))
+    await actionScope.attest(viewStamp)
     if (!current() || sequence !== request.current || formVersion.current !== observedForm) return
     setPlan(saved.data ?? null); setPreflight(check.data ?? null); setJobs(linked.data ?? [])
     if (preview.data && (preview.data.plan_id !== saved.data?.id || preview.data.content_hash !== saved.data?.content_hash)) setWireError('预览与当前计划不一致，请复查后重试。')
@@ -153,6 +165,7 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
     const observedForm = formVersion.current
     setLoading(true); setError(''); setWirePreview(null); setWireError(''); setWireOpen(false)
     try {
+      await actionScope.attest(viewStamp)
       const [options, saved, names, prepared, configured] = await Promise.all([
         S.getShotPlanCatalogApiV1ShotPlansProjectsProjectIdCatalogGet({ projectId, chapterId }),
         S.listShotPlanDraftsApiV1ShotPlansProjectsProjectIdDraftsGet({ projectId, chapterId }),
@@ -160,6 +173,7 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
         S.getSeedance25Profile({ projectId }).then(result => ({ data: result.data ?? null, error: '' }), failure => ({ data: null, error: explain(failure) })),
         V.getVideoRuntimeSetup().then(result => result.data ?? null, () => null),
       ])
+      await actionScope.attest(viewStamp)
       if (!current() || sequence !== request.current || formVersion.current !== observedForm) return
       const record = saved.data?.[0] ?? null
       setCatalog(options.data ?? null); setEntities(names.data ?? { characters: [], scenes: [] }); setDraft(record)
@@ -174,11 +188,11 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
   }
 
   useEffect(() => {
-    setBusy(false); setDraft(null); setPlan(null); setPreflight(null); setJobs([]); setCatalog(null); setDirty(false); setJsonOpen(false); setProfile(null); setProfileError(''); setWirePreview(null); setWireError(''); setWireOpen(false)
+    setBusy(false); setReferenceReady({}); setWorkspaceSetup(null); setDraft(null); setPlan(null); setPreflight(null); setJobs([]); setCatalog(null); setDirty(false); setJsonOpen(false); setProfile(null); setProfileError(''); setWirePreview(null); setWireError(''); setWireOpen(false)
     if (open) void load()
-    else { request.current++; confirmation.current?.destroy(); setBusy(false); setLoading(false) }
-    return () => { request.current++; confirmation.current?.destroy() }
-  }, [projectId, chapterId, open])
+    else { request.current++; setBusy(false); setLoading(false) }
+    return () => { request.current++ }
+  }, [projectId, chapterId, open, actionScope.key])
 
   useEffect(() => {
     nativeOperation.current = false; setNativeIntent(null)
@@ -191,7 +205,7 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
         setNativeIntent(value)
       }
     } catch { setError('无法读取原视频提交记录，请先在任务历史核查是否已经建立任务。') }
-  }, [projectId, chapterId, open])
+  }, [projectId, chapterId, open, actionScope.key])
 
   useEffect(() => {
     if (!open || !draft || !requestedPlanId) return
@@ -211,7 +225,8 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
       if (inFlight) return
       inFlight = true
       const observedRequest = request.current
-      void S.listPlannedShotJobsApiV1ShotPlansProjectsProjectIdPlansPlanIdJobsGet({ projectId, planId }).then(result => {
+      void S.listPlannedShotJobsApiV1ShotPlansProjectsProjectIdPlansPlanIdJobsGet({ projectId, planId }).then(async result => {
+        await actionScope.attest(viewStamp)
         if (!cancelled && current() && observedRequest === request.current) setJobs(result.data ?? [])
       }).catch(() => { /* A manual refresh remains available when status polling fails. */ }).finally(() => { inFlight = false })
     }, 5000)
@@ -219,7 +234,7 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
   }, [projectId, chapterId, open, plan?.id, epoch])
 
   /** Update controlled fields so collapsed sections retain their complete values. */
-  function edit(value: PlanDocument) { formVersion.current++; dirtyNow.current = true; setDocument(value); setDirty(true); setWirePreview(null); setWireError(''); setWireOpen(false) }
+  function edit(value: PlanDocument) { if (!current()) return; actionScope.invalidate(); nativeOperation.current = false; setBusy(false); formVersion.current++; dirtyNow.current = true; setDocument(value); setDirty(true); setWirePreview(null); setWireError(''); setWireOpen(false) }
 
   /** Use the latest actual script's binding set, preserving compatible explicit choices. */
   function chooseScript(id: string | undefined) {
@@ -232,9 +247,11 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
     if (!current()) return
     setBusy(true); setError('')
     try {
+      await actionScope.attest(viewStamp)
       const result = draft
         ? await S.patchShotPlanDraftApiV1ShotPlansProjectsProjectIdDraftsDraftIdPatch({ projectId, draftId: draft.id, requestBody: { expected_revision: draft.revision, document: next } })
         : await S.createShotPlanDraftApiV1ShotPlansProjectsProjectIdDraftsPost({ projectId, requestBody: { chapter_id: chapterId, document: next } })
+      await actionScope.attest(viewStamp)
       if (!current()) return
       formVersion.current++; setDraft(result.data ?? null); setDocument(result.data?.document ?? next); setDirty(false)
       setPreflight(null); setWirePreview(null); setWireError(''); setWireOpen(false); message.success('镜头计划已保存，尚未提交生成')
@@ -247,8 +264,10 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
     if (!current()) return
     setBusy(true); setError('')
     try {
+      await actionScope.attest(viewStamp)
       await S.registerShotPlanAssetApiV1ShotPlansProjectsProjectIdAssetRegistrationsPost({ projectId, requestBody: { kind, entity_id: entityId } })
       const options = await S.getShotPlanCatalogApiV1ShotPlansProjectsProjectIdCatalogGet({ projectId, chapterId })
+      await actionScope.attest(viewStamp)
       if (!current()) return
       setCatalog(options.data ?? null); message.success('已登记资产版本，请在镜头中明确选用')
     } catch (e) { if (current()) setError(explain(e)) }
@@ -260,9 +279,12 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
     if (!current() || !draft || dirty) return
     setBusy(true); setError('')
     try {
+      await actionScope.attest(viewStamp)
       const result = await S.compileShotPlanApiV1ShotPlansProjectsProjectIdDraftsDraftIdCompilePost({ projectId, draftId: draft.id, requestBody: { expected_revision: draft.revision } })
+      await actionScope.attest(viewStamp)
       if (!current() || !result.data) return
       const saved = await S.getShotPlanDraftApiV1ShotPlansProjectsProjectIdDraftsDraftIdGet({ projectId, draftId: draft.id })
+      await actionScope.attest(viewStamp)
       if (!current()) return
       setDraft(saved.data ?? null); await loadPlan(result.data.id); message.success('已锁定镜头计划；生成仍需单独检查与确认')
     } catch (e) { if (current()) setError(explain(e)) }
@@ -301,23 +323,55 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
     if (!current() || nativeOperation.current || intent.projectId !== projectId || intent.chapterId !== chapterId) return
     nativeOperation.current = true; setBusy(true); setError('')
     try {
+      await actionScope.attest(viewStamp)
+      const pending = workspaceStorage.getItem(nativeIntentKey)
+      if (pending && pending !== JSON.stringify(intent)) { setError('本地已有不同的原提交记录，请刷新并核对；没有继续本次提交。'); return }
       workspaceStorage.setItem(nativeIntentKey, JSON.stringify(intent)); setNativeIntent(intent)
       const result = await S.submitPlannedShotApiV1ShotPlansProjectsProjectIdPlansPlanIdShotsShotIdSubmissionsPost({ projectId: intent.projectId, planId: intent.planId, shotId: intent.shotId, requestBody: intent.body })
+      await actionScope.attest(viewStamp)
       if (!current() || !result.data?.job_id) return
-      try { workspaceStorage.removeItem(nativeIntentKey); setNativeIntent(null) } catch { setError('任务已保存，本地记录尚未清除；再次核对仍返回原任务。') }
       const linked = await S.listPlannedShotJobsApiV1ShotPlansProjectsProjectIdPlansPlanIdJobsGet({ projectId: intent.projectId, planId: intent.planId })
+      await actionScope.attest(viewStamp)
       if (!current()) return
       const job = linked.data?.find(item => item.job_id === result.data?.job_id)
+      if (!job) { setError('任务已接收，但暂时无法核对原项目的任务记录；请保留原记录稍后核对。'); return }
       if (planNow.current?.id === intent.planId) setJobs(linked.data ?? [])
+      if (planNow.current?.id === intent.planId && !dirtyNow.current) {
+        // Refresh advisory buttons after the hold changes; original recovery itself never depends on this check.
+        const eligibility = await S.preflightShotPlanApiV1ShotPlansProjectsProjectIdPlansPlanIdPreflightGet({ projectId: intent.projectId, planId: intent.planId }).catch(() => null)
+        await actionScope.attest(viewStamp)
+        if (current() && planNow.current?.id === intent.planId && !dirtyNow.current && eligibility?.data) setPreflight(eligibility.data)
+      }
+      if (!current()) return
       if (job) upsertTask({ taskId: job.task_id, title: '镜头计划执行', status: job.state === 'ready' ? 'succeeded' : ['failed', 'cancelled'].includes(job.state) ? job.state as 'failed' | 'cancelled' : ['queued', 'paused'].includes(job.state) ? 'pending' : 'running', progress: job.state === 'ready' ? 100 : 0, cancelRequested: false, relationType: 'video', relationEntityId: job.shot_id, onNavigate: () => navigate(`/projects/${intent.projectId}/chapters/${intent.chapterId}/studio?plan=${intent.planId}`), onCancel: () => { void cancelJob(intent.projectId, job.job_id) } })
+      try {
+        const pending = workspaceStorage.getItem(nativeIntentKey)
+        if (pending && pending !== JSON.stringify(intent)) setError('任务已保存，但本地原提交记录已变化；请刷新后核对，记录没有被清除。')
+        else { workspaceStorage.removeItem(nativeIntentKey); setNativeIntent(null) }
+      } catch { setError('任务已保存，本地记录尚未清除；再次核对仍返回原任务。') }
       message.success('已取得原视频任务与项目费用预留，可在任务中心查看'); setTaskCenterOpen(true)
     } catch (cause) {
       if (current()) {
-        const status = (cause as { status?: number }).status
-        if (status === 409 || status === 422) { try { workspaceStorage.removeItem(nativeIntentKey); setNativeIntent(null) } catch { /* Keep the exact intent if browser persistence is unavailable. */ } }
-        setError(cause instanceof DOMException ? '浏览器无法保存原提交记录，未发送。' : explain(cause))
+        setError(cause instanceof DOMException ? '浏览器记录或请求未能完整确认，请保留原记录核对任务。' : explain(cause))
       }
     } finally { if (current()) { nativeOperation.current = false; setBusy(false) } }
+  }
+
+  /** Clearing a local recovery identity is a separate acknowledged intent and never cancels tasks or releases unknown fees. */
+  function offerDiscardNativeIntent() {
+    if (!current() || busy || nativeOperation.current || !nativeIntent) return
+    const original = nativeIntent
+    confirm({ title: '核对历史后清除本地提交记录？', content: '请先核对本项目任务历史。这不会撤销已经建立的任务，也不会释放未知费用；清除后再次生成会建立新任务和新预留。', onOk: async () => {
+      if (!current() || nativeOperation.current) return
+      nativeOperation.current = true; setBusy(true)
+      try {
+        await actionScope.attest(viewStamp)
+        const saved = workspaceStorage.getItem(nativeIntentKey)
+        if (saved && saved !== JSON.stringify(original)) { setError('本地原提交记录已变化，请刷新后核对。'); return }
+        workspaceStorage.removeItem(nativeIntentKey); setNativeIntent(null); setError('')
+      } catch (cause) { if (current()) setError(explain(cause)) }
+      finally { if (current()) { nativeOperation.current = false; setBusy(false) } }
+    } })
   }
 
   /** Confirm one fixed-project native call using its fresh full quote and exact balance, then freeze the recovery body. */
@@ -327,20 +381,22 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
     const planId = plan.id, form = formVersion.current, revision = draftNow.current?.revision
     const originalPolicy = (plan.payload as { binding?: { quote_minor?: number } }).binding
     try {
+      await actionScope.attest(viewStamp)
       const setup = (await V.getVideoRuntimeSetup()).data
+      await actionScope.attest(viewStamp)
       if (!current()) return
       setWorkspaceSetup(setup ?? null)
       if (!setup?.running || !setup.managed_model_id || !setup.price_fingerprint || !setup.quote_minor || setup.quote_minor !== originalPolicy?.quote_minor) { setError('当前视频模型或费用与原计划不符，请刷新配置并重新编译计划。'); nativeOperation.current = false; setBusy(false); return }
       const approval = await readProjectCharge(projectId, setup.quote_minor)
+      await actionScope.attest(viewStamp)
       if (!current()) return
       if (!approval.ready) { setError(approval.reason ?? '本项目费用尚未核对'); nativeOperation.current = false; setBusy(false); return }
       if (planNow.current?.id !== planId || dirtyNow.current || formVersion.current !== form || draftNow.current?.revision !== revision) { nativeOperation.current = false; setBusy(false); return }
       const intent: NativeIntent = { schema: 1, projectId, chapterId, planId, shotId: entry.shot_id, projectName: approval.projectName, upperMinor: setup.quote_minor,
         body: { request_key: crypto.randomUUID(), confirm_project_charges: true, expected_price_fingerprint: setup.price_fingerprint } }
       confirm({ title: newIteration ? '重新生成一个视频候选？' : '确认本项目的视频费用？', content: <div><p>费用项目：{approval.projectName}</p><p>本次完整预留：{chargeMoney(intent.upperMinor)}</p><p>核对账单后的可用额度：{chargeMoney(approval.budget.available_after_bills_minor ?? String(approval.budget.available_minor))}</p><p>{newIteration ? '这会创建新任务并新增一次预留，原任务的未知费用仍保留。' : '只使用此项目的预算。候选接收成功后仍需核对实际账单与结果。'}</p></div>,
-        onCancel: () => { confirmation.current = null; if (current()) { nativeOperation.current = false; setBusy(false) } },
+        onCancel: () => { if (current()) { nativeOperation.current = false; setBusy(false) } },
         onOk: async () => {
-          confirmation.current = null
           if (!current()) return
           nativeOperation.current = false; setBusy(false)
           if (planNow.current?.id !== planId || dirtyNow.current || formVersion.current !== form || draftNow.current?.revision !== revision) { message.warning('计划已修改，请重新核对费用。'); return }
@@ -364,14 +420,17 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
       if (planNow.current?.id !== planId || dirtyNow.current || formVersion.current !== confirmedForm || draftNow.current?.revision !== confirmedRevision) { message.warning('计划已切换或修改，请重新核对后确认。'); return }
       setBusy(true); setError('')
       try {
+        await actionScope.attest(viewStamp)
         const storage = `jellyfish:planned-submit:${projectId}:${planId}:${entry.shot_id}`
         const key = replay ? storedKey(entry.shot_id) : crypto.randomUUID()
         if (!key) throw new Error('recovery-key')
         workspaceStorage.setItem(storage, key); setKeyRevision(value => value + 1)
         const result = await S.submitPlannedShotApiV1ShotPlansProjectsProjectIdPlansPlanIdShotsShotIdSubmissionsPost({ projectId, planId, shotId: entry.shot_id, requestBody: { request_key: key } })
+        await actionScope.attest(viewStamp)
         if (!current()) return
         await loadPlan(planId)
         const linked = await S.listPlannedShotJobsApiV1ShotPlansProjectsProjectIdPlansPlanIdJobsGet({ projectId, planId })
+        await actionScope.attest(viewStamp)
         if (!current()) return
         const job = linked.data?.find(item => item.job_id === result.data?.job_id)
         if (job) upsertTask({ taskId: job.task_id, title: '镜头计划执行', status: job.state === 'ready' ? 'succeeded' : ['failed', 'cancelled'].includes(job.state) ? job.state as 'failed' | 'cancelled' : job.state === 'queued' || job.state === 'paused' ? 'pending' : 'running', progress: job.state === 'ready' ? 100 : 0, cancelRequested: false, relationType: 'video', relationEntityId: job.shot_id, onNavigate: () => navigate(`/projects/${projectId}/chapters/${chapterId}/studio?plan=${planId}`), onCancel: () => { void cancelJob(projectId, job.job_id) } })
@@ -402,6 +461,7 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
       <Alert className="mb-3" type="info" showIcon message={preparationOnlyPlan || (seedanceSelected && !workspaceSetup?.running) ? '先锁定输入，再检查请求预览' : '先锁定输入，再逐镜提交'} description="此处检查的是剧本、资产和任务准备。无需账号也可保存和编译准备计划；实际提交须有独立的服务配置与额度，候选结果仍须单独检查和采用，不代表模型质量已通过。" />
       {error && <Alert className="mb-3" type="error" showIcon message={error} />}
       {nativeIntent && <Alert className="mb-3" type="warning" showIcon message="上次视频提交结果尚未核对" description={`核对「${nativeIntent.projectName}」原来确认的 ${chargeMoney(nativeIntent.upperMinor)} 完整预留。使用原计划、原模型与原请求；已经接收时返回原任务。当前编辑内容保留。`} action={<Button disabled={busy} onClick={() => void sendNativeIntent(nativeIntent)}>核对上次视频提交</Button>} />}
+      {nativeIntent && error && <Button className="mb-3" disabled={busy} onClick={offerDiscardNativeIntent}>核对历史后清除本地提交记录</Button>}
       <Space wrap className="mb-3">
         <Button loading={loading} disabled={busy || dirty} onClick={() => void load()}>刷新计划与资料</Button>
         <Link to={`/projects/${projectId}?tab=chapters`}>制作剧本与覆盖</Link>
@@ -409,7 +469,8 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
         <Button onClick={() => setTaskCenterOpen(true)}>打开任务中心</Button>
       </Space>
       {workspaceSetup?.running && !preparationOnlyPlan && <Alert className="mb-3" type="success" showIcon message="本机生成服务已启用，逐镜提交仍需明确确认" description={`${workspaceSetup.output_description} 单次预留：${workspaceSetup.quote_minor == null ? '未知' : (workspaceSetup.quote_minor / 100).toFixed(2) + '元'}。模型质量尚未验收；旧准备计划不会自动获得提交资格。`} />}
-      {profile && (!workspaceSetup?.running || preparationOnlyPlan) && <Card size="small" title="Seedance 2.5 / 准备档案" className="mb-3" data-testid="seedance25-profile">
+      {referenceSelected && !workspaceSetup?.running && <Alert className="mb-3" type="info" message="参考素材准备模式" description="可以准备明确选择的图片、首帧或首尾帧。生成服务尚未启用；费用上限与素材交付条件由管理员另外配置，保存和锁定计划不会调用模型。" />}
+      {profile && !referenceSelected && !referencePlan && (!workspaceSetup?.running || preparationOnlyPlan) && <Card size="small" title="Seedance 2.5 / 准备档案" className="mb-3" data-testid="seedance25-profile">
         <Space wrap className="mb-2"><Tag>仅文生视频</Tag><Tag>生成未启用</Tag><Tag>模型资格未验证</Tag><Tag>报价未知</Tag></Space>
         <p className="mb-2">{profile.model_id} / {profile.min_duration ?? 4} 至 {profile.max_duration ?? 30} 整数秒 / {profile.ratio ?? '9:16'} / {profile.resolution ?? '480p'} / {(profile.output_format ?? 'mp4').toUpperCase()} / {profile.generate_audio ? '生成音频开启' : '生成音频关闭'} / {(profile.watermark ?? true) ? '带水印' : '无水印'}</p>
         <Alert type="info" showIcon message="当前仅准备和检查输入，付费生成尚未启用。" description="此模式不支持首尾帧、图片、视频或音频参考。选定资产版本自带媒体也会作为参考阻断检查，系统不会删除或转换这些素材。连接或任务列表读取成功不能证明模型生成资格。" />
@@ -431,7 +492,7 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
           const binding = bindings.find(item => item.shot_id === shot.shot_id)
           // Draft hints include version-owned media; only the server certifies saved inputs.
           const versionHasMedia = catalog?.versions.some(version => shot.version_ids?.includes(version.version_id) && version.media_count > 0)
-          const referenceBlocked = seedanceSelected && (!!shot.reference_media_ids?.length || !!versionHasMedia)
+          const referenceBlocked = seedanceSelected && !referenceSelected && !shot.video_reference && (!!shot.reference_media_ids?.length || !!versionHasMedia)
           const seconds = binding ? binding.duration_ms / 1000 : null
           const durationBlocked = seedanceSelected && seconds !== null && (!Number.isInteger(seconds) || seconds < (profile?.min_duration ?? 4) || seconds > (profile?.max_duration ?? 30))
           /** Replace only one controlled shot while retaining all collapsed fields. */
@@ -440,12 +501,17 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
             {durationBlocked && <Alert type="warning" message="Seedance 2.5 本片只支持 4–30 整数秒" description="请回制作剧本修订镜头时长并发布新快照；系统不会自动取整或裁切内容。" />}
             {referenceBlocked && <Alert type="warning" message="本片不支持此镜头的参考素材" description="选定资产版本自带媒体或额外参考文件均会阻断文生视频检查。请核对版本和参考选择；当前素材已保留，不会自动删除、转换或忽略。" />}
             <label className="w-full">固定资产版本<Select mode="multiple" aria-label={`镜头${actual?.index ?? index + 1}资产版本`} className="w-full" disabled={busy || loading} value={shot.version_ids} onChange={value => change({ version_ids: value })} options={(catalog?.versions ?? []).filter(version => versionAllowed(version, shot.shot_id)).map(version => ({ value: version.version_id, label: `${kindNames[version.kind] ?? version.kind} / ${version.name} / v${version.revision}` }))} /></label>
-            <label className="w-full">额外参考文件<Select mode="multiple" aria-label={`镜头${actual?.index ?? index + 1}参考文件`} className="w-full" disabled={busy || loading} value={shot.reference_media_ids} onChange={value => change({ reference_media_ids: value })} options={(catalog?.media ?? []).map(media => ({ value: media.id, label: `${media.name} / ${media.mime}` }))} /></label>
+            {referenceSelected || shot.video_reference ? <>
+              {!!shot.reference_media_ids?.length && <Alert type="warning" message="此镜头仍有旧参考列表，请明确清除后使用新的参考方式" action={<Button disabled={busy || loading} onClick={() => change({ reference_media_ids: [] })}>清除旧参考列表</Button>} />}
+              <VideoReferencePicker key={`${actionScope.key}:${draft.id}:${draft.revision}:${shot.shot_id}`} projectId={projectId} context={`${chapterId}:${shot.shot_id}:${open}:${actionScope.key}`} value={shot.video_reference} disabled={busy || loading} videoAvailable={!!workspaceSetup?.reference_video_delivery_available}
+                onChange={video_reference => change({ video_reference })} onReady={ready => setReferenceReady(previous => previous[shot.shot_id] === ready ? previous : { ...previous, [shot.shot_id]: ready })} />
+              {!referenceSelected && <Button disabled={busy || loading} onClick={() => change({ video_reference: null })}>清除此镜头参考选择，切回当前模型模式</Button>}
+            </> : <label className="w-full">额外参考文件<Select mode="multiple" aria-label={`镜头${actual?.index ?? index + 1}参考文件`} className="w-full" disabled={busy || loading} value={shot.reference_media_ids} onChange={value => change({ reference_media_ids: value })} options={(catalog?.media ?? []).map(media => ({ value: media.id, label: `${media.name} / ${media.mime}` }))} /></label>}
             <label className="w-full">镜头补充要求<Input.TextArea aria-label={`镜头${actual?.index ?? index + 1}补充要求`} rows={3} maxLength={4000} disabled={busy || loading} value={shot.prompt_addition} onChange={event => change({ prompt_addition: event.target.value })} placeholder="补充动作、构图等要求；原剧情和对白仍会由系统保留" /></label>
           </Space> }
         })} />
         <Space wrap className="mb-3">
-          <Button type="primary" disabled={busy || loading} onClick={() => void save()}>保存镜头计划</Button>
+          <Button type="primary" disabled={busy || loading || !referencesReady} onClick={() => void save()}>保存镜头计划</Button>
           <Button disabled={busy || dirty || !draft.readiness.can_compile} onClick={() => void compile()}>编译并锁定计划</Button>
           <Button disabled={busy || dirty} onClick={() => download({ document: draft.document }, 'shot-plan-inputs.json')}>导出已保存参数</Button>
           <label>导入计划JSON <input aria-label="导入镜头计划JSON" type="file" accept="application/json,.json" disabled={busy || dirty} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void importJson(file) }} /></label>
@@ -456,10 +522,10 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
         {!!draft.plans.length && <Card size="small" title="2. 已锁定计划与镜头任务">
           <Space wrap className="mb-3"><Select aria-label="已锁定镜头计划" style={{ minWidth: 280 }} disabled={busy} value={plan?.id} options={draft.plans.map(item => ({ value: item.id, label: `草稿修订${item.draft_revision} / ${item.content_hash.slice(0, 10)} / ${item.model_bound ? '已固定模型配置' : '未绑定模型'}` }))} onChange={value => { setBusy(true); void loadPlan(value).catch(e => { if (current()) setError(explain(e)) }).finally(() => { if (current()) setBusy(false) }) }} /><Button disabled={!plan || busy} onClick={() => { if (plan) download(plan, 'compiled-shot-plan.json') }}>下载计划JSON</Button><Button disabled={!plan} onClick={() => setJsonOpen(true)}>查看固定输入</Button><Button disabled={!plan || busy} onClick={() => { if (plan) { setBusy(true); void loadPlan(plan.id).catch(e => { if (current()) setError(explain(e)) }).finally(() => { if (current()) setBusy(false) }) } }}>复查与刷新任务</Button></Space>
           {preflight && <Alert className="mb-3" type={preparationOnlyPlan && preflight.usable ? 'info' : preflight.can_submit ? 'success' : 'warning'} message={!preflight.usable ? '当前计划已失配，请修订后重新编译' : preparationOnlyPlan ? '内容准备可用，生成未启用' : preflight.can_submit ? '当前可逐镜提交，仍需单独确认' : '内容准备可用，生成服务条件未满足'} description={[...preflight.issues, ...preflight.runtime_issues].map(issueLabel).join('；')} />}
-          {wireError && <Alert className="mb-3" type="warning" message="未取得 Seedance 2.5 实际请求预览" description={wireError} />}
-          {currentPreview && <Card size="small" title="Seedance 2.5 / 实际请求预览" className="mb-3" data-testid="seedance25-preview-summary">
-            <Alert type={currentPreview.can_prepare ? 'success' : 'warning'} className="mb-2" message={currentPreview.can_prepare ? '本模式的软件输入检查通过；尚未提交生成' : '本计划不能形成当前配置的请求'} description={previewIssues.length ? <List size="small" dataSource={previewIssues} renderItem={issue => <List.Item>{issueLabel(issue)}</List.Item>} /> : preparationOnlyPlan ? '生成未启用，模型资格未验证。此预览和下载仅供检查，不会创建任务或预留费用。' : '此预览不会创建任务、预留费用或授予模型质量资格；提交条件由服务器独立校验。'} />
-            <Space wrap><Button disabled={busy || dirty} onClick={() => setWireOpen(true)}>查看实际请求预览</Button><Button disabled={busy || dirty} onClick={() => download(currentPreview, 'seedance25-preparation-preview.json')}>下载准备预览JSON</Button><span className="text-xs text-gray-500" title={currentPreview.content_hash}>计划 {currentPreview.content_hash.slice(0, 12)}</span>{currentPreview.wire_hash && <span className="text-xs text-gray-500" title={currentPreview.wire_hash}>请求 {currentPreview.wire_hash.slice(0, 12)}</span>}</Space>
+          {wireError && <Alert className="mb-3" type="warning" message="未取得 Seedance 2.5 输入预览" description={wireError} />}
+          {currentPreview && <Card size="small" title={referencePlan ? 'Seedance 2.5 / 参考输入摘要' : 'Seedance 2.5 / 实际请求预览'} className="mb-3" data-testid="seedance25-preview-summary">
+            <Alert type={currentPreview.can_prepare ? 'success' : 'warning'} className="mb-2" message={currentPreview.can_prepare ? referencePlan ? '计划和素材记录检查通过；实际解码在接受任务前完成' : '本模式的软件输入检查通过；尚未提交生成' : '本计划不能形成当前配置的请求'} description={previewIssues.length ? <List size="small" dataSource={previewIssues} renderItem={issue => <List.Item>{issueLabel(issue)}</List.Item>} /> : referencePlan ? '此处展示素材身份、用途和顺序；图片内容与视频临时交付地址不进入预览。预览不会调用模型或预留费用，实际画面质量仍需另行验收。' : preparationOnlyPlan ? '生成未启用，模型资格未验证。此预览和下载仅供检查，不会创建任务或预留费用。' : '此预览不会创建任务、预留费用或授予模型质量资格；提交条件由服务器独立校验。'} />
+            <Space wrap><Button disabled={busy || dirty} onClick={() => setWireOpen(true)}>{referencePlan ? '查看参考输入摘要' : '查看实际请求预览'}</Button><Button disabled={busy || dirty} onClick={() => download(currentPreview, 'seedance25-preparation-preview.json')}>下载准备预览JSON</Button><span className="text-xs text-gray-500" title={currentPreview.content_hash}>计划 {currentPreview.content_hash.slice(0, 12)}</span>{currentPreview.wire_hash && <span className="text-xs text-gray-500" title={currentPreview.wire_hash}>请求 {currentPreview.wire_hash.slice(0, 12)}</span>}</Space>
           </Card>}
           <Table<Entry> rowKey="shot_id" dataSource={entries} pagination={false} scroll={{ x: 650 }} columns={[
             { title: '镜头', render: (_, entry) => catalog?.shots.find(shot => shot.id === entry.shot_id)?.title ?? entry.shot_id },
@@ -470,13 +536,13 @@ export function ShotPlanPanel({ projectId, chapterId, open, requestedPlanId, onC
         </Card>}
       </>}
       <Modal title="固定的镜头执行输入" open={jsonOpen} footer={null} width={900} onCancel={() => setJsonOpen(false)}><ReadOnlyJson value={plan} /></Modal>
-      <Modal title={preparationOnlyPlan ? 'Seedance 2.5 实际请求预览（仅准备）' : 'Seedance 2.5 实际请求预览（只读）'} open={wireOpen && !!currentPreview} footer={null} width={900} onCancel={() => setWireOpen(false)}>
+      <Modal title={referencePlan ? 'Seedance 2.5 参考输入摘要（只读）' : preparationOnlyPlan ? 'Seedance 2.5 实际请求预览（仅准备）' : 'Seedance 2.5 实际请求预览（只读）'} open={wireOpen && !!currentPreview} footer={null} width={900} onCancel={() => setWireOpen(false)}>
         <Alert type="info" className="mb-3" message="只读预览，尚未提交生成" description={preparationOnlyPlan ? '以下内容来自当前不可变计划；模型资格未验证，生成未启用。下载 JSON 不会执行请求。' : '以下内容来自当前不可变计划与受信本机配置；下载不提交请求，不授予模型质量资格。'} />
         {currentPreview && !!currentPreview.issues.length && <Alert type="warning" className="mb-3" message="当前计划预览已阻断" description={<List size="small" dataSource={currentPreview.issues} renderItem={issue => <List.Item>{issueLabel(issue)}</List.Item>} />} />}
         {currentPreview?.entries.map(entry => <Card size="small" className="mb-3" key={entry.shot_id} title={catalog?.shots.find(shot => shot.id === entry.shot_id)?.title ?? entry.shot_id}>
           <p className="text-xs text-gray-500 mb-2" title={entry.entry_hash}>镜头 {entry.shot_id} / 输入 {entry.entry_hash.slice(0, 12)}</p>
           {!!entry.issues.length && <Alert type="warning" className="mb-2" message="本镜头请求已阻断" description={<List size="small" dataSource={entry.issues} renderItem={issue => <List.Item>{issueLabel(issue)}</List.Item>} />} />}
-          {entry.body ? <ReadOnlyJson value={entry.body} /> : <p>没有可预览的请求。请按检查结果修订并保存，再编译新计划。</p>}
+          {entry.body ? <ReadOnlyJson value={entry.body} /> : 'request_summary' in entry && entry.request_summary ? <ReadOnlyJson value={entry.request_summary} /> : <p>没有可预览的请求。请按检查结果修订并保存，再编译新计划。</p>}
         </Card>)}
       </Modal>
     </div>

@@ -15,16 +15,16 @@ class ModelPriceRegistry:
         self.issue=issue
         self.rules={(kind,rule.quote.model_id):rule.quote for rule in self.configuration.rules for kind in rule.kinds}
 
-    def required(self,kind,model_id):
+    def required(self,kind,model_id,*,input_protocol=None):
         """Reject unpriced, disabled or wrong-protocol execution before job admission."""
         quote=self.rules.get((kind,model_id)) if self.configuration.enabled else None
-        if quote is None or quote.model_name is None:
+        if quote is None or quote.model_name is None or quote.input_protocol!=input_protocol:
             raise HTTPException(503,'此模型尚未登记本调用协议的受信费用上界，未创建收费任务')
         return quote
 
-    def confirmed(self,kind,model_id,expected_fingerprint):
+    def confirmed(self,kind,model_id,expected_fingerprint,*,input_protocol=None):
         """Require the exact displayed server envelope; a caller fingerprint never supplies an amount."""
-        quote=self.required(kind,model_id)
+        quote=self.required(kind,model_id,input_protocol=input_protocol) if input_protocol is not None else self.required(kind,model_id)
         if quote.fingerprint!=expected_fingerprint:
             raise HTTPException(409,'模型费用配置已变化，请刷新并重新确认本次完整预留')
         return quote

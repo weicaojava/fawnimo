@@ -283,8 +283,9 @@ class DurableExecution:
                         descriptor=await self.native_accounting.prepare(job,token,proof,self.clock)
                         attempt_id=descriptor['attempt_id'];transport=self.native_accounting.transport(descriptor,job.id,attempt_id)
                     else:attempt_id=await self._prepare_submission(job,token,proof)
-                except HTTPException:
-                    if self.native_accounting is None:await self._cancel_stale_plan(job.id,token)
+                except HTTPException as error:
+                    from app.services.worker.video_reference_inputs import NativeReferenceInputError
+                    if self.native_accounting is None or isinstance(error,NativeReferenceInputError):await self._cancel_stale_plan(job.id,token)
                     else:await self._update(job.id,token,reason='native_project_fees_unavailable',next_due=self.clock()+30)
                     return
                 if attempt_id is None:return

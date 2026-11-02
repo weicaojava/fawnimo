@@ -207,6 +207,8 @@ app.add_middleware(
 )
 
 app.include_router(api_v1_router, prefix=settings.api_v1_prefix)
+from app.api.v1.routes.execution_reference_media import hide_reference_delivery_tokens
+app.middleware('http')(hide_reference_delivery_tokens)
 from app.api.local_example_rpc import router as local_example_rpc_router
 app.include_router(local_example_rpc_router)
 # 影视技能路由同时挂到主应用，保证 /api/v1/film 一定可访问

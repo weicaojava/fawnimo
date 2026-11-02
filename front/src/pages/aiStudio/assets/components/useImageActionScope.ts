@@ -43,7 +43,7 @@ export function useImageActionScope(context: string) {
       const response = await IdentityService.meApiV1IdentityMeGet()
       ensure(stamp)
       if (!response.data || response.data.user.id !== stamp.identity.userId || response.data.workspace_id !== stamp.identity.workspaceId) {
-        throw new Error('登录身份或个人空间已变化，请刷新后核对原图片任务')
+        throw new Error('登录身份或个人空间已变化，请刷新后核对原任务')
       }
     }
     ensure(stamp)

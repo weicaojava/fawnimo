@@ -12,4 +12,6 @@ def binding_fingerprint(policy: 'AdmissionPolicy') -> str:
         raise ValueError('Trusted binding version identifier required')
     cap=policy.capability
     config={'binding_id':policy.binding_id,'model_id':cap.model_id,'durations':sorted(cap.durations),'reference_kinds':sorted(cap.reference_kinds),'max_references':cap.max_references,'quote_minor':policy.quote_minor,'currency':policy.currency,'iteration_limit':policy.iteration_limit}
+    if cap.reference_protocol is not None:
+        config['reference_protocol']=cap.reference_protocol
     return hashlib.sha256(json.dumps(config,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode('utf8')).hexdigest()

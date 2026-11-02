@@ -14,6 +14,7 @@ class ModelPriceEnvelope(BaseModel):
     model_config = ConfigDict(extra='forbid',str_strip_whitespace=True,frozen=True)
     model_id: str = Field(min_length=1,max_length=64)
     model_name: str | None = Field(default=None,min_length=1,max_length=255)
+    input_protocol: Literal['seedance25_reference_v1'] | None = None
     provider_id: str = Field(min_length=1,max_length=64)
     provider_connection_version: StrictInt = Field(ge=0,le=9223372036854775806)
     account_version: str = Field(pattern=r'^[A-Za-z0-9_-]{1,128}$')
@@ -27,6 +28,8 @@ class ModelPriceEnvelope(BaseModel):
         data=handler(self)
         if self.model_name is None:
             data.pop('model_name',None)
+        if self.input_protocol is None:
+            data.pop('input_protocol',None)
         return data
 
     @property
@@ -66,6 +69,8 @@ class ModelPriceRule(BaseModel):
         """A protocol/model pair cannot obtain ambiguous competing quotes."""
         if len(self.kinds)!=len(set(self.kinds)):
             raise ValueError('Duplicate model call kinds')
+        if self.quote.input_protocol is not None and self.kinds != ['native_video']:
+            raise ValueError('Reference input pricing must explicitly scope only native_video')
         return self
 
 

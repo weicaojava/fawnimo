@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-11-02T11:36:06.938013+00:00",
+  "scope": "Subsequent exact-publication software CI and existing generic container checks; earlier pre-publication receipt unchanged",
+  "qualified_source_commit": "4a38df905dd5fe27214437dd6586c3bafc30a8f1",
+  "tree": "d883f93fb41e430cba734c425784905eaac92059",
+  "verification_ci": {
+    "run_id": 41435938309,
+    "url": "https://github.com/weicaojava/fawnimo/actions/runs/41435938309",
+    "conclusion": "success",
+    "backend_job_id": 125245593386,
+    "frontend_job_id": 125245594079,
+    "backend_passed": 938,
+    "backend_skipped": 1,
+    "historical_upgrade_deselected": 2,
+    "backend_seconds": 768.29,
+    "register_checks_passed": 23,
+    "frontend_modules": 3216,
+    "frontend_vite_seconds": 6.26,
+    "typecheck_and_build_passed": true,
+    "count_note": "One skipped case and two excluded private historical M4B upgrades are not counted as passes. Quiet log records counts, not the skipped case name. Local228 and independent50/private8/React6+7+3 are separate overlapping subsets, never added."
+  },
+  "container_ci": {
+    "run_id": 41435938246,
+    "url": "https://github.com/weicaojava/fawnimo/actions/runs/41435938246",
+    "job_id": 125245593471,
+    "conclusion": "success",
+    "image_id": "sha256:0f6a4a1206272d72a032f559cebc93391f57fe15618d061531679b1e2a9c9200",
+    "checks_passed": 40,
+    "cleanup_verified": true,
+    "artifact_id": 13136930661,
+    "artifact_sha256": "a942ac5735c641810ef0c8f0847c0b6d44697a77ce53b46744519f598b8b8346",
+    "report_sha256": "a964a8b19e27c7855e726c1bf53ad39fe3f0d0b4b1e2e85baab90bca83539d5b",
+    "count_note": "Existing generic40 Compose identity/data/budget/legacy-text-demo/persistence assertions. They do not execute the new Seedream/reference-image pipeline or original media-example renderer in the container."
+  },
+  "source_review_sha256": "aba54b34b29c219ec86466b672a31970d1d5c51eaf6ef6f1c9c143666b8848f1",
+  "metadata_review_sha256": "f29e6042ccdd4f47a3e5fd0b4682c990a8187b6f2c31270877fc0f0172d05478",
+  "logs_sha256": {
+    "backend-ci.log": "d90f96ddf333316290f8e17b493b214ae7afd6dae52562af7586a621d27d416a",
+    "frontend-ci.log": "9bcbe8919ffc203bf454d62cf78468576e8a54a6f5c9236e1af777aadfd42bf2",
+    "container-ci.log": "038f1d286b6a0c28d7c6364dbbb507c5281021557dae157b9ec21a031289b4ec"
+  },
+  "independent_ci_receipt_review": {
+    "status": "passed_for_bounded_reference_image_published_ci",
+    "sha256": "c27c032f8c793f847fb6c0de055d9a1af99115dd426a0d07347c97ed4ac63c7f",
+    "checks": 31,
+    "scope": "Exact published commit,3 CI jobs/logs and artifact only; no application/browser/container rerun or additional qualification"
+  },
+  "feature_implementation": "partial",
+  "feature_id": "F-006.03",
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "external_cdn_download_qualified": false,
+  "model_quality_qualified": false,
+  "provider_billing_qualified": false,
+  "full_paid_execution_isolation_qualified": false,
+  "complete_film_qualified": false,
+  "public_deployment_verified": false,
+  "historical_private_upgrade_qualified": false,
+  "overall_goal_complete": false,
+  "event": "Subsequent independent review of exact-head CI; prior pending event and pre-publication receipt unchanged"
+}

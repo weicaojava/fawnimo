@@ -311,7 +311,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 软件回归目标：`backend/tests/test_asset_image_references.py`、`backend/tests/test_asset_image_generation.py`、`backend/tests/test_image_project_accounting.py`。
 
-验收限制：明确声明的Seedream单张v4/v5协议，原项目最多3张PNG/JPEG；固定模型/尺寸，参考证明与费用同事务密封。；base64及受限URL软件边界已实现；URL正向仅受控传输验证，实际外部CDN、真实模型质量与账单未验收。；实际浏览器为单独操作者和自作本地服务；身份收费门禁保持关闭，不授予完整收费A/B或公网资格。；其他参考模型/返回协议、视频参考和人物一致性仍待独立实现及验收，因此整项部分实现。。
+验收限制：明确声明的Seedream单张v4/v5协议，原项目最多3张PNG/JPEG；固定模型/尺寸，参考证明与费用同事务密封。；base64及受限URL软件边界已实现；URL正向仅受控传输验证，实际外部CDN、真实模型质量与账单未验收。；实际浏览器为单独操作者和自作本地服务；身份收费门禁保持关闭，不授予完整收费A/B或公网资格。；其他参考模型/返回协议，以及视频参考的其余协议、真实模型/远程交付和人物一致性仍待验；已声明Seedance视频参考的软件范围见F-007.05。本图片参考项仍为部分实现。。
 
 ## F-007 视频执行与质量
 
@@ -361,12 +361,14 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 ### F-007.05 参考图/首尾帧/参考视频与更多供应商
 
-入口：`尚无入口`，尚无可验收入口。当前：待实现 / 未验收 / 未部署。
+入口：`/projects/:projectId/chapters/:chapterId/studio`，镜头执行计划：显式参考图片/视频、首帧或首尾帧。当前：部分实现 / 本阶段已验证 / 仅本机。
 
 1. 每种协议按能力声明发送真实条件媒体；不支持的输入提交前拒绝
 2. 验证不可变连接版本、返回协议、预算和实际供应商响应与账单
 
-验收限制：不能以资产已有图片推断供应商已经接收参考输入。
+软件回归目标：`backend/tests/test_seedance_reference_payload.py`、`backend/tests/test_verified_reference_video.py`、`backend/tests/test_video_reference_inputs.py`、`backend/tests/test_video_reference_admission_contract.py`、`backend/tests/test_video_reference_schema.py`、`backend/tests/test_seedance_reference_transport.py`、`backend/tests/test_reference_media_delivery.py`、`backend/tests/test_video_reference_prices.py`、`backend/tests/test_native_video_references.py`、`backend/tests/test_video_reference_plans.py`。
+
+验收限制：当前仅独立seedance25_reference_v1及准确Seedance2.5名称，PNG/JPEG及有界实际MP4，不接受任意参数或静默回退。；新参考单镜头准入，单独标记完整native_video报价与原job同一份预留，旧文本协议和已接受任务控制保留。；参考视频交付仅默认API-v1独立工作室；固定身份worker未接该入口，收费网关继续关闭。；自作本地HTTP和单独操作者浏览器只验证软件；真实供应商/远程取素材/账单、人物一致性、音频及更多协议、完整收费隔离和公网仍待验，整项部分实现。。
 
 ### F-007.06 真实模型与完整短视频联合验收
 
@@ -670,7 +672,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 软件回归目标：`scripts/tests/test_workspace_container_verifier.py`。
 
-验收限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。；后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。。
+验收限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。；后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。；4a38精确CI938通过、前端和既有容器40项/清理及独立31另行记录；不将通用容器文字检查当作新参考协议的容器验收。。
 
 ### F-014.03 公网实机、交付账号与关键制作链验收
 

@@ -76,6 +76,11 @@ jobs:
           tests/test_native_video_model_connections.py
           tests/test_native_video_project_accounting.py tests/test_native_video_planned_accounting.py
           tests/test_native_video_http_accounting.py tests/test_native_video_cancellation.py tests/test_native_video_api.py
+          tests/test_seedance_reference_payload.py tests/test_seedance_reference_transport.py
+          tests/test_verified_reference_video.py tests/test_video_reference_inputs.py
+          tests/test_video_reference_admission_contract.py tests/test_video_reference_schema.py
+          tests/test_video_reference_prices.py tests/test_reference_media_delivery.py
+          tests/test_native_video_references.py tests/test_video_reference_plans.py
           tests/test_durable_execution.py tests/test_execution_schema.py
           tests/test_execution_dispatcher.py tests/test_execution_runtime.py
           tests/test_execution_artifacts.py tests/test_execution_http_integration.py

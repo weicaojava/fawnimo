@@ -14,5 +14,6 @@ export type PlanModelOption = {
     currency: string;
     iteration_limit: number;
     binding_hash: string;
+    reference_protocol?: (string | null);
 };
 

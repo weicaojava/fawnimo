@@ -3,6 +3,7 @@ from typing import Annotated,Literal
 from pydantic import BaseModel,ConfigDict,Field,StrictInt
 from app.core.contracts.script_preparation import ScriptDocument
 from app.core.contracts.native_video_accounting import NativeVideoConfirmation
+from app.core.contracts.seedance_references import VideoReferenceSelection
 
 ID=Annotated[str,Field(pattern=r'^[a-zA-Z0-9_-]{1,64}$')]
 
@@ -17,6 +18,7 @@ class PlanShotInput(StrictInput):
     shot_id:ID
     version_ids:list[ID]=Field(default_factory=list,max_length=32)
     reference_media_ids:list[ID]=Field(default_factory=list,max_length=32)
+    video_reference:VideoReferenceSelection|None=None
     prompt_addition:str=Field('',max_length=4000)
 
 
@@ -160,6 +162,7 @@ class PlanModelOption(StrictInput):
     currency:str
     iteration_limit:int
     binding_hash:str
+    reference_protocol:Literal['seedance25_reference_v1']|None=None
 
 
 class PlanCatalog(StrictInput):
