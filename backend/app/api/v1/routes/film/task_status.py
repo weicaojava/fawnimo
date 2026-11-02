@@ -197,10 +197,26 @@ async def cancel_task(
     task = await db.get(GenerationTask, task_id)
     if task is not None and task.task_kind == 'durable_execution':
         raise HTTPException(409, '此任务请在所属工程的执行任务面板请求取消，需保留远端确认状态')
+    if task is not None and task.task_kind == 'local_speech':
+        from sqlalchemy.ext.asyncio import async_sessionmaker
+        from app.models.local_speech import LocalSpeechJob
+        from app.services.editing.local_speech import cancel_job
+        job = await db.scalar(select(LocalSpeechJob).where(LocalSpeechJob.task_id == task_id))
+        if job is None: raise HTTPException(409, '本地配音任务来源不完整')
+        identifier, project_id = job.id, job.project_id
+        factory = async_sessionmaker(db.bind, expire_on_commit=False)
+        await db.rollback()
+        outcome = await cancel_job(factory, project_id, identifier)
+        db.expire_all()
+        task = await db.get(GenerationTask, task_id)
+        return success_response(TaskCancelRead(task_id=task_id, status=task.status, cancel_requested=task.cancel_requested, cancel_requested_at_ts=task.cancel_requested_at.timestamp() if task.cancel_requested_at else None, effective_immediately=outcome['state']=='cancelled'))
     if task is not None and task.task_kind == 'local_export':
         # Local export owns the process and fence; never Celery-revoke its UI row.
         from sqlalchemy.ext.asyncio import async_sessionmaker
-        if task.executor_type == 'local_editing_v2':
+        if task.executor_type == 'local_sound_v3':
+            from app.models.sound_timeline import SoundExportJob as EditExportJob
+            from app.services.editing.sound_exports import cancel_export
+        elif task.executor_type == 'local_editing_v2':
             from app.models.editing_v2 import TransitionExportJob as EditExportJob
             from app.services.editing.transition_exports import cancel_export
         else:

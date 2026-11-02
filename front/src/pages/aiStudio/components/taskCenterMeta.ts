@@ -53,6 +53,13 @@ async function resolveTaskMeta(task: TaskUiItem): Promise<ResolvedTaskMeta | nul
   const relationType = task.navigateRelationType ?? task.relationType
   const relationEntityId = task.navigateRelationEntityId ?? task.relationEntityId
 
+  // Keep speech and sound export details in the owned chapter sound panel.
+  if (['local_speech', 'sound_export'].includes(task.resourceType ?? '') && relationType === 'chapter' && relationEntityId) {
+    const result = await StudioChaptersService.getChapterApiV1StudioChaptersChapterIdGet({ chapterId: relationEntityId })
+    const chapter = result.data
+    return chapter ? { sourceLabel: `声音：${chapter.title}`, navigateTo: `/projects/${encodeURIComponent(chapter.project_id)}/editor?chapter=${encodeURIComponent(chapter.id)}&sound=1#sound-timeline` } : null
+  }
+
   // A local export belongs to an actual chapter; restore its editor link after refresh.
   if (task.resourceType === 'local_export' && relationType === 'chapter' && relationEntityId) {
     const result = await StudioChaptersService.getChapterApiV1StudioChaptersChapterIdGet({ chapterId: relationEntityId })
@@ -224,7 +231,9 @@ export function useResolvedTaskCenterTasks(
         const meta = key ? metaMap[key] : undefined
         return {
           ...task,
-          sourceLabel: task.sourceLabel ?? meta?.sourceLabel ?? null,
+          sourceLabel: ['local_speech', 'sound_export'].includes(task.resourceType ?? '')
+            ? meta?.sourceLabel ?? task.sourceLabel ?? null
+            : task.sourceLabel ?? meta?.sourceLabel ?? null,
           onNavigate:
             task.onNavigate ??
             (meta?.navigateTo

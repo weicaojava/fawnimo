@@ -82,6 +82,7 @@ class Settings(BaseSettings):
     production_probe_executable: str = ""
     reverse_analysis_enabled: bool = True
     editing_export_enabled: bool = True
+    local_speech_enabled: bool = True
     reverse_media_allowed_hosts: str = ""
     # Explicit server-owned video execution configuration; omitted means preparation only.
     video_runtime_config: str | None = None

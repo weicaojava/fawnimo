@@ -104,6 +104,8 @@ async def init_db() -> None:
     import app.models.agent_execution  # noqa: F401
     import app.models.video_understanding  # noqa: F401
     import app.models.editing_v2  # noqa: F401
+    import app.models.sound_timeline  # noqa: F401
+    import app.models.local_speech  # noqa: F401
     import app.models.asset_image_generation  # noqa: F401
     import app.models.asset_image_inputs  # noqa: F401
     import app.models.provider_connection_version  # noqa: F401
@@ -149,6 +151,10 @@ async def init_db() -> None:
         await migrate_shot_graph(engine)
         from app.services.editing.transition_schema import migrate_transitions
         await migrate_transitions(engine)
+        from app.services.editing.sound_schema import migrate_sound
+        await migrate_sound(engine)
+        from app.services.editing.local_speech_schema import migrate_local_speech
+        await migrate_local_speech(engine)
         from app.services.asset_image_generation import migrate_asset_image_generation
         await migrate_asset_image_generation(engine)
         from app.services.worker.project_budget_schema import migrate_project_budget

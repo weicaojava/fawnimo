@@ -68,3 +68,5 @@ description: "SQLite项目费用基础、固定连接版本、人工账单证据
 自作本机模型回归继续使用原来的六类费用kind，不增加费用类型。各独立夹具分别验证文本/图片未知55、原生接收/查询再预留25、视觉/ASR再预留18；这些金额不属于同一个共享账号或真实供应商账单。正向请求均走私有测试worker，公开收费503不变，明细见 `capabilities/workspace-local-models-validation.json`。
 
 新视频参考仍使用native_video，但报价须明确input_protocol=seedance25_reference_v1并覆盖最大3图、1视频、30秒；旧文字报价不授权参考调用。typed输入完整证明与真实job及原财务批次同事务封存，未发送素材变化可释放原未发送预留，已prepared费用仍未知。见[参考输入](../video-reference-inputs/)。
+
+Windows已安装系统声音使用独立windows_sapi_pcm_v1本地任务，外部费用固定0，不属于六类付费kind、不占项目预留，也不读取云密钥。原对白文字、说话人、所选本机声音和语速固定在原任务，结果只是未采用候选。它不授权云配音/生成式音效或音乐，见[声音时间线](../sound-timeline/)。

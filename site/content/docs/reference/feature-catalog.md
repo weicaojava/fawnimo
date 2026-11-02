@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-11-02.5`，更新日期：2026-11-02。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-11-03.1`，更新日期：2026-11-03。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-项目隔离及独立预算保留；六类费用kind、AI剧本候选、原创可导出示例、已声明Seedream参考图和独立Seedance参考/首尾帧的软件流程可用。全部收费身份、更多协议/必要声音、真实模型/成片、社区研发及公网仍待完成。
+项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。
 
-视频参考根200/独立200与私补5分别继承未变后端，不合计；最终前端19独立补测、当前App浏览器及构建通过，恢复P2关闭。4a38后续CI及通用容器范围独立补记。46已实现/8部分/10计划，current17与longterm1；费用授权0，公网和完整平台未交付。
+声音相关325项与声音/交叉淡化52项在各自锁定版本执行，不合计；最终前端3219构建、接口249/589一致性及真实浏览器恢复/混音/下载/重启通过。作者审阅，不称独立审核。8ccd后续CI1050/1跳过/2历史未选及通用容器40项单列。46已实现/9部分/9计划，current17与longterm1；费用授权0，公网和完整平台未交付。
 
 ## F-001 身份与工作空间
 
@@ -528,7 +528,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 限制：当前仅独立seedance25_reference_v1及准确Seedance2.5名称，PNG/JPEG及有界实际MP4，不接受任意参数或静默回退。；新参考单镜头准入，单独标记完整native_video报价与原job同一份预留，旧文本协议和已接受任务控制保留。；参考视频交付仅默认API-v1独立工作室；固定身份worker未接该入口，收费网关继续关闭。；自作本地HTTP和单独操作者浏览器只验证软件；真实供应商/远程取素材/账单、人物一致性、音频及更多协议、完整收费隔离和公网仍待验，整项部分实现。。
 
-验证依据：`EV-VIDEO-REFERENCE-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-VIDEO-REFERENCE-LOCAL`、`EV-VIDEO-REFERENCE-PUBLISHED-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -670,7 +670,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | [F-010.01 v1硬切编辑、采用CAS与不可变时间线](#f-010-01) | 已实现 | 历史软件基线通过 | 不适用 | 仅本机 | /projects/:projectId/editor · 剪辑页v1 |
 | [F-010.02 v2交叉淡化与原音频混合](#f-010-02) | 已实现 | 历史软件基线通过 | 不适用 | 仅本机 | /projects/:projectId/editor · 独立v2转场编辑 |
 | [F-010.03 MP4、SRT/VTT及来源ZIP实际导出](#f-010-03) | 已实现 | 历史软件基线通过 | 不适用 | 仅本机 | /projects/:projectId/editor · 本地导出任务与下载 |
-| [F-010.04 独立配音/音效与声音时间线](#f-010-04) | 待实现 | 未验收 | 未验收 | 未部署 | 尚无入口 · 尚无可验收入口 |
+| [F-010.04 独立配音/音效与声音时间线](#f-010-04) | 部分实现 | 本阶段已验证 | 未验收 | 仅本机 | /projects/:projectId/editor · 章节剪辑 → 声音时间线 |
 
 <a id="f-010-01"></a>
 
@@ -718,11 +718,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-010.04 独立配音/音效与声音时间线
 
-需求：R-001, R-010；验收阶段：D；范围：本阶段交付；实现版本：`未实现`；发布版本：`未发布`。
+需求：R-001, R-010；验收阶段：D；范围：本阶段交付；实现版本：`source-tree-e4528e867bf4`；发布版本：`未发布`。
 
-限制：当前仅源音频保留/混合与静音；尚无独立配音/音效生成流水线。
+代码：[`backend/app/config.py`](../../../../backend/app/config.py)、[`backend/app/main.py`](../../../../backend/app/main.py)、[`backend/app/api/v1/__init__.py`](../../../../backend/app/api/v1/__init__.py)、[`backend/app/api/v1/routes/film/task_status.py`](../../../../backend/app/api/v1/routes/film/task_status.py)、[`backend/app/core/db.py`](../../../../backend/app/core/db.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`backend/app/api/sound_timeline.py`](../../../../backend/app/api/sound_timeline.py)、[`backend/app/core/contracts/local_speech.py`](../../../../backend/app/core/contracts/local_speech.py)、[`backend/app/core/contracts/sound_timeline.py`](../../../../backend/app/core/contracts/sound_timeline.py)、[`backend/app/models/local_speech.py`](../../../../backend/app/models/local_speech.py)、[`backend/app/models/sound_timeline.py`](../../../../backend/app/models/sound_timeline.py)、[`backend/app/services/editing/local_speech.ps1`](../../../../backend/app/services/editing/local_speech.ps1)、[`backend/app/services/editing/local_speech.py`](../../../../backend/app/services/editing/local_speech.py)、[`backend/app/services/editing/local_speech_engine.py`](../../../../backend/app/services/editing/local_speech_engine.py)、[`backend/app/services/editing/local_speech_schema.py`](../../../../backend/app/services/editing/local_speech_schema.py)、[`backend/app/services/editing/sound_child.py`](../../../../backend/app/services/editing/sound_child.py)、[`backend/app/services/editing/sound_exports.py`](../../../../backend/app/services/editing/sound_exports.py)、[`backend/app/services/editing/sound_media.py`](../../../../backend/app/services/editing/sound_media.py)、[`backend/app/services/editing/sound_probe_child.py`](../../../../backend/app/services/editing/sound_probe_child.py)、[`backend/app/services/editing/sound_process.py`](../../../../backend/app/services/editing/sound_process.py)、[`backend/app/services/editing/sound_schema.py`](../../../../backend/app/services/editing/sound_schema.py)、[`backend/app/services/editing/sound_timeline.py`](../../../../backend/app/services/editing/sound_timeline.py)、[`backend/app/services/editing/sound_wave.py`](../../../../backend/app/services/editing/sound_wave.py)、[`front/src/pages/aiStudio/editor/VideoEditor.tsx`](../../../../front/src/pages/aiStudio/editor/VideoEditor.tsx)、[`front/src/pages/aiStudio/components/taskCenterMeta.ts`](../../../../front/src/pages/aiStudio/components/taskCenterMeta.ts)、[`front/src/pages/aiStudio/components/taskCopy.ts`](../../../../front/src/pages/aiStudio/components/taskCopy.ts)、[`front/src/pages/aiStudio/editor/SoundEditor.tsx`](../../../../front/src/pages/aiStudio/editor/SoundEditor.tsx)。
 
-验证依据：尚无通过证据。测试文件是待运行目标，文件存在不代表测试通过。
+限制：独立声音v3支持明确采用的PCM16 WAV配音/音效/配乐，24/48kHz、单双声道、单项32MiB/300秒；10ms位置裁剪、整数dB与原对白人工确认。；windows_sapi_pcm_v1仅用Windows实际已安装声音生成原计划对白候选，外部费用0；Linux/容器不提供该系统引擎，仍支持WAV导入混音。；实际本机声音与短色片、两轨混音及五类下载、原提交恢复/真实重启/任务回跳仅验证软件；未声称完整短剧、音色/发声内容/语义/口型质量通过。；云端配音和生成式音效/音乐模型、更多格式/自动对齐/循环/压低背景音乐、托管A/B浏览器联合验收、独立审核及公网仍待完成，整项部分实现。。
+
+验证依据：`EV-SOUND-TIMELINE-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -977,9 +979,9 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`deploy/workspace/Dockerfile`](../../../../deploy/workspace/Dockerfile)、[`deploy/workspace/compose.yaml`](../../../../deploy/workspace/compose.yaml)、[`deploy/workspace/README.md`](../../../../deploy/workspace/README.md)、[`backend/run_controlplane.py`](../../../../backend/run_controlplane.py)、[`scripts/verify_workspace_container.py`](../../../../scripts/verify_workspace_container.py)、[`.github/workflows/verify-workspace-container.yml`](../../../../.github/workflows/verify-workspace-container.yml)。
 
-限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。；后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。；4a38精确CI938通过、前端和既有容器40项/清理及独立31另行记录；不将通用容器文字检查当作新参考协议的容器验收。。
+限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。；后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。；4a38精确CI938通过、前端和既有容器40项/清理及独立31另行记录；不将通用容器文字检查当作新参考协议的容器验收。；8ccd精确CI1050通过/1跳过/2历史未选及既有容器40项/清理单列；不把通用容器检查算作新参考或声音链容器验收。。
 
-验证依据：`EV-DEPLOY-CONFIG`、`EV-CONTAINER-RUNTIME-PREPARATION`、`EV-ORIGINAL-EXAMPLE-PUBLISHED-CI`、`EV-REFERENCE-IMAGE-PUBLISHED-CI`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-DEPLOY-CONFIG`、`EV-CONTAINER-RUNTIME-PREPARATION`、`EV-ORIGINAL-EXAMPLE-PUBLISHED-CI`、`EV-REFERENCE-IMAGE-PUBLISHED-CI`、`EV-VIDEO-REFERENCE-PUBLISHED-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1094,6 +1096,8 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-ORIGINAL-EXAMPLE-PUBLISHED-CI | software | repository · `capabilities/original-example-ci-validation.json` | 858a915精确提交CI后续事件：Linux899通过/1跳过/2历史私有升级未选，登记23、前端3214构建、独立复核31；同提交镜像40项及清理通过。40为既有容器检查，不执行新增媒体示例渲染器，不授予公网或完整平台资格。 |
 | EV-VIDEO-REFERENCE-LOCAL | software | repository · `capabilities/video-reference-validation.json` | 独立参考协议、原项目实际素材证明和唯一预留；根200/独立200与私补5继承未变后端，前端19独立补测及当前完整App浏览器分别记录。原P2恢复记录问题关闭；更多协议、真实远程交付/模型/账单/收费身份/公网不授予资格。 |
 | EV-REFERENCE-IMAGE-PUBLISHED-CI | software | repository · `capabilities/reference-image-ci-validation.json` | 上次4a38参考图精确提交CI后续事件：938通过/1跳过/2历史未选、登记23、前端3216构建；既有容器40项与清理及独立复核31。通用容器检查不执行新参考链或示例渲染器。 |
+| EV-SOUND-TIMELINE-LOCAL | software | repository · `capabilities/sound-timeline-validation.json` | 独立声音v3、实际Windows系统配音、WAV样本与原对白区间、显式采用/混音/五类导出、原请求恢复和重启；325与52分记继承未变来源，作者审阅不称独立审核。云声音/模型质量/全片/收费身份/公网均未授予资格。 |
+| EV-VIDEO-REFERENCE-PUBLISHED-CI | software | repository · `capabilities/video-reference-ci-validation.json` | 上次8ccd参考视频精确提交CI后续事件：1050通过/1跳过/2历史未选、登记23、前端3217构建；既有容器40项及清理。CI回执由作者核对，不声称独立复核；通用容器检查未执行新参考或声音流水线。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

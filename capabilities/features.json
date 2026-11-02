@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "register_version": "2026-11-02.5",
-  "updated_at": "2026-11-02",
+  "register_version": "2026-11-03.1",
+  "updated_at": "2026-11-03",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
     "branch": "local/hallmark-dual-theme",
@@ -478,6 +478,27 @@
         "F-014.02"
       ],
       "scope": "上次4a38参考图精确提交CI后续事件：938通过/1跳过/2历史未选、登记23、前端3216构建；既有容器40项与清理及独立复核31。通用容器检查不执行新参考链或示例渲染器。"
+    },
+    {
+      "id": "EV-SOUND-TIMELINE-LOCAL",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/sound-timeline-validation.json",
+      "features": [
+        "F-010.04"
+      ],
+      "scope": "独立声音v3、实际Windows系统配音、WAV样本与原对白区间、显式采用/混音/五类导出、原请求恢复和重启；325与52分记继承未变来源，作者审阅不称独立审核。云声音/模型质量/全片/收费身份/公网均未授予资格。"
+    },
+    {
+      "id": "EV-VIDEO-REFERENCE-PUBLISHED-CI",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/video-reference-ci-validation.json",
+      "features": [
+        "F-007.05",
+        "F-014.02"
+      ],
+      "scope": "上次8ccd参考视频精确提交CI后续事件：1050通过/1跳过/2历史未选、登记23、前端3217构建；既有容器40项及清理。CI回执由作者核对，不声称独立复核；通用容器检查未执行新参考或声音流水线。"
     }
   ],
   "features": [
@@ -2159,7 +2180,8 @@
         "software": "verified",
         "model": "not_verified",
         "evidence": [
-          "EV-VIDEO-REFERENCE-LOCAL"
+          "EV-VIDEO-REFERENCE-LOCAL",
+          "EV-VIDEO-REFERENCE-PUBLISHED-CI"
         ]
       },
       "deployment": {
@@ -2858,32 +2880,69 @@
         "R-001",
         "R-010"
       ],
-      "implementation": "planned",
+      "implementation": "partial",
       "validation": {
-        "software": "not_verified",
+        "software": "verified",
         "model": "not_verified",
-        "evidence": []
+        "evidence": [
+          "EV-SOUND-TIMELINE-LOCAL"
+        ]
       },
       "deployment": {
-        "status": "not_deployed",
+        "status": "local_only",
         "url": null
       },
       "version": {
-        "implementation": null,
+        "implementation": "source-tree-e4528e867bf4",
         "release": null
       },
       "entry": {
-        "route": "",
-        "label": "尚无可验收入口"
+        "route": "/projects/:projectId/editor",
+        "label": "章节剪辑 → 声音时间线"
       },
-      "code": [],
-      "tests": [],
+      "code": [
+        "backend/app/config.py",
+        "backend/app/main.py",
+        "backend/app/api/v1/__init__.py",
+        "backend/app/api/v1/routes/film/task_status.py",
+        "backend/app/core/db.py",
+        "backend/app/core/workspace_boundary.py",
+        "backend/app/api/sound_timeline.py",
+        "backend/app/core/contracts/local_speech.py",
+        "backend/app/core/contracts/sound_timeline.py",
+        "backend/app/models/local_speech.py",
+        "backend/app/models/sound_timeline.py",
+        "backend/app/services/editing/local_speech.ps1",
+        "backend/app/services/editing/local_speech.py",
+        "backend/app/services/editing/local_speech_engine.py",
+        "backend/app/services/editing/local_speech_schema.py",
+        "backend/app/services/editing/sound_child.py",
+        "backend/app/services/editing/sound_exports.py",
+        "backend/app/services/editing/sound_media.py",
+        "backend/app/services/editing/sound_probe_child.py",
+        "backend/app/services/editing/sound_process.py",
+        "backend/app/services/editing/sound_schema.py",
+        "backend/app/services/editing/sound_timeline.py",
+        "backend/app/services/editing/sound_wave.py",
+        "front/src/pages/aiStudio/editor/VideoEditor.tsx",
+        "front/src/pages/aiStudio/components/taskCenterMeta.ts",
+        "front/src/pages/aiStudio/components/taskCopy.ts",
+        "front/src/pages/aiStudio/editor/SoundEditor.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_local_speech.py",
+        "backend/tests/test_sound_timeline.py",
+        "backend/tests/test_transitions_v2.py"
+      ],
       "acceptance": [
         "显式选择声音模型和预算，生成声音候选并确认采用",
         "对齐对白/字幕/音效与片段裁剪，检查音量、音轨覆盖、重启恢复和完整导出"
       ],
       "limits": [
-        "当前仅源音频保留/混合与静音；尚无独立配音/音效生成流水线"
+        "独立声音v3支持明确采用的PCM16 WAV配音/音效/配乐，24/48kHz、单双声道、单项32MiB/300秒；10ms位置裁剪、整数dB与原对白人工确认。",
+        "windows_sapi_pcm_v1仅用Windows实际已安装声音生成原计划对白候选，外部费用0；Linux/容器不提供该系统引擎，仍支持WAV导入混音。",
+        "实际本机声音与短色片、两轨混音及五类下载、原提交恢复/真实重启/任务回跳仅验证软件；未声称完整短剧、音色/发声内容/语义/口型质量通过。",
+        "云端配音和生成式音效/音乐模型、更多格式/自动对齐/循环/压低背景音乐、托管A/B浏览器联合验收、独立审核及公网仍待完成，整项部分实现。"
       ],
       "depends_on": [
         "F-001.04",
@@ -3671,7 +3730,8 @@
           "EV-DEPLOY-CONFIG",
           "EV-CONTAINER-RUNTIME-PREPARATION",
           "EV-ORIGINAL-EXAMPLE-PUBLISHED-CI",
-          "EV-REFERENCE-IMAGE-PUBLISHED-CI"
+          "EV-REFERENCE-IMAGE-PUBLISHED-CI",
+          "EV-VIDEO-REFERENCE-PUBLISHED-CI"
         ]
       },
       "deployment": {
@@ -3707,7 +3767,8 @@
         "两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。",
         "本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。",
         "后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。",
-        "4a38精确CI938通过、前端和既有容器40项/清理及独立31另行记录；不将通用容器文字检查当作新参考协议的容器验收。"
+        "4a38精确CI938通过、前端和既有容器40项/清理及独立31另行记录；不将通用容器文字检查当作新参考协议的容器验收。",
+        "8ccd精确CI1050通过/1跳过/2历史未选及既有容器40项/清理单列；不把通用容器检查算作新参考或声音链容器验收。"
       ],
       "depends_on": [
         "F-001.05",
@@ -4031,7 +4092,7 @@
         "各真实模型与费用验证单",
         "完整成片检查表和限制"
       ],
-      "progress": "四种有界AI剧本候选已接单项目费用、保存来源、明确采用和可恢复文本历史；713主回归与18整App浏览器通过。参考条件、声音、完整成片及其余D项继续；真实模型质量未验收。 原创无模型示例已实际跑通剧本/计划/采用/剪辑与本地四格式导出；这不替代真实模型、声音或完整成片验收。 已声明Seedream参考图的软件切片及实际浏览器闭环通过；其他协议、外部CDN和真实模型验收仍待完成。 独立Seedance参考/首尾帧、有界视频交付及原项目费用的软件切片通过；恢复标识P2修复经独立19项复验，更多协议与真实模型仍待完成。"
+      "progress": "四种有界AI剧本候选已接单项目费用、保存来源、明确采用和可恢复文本历史；713主回归与18整App浏览器通过。参考条件、声音、完整成片及其余D项继续；真实模型质量未验收。 原创无模型示例已实际跑通剧本/计划/采用/剪辑与本地四格式导出；这不替代真实模型、声音或完整成片验收。 已声明Seedream参考图的软件切片及实际浏览器闭环通过；其他协议、外部CDN和真实模型验收仍待完成。 独立Seedance参考/首尾帧、有界视频交付及原项目费用的软件切片通过；恢复标识P2修复经独立19项复验，更多协议与真实模型仍待完成。 独立声音v3、本机原对白配音、明确采用和真实混音导出已通过有界本地软件验证；作者审阅已完成，独立审核门槛保留，云声音/质量/完整成片仍待验。"
     },
     {
       "id": "E",
@@ -4124,10 +4185,10 @@
     "缺失检查、旧PR版本、独立审核失败或费用/资源超限不晋级；失败有明确结果与有限恢复。"
   ],
   "current_state": {
-    "overview": "项目隔离及独立预算保留；六类费用kind、AI剧本候选、原创可导出示例、已声明Seedream参考图和独立Seedance参考/首尾帧的软件流程可用。全部收费身份、更多协议/必要声音、真实模型/成片、社区研发及公网仍待完成。",
+    "overview": "项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。",
     "acceptance_setup": "使用独立本机A/B验收数据；项目大厅分别建立文字或可导出原创示例。新建保留旧工程，原请求恢复保留后来编辑；7条剧情声明默认未确认。尚无公网领取或部署平台。",
-    "readme_status": "身份、个人空间、文字/原创可导出示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。 已声明Seedream参考图支持原项目最多3图、顺序用途、候选和单独采用；满额原提交恢复已实际验证，外部CDN及真实模型仍未验收。 独立Seedance视频参考/首尾帧及有界素材交付支持明确原项目选择、候选与单独采用；参考费用另标记，原提交恢复和未知费用保留，真实远程交付与模型仍待验。",
-    "verification_checkpoint": "视频参考根200/独立200与私补5分别继承未变后端，不合计；最终前端19独立补测、当前App浏览器及构建通过，恢复P2关闭。4a38后续CI及通用容器范围独立补记。46已实现/8部分/10计划，current17与longterm1；费用授权0，公网和完整平台未交付。",
+    "readme_status": "身份、个人空间、文字/原创可导出示例和项目预算可用；六种有界单独SQLite协议接原项目预留/账单，剧本优化/精简/分镜/单镜提取支持候选审阅与明确采用。身份收费网关仍关闭，模型质量、全部收费隔离、社区、成片和公网继续推进。固定账号还可配置自作本机模型端口，使用自作响应回归六类费用协议；该配置不授予真实模型费用或公网资格。社区需求已有默认关闭的独立本机签名登记与版本基础，真实事件和自动研发闭环仍在推进。 已声明Seedream参考图支持原项目最多3图、顺序用途、候选和单独采用；满额原提交恢复已实际验证，外部CDN及真实模型仍未验收。 独立Seedance视频参考/首尾帧及有界素材交付支持明确原项目选择、候选与单独采用；参考费用另标记，原提交恢复和未知费用保留，真实远程交付与模型仍待验。 独立声音时间线支持本机原对白配音、WAV音效/配乐和明确采用后的混音导出；外部费用0，云声音和真实质量仍未验收。",
+    "verification_checkpoint": "声音相关325项与声音/交叉淡化52项在各自锁定版本执行，不合计；最终前端3219构建、接口249/589一致性及真实浏览器恢复/混音/下载/重启通过。作者审阅，不称独立审核。8ccd后续CI1050/1跳过/2历史未选及通用容器40项单列。46已实现/9部分/9计划，current17与longterm1；费用授权0，公网和完整平台未交付。",
     "architecture_summary": "网关按可信会话和成员选择固定数据库/文件根/进程；跨空间ID、错误父工程与旧标签范围不能改变所选身份。项目预算分别计算，导入执行锁保留旧任务和未知预留。"
   },
   "brand": {

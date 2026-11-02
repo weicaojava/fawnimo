@@ -21,3 +21,5 @@ MP4作为ProductionMedia保存；SRT/VTT/ZIP由回执固定随机私有路径、
 该软件能力允许人工素材及明确未获资格的执行候选。人工剧情/对白区间不是自动语义定位、真实发声或口型证据；测试色片/音调不是AI短剧。正式生成、配音、口型、内容覆盖与质量验收另有门禁。
 
 实现参考：[FFmpeg滤镜文档](https://ffmpeg.org/ffmpeg-filters.html)、[FFmpeg协议限制](https://ffmpeg.org/ffmpeg-protocols.html)。具体可执行行为以本工程固定依赖与实际解码测试为准。
+
+独立声音v3另有SoundExportJob/Product/Slot和sound-v3入口，保留上述v1/v2回执。它实际输出视频、独立48kHz双声道PCM混音、两种字幕和包含清单的ZIP，共五类下载。新声音与本地语音子进程使用明确的非凭证环境；数据库监控异常也取消并join自己的helper。范围见[独立声音时间线](../sound-timeline/)。

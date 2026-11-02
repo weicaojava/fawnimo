@@ -28,6 +28,8 @@ INFRASTRUCTURE_TABLES = frozenset({
     "editing_schema", "edit_export_schema", "video_dna_schema",
     "video_understanding_schema", "execution_slots", "edit_export_slot",
     "transition_export_slot",
+    "sound_export_slot",
+    "local_speech_slot",
 })
 
 
@@ -203,7 +205,7 @@ def _bind_workspace(database: Path, workspace_id: str, *, allow_initialize: bool
             if offline_claim:
                 # ORM lease tables inherit Base.workspace_id too, although the
                 # normal boundary treats their concurrency state as infrastructure.
-                for table in ('execution_slots', 'edit_export_slot', 'transition_export_slot'):
+                for table in ('execution_slots', 'edit_export_slot', 'transition_export_slot', 'sound_export_slot', 'local_speech_slot'):
                     if connection.execute('SELECT 1 FROM sqlite_master WHERE type=\'table\' AND name=?', (table,)).fetchone():
                         columns = {row[1] for row in connection.execute(f'PRAGMA table_info({_identifier(table)})')}
                         if 'workspace_id' not in columns:

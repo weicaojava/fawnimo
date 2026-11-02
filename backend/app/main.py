@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI):
     """应用生命周期：启动时初始化，关闭时清理。"""
     # 启动时：供应商注册 + 任务执行器注册（幂等）
     from sqlalchemy import text
-    from app.core.db import engine
+    from app.core.db import engine, async_session_maker
     from app.core.sqlite_runtime import prepare_sqlite
     await prepare_sqlite(engine)
     if engine.dialect.name == 'sqlite':
@@ -67,6 +67,14 @@ async def lifespan(app: FastAPI):
             version=(await conn.execute(text('SELECT version FROM production_schema'))).scalars().all()
             if version != [1]:
                 raise RuntimeError('Run the supported production migration before starting')
+            # A direct server launch must fail clearly on an older database,
+            # before either new scanner can loop on missing sound tables.
+            try:
+                sound_slot = (await conn.execute(text('SELECT id FROM sound_export_slot'))).scalars().all()
+                speech_slot = (await conn.execute(text('SELECT id FROM local_speech_slot'))).scalars().all()
+            except Exception:
+                raise RuntimeError('Run python migrate_editing.py against this configured database before starting sound editing') from None
+            if sound_slot != [1] or speech_slot != [1]: raise RuntimeError('Unsupported sound editing migration state')
     bootstrap_all_registries()
     reverse_scanner=None
     from pathlib import Path
@@ -100,6 +108,14 @@ async def lifespan(app: FastAPI):
         from app.services.editing.transition_exports import TransitionExportWorker
         transition_export_worker = TransitionExportWorker(async_session_maker, settings.production_probe_executable)
     app.state.transition_export_worker = transition_export_worker
+    sound_export_worker = None
+    if local_export_worker is not None:
+        from app.services.editing.sound_exports import SoundExportWorker
+        sound_export_worker = SoundExportWorker(async_session_maker, settings.production_probe_executable)
+    app.state.sound_export_worker = sound_export_worker
+    from app.services.editing.local_speech import LocalSpeechWorker
+    local_speech_worker = LocalSpeechWorker(async_session_maker)
+    app.state.local_speech_worker = local_speech_worker
     from app.services.worker.model_prices import load_model_prices
     model_prices=load_model_prices(settings.model_price_config)
     app.state.model_prices=model_prices
@@ -146,10 +162,16 @@ async def lifespan(app: FastAPI):
             if reverse_scanner is not None:await reverse_scanner.start()
             if local_export_worker is not None:await local_export_worker.start()
             if transition_export_worker is not None:await transition_export_worker.start()
+            if sound_export_worker is not None:await sound_export_worker.start()
+            await local_speech_worker.start()
         yield
     finally:
         await asset_image_generation_runtime.stop()
         app.state.asset_image_generation_runtime = None
+        await local_speech_worker.stop()
+        app.state.local_speech_worker = None
+        if sound_export_worker is not None:await sound_export_worker.stop()
+        app.state.sound_export_worker = None
         if transition_export_worker is not None:await transition_export_worker.stop()
         app.state.transition_export_worker = None
         await understanding_worker.stop()

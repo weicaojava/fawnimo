@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-11-02T15:13:27.646184+00:00",
+  "scope": "Subsequent exact-publication CI event; original pre-publication receipt remains unchanged",
+  "qualified_source_commit": "8ccdf7f652da27c516f61bd1cc3d8fbf6d344539",
+  "tree": "cbeed09b84fe133889b3a7c26abdbeb0acd046d9",
+  "feature_id": "F-007.05",
+  "feature_implementation": "partial",
+  "verification_ci": {
+    "run_id": 41464641398,
+    "url": "https://github.com/weicaojava/fawnimo/actions/runs/41464641398",
+    "conclusion": "success",
+    "backend_job_id": 125342211957,
+    "frontend_job_id": 125342211325,
+    "backend_passed": 1050,
+    "backend_skipped": 1,
+    "historical_upgrade_deselected": 2,
+    "backend_seconds": 836.32,
+    "register_checks_passed": 23,
+    "frontend_modules": 3217,
+    "frontend_vite_seconds": 9.39,
+    "typecheck_and_build_passed": true,
+    "count_note": "One skipped case, two historical private upgrades excluded and two deprecation warnings are not passes. Quiet log does not identify the skipped case. Other local/browser/review runs overlap and are not summed."
+  },
+  "container_ci": {
+    "run_id": 41464641508,
+    "url": "https://github.com/weicaojava/fawnimo/actions/runs/41464641508",
+    "job_id": 125342211491,
+    "conclusion": "success",
+    "image_id": "sha256:c3cf448d732aa8f419afc35f318d85c4131550f8f19fe2ed94f4b6288d68e2af",
+    "checks_passed": 40,
+    "cleanup_verified": true,
+    "artifact_id": 13149364339,
+    "artifact_sha256": "0a18290593b48b7e378f55fbac81ca1ba0e0147822e6515391e948681856ad1b",
+    "report_sha256": "8714f8923e9d8e37e5e587bde0d63a4226206327bd5795f04550195fd0288ed1",
+    "count_note": "Existing generic Compose40 checks plus cleanup. Does not execute the new video-reference/image pipeline or original example renderer inside the container."
+  },
+  "source_review_sha256": "ff3e4af785a9e3fd456f34c72c5df6989bc72160db4e2d633e3d33c49a531b12",
+  "metadata_review_sha256": "2091eeeabe2f2da7ef9bd15832330dbcdfe3f4a2a7577a0d7aa15ba8b0169252",
+  "logs_sha256": {
+    "backend-ci.log": "bd06d1c3bdc51e403804e8cd0c92d180ec97c50d714c24e882318011c070040c",
+    "frontend-ci.log": "ccaafebd22ed9b1a968765c7193fa3379b6bf54559b7f6384a15a7a9b3f1f102",
+    "container-ci.log": "00af738b4b4b5a03d26d66ef8a2475997dc16127ac21986d50613f2933fdde4a"
+  },
+  "ci_receipt_review": {
+    "method": "author_checked_saved_logs_and_artifact",
+    "independent": false
+  },
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "external_delivery_qualified": false,
+  "model_quality_qualified": false,
+  "provider_billing_qualified": false,
+  "full_paid_execution_isolation_qualified": false,
+  "complete_film_qualified": false,
+  "public_deployment_verified": false,
+  "historical_private_upgrade_qualified": false,
+  "overall_goal_complete": false
+}

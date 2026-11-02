@@ -2,6 +2,7 @@
 import asyncio
 import copy
 import hashlib
+import os
 from fractions import Fraction
 from pathlib import Path
 import subprocess
@@ -34,7 +35,7 @@ from app.services.editing.transition_media import run_child as render_child
 from app.services.editing.transitions import compose
 
 ROOT = Path(__file__).resolve().parents[5]
-FFMPEG = ROOT / 'work' / 'ffmpeg.exe'
+FFMPEG = Path(os.environ.get('FAWNIMO_TEST_FFMPEG') or os.environ.get('TEST_MEDIA_PROBE') or ROOT / 'work' / 'ffmpeg.exe')
 
 
 def digest(path):
