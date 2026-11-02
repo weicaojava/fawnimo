@@ -1,5 +1,5 @@
 {
-  "stage": "container_ci_prepared",
+  "stage": "ci_container_runtime_verified",
   "software_configuration_checks": [
     {
       "name": "compose_parses",
@@ -63,16 +63,23 @@
   "docker_client_available": true,
   "docker_engine_available": false,
   "docker_engine_failure": "2026-11-02 local desktop-linux named pipe unavailable; no local containers created",
-  "image_built": false,
-  "container_runtime_verified": false,
+  "image_built": true,
+  "container_runtime_verified": true,
   "public_deployment_verified": false,
   "external_model_calls": 0,
   "limits": [
-    "Historical14 static configuration checks are preserved. New8 refusal methods and30 native HTTPS assertions are separate.",
-    "Actual container image/runtime/persistence, backup/rollback and public hosting remain unverified until separately observed."
+    "14 historical static checks,8 unit methods,30 native assertions and40 CI container assertions are separate, overlapping evidence units; never sum them.",
+    "Actual tested source/image remain2ced83d and its recorded image ID. No public server, browser UI, cross-version upgrade/rollback, backup restore, real models or coding-runner qualification."
   ],
   "date": "2026-11-02",
   "guard_test_methods_passed": 8,
   "native_https_assertions_passed": 30,
-  "container_evidence": "capabilities/container-runtime-validation.json"
+  "container_evidence": "capabilities/container-runtime-validation.json",
+  "container_verification_environment": "GitHub Actions Linux runner; local Windows Desktop engine remains unavailable",
+  "qualified_source_commit": "2ced83dc8a9690a7f554b3c8f75393cf6ed869b5",
+  "ci_run_id": 41377110733,
+  "ci_url": "https://github.com/weicaojava/fawnimo/actions/runs/41377110733",
+  "container_assertions_passed": 40,
+  "image_id": "sha256:a1f5a169b126144b5db435728b76fadd2105daebd2c0188302db288c86c04143",
+  "cleanup_verified": true
 }

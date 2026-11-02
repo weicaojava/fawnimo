@@ -7,7 +7,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-11-02.1`，更新日期：2026-11-02。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-11-02.2`，更新日期：2026-11-02。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
@@ -15,7 +15,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 资源隔离、项目独立预算和离线迁移副本演练保留；六类有界模型协议接原项目费用，四种AI剧本候选完成软件闭环。全部收费身份执行、社区研发、完整成片与公网仍待完成。
 
-0ffcc34精确CI通过805后端、23登记和前端3214。本批8安全拒绝方法及30原生HTTPS断言分记；实际容器流水线待运行，不升级整项部署资格。45已实现/7部分/12计划，current18与longterm1不变。费用授权0。
+2ced83d新增容器CI通过实际镜像构建与40断言；原8安全方法及30原生断言分记，主后端/前端CI另行登记。45已实现/7部分/12计划，current18与longterm1不变；费用授权0，公网和完整功能未交付。
 
 ## F-001 身份与工作空间
 
@@ -973,7 +973,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`deploy/workspace/Dockerfile`](../../../../deploy/workspace/Dockerfile)、[`deploy/workspace/compose.yaml`](../../../../deploy/workspace/compose.yaml)、[`deploy/workspace/README.md`](../../../../deploy/workspace/README.md)、[`backend/run_controlplane.py`](../../../../backend/run_controlplane.py)、[`scripts/verify_workspace_container.py`](../../../../scripts/verify_workspace_container.py)、[`.github/workflows/verify-workspace-container.yml`](../../../../.github/workflows/verify-workspace-container.yml)。
 
-限制：保留14项静态Compose检查；8项安全拒绝方法、30项原生HTTPS断言通过，不能相加或当作真实容器通过。；实际容器镜像构建、双服务/双账号、独立卷与删除后重建流水线已准备，精确提交CI待运行。；无本项目公网平台；备份恢复、跨版本升级/回退与公网关键制作链仍未验收。；仅单节点SQLite方案；没有共享数据库多副本或社区任意代码执行器资格。。
+限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。。
 
 验证依据：`EV-DEPLOY-CONFIG`、`EV-CONTAINER-RUNTIME-PREPARATION`。测试文件是待运行目标，文件存在不代表测试通过。
 
@@ -1084,7 +1084,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-SCRIPT-TASK-RETURN | software | repository · `capabilities/workspace-script-tasks-validation.json` | 33专项、27整App浏览器，剧本候选第五类轻量摘要和原章节/镜头回跳；两个固定worker仅保留失败记录与跨身份负例，不代表完整收费执行。旧713属前一次提交，不累加；功能数量与全局资格不提升。 |
 | EV-WORKSPACE-LOCAL-MODELS | software | repository · `capabilities/workspace-local-models-validation.json` | 762主回归含38新检查；独立38重跑及2窄补测分记。固定worker只读自身本机端口配置；六费用协议通过自作回环与原项目记录验证。公开收费仍503；Native到接收/查询，无MP4或真实模型/账单/公网资格；整项状态不提升。 |
 | EV-COMMUNITY-INTAKE | software | repository · `capabilities/community-intake-validation.json` | 43冻结专项、独立43/原反例5/补测4分记；HMAC公开源/投递去重/最小时钟/不可变版本已本机验证，两P2一P3关闭。真实App/HTTPS事件、实时源复验及后续AI研发未接通，整项软件仍未验收；旧36通过及5失败不累加。 |
-| EV-CONTAINER-RUNTIME-PREPARATION | software | repository · `capabilities/container-runtime-validation.json` | 8项生命周期拒绝方法及30项本机HTTPS断言分记；实际镜像/Compose运行与持久卷重建CI已准备，尚未运行。不授予公网、浏览器、备份回退或真实模型资格。 |
+| EV-CONTAINER-RUNTIME-PREPARATION | software | repository · `capabilities/container-runtime-validation.json` | 2ced83d精确GitHub镜像构建及40项Compose容器检查通过，完整报告公开，双账号/独立卷/删除重建持久数据及资源清理有实际证据；原8安全方法与30原生断言分记。公网、浏览器、备份回退及真实模型未验收。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

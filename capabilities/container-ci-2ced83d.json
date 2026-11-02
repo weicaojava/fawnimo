@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "at_utc": "2026-11-02T02:20:24.139591+00:00",
+  "run_prefix": "fawnimo-check-41377110733-1",
+  "checks": [
+    {
+      "name": "offline_cli_provisions_two_accounts_in_each_separate_volume",
+      "passed": true
+    },
+    {
+      "name": "stable_runtime_controls",
+      "passed": true
+    },
+    {
+      "name": "stable_restart_health_and_bounded_logs",
+      "passed": true
+    },
+    {
+      "name": "stable_only_private_named_data_volume",
+      "passed": true
+    },
+    {
+      "name": "stable_actual_unprivileged_readonly_code_tmp_and_ffmpeg",
+      "passed": true
+    },
+    {
+      "name": "preview_runtime_controls",
+      "passed": true
+    },
+    {
+      "name": "preview_restart_health_and_bounded_logs",
+      "passed": true
+    },
+    {
+      "name": "preview_only_private_named_data_volume",
+      "passed": true
+    },
+    {
+      "name": "preview_actual_unprivileged_readonly_code_tmp_and_ffmpeg",
+      "passed": true
+    },
+    {
+      "name": "stable_and_preview_data_volumes_differ",
+      "passed": true
+    },
+    {
+      "name": "stable_a_anonymous_api_denied",
+      "passed": true
+    },
+    {
+      "name": "stable_a_https_login_secure_cookie",
+      "passed": true
+    },
+    {
+      "name": "stable_a_real_cookie_session_and_empty_projects",
+      "passed": true
+    },
+    {
+      "name": "stable_b_anonymous_api_denied",
+      "passed": true
+    },
+    {
+      "name": "stable_b_https_login_secure_cookie",
+      "passed": true
+    },
+    {
+      "name": "stable_b_real_cookie_session_and_empty_projects",
+      "passed": true
+    },
+    {
+      "name": "preview_a_anonymous_api_denied",
+      "passed": true
+    },
+    {
+      "name": "preview_a_https_login_secure_cookie",
+      "passed": true
+    },
+    {
+      "name": "preview_a_real_cookie_session_and_empty_projects",
+      "passed": true
+    },
+    {
+      "name": "preview_b_anonymous_api_denied",
+      "passed": true
+    },
+    {
+      "name": "preview_b_https_login_secure_cookie",
+      "passed": true
+    },
+    {
+      "name": "preview_b_real_cookie_session_and_empty_projects",
+      "passed": true
+    },
+    {
+      "name": "built_spa_and_same_origin_runtime_config",
+      "passed": true
+    },
+    {
+      "name": "same_project_ids_are_scoped_to_independent_accounts",
+      "passed": true
+    },
+    {
+      "name": "foreign_project_and_forged_workspace_denied",
+      "passed": true
+    },
+    {
+      "name": "project_budget_is_per_project_in_each_account",
+      "passed": true
+    },
+    {
+      "name": "cross_origin_write_denied",
+      "passed": true
+    },
+    {
+      "name": "uploaded_original_png_download_and_byte_range",
+      "passed": true
+    },
+    {
+      "name": "foreign_media_denied",
+      "passed": true
+    },
+    {
+      "name": "stable_cookie_is_not_a_preview_session",
+      "passed": true
+    },
+    {
+      "name": "preview_data_is_independent",
+      "passed": true
+    },
+    {
+      "name": "editable_original_demo_created",
+      "passed": true
+    },
+    {
+      "name": "demo_replay_and_reset_preserve_original_edit",
+      "passed": true
+    },
+    {
+      "name": "all_six_paid_admissions_stay_closed",
+      "passed": true
+    },
+    {
+      "name": "preview_remains_available_while_stable_is_stopped",
+      "passed": true
+    },
+    {
+      "name": "stable_container_actually_recreated",
+      "passed": true
+    },
+    {
+      "name": "original_sessions_and_projects_survive_recreation",
+      "passed": true
+    },
+    {
+      "name": "uploaded_bytes_and_budgets_survive_recreation",
+      "passed": true
+    },
+    {
+      "name": "demo_receipt_and_edit_survive_recreation",
+      "passed": true
+    },
+    {
+      "name": "foreign_media_remains_denied_after_recreation",
+      "passed": true
+    }
+  ],
+  "runtime_verified": true,
+  "cleanup_verified": true,
+  "external_model_calls": 0,
+  "public_deployment_verified": false,
+  "browser_acceptance_verified": false,
+  "limits": [
+    "Authored accounts/media and private loopback HTTPS only; no public hosting, browser UI, real models, full film or backup restore qualification."
+  ],
+  "engine": {
+    "server_version": "28.0.4",
+    "os_type": "linux",
+    "local_endpoint": true
+  },
+  "image_id": "sha256:a1f5a169b126144b5db435728b76fadd2105daebd2c0188302db288c86c04143",
+  "status": "passed"
+}

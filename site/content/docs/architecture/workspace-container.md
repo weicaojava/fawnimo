@@ -28,3 +28,8 @@ description: 单节点镜像、独立持久卷及自动化验收的当前边界�
 操作步骤见[容器复验](/docs/guide/workspace-container/)，未完成的发布门槛见[分阶段计划](/docs/plans/platform-delivery/)。
 
 参考：[Compose 项目名](https://docs.docker.com/compose/how-tos/project-name/)、[Docker 卷生命周期](https://docs.docker.com/engine/storage/volumes/)、[GitHub 流水线产物](https://docs.github.com/en/actions/tutorials/store-and-share-data)。
+
+
+## 已记录的实际容器结果
+
+2026-11-02，精确提交2ced83d的[GitHub容器检查](https://github.com/weicaojava/fawnimo/actions/runs/41377110733)构建镜像并通过40项断言，清理通过。完整脱敏报告保存在 `capabilities/container-ci-2ced83d.json`，镜像ID与产物hash见 `capabilities/container-runtime-validation.json`。原8项安全方法及30项原生HTTPS断言分别保留，不与40或主后端回归合计。本机Windows引擎仍未运行，用户服务器尚未购置；整体F-014.02仍部分实现且未完成公网/备份回退验收。

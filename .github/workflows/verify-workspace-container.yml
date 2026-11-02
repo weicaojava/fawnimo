@@ -6,7 +6,8 @@ on:
     paths:
       - '.github/workflows/verify-workspace-container.yml'
       - '.dockerignore'
-      - 'deploy/workspace/**'
+      - 'deploy/workspace/Dockerfile'
+      - 'deploy/workspace/compose.yaml'
       - 'backend/**'
       - 'front/**'
       - 'scripts/verify_workspace_container.py'
@@ -15,7 +16,8 @@ on:
     paths:
       - '.github/workflows/verify-workspace-container.yml'
       - '.dockerignore'
-      - 'deploy/workspace/**'
+      - 'deploy/workspace/Dockerfile'
+      - 'deploy/workspace/compose.yaml'
       - 'backend/**'
       - 'front/**'
       - 'scripts/verify_workspace_container.py'

@@ -4,7 +4,7 @@
   "features": [
     "F-014.02"
   ],
-  "stage": "container_ci_prepared_pending_actual_build_and_runtime",
+  "stage": "ci_container_runtime_verified_bounded_single_node",
   "base_published_commit": "0ffcc34040e49789c67602f8fb26b8e28818a901",
   "selected_source_tree": "190e2dc0346cd00adbce58cab3a527f86e6b395b",
   "source_sha256_lf_normalized": {
@@ -47,10 +47,10 @@
     "scope": "Parent published source only; backend/frontend bytes unchanged in this preparation delta."
   },
   "ci_workflow": ".github/workflows/verify-workspace-container.yml",
-  "ci_status": "not_yet_run",
-  "image_built": false,
-  "container_runtime_verified": false,
-  "cleanup_verified": false,
+  "ci_status": "success",
+  "image_built": true,
+  "container_runtime_verified": true,
+  "cleanup_verified": true,
   "public_deployment_verified": false,
   "browser_acceptance_verified": false,
   "model_quality_qualified": false,
@@ -58,8 +58,26 @@
   "user_paid_budget_authorized": 0,
   "original_workspace_writes": 0,
   "limits": [
-    "Actual image build and Compose runtime/persistence checks await the new workflow on this exact source.",
+    "Actual same-origin image build, Compose controls, dual-account/separate-volume HTTP flows, stable recreation and owned-resource cleanup passed40 on GitHub Linux runner for exact2ced83d source.",
     "Two services use the same candidate image in new independent volumes; this does not prove cross-version promotion, backup restore or rollback.",
-    "No public server, browser UI, real supplier, bill, film or autonomous coding runner qualification."
-  ]
+    "No public server, browser UI, real supplier, bill, film or autonomous coding runner qualification.",
+    "A subsequent workflow path filter change excludes documentation/evidence-only deploy files; job commands remain identical. The tested image and commit remain explicitly2ced83d."
+  ],
+  "qualified_source_commit": "2ced83dc8a9690a7f554b3c8f75393cf6ed869b5",
+  "image_id": "sha256:a1f5a169b126144b5db435728b76fadd2105daebd2c0188302db288c86c04143",
+  "ci": {
+    "run_id": 41377110733,
+    "job_id": 125059646020,
+    "url": "https://github.com/weicaojava/fawnimo/actions/runs/41377110733",
+    "artifact_id": 13111472453,
+    "artifact_digest": "sha256:f08ad9f1d7cb1b998aa43627b08f278e589fce489cbe0d2ead7786415196ac09",
+    "report": "capabilities/container-ci-2ced83d.json",
+    "report_sha256": "92281789467473137b728c1872ace12bf2e3dc50ae83bbcd5eb386136343a408",
+    "assertions_passed": 40,
+    "engine": {
+      "server_version": "28.0.4",
+      "os_type": "linux",
+      "local_endpoint": true
+    }
+  }
 }
