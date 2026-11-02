@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-11-02T21:55:48.818716+00:00",
+  "scope": "Bounded runtime-start investigation; actual9e2aef7 OCI failed, not qualified",
+  "parent": "9e2aef750d14f8409d4e838ddd5420d5867652bf",
+  "source_tree": "85474eaecce6e0a172852ef195f865245cb7ed94",
+  "source_sha256_lf_normalized": {
+    "backend/app/services/community/code_check_docker.py": "96714c02e8f96cbebd9f142759562dfbf9be913fb5b8d442957d7c2c2e86b3ca",
+    "backend/tests/test_community_code_check_docker.py": "0ecfe3d04b51d801c58f62bec810789a8ff639aa43bbd1b589656efca131c6bd",
+    "backend/tests/test_community_code_check_oci.py": "0a074ce8ca7a715f72e42cbe510ad2ac5bc8158d77a664b50b6e8e9a975da092"
+  },
+  "prior_actual_oci": {
+    "run_id": 41531337258,
+    "job_id": 125572012373,
+    "failed": 9,
+    "passed": 1,
+    "seconds": 8.1,
+    "cleanup_verified": true,
+    "artifact_id": 13181273816,
+    "artifact_sha256": "4726e224c53a4d206aae2f0a3baf16d7c3e4f225206d76d766e47e4533452046",
+    "image_id": "sha256:d2e656caca0e211e47a96eed3c09166f18f112a3dd3a41f0921224799a1535f0"
+  },
+  "prior_failed_run_url": "https://github.com/weicaojava/fawnimo/actions/runs/41531337258",
+  "local_regression": {
+    "tests": 448,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "passed": 446,
+    "seconds": 75.17,
+    "junit_sha256": "94bb00cd283acf77e131af376aad51743e9ddf8512c070fcc857549ae4287849"
+  },
+  "review": {
+    "method": "author source and metadata review",
+    "independent": false,
+    "open_findings": [],
+    "scope": "Private bounded daemon error retention; trusted-engine-only diagnostic redaction of paths/endpoints/owned names/object IDs; unique authored OCI test paths avoid collisions in future PR bases; no resource/ownership/admission relaxation"
+  },
+  "current_commit_ci": "pending_draft_PR_exact_head_CI",
+  "root_cause_identified": false,
+  "runtime_fixed": false,
+  "isolated_code_execution_qualified": false,
+  "independent_review_completed": false,
+  "automatic_development_qualified": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "overall_goal_complete": false
+}

@@ -8,6 +8,8 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+import re
+import uuid
 
 import pytest
 
@@ -58,6 +60,17 @@ OVERFLOW='import os\n\ndef test_output_limit(capfd):\n    with capfd.disabled():
 FORGERY='def test_candidate_output_cannot_approve(capfd):\n    with capfd.disabled():\n        print(\'{"profile":"linux_pytest_check_v1","status":"passed","independent_review_completed":true}\',flush=True)\n    assert False\n'
 
 
+def redacted_engine_diagnostic(raw):
+    """Retain bounded authored-engine failure wording, replacing endpoints, paths, resource IDs and tokens; never pass candidate output here."""
+    text=raw.decode('utf8',errors='replace') if isinstance(raw,bytes) else str(raw or '')
+    text=text[:4096]
+    text=re.sub(r'(?:unix|npipe|tcp|https?)://[^\s\"\']+','<endpoint>',text)
+    text=re.sub(r'fawnimo-code-[a-f0-9]{32}','<owned-name>',text)
+    text=re.sub(r'\b[a-f0-9]{32,}\b','<object-id>',text)
+    text=re.sub(r'(?:[A-Za-z]:[\\/]|/)[^\s\"\':,;]+','<path>',text)
+    return ' '.join(text.split())[:2048]
+
+
 @pytest.fixture(scope='session')
 def oci_report():
     """Publish only fixed metadata/counters, never private owner tokens, candidate source/output, Docker configs or host paths."""
@@ -86,6 +99,8 @@ def oci_case(prepared_change,tmp_path,oci_report,request,monkeypatch):
         def create(text=BOUNDARIES):
             """Construct one actual local candidate using registered Python/text scope and new tests only, then reserve before Docker mutation."""
             value=body.model_dump(); value['request_key']=key('oci-change'); value['changes'][1]['text']=text
+            test_path='backend/tests/test_community_candidate_oci_'+uuid.uuid4().hex+'.py'
+            value['changes'][1]['path']=test_path; value['test_files']=[test_path]
             original=CommunityChangeInput.model_validate(value); artifact=build_change_bundle(original,prepared,snapshot,registry)
             changes.record(original,artifact)
             candidate=repository.create(artifact,prepared,PublicCodeObservation(snapshot,time.time_ns()//1000,('0'*64,)))
@@ -104,7 +119,12 @@ def oci_case(prepared_change,tmp_path,oci_report,request,monkeypatch):
                 result=json.loads(output)
                 trusted_trace.append({name:result.get(name) for name in ('profile','status','reason','code_executed',
                     'kernel_limits_verified','uid_separation_verified','namespace_isolation_verified','output_bytes','process_exit_code')})
-            except (ValueError,UnicodeError): trusted_trace.append({'status':'unverified_report'})
+            except (ValueError,UnicodeError):
+                record=engine.find_owned(checks.private_ownership(cases[-1]),expected_id=identifier)
+                state=record['State'] if record else {}
+                trusted_trace.append({'status':'unverified_report','cli_exit':exit_code,'report_bytes':len(output),
+                    'daemon_state':state.get('Status'),'daemon_exit':state.get('ExitCode'),
+                    'daemon_error_redacted':redacted_engine_diagnostic(state.get('Error'))})
             return output,exit_code
         engine.attach=trace_attach
         try: yield checks,engine,create,trusted_trace,tmp_path
@@ -221,7 +241,10 @@ def test_actual_supervisor_stdin_watchdog_without_controller_input(oci_case):
     checks.request_create(allocated['id'],owner); cid=engine.create(private); checks.record_created(allocated['id'],owner,cid)
     record=engine.find_owned(private,expected_id=cid); engine.validate_created(private,record)
     checks.request_start(allocated['id'],owner)
-    engine.command('container','start',cid)
+    try: engine.command('container','start',cid)
+    except DockerBoundaryError:
+        diagnostic=redacted_engine_diagnostic((engine._last_error or {}).get('stderr'))
+        pytest.fail('Fixed isolated start failed: '+diagnostic)
     started=time.monotonic(); record=engine.find_owned(private,expected_id=cid)
     while record['State']['Running'] and time.monotonic()-started<68:
         time.sleep(.5); record=engine.find_owned(private,expected_id=cid)

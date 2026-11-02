@@ -83,7 +83,7 @@ class DockerCodeBoundary:
     def __init__(self, endpoint, configuration, *, runner=None):
         """The public factory supplies a validated local endpoint and a fresh empty config; embedding arguments remain trusted host configuration."""
         self.endpoint = endpoint; self.configuration = Path(configuration); self.runner = runner or subprocess.run
-        self.policy = LinuxCodeCheckPolicy(); self.image_env = {}; self.deadline = None
+        self.policy = LinuxCodeCheckPolicy(); self.image_env = {}; self.deadline = None; self._last_error = None
         if not isinstance(endpoint, str) or not (endpoint.startswith('unix:///') or endpoint.startswith('npipe:////./pipe/')):
             raise DockerBoundaryError('Remote Docker endpoints are not supported')
         if self.configuration.resolve() != self.configuration.absolute() or (self.configuration / 'config.json').read_bytes() != b'{}\n':
@@ -102,7 +102,11 @@ class DockerCodeBoundary:
         except (OSError, subprocess.SubprocessError):
             raise DockerBoundaryError('Owned Docker operation was interrupted; reconcile the original check before retrying') from None
         if len(result.stdout) > 1048576 or len(result.stderr) > 65536: raise DockerBoundaryError('Docker response exceeds check bounds')
-        if result.returncode and not allowed_failure: raise DockerBoundaryError('Owned Docker operation failed; original outcome may need reconciliation')
+        if result.returncode:
+            # Only trusted local diagnostics may inspect this private bounded
+            # value. Exceptions/CLI/public check history never serialize it.
+            self._last_error = {'operation': tuple(arguments[:2]), 'exit_code': result.returncode, 'stderr': result.stderr[:4096]}
+            if not allowed_failure: raise DockerBoundaryError('Owned Docker operation failed; original outcome may need reconciliation')
         return result
 
     @contextmanager

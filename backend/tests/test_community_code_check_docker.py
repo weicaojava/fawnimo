@@ -135,3 +135,25 @@ def test_unsupported_kernel_support_or_spent_operation_budget_fails_closed(bound
     with engine.budget(0):
         with pytest.raises(DockerBoundaryError): engine.create(ATTEMPT)
     assert len(daemon.calls) == before
+
+
+def test_daemon_error_is_bounded_and_private_not_in_exception_or_public_view(boundary):
+    """Trusted maintenance can diagnose failed starts while ordinary command errors never expose daemon text or host/private values."""
+    engine,_daemon=boundary
+    sentinel=b'authored-private-daemon-text-that-must-not-be-public '
+    def fail(argv,**_kwargs):
+        """Return an authored finite daemon error without running a command."""
+        return subprocess.CompletedProcess(argv,125,b'',sentinel*100)
+    engine.runner=fail
+    with pytest.raises(DockerBoundaryError) as error: engine.command('container','start',CID)
+    assert sentinel.decode().strip() not in str(error.value)
+    assert engine._last_error['operation']==('container','start') and len(engine._last_error['stderr'])==4096
+
+
+def test_trusted_oci_error_diagnostic_removes_paths_endpoints_and_owned_tokens():
+    """Only trusted engine errors enter the diagnostic redactor; a public acceptance report must not retain host paths or private ownership."""
+    from tests.test_community_code_check_oci import redacted_engine_diagnostic
+    text='daemon unix:///var/run/docker.sock failed to start fawnimo-code-'+('a'*32)+' at /var/lib/docker/private/path with '+('b'*64)+' permission denied'
+    value=redacted_engine_diagnostic(text)
+    assert '/var/' not in value and 'a'*32 not in value and 'b'*64 not in value and 'unix://' not in value
+    assert 'permission denied' in value and len(redacted_engine_diagnostic('x'*10000))==2048
