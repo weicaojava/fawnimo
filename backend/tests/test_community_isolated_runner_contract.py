@@ -13,9 +13,9 @@ from copy import deepcopy
 import pytest
 
 from app.core.contracts.community_code_checks import checked_source_path
-from app.services.community.change_bundles import build_change_bundle
+from app.services.community.change_bundles import build_change_bundle,protected_code_path
 from app.services.community.public_code import git_blob_id
-from tests.test_community_change_bundles import prepared_change
+from tests.test_community_change_bundles import prepared_change,legacy_controller_bundle
 from tests.test_community_queue_leases import factory
 
 RUNNER = Path(__file__).resolve().parents[1] / 'community_isolated_runner.py'
@@ -54,6 +54,14 @@ def test_supervisor_and_host_agree_on_complete_source_subset(supervisor, path):
     assert supervisor.checked_source_path(path) == checked_source_path(path)
 
 
+@pytest.mark.parametrize('path',['backend/check_community.py','backend/queue_community.py','backend/assess_community.py',
+    'backend/review_community.py','backend/unseen_control_entry.py','backend/app/services/community/queue_planning.py','scripts/features.py'])
+def test_supervisor_and_host_agree_on_protected_control_entrypoints(supervisor,path):
+    """The privileged execution policy mirrors the host's entry-point guard, including controller names introduced after this protocol."""
+    assert supervisor.protected_code_path(path) == protected_code_path(path)
+    assert protected_code_path(path) == (path.startswith('backend/') and path.count('/')==1)
+
+
 def test_valid_input_is_inert_and_cannot_spawn_candidate_code(supervisor, frame, monkeypatch):
     """Parsing an exact original bundle never creates a process or imports proposed test text."""
     def forbidden(*_args, **_kwargs):
@@ -88,6 +96,23 @@ def test_partial_or_noncanonical_frame_cannot_open_gate(supervisor,raw):
 def test_oversized_single_frame_is_bounded_before_json_or_code(supervisor):
     """The pipe reader stops at the fixed cap even if a peer never terminates its JSON record."""
     with pytest.raises(supervisor.Rejected): supervisor.read_frame(io.BytesIO(b'x'*(supervisor.MAX_INPUT+1)+b'\n'))
+
+
+def test_trusted_supervisor_rejects_legacy_controller_change_before_code(supervisor,legacy_controller_bundle,tmp_path,monkeypatch):
+    """An inert artifact accepted by the older host guard cannot bypass the privileged runner's independent current entry-point policy."""
+    body,_prepared,snapshot,_registry,artifact=legacy_controller_bundle
+    root=tmp_path/'image'; work=tmp_path/'sealed-work'
+    for path,raw in snapshot.files.items():
+        target=root/path; target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(raw)
+    base={path:{'mode':'100644','sha':git_blob_id(raw)} for path,raw in snapshot.files.items()}; candidate=dict(base)
+    for change in body.changes: candidate[change.path]={'mode':'100644','sha':git_blob_id(change.text.encode('utf8'))}
+    value={'profile':'linux_pytest_check_v1','attempt_id':'11111111-1111-4111-8111-111111111111',
+        'deadline_us':time.time_ns()//1000+59000000,'runner_sha256':hashlib.sha256(RUNNER.read_bytes()).hexdigest(),
+        'artifact':artifact,'base_manifest':base,'candidate_manifest':candidate}
+    monkeypatch.setattr(supervisor,'IMAGE_ROOT',root); monkeypatch.setattr(supervisor,'WORK',work)
+    payload=supervisor.validate_input(value)
+    with pytest.raises(supervisor.Rejected,match='candidate_path_rejected'): supervisor.prepare_workspace(value,payload)
+    assert not supervisor.STATE['code_executed'] and not (work/'backend/check_community.py').exists()
 
 
 @pytest.mark.parametrize('bad', ['profile', 'runner_hash', 'extra_command', 'expired', 'bool_deadline', 'bundle_hash', 'execution', 'manifest_escape', 'manifest_link'])

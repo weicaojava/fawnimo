@@ -24,6 +24,11 @@ PROTECTED = ('backend/app/core/', 'backend/app/controlplane/', 'backend/app/api/
 CANDIDATE_TEST = re.compile(r'backend/tests/test_community_candidate_[a-z0-9_]+\.py')
 
 
+def protected_code_path(path):
+    """Protect every backend top-level entry point, including future controllers, even if a feature register associates it with a candidate task."""
+    return path.startswith(PROTECTED) or path.startswith('backend/') and path.count('/') == 1
+
+
 @dataclass(frozen=True)
 class PublicCodeSnapshot:
     """Server-owned public Git identity and regular file bytes, collected from committed objects rather than a dirty checkout."""
@@ -95,7 +100,7 @@ def build_change_bundle(body, prepared, snapshot, registry, *, observations=None
     replacements = {}; records = []; patch = []
     for change in body.changes:
         test = CANDIDATE_TEST.fullmatch(change.path) is not None
-        if (change.path.startswith(PROTECTED) or not (test or change.path in registered)
+        if (protected_code_path(change.path) or not (test or change.path in registered)
                 or (test and (change.action != 'write' or change.before_sha256 is not None or change.path in before))):
             raise CommunityStoreConflict('Change target is outside the registered bounded edit profile')
         if before.get(change.path) != change.before_sha256:
@@ -193,6 +198,9 @@ def _verify_change_bundle(value):
         raw = None if change.action == 'delete' else change.text.encode('utf8')
         expected = {'path': change.path, 'action': change.action, 'before_sha256': change.before_sha256,
             'before_text': old, 'text': change.text, 'after_sha256': None if raw is None else bytes_hash(raw)}
+        # Preserve the original v1 integrity rules for inert historical reads
+        # and cleanup. New creation/fresh admission uses protected_code_path;
+        # the trusted supervisor independently rejects every root controller.
         if (saved != expected or change.path.startswith(PROTECTED) or (not test and change.path not in payload['scope'].get('registered_code_paths', []))
                 or derived.get(change.path) != change.before_sha256
                 or (old is None) != (change.before_sha256 is None)

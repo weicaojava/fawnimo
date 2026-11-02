@@ -113,6 +113,16 @@ def test_unregistered_or_protected_files_are_not_collected(public_fixture, path)
     assert not any(path in call for call in public_fixture[2])
 
 
+@pytest.mark.parametrize('path',['backend/check_community.py','backend/queue_community.py','backend/assess_community.py',
+    'backend/review_community.py','backend/unseen_control_entry.py'])
+def test_root_controller_rejected_before_any_public_read(path):
+    """A future registered controller name cannot widen source collection; policy rejection happens before any network request."""
+    def forbidden(_path):
+        """No fixed-host read is needed to decide that a top-level execution entry point is protected."""
+        raise AssertionError('Unexpected source read for a protected entry point')
+    with pytest.raises(CommunityStoreConflict): inspect_public_code(CONFIG,['F-015.01'],[path],reader=forbidden,clock_us=NOW)
+
+
 @pytest.mark.parametrize('bad', ['stale', 'future', 'bool_clock', 'wrong_repo', 'host', 'bad_hash', 'bad_files', 'protocol'])
 def test_parent_refuses_stale_or_changed_child_protocol(public_fixture, bad):
     """A helper response must match the exact configured public source and finite observation window, with no extra authority fields."""

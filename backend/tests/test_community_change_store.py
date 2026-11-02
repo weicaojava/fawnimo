@@ -22,7 +22,7 @@ from app.services.community.evaluations import canonical
 from app.services.community.store import CommunityStoreConflict
 from tests.test_community_evaluations import CONFIG, NOW, event, add, proof
 from tests.test_community_queue_leases import factory, claim_body, lease_body, key
-from tests.test_community_change_bundles import prepared_change
+from tests.test_community_change_bundles import prepared_change,legacy_controller_bundle
 from tests.test_community_candidate_git import candidate_repo, assert_original
 
 
@@ -45,6 +45,27 @@ def test_store_reopens_and_original_key_survives_restart(proposal_store):
     assert reopened.get(artifact['bundle_id']) == artifact
     assert reopened.history(body.work_id)[0]['bundle_id'] == artifact['bundle_id']
     assert not artifact['bundle']['execution_authorized']
+
+
+def test_legacy_inert_controller_records_do_not_block_reopen_cancel_or_cleanup(legacy_controller_bundle,tmp_path):
+    """A stricter new-execution guard must not strand immutable old history or its durable resource reconciliation; facts here remain authored."""
+    from app.core.contracts.community_code_checks import CommunityCodeCheckInput,CodeCheckAdmission,CodeCheckCleanup
+    from app.services.community.code_check_store import CommunityCodeCheckStore
+    from app.services.community.candidate_git import CandidateCommit
+    body,_prepared,_snapshot,_registry,artifact=legacy_controller_bundle
+    changes=CommunityChangeStore(tmp_path/'legacy-inert',CONFIG,initialize=True); changes.record(body,artifact)
+    reopened=CommunityChangeStore(changes.root,CONFIG); assert reopened.get(artifact['bundle_id'])==artifact
+    checks=CommunityCodeCheckStore(reopened,initialize=True); scope=artifact['bundle']['scope']; image='sha256:'+'e'*64
+    candidate=CandidateCommit(artifact['bundle_id'],artifact['branch'],'c'*40,'d'*40,scope['base_commit'],17,'authored/fawnimo')
+    intent=CommunityCodeCheckInput(request_key='legacy-history-cleanup',bundle_id=artifact['bundle_id'])
+    admission=CodeCheckAdmission(artifact['bundle_id'],artifact['bundle']['scope_hash'],candidate.commit,candidate.tree,candidate.parent,
+        image,17,'authored/fawnimo',scope['source_fingerprint'],time.time_ns()//1000)
+    allocated=checks.allocate(intent,candidate,image,admission); private=checks.private_ownership(allocated['id'])
+    checks.request_cancel(allocated['id'])
+    absence=CodeCheckCleanup(allocated['id'],allocated['container_name'],image,private['owner_token'],None,True,True)
+    result=checks.finish(allocated['id'],private['owner_token'],'cancelled',absence)
+    assert not result['active_reservation'] and result['outcome']=='cancelled'
+    assert CommunityChangeStore(changes.root,CONFIG).get(artifact['bundle_id'])==artifact
 
 
 def test_competing_identical_records_append_one_bundle(proposal_store):

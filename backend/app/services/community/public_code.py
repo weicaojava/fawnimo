@@ -10,7 +10,7 @@ import sys
 import time
 
 from app.core.contracts.community_changes import code_path
-from app.services.community.change_bundles import PublicCodeSnapshot, PROTECTED, CANDIDATE_TEST, verify_public_snapshot
+from app.services.community.change_bundles import PublicCodeSnapshot, protected_code_path, CANDIDATE_TEST, verify_public_snapshot
 from app.services.community.events import unique_fields, invalid_number, finite_float
 from app.services.community.public_source import github_public_get, parse_public_json
 from app.services.community.queue_planning import catalog_features
@@ -49,7 +49,7 @@ def inspect_public_code(config, feature_ids, paths, *, reader=None, clock_us=Non
         raise CommunityStoreConflict('Invalid bounded public code request')
     for path in paths:
         code_path(path)
-        if not path.endswith('.py') or path.startswith(PROTECTED):
+        if not path.endswith('.py') or protected_code_path(path):
             raise CommunityStoreConflict('Public code request targets a protected controller')
     get = reader or github_public_get
     prefix = '/repos/' + config.repository_name

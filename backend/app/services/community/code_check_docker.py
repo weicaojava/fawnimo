@@ -166,7 +166,7 @@ class DockerCodeBoundary:
             '--shm-size',str(policy.shm_bytes),'--memory',str(policy.memory_bytes),'--memory-swap',str(policy.memory_bytes),
             '--cpus','1','--pids-limit',str(policy.pids),'--ulimit','core=0:0','--ulimit',f'nofile={policy.max_open_files}:{policy.max_open_files}',
             '--user','0:0','--cap-drop','ALL','--cap-add','KILL','--cap-add','SETUID','--cap-add','SETGID',
-            '--security-opt','no-new-privileges:true','--init','--no-healthcheck','--log-driver','local','--log-opt','max-size=1m','--log-opt','max-file=1',
+            '--security-opt','no-new-privileges:true','--init','--no-healthcheck','--log-driver','local','--log-opt','max-size=1m','--log-opt','max-file=1','--log-opt','compress=false',
             '--entrypoint','/usr/local/bin/python','--workdir','/tmp','--env','PYTHONUTF8=1',value['image_id'],
             '-I','-B','-S','/app/backend/community_isolated_runner.py']
         identifier = self.command(*args).stdout.decode('ascii').strip()
@@ -215,7 +215,7 @@ class DockerCodeBoundary:
             limits = {item['Name']: (item['Soft'],item['Hard']) for item in (host.get('Ulimits') or [])}
             if limits.get('core') != (0,0) or limits.get('nofile') != (128,128): raise ValueError()
             if host.get('RestartPolicy', {}).get('Name') != 'no' or config.get('Healthcheck',{}).get('Test') != ['NONE']: raise ValueError()
-            if host.get('LogConfig') != {'Type':'local','Config':{'max-size':'1m','max-file':'1'}}: raise ValueError()
+            if host.get('LogConfig') != {'Type':'local','Config':{'max-size':'1m','max-file':'1','compress':'false'}}: raise ValueError()
         except (ValueError,TypeError,KeyError,AttributeError):
             raise DockerBoundaryError('Actual container does not match the fixed isolated check policy') from None
         return {'daemon_configuration_verified': True}

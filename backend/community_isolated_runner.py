@@ -94,6 +94,11 @@ def git_blob(raw):
     return hashlib.sha1(b'blob ' + str(len(raw)).encode('ascii') + b'\0' + raw).hexdigest()
 
 
+def protected_code_path(path):
+    """Keep all present/future top-level backend entry points outside proposed changes without importing untrusted application policy."""
+    return path.startswith(PROTECTED) or path.startswith('backend/') and path.count('/') == 1
+
+
 def process_status(identifier='self'):
     """Read the real kernel's process attributes before any untrusted source import or child spawn."""
     return {line.split(':', 1)[0]: line.split(':', 1)[1].strip() for line in Path('/proc', str(identifier), 'status').read_text().splitlines() if ':' in line}
@@ -222,7 +227,7 @@ def prepare_workspace(value, payload):
         if not isinstance(change, dict): raise Rejected('invalid_candidate_file')
         path = change.get('path')
         test = isinstance(path, str) and re.fullmatch(r'backend/tests/test_community_candidate_[a-z0-9_]+\.py', path) is not None
-        if (not checked_source_path(path) or not path.endswith('.py') or path in seen or path.startswith(PROTECTED)
+        if (not checked_source_path(path) or not path.endswith('.py') or path in seen or protected_code_path(path)
                 or not (test or path in registered) or test and (change.get('before_sha256') is not None or change.get('action') != 'write')):
             raise Rejected('candidate_path_rejected')
         seen.add(path); target = WORK / path

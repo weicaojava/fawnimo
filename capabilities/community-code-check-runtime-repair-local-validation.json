@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-11-02T22:08:03.524298+00:00",
+  "scope": "Logging startup and root controller guard repair, exact new PR CI/runtime still pending",
+  "parent": "7a06438d483b0f453f31778d32b95bf7d76bb958",
+  "main": "9e2aef750d14f8409d4e838ddd5420d5867652bf",
+  "source_tree": "b54d3ba690fdc61f8c19b43807a8be2e3fda9f09",
+  "source_sha256_lf_normalized": {
+    "backend/app/services/community/code_check_docker.py": "fa184e54fe0260f4bf508840bd73e44730cd17be1187579fb1977ecc631202de",
+    "backend/tests/test_community_code_check_docker.py": "8cb92e24479441ef27f3bc1184eabf9eff7e573f16597fd4e97f8a420fae41fa",
+    "backend/app/services/community/change_bundles.py": "ed21f76a743feac488bb38d55280396ff068e4dbf07cdcdc839bc4a634c5413f",
+    "backend/app/services/community/public_code.py": "659be9c1792dbdaf4867d8789b170fbba7aadfd622d172cc55c459f0a17956a7",
+    "backend/community_isolated_runner.py": "e05e17f251694728064d68513dba75cb9f45d12321e0fc0fd11b3b435b4a23c7",
+    "backend/tests/test_community_change_bundles.py": "449c2d7278f6fdc542cbdb5722b84d8bf517f0d43947310819ceedb37bae2257",
+    "backend/tests/test_community_public_code.py": "27a1dc1a531b5478f18a3575adcb20c1a56c17c89304c4b47bcd5dc4a1ea6d21",
+    "backend/tests/test_community_isolated_runner_contract.py": "1a2faae1337e7f1056aa4da08175ec5e8ad34470c7ff56d45efd2ea522bfec3c",
+    "backend/tests/test_community_change_store.py": "907c62638dee1184061ba5627e4fd94b9ed6edb4ce9e454f94fc5aca84679af3"
+  },
+  "prior_actual_oci": {
+    "pr_number": 1,
+    "head_commit": "7a06438d483b0f453f31778d32b95bf7d76bb958",
+    "tested_merge_commit": "71bba0f2a6dd8704d1b8e7e67c0badb7553e3a7f",
+    "run_id": 41532818294,
+    "job_id": 125577088811,
+    "failed": 9,
+    "passed": 1,
+    "seconds": 7.45,
+    "cleanup_verified": true,
+    "artifact_id": 13181874026,
+    "artifact_sha256": "42c7934bf594ff03be0f307583cb12c836929cde7eae22f62048f657afe52b94"
+  },
+  "prior_failed_pr_run_url": "https://github.com/weicaojava/fawnimo/actions/runs/41532818294",
+  "root_cause": "Docker local log compression defaults true and refuses max-file=1; explicitly disable compression without increasing existing log/resource bounds",
+  "controller_counterexample": {
+    "published_parent": "9e2aef750d14f8409d4e838ddd5420d5867652bf",
+    "source_sha256_lf_normalized": {
+      "backend/app/services/community/change_bundles.py": "ec63ae2f86ade13e4197517afd4e3a821470db4e9fc924da8efc090f9465ead4",
+      "backend/app/services/community/public_code.py": "ef3483fab308fc315c29ea7ed02ce22c5328045a34fc403755db2a9b7cc96593",
+      "backend/community_isolated_runner.py": "b27c59e3a44f75e371f4b61132ca634ad7b57418e3435b5f7bf3451afd33f9d8"
+    },
+    "failed": 5,
+    "passed": 7,
+    "deselected": 34,
+    "seconds": 2.61,
+    "junit_sha256": "ab0e7502050c3a00ecb74f8addf3625b2c64a33a2ec9a4bc16c154e936bc2c62",
+    "scope": "Actual authored builder counterexample: a registered top-level community controller is accepted by the former fixed-name predicate. Candidate remains inert; no candidate code was run.",
+    "execution_qualified": false,
+    "real_model_calls": 0
+  },
+  "local_regression": {
+    "tests": 469,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "passed": 467,
+    "seconds": 75.211,
+    "junit_sha256": "94e2b8f43e411e85f9db287f2c95eeeddbae5a9dd1c0a32c0fd71b649ff0e9b4"
+  },
+  "review": {
+    "method": "author source and combined metadata review",
+    "independent": false,
+    "open_findings": [],
+    "scope": "Explicit compress=false keeps one1MiB local log and existing enforcement; new all-root entry-point guard at bundle/public-source/supervisor boundaries; immutable inert v1 history and cancel/cleanup stay readable; no authority/resource relaxation"
+  },
+  "references": [
+    "https://docs.docker.com/engine/logging/drivers/local/"
+  ],
+  "current_commit_ci": "pending_exact_draft_PR_head_CI",
+  "runtime_fix_implemented": true,
+  "root_cause_identified": true,
+  "isolated_code_execution_qualified": false,
+  "independent_review_completed": false,
+  "automatic_development_qualified": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "overall_goal_complete": false
+}

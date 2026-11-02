@@ -27,7 +27,7 @@ def record_for(attempt=ATTEMPT):
             'PublishAllPorts':False,'OomKillDisable':False,'Memory':536870912,'MemorySwap':536870912,'NanoCpus':1000000000,'PidsLimit':64,
             'ShmSize':1048576,'Tmpfs':{'/tmp':'rw,noexec,nosuid,nodev,size=134217728,mode=1777'},
             'Ulimits':[{'Name':'core','Soft':0,'Hard':0},{'Name':'nofile','Soft':128,'Hard':128}],
-            'RestartPolicy':{'Name':'no','MaximumRetryCount':0},'LogConfig':{'Type':'local','Config':{'max-size':'1m','max-file':'1'}}},
+            'RestartPolicy':{'Name':'no','MaximumRetryCount':0},'LogConfig':{'Type':'local','Config':{'max-size':'1m','max-file':'1','compress':'false'}}},
         'State':{'Status':'created','Running':False,'Restarting':False,'OOMKilled':False,'ExitCode':0}}
 
 
@@ -71,6 +71,7 @@ def test_fixed_creation_and_verified_owned_cleanup_only(boundary,monkeypatch):
     assert cleanup.resource_absent and cleanup.container_id == CID
     command=next(argv for argv,_ in daemon.calls if argv[5:7] == ['container','create'])
     assert '--pull' in command and command[command.index('--pull')+1] == 'never'
+    assert 'compress=false' in command and 'max-file=1' in command and 'max-size=1m' in command
     assert not set(command)&{'--volume','-v','--mount','--publish','--privileged','--use-api-socket','--env-file'}
     for argv,options in daemon.calls:
         assert argv[:5] == ['docker','--config',str(engine.configuration),'--host','unix:///var/run/docker.sock']
@@ -78,7 +79,7 @@ def test_fixed_creation_and_verified_owned_cleanup_only(boundary,monkeypatch):
     assert any(argv[-2:] == ['--force',CID] for argv,_ in daemon.calls)
 
 
-@pytest.mark.parametrize('bad',['bind','socket','privileged','network','env','memory','capability','log','restart','tmpfs','image','user','stdin','shm'])
+@pytest.mark.parametrize('bad',['bind','socket','privileged','network','env','memory','capability','log','restart','tmpfs','image','user','stdin','shm','compression'])
 def test_actual_inspect_mismatch_rejects_before_start(boundary,bad):
     """An option string passed to create is insufficient if the actual inspect receipt differs from the fixed policy."""
     engine,_daemon=boundary; record=record_for(); host=record['HostConfig']; config=record['Config']
@@ -95,7 +96,8 @@ def test_actual_inspect_mismatch_rejects_before_start(boundary,bad):
     elif bad == 'image': record['Image']='sha256:'+'f'*64
     elif bad == 'user': config['User']='10001'
     elif bad == 'stdin': config['OpenStdin']=False
-    else: host['ShmSize']=67108864
+    elif bad == 'shm': host['ShmSize']=67108864
+    else: host['LogConfig']['Config']['compress']='true'
     with pytest.raises(DockerBoundaryError): engine.validate_created(ATTEMPT,record)
 
 

@@ -12,7 +12,7 @@ from pydantic import ValidationError
 from app.core.contracts.community_changes import CommunityChangeInput, CommunityFileChange
 from app.core.contracts.community_queue import QueueFinishInput
 from app.services.community.change_bundles import (PublicCodeSnapshot, build_change_bundle, verify_change_bundle,
-    bytes_hash, original_change_hash)
+    bytes_hash, original_change_hash, PROTECTED)
 from app.services.community.evaluations import canonical, digest
 from app.services.community.store import CommunityStoreConflict
 from tests.test_community_evaluations import proof
@@ -107,7 +107,8 @@ def test_paths_reject_traversal_windows_aliases_and_option_like_names(path):
 
 @pytest.mark.parametrize('path', ['backend/app/core/owned_process.py', 'backend/app/services/community/queue_leases.py',
     'backend/app/services/community/change_bundles.py', 'backend/app/services/community/public_source.py',
-    'backend/app/services/community/candidate_git.py', 'backend/app/services/community/public_code_child.py', 'backend/develop_community.py'])
+    'backend/app/services/community/candidate_git.py', 'backend/app/services/community/public_code_child.py', 'backend/develop_community.py',
+    'backend/check_community.py', 'backend/queue_community.py', 'backend/assess_community.py', 'backend/review_community.py', 'backend/unseen_control_entry.py'])
 def test_protected_controller_cannot_be_selected_even_if_registry_lists_it(prepared_change, path):
     """A registry association cannot let a candidate rewrite its execution, source, lease or approval boundary."""
     body, prepared, snapshot, registry = prepared_change
@@ -117,6 +118,27 @@ def test_protected_controller_cannot_be_selected_even_if_registry_lists_it(prepa
     changed = body.model_dump(); changed['changes'][0] = {'path': path, 'before_sha256': None, 'action': 'write', 'text': 'value = 1\n'}
     with pytest.raises(CommunityStoreConflict):
         build_change_bundle(CommunityChangeInput.model_validate(changed), prepared, replace(snapshot, files=files), altered)
+
+
+@pytest.fixture
+def legacy_controller_bundle(prepared_change,monkeypatch):
+    """Reproduce only the former fixed-name guard to create inert historical bytes; restore current policy before any store/read/cleanup test."""
+    body,prepared,snapshot,registry=prepared_change; altered=deepcopy(registry); path='backend/check_community.py'
+    next(item for item in altered['features'] if item['id']=='F-015.01')['code'].append(path)
+    files=dict(snapshot.files); files['capabilities/features.json']=canonical(altered).encode('utf8'); selected=replace(snapshot,files=files)
+    changed=body.model_dump(); changed['changes'][0]={'path':path,'before_sha256':None,'action':'write','text':'legacy_entry = True\n'}
+    intent=CommunityChangeInput.model_validate(changed)
+    with monkeypatch.context() as prior:
+        prior.setattr('app.services.community.change_bundles.protected_code_path',lambda value:value.startswith(PROTECTED))
+        artifact=build_change_bundle(intent,prepared,selected,altered)
+    return intent,prepared,selected,altered,artifact
+
+
+def test_legacy_inert_controller_history_remains_readable_but_cannot_create_new_change(legacy_controller_bundle):
+    """Narrow new authority without erasing old immutable bytes or preventing the old profile's read-only/cleanup compatibility."""
+    body,prepared,snapshot,registry,artifact=legacy_controller_bundle
+    assert verify_change_bundle(artifact)==artifact['bundle']
+    with pytest.raises(CommunityStoreConflict): build_change_bundle(body,prepared,snapshot,registry)
 
 
 @pytest.mark.parametrize('tamper', ['file_text', 'before_text', 'manifest', 'patch', 'test_files', 'scope_work', 'approval'])
