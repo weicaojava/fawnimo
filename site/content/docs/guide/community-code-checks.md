@@ -39,3 +39,5 @@ python check_community.py --changes-root /srv/fawnimo-community-changes --reposi
 `cancel_requested` 仅表示已记录停止意图；`active_reservation: true` 表示资源或外部接受结果尚未确认。引擎断开时保留此状态，恢复连接后再对账。创建请求已记录但具体容器身份未知时，查询不到容器也不会自动放行后续尝试；不要改库、改键或按过期时间清除这条预留。若确实无法确认，保留原历史并由维护者调查原引擎的准确资源记录。
 
 终态并确认清理后才释放执行名额。`passed` 表示本次固定候选测试通过，仍需按后续独立审查和准确版本的 CI 门槛处理。完整协议和信任边界见[当前架构](../../architecture/community-code-checks/)。
+
+完成准确本地检查后，可按[PR 观察指南](../community-pr-gates/)另行配置独立身份和工作流策略；默认关闭，不能把候选自测或旧记录当作发布许可。

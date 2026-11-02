@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "scope": "Read-only exact PR/review/latest-CI gate local software; not independent real-review or automatic publication qualification",
+  "source_tree": "f0886a5f6a336652899238efacaf3cea72b117c8",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "f15d50e999405c6baa857bde21226bbe796e13ac9c8b5959d5fa35ac336d4206",
+    "backend/app/core/contracts/community_review_gates.py": "fdd34b1a2eaf5a84d5b963f66c39059cbeae6840d568af86e3c93bc2770fc8ba",
+    "backend/app/services/community/review_gate_decisions.py": "7bb143a5b2ef90707b28fdbb91e0182654e43f7a5caf491d6ae605f62911696b",
+    "backend/app/services/community/review_gate_source.py": "f5bfc218175dfbae3fa53ad65b9a454bf078e3bf557c6a6ae3d160f5400842c4",
+    "backend/app/services/community/review_gate_source_child.py": "8535497356cc6c5c01b9f539fa0eb4cdf64a3e9ada8e3a1fc0eef175ad9ea9be",
+    "backend/app/services/community/review_gate_schema.py": "7cf5095cb76e3fa939b05a25de5c95c2d10f5b01ec06d1c3d846a86b624581c3",
+    "backend/app/services/community/review_gate_store.py": "75a6c6dcb9f1f1647571abb1d7002d2c39762cad2592e7f393a981fe6479d87e",
+    "backend/app/services/community/review_gate_admission.py": "c009bda2882997bd7f904f74f7c727626ecc7b877137c931b4f0dcdbe482de8b",
+    "backend/app/services/community/candidate_git.py": "48f1be6f53232a2e35b1947073586dc74e3bbf557a77710e5b213fee5ab07520",
+    "backend/observe_community_pr.py": "fcc793b042c0fed764e085499e0e0eb95e687a86d5fb314305ab9f52cc741db4",
+    "backend/tests/test_community_review_gate_decisions.py": "9338f67add7729545579ebc674067b0cc1612292ad05c59e76362402288833aa",
+    "backend/tests/test_community_review_gate_source.py": "90a6fe8986ce7dc29813941610342e999f9659b9e8ff9327ef08a545dd2bc3d9",
+    "backend/tests/test_community_review_gate_store.py": "4f560c0a348ce851c9ea73d9a32a58a1c9246fb5294c8adf20e98d33225207e8",
+    "backend/tests/test_community_review_gate_admission.py": "9f069d70166ed87ef9d5a29b828f6533e18e85405b69c5b3c2a503ff50bbb37a",
+    "backend/tests/test_community_review_gate_git.py": "372b90586e246a3200f27942f3a2ca1618dcaa2fc4be0b00c00d92dd171dad36"
+  },
+  "regression": {
+    "tests": 611,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "passed": 609,
+    "seconds": 108.54,
+    "junit_sha256": "dc3be2ef04a0879161994afd39903c9b0398f489c9983c16d5f3468ea189ac20"
+  },
+  "schemas": {
+    "main_paths": 249,
+    "main_schemas": 589,
+    "community_paths": 2,
+    "community_schemas": 2,
+    "schemas_unchanged": true,
+    "lifespan_started": false
+  },
+  "source_review": {
+    "method": "author review",
+    "independent": false,
+    "sha256": "68488d43d5db6601e21765423093e2fbdede024329da79d7775100eb2ace333d"
+  },
+  "counterexample": {
+    "scope": "Authored policy/collector counterexample only, not a live GitHub failure or real independent approval",
+    "failed": 1,
+    "deselected": 73,
+    "source_sha256_lf_normalized": {
+      "backend/app/services/community/review_gate_decisions.py": "0123b957ff6b3d6b5c670172ff38d2f4356af3bedeb010086158221f4d3fc618",
+      "backend/app/services/community/review_gate_source.py": "6726edf7b5801966f59334b8086b160e4b77b293f2caf8d3a8cb582c7276bc2f"
+    },
+    "junit_sha256": "e34c5a9087995ec392b115315922686e9e5793cb729a25c781fbb65d165f8762",
+    "cause": "Workflow-local run_number can reset when workflow identity changes; refuse mixed identities for the same pinned path instead of ranking old success above new failure.",
+    "independent_review_completed": false,
+    "overall_goal_complete": false
+  },
+  "reader_join_counterexample": {
+    "scope": "Authored persistent-event-loop counterexample, not a real GitHub failure",
+    "failed": 1,
+    "deselected": 9,
+    "source_sha256_lf_normalized": {
+      "backend/app/services/community/review_gate_admission.py": "6994434eb5ddc56188c9dfc3d8c8d50b73ec15a33a0f99e3dc50c9b94529e164",
+      "backend/tests/test_community_review_gate_admission.py": "77afbde632bb2be1f9597c4805a745bf09feb450583891c47317816bb6e9357e"
+    },
+    "junit_sha256": "8e22d3fcaa9f723e3a80ac311baa7c76dc08371c158477aaa9bc67871ac0667c",
+    "cause": "asyncio.gather propagates first failure without cancelling/joining sibling helpers in a persistent caller loop.",
+    "real_model_calls": 0
+  },
+  "cli_collision_counterexample": {
+    "scope": "Actual separate-process authored legacy requirement-history CLI compatibility counterexample, not real user data",
+    "failed": 1,
+    "deselected": 10,
+    "before_gate_cli_sha256": "fcc793b042c0fed764e085499e0e0eb95e687a86d5fb314305ab9f52cc741db4",
+    "preserved_original_cli_sha256": "8dfdc63b3dc57b99e720c5fe1b295052a24140ddcc3ebc351b0268238edba994",
+    "junit_sha256": "39873671981c2a79d7407a6960904fb1629b26abc9b131aab01aa7766a9ead72",
+    "fix": "Restore review_community.py byte-identical to the parent requirement evaluator; add observe_community_pr.py for the new observer"
+  },
+  "metadata_review": {
+    "method": "author combined source/metadata review",
+    "independent": false,
+    "scope": "Default closed/read-only policy, exact source/PR/reviewer/workflow attempt, immutable historical non-authority, joined source reads, accurate parent actual runtime/CI, docs/register/links/privacy"
+  },
+  "current_commit_ci": "pending_publication_and_exact_commit_CI",
+  "gate_default_enabled": false,
+  "historical_receipt_is_action_authority": false,
+  "promotion_authorized": false,
+  "merge_authorized": false,
+  "deployment_authorized": false,
+  "independent_review_completed": false,
+  "real_independent_reviewer_qualified": false,
+  "live_github_pr_collector_qualified": false,
+  "candidate_pr_publication_qualified": false,
+  "automatic_development_qualified": false,
+  "full_feature_qualified": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "github_issue_or_comment_writes": 0,
+  "github_review_writes": 0,
+  "overall_goal_complete": false,
+  "count_note": "Frozen609/2 platform skips; evolving72/109/133/138/140 overlap and are not summed. Authored failing logical cases are retained, not live provider failures."
+}

@@ -199,3 +199,20 @@ class CandidateGitRepository:
         if not 1 <= len(result) <= 4096:
             raise CommunityStoreConflict('Pinned code/resource manifest is empty or exceeds profile capacity')
         return dict(sorted(result.items()))
+
+    @bounded_git_operation
+    def workflow_blobs(self, base_tree, candidate_tree):
+        """Read only the two fixed committed workflow paths, never a dirty worktree/index or a caller-selected CI rule."""
+        from app.core.contracts.community_review_gates import WORKFLOW_REQUIREMENTS
+        if any(not isinstance(tree,str) or re.fullmatch(r'[0-9a-f]{40}',tree) is None for tree in (base_tree,candidate_tree)):
+            raise CommunityStoreConflict('Exact base/candidate tree IDs required for CI policy')
+        result={path:{} for path in WORKFLOW_REQUIREMENTS}
+        for key,tree in (('base',base_tree),('candidate',candidate_tree)):
+            for path in WORKFLOW_REQUIREMENTS:
+                entries=[item for item in self._git('ls-tree','-z',tree,'--',path).stdout.split(b'\0') if item]
+                if len(entries)!=1: raise CommunityStoreConflict('Both pinned workflow files must exist in the exact committed tree')
+                header,name=entries[0].split(b'\t',1); mode,kind,blob=header.decode().split()
+                if name.decode('utf8')!=path or mode!='100644' or kind!='blob' or re.fullmatch(r'[0-9a-f]{40}',blob) is None:
+                    raise CommunityStoreConflict('Trusted workflow is absent, redirected or has an unsupported mode')
+                result[path][key]=blob
+        return result
