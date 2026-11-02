@@ -633,12 +633,14 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 ### F-013.05 隔离开发、变更提交与PR追溯
 
-入口：`尚无入口`，尚无可验收入口。当前：待实现 / 未验收 / 未部署。
+入口：`CLI: backend/develop_community.py`，惰性变更包与本地候选提交；无代码执行/PR入口。当前：部分实现 / 本阶段已验证 / 仅本机。
 
 1. 开发attempt绑定精确需求版本、功能ID、分支及允许的仓库
 2. 独立工作目录、受限凭据、命令/网络/文件边界；产出可审阅PR及测试记录
 
-验收限制：不能接触用户私有媒体/密钥；不向未指定上游仓库创建事项或PR。
+软件回归目标：`backend/tests/test_community_change_bundles.py`、`backend/tests/test_community_public_code.py`、`backend/tests/test_community_change_store.py`、`backend/tests/test_community_candidate_git.py`、`backend/tests/test_community_candidate_lock.py`。
+
+验收限制：当前是public_python_change_v1源码提案和本地候选Git提交，不运行候选代码，不调用模型，不推送候选分支或创建PR。；新操作固定准确准备/源/公开main及Git对象和登记路径，复查来源后再次检查本地版本；控制器/审核规则/CI与依赖变更不在提案权限内。；独立索引只读取准确公开提交对象，不采用原工作树中已有的暂存、未暂存或未跟踪内容；原操作恢复保留同一个候选提交。；操作系统维护者与Git元数据仍属受信环境；内核互斥解决对象并发写入，不提供同系统用户之间的安全隔离。；候选测试文本和本地提交不构成独立审查或CI通过；真正受限执行器、未知结果对账、PR/准确头检查、独立审核和公网仍待完成。；实际本机SQLite/临时Git/进程检查通过，作者审阅；真实外部GitHub代码源与完整自动研发联合验收未通过，整项部分实现。。
 
 ### F-013.06 独立审查、客观测试与CI触发验证
 

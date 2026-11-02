@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-03",
+  "features": [
+    "F-013.05"
+  ],
+  "base_published_commit": "abba5c66758f4de73895e4652acb9e2fab8ac7da",
+  "selected_source_tree": "003c8c6510eca20905c4363c4ba0fbbbf55aee45",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "8daa97e52032af83ef80f2d146641b02a232f14cd9f7a261ed78f72c4e7e1aeb",
+    "backend/app/core/contracts/community_changes.py": "e9e1d824ee9228c75a774278ba81ac3d64c6a048ccb94fad2dd2006f4dee42fc",
+    "backend/app/services/community/change_bundles.py": "ec63ae2f86ade13e4197517afd4e3a821470db4e9fc924da8efc090f9465ead4",
+    "backend/app/services/community/public_code.py": "ef3483fab308fc315c29ea7ed02ce22c5328045a34fc403755db2a9b7cc96593",
+    "backend/app/services/community/public_code_child.py": "d7ba57a9a57f2eedce897fef093ca34e035d8748d39278e8fb70cfd1b545d467",
+    "backend/app/services/community/change_store.py": "35152f533c86a4e3e452d10985bc931b5e05fa29bd874be70c888c6778c8087f",
+    "backend/app/services/community/change_preparation.py": "9145971f934803973a57176b8480a26f5a7df6d154918a8e214015f71ac0aa4a",
+    "backend/app/services/community/candidate_git.py": "27691402cf6de25f6059568f992987de7a065c75dce54988ec5549da7a9a90da",
+    "backend/app/services/community/candidate_lock.py": "07f1e01742873f73815a11320a5555d8f281f2c31c10b447da8511b9a7a4301d",
+    "backend/develop_community.py": "958881b36292601af23a23dad16ac764a630fd0a238c0a9a912d29217d1771bd",
+    "backend/tests/test_community_change_bundles.py": "41530a547cc6d67d99512ead654af7124af71176a933828cb34cca0400677320",
+    "backend/tests/test_community_public_code.py": "a5110bb0b92bfda94a0b44b0c09eb16e64998ec20ad03aa3fa79248a0c90be32",
+    "backend/tests/test_community_change_store.py": "af23ec4075db23620b2b532a7b590e3776282473ec706e36385bf6237f71f642",
+    "backend/tests/test_community_candidate_git.py": "b092c9727c55be6aa3cb7fdbdb4a6c967d5228d4ce0b0d0509eaff7171186878",
+    "backend/tests/test_community_candidate_lock.py": "2ea6e09357ccc7639eb248d24e5023fb1a7c566e8ec09d9a31ff1b7fde1d5a43"
+  },
+  "scope": "public_python_change_v1 inert proposals and exact local candidate Git commits; no candidate code execution or remote writes",
+  "source_review": {
+    "method": "author source review",
+    "independent": false,
+    "sha256": "995e56bfb1bfa6743a337a59a43eb6f7715dc4e94756f338d37e6e00d223b9b8",
+    "open_findings": 0
+  },
+  "regression": {
+    "tests": 317,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "passed": 315,
+    "seconds": 70.879,
+    "junit_sha256": "51a845285750db4e09ccec2ca6f1af39ecd16c57f0ff739eb1227390f46b783f"
+  },
+  "count_note": "315 exact frozen passes/2 local platform skips. Evolving37/65/83/92, kernel runs and the prior failed96-pass run overlap and are not summed.",
+  "schemas": {
+    "main_paths": 249,
+    "main_schemas": 589,
+    "community_paths": 2,
+    "community_schemas": 2,
+    "schemas_unchanged": true,
+    "lifespan_started": false
+  },
+  "actual_cli_restart_commands": 3,
+  "actual_git_scope": "Authored temporary repositories: exact committed bytes, dirty index/worktree/untracked preservation, CAS/recovery and competing controllers; kernel process kill/reacquisition",
+  "retained_local_counterexample": {
+    "source_tree": "d45b4e1f09039be2b1b164a8e4419606053dc270",
+    "passed": 96,
+    "failed": 1,
+    "junit_sha256": "046305cf03eb5d3f28d219490103cdf93482c60386860b92de6e14f908ffd3e8",
+    "probe_sha256": "4235624eea60010d58c5c26cdfcc6b5aa7563fd4f77d7b7101a9ebbbdd5a6681",
+    "cause": "Concurrent Windows git-write-tree returned Permission denied while writing the same object",
+    "is_ci_result": false,
+    "closed_on_selected_source": true
+  },
+  "limits": {
+    "change_files": 16,
+    "candidate_test_files": 8,
+    "replacement_file_bytes": 131072,
+    "original_input_bytes": 2097152,
+    "bundle_payload_bytes": 8388608,
+    "stored_bundles": 128,
+    "bundles_per_work": 16,
+    "stored_bytes": 67108864,
+    "public_code_child_seconds": 45,
+    "observation_max_age_seconds": 60,
+    "git_operation_seconds": 20,
+    "git_builtin_seconds": 15
+  },
+  "metadata_review": {
+    "method": "author review",
+    "independent": false,
+    "scope": "Exact source/tests, inert proposal/local-commit scope, registered edit/protected-controller boundaries, public Git identity, original request/ref recovery, real Windows write-tree counterexample and kernel-lock/process release fix, separate parent CI and unperformed execution/PR/independent gates"
+  },
+  "current_commit_ci": "pending_publication_and_exact_commit_CI",
+  "execution_authorized": false,
+  "development_complete": false,
+  "independent_review_completed": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "github_issue_or_comment_writes": 0,
+  "github_candidate_pushes": 0,
+  "github_prs_created": 0,
+  "original_user_database_or_keys_used": false,
+  "live_github_code_qualified": false,
+  "isolated_code_execution_qualified": false,
+  "automatic_development_qualified": false,
+  "full_feature_qualified": false,
+  "public_deployment_verified": false,
+  "overall_goal_complete": false
+}
