@@ -27,7 +27,7 @@ from app.core.contracts.community_queue import QueueFinishInput
 from tests.test_community_change_bundles import prepared_change
 from tests.test_community_queue_leases import factory,claim_body,lease_body,key
 from tests.test_community_evaluations import CONFIG,proof,event,add
-from app.services.community.evaluations import canonical
+from app.services.community.evaluations import canonical,digest
 from tests import test_community_advice as authored
 
 SOURCE='scripts/features.py'
@@ -150,12 +150,14 @@ def test_generated_text_links_to_real_inert_bundle_without_executing_candidate(p
     original,prepared,snapshot,registry=prepared_change
     request=CommunityCodeModelRequest(request_key='original-bundle-model',work_id=prepared['id'],
         paths=[item.path for item in original.changes],test_files=original.test_files)
-    selected={'scope':{'work_id':request.work_id},'source':{'title':'原创公开需求'},'paths':request.paths,'test_files':request.test_files,
+    entry=prepared['work']['entry']
+    selected={'scope':{'work_id':request.work_id,'version_id':entry['version_id'],'feature_ids':entry['feature_ids'],'acceptance':entry['acceptance']},'source':{'title':'原创公开需求'},'paths':request.paths,'test_files':request.test_files,
         'files':[{'path':path,'text':snapshot.files[path].decode('utf8') if path in snapshot.files else None,
             'before_sha256':bytes_hash(snapshot.files[path]) if path in snapshot.files else None} for path in request.paths]}
     proposal={'title':original.title,'files':[{'path':item.path,'text':item.text} for item in original.changes]}
     journal=CommunityCodeModelStore(tmp_path/'model-jobs',17,'authored/fawnimo',initialize=True)
-    journal.reserve(request,configuration(),selected,{})
+    journal.reserve(request,configuration(),selected,{'base_commit':snapshot.commit,'base_tree':snapshot.tree,
+        'prepared_work_hash':digest(prepared['work']),'issue':{'fingerprint':entry['source_fingerprint']}})
     result=journal.record_result(request,generated_result(proposal))
     body=change_input(result['intent'],result['model_result'])
     assert body.work_id==original.work_id and body.test_files==original.test_files

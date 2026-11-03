@@ -9,7 +9,7 @@ import time
 from app.core.contracts.community_model_code import CommunityCodeModelRequest,CommunityCodeModelConfiguration,CommunityCodeModelResult
 from app.services.community.advice_store import canonical,digest
 from app.services.community.development_model_child import validate_proposal
-from app.services.community.development_model_protocol import change_input
+from app.services.community.development_model_protocol import change_input,validate_bundle_binding
 from app.services.community.change_bundles import original_change_hash,verify_change_bundle
 
 MAX_HISTORY_BYTES=32*1024*1024
@@ -157,6 +157,7 @@ class CommunityCodeModelStore:
             previous=self.view(db,request)
             if previous is None or previous['model_result'] is None or previous['model_result']['state']!='generated':raise ValueError('Original generated model text is required')
             body=change_input(previous['intent'],previous['model_result'])
+            validate_bundle_binding(previous['intent'],previous['model_result'],artifact)
             if bundle['input']!=body.model_dump() or bundle['scope']['work_id']!=request.work_id:raise ValueError('Inert bundle differs from the original model result and scope')
             link={'request_key':request.request_key,'bundle_id':artifact['bundle_id'],'input_hash':original_change_hash(body),
                 'model_result_sha256':digest(previous['model_result']),'execution_authorized':False,'external_fee_fen':0,

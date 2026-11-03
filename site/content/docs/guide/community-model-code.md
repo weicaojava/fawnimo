@@ -36,3 +36,22 @@ python generate_community.py --model-root /private/community/code-model --reposi
 原结果不明时只返回原记录；不会重新调用模型。已生成文字但尚未保存bundle时，可用原参数重试来源检查与保存，仍使用原文字，不重新推理。若bundle已经保存但关联中断，可仅提供原`--changes-root`恢复关联，无须当前模型配置或需求源；仍须同一仓库与原请求。
 
 检查并妥善保存原模型日志、配置、源码提案和回执，勿提交私有日志到公开仓库。独立本地模型服务与同一操作系统用户属于维护者的受信边界；软件日志与HTTP响应不证明实际AI质量或独立审查通过。
+
+
+## 推进同一原提案
+
+先检查原生成文字与bundle回执。使用同一请求文件、仓库数字ID和三个原目录，并明确提供该公开仓库的本地Git克隆。在`backend`目录运行：
+
+```sh
+python advance_community.py --root /private/community/intake --changes-root /private/community/changes --model-root /private/community/code-model --repository-id 1438202832 --request-file /private/community/code-request.json --repository /public/fawnimo --prepare-candidate
+```
+
+该命令只创建或恢复原本地候选，保留原Git暂存和工作树；不会运行模型或候选测试。当前来源/main/准备记录已改变时拒绝新建。已有原候选可不提供`--root`离线恢复。
+
+运行候选测试需另行明确启用既有[Linux隔离检查](../community-code-checks/)。先准备符合该档案的受信本地镜像，把以下占位符换为实际`sha256:`加64位十六进制ID；首次明确初始化检查库：
+
+```sh
+python advance_community.py --root /private/community/intake --changes-root /private/community/changes --model-root /private/community/code-model --repository-id 1438202832 --request-file /private/community/code-request.json --repository /public/fawnimo --run-check --image-id sha256:<准确64位镜像ID> --check-key original-model-check-001 --initialize-checks
+```
+
+恢复原检查时保留完全相同的请求、检查键和镜像ID，可省略`--root`与`--repository`；默认只返回原记录，不重新运行。未清理/不明结果按原检查流程显式对账，不能通过换键当成成功。检查通过后仍需既有草稿PR、独立审核和发布准入；此入口不写GitHub，也不授予这些权限。

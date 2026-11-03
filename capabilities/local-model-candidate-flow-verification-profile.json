@@ -1,0 +1,45 @@
+{
+  "profile": "local_model_candidate_flow_v1",
+  "source_tree": "9fc11a8b6e6d4e59f188acc37baa398bdc793ef3",
+  "scope": "Exact saved model proposal to existing local Git candidate/check coordination; native actual HTTP/Git/CLI with authored model/source/executor reports. Separate actual OCI chain requires exact-source CI.",
+  "native_related_counts": {
+    "tests": 80,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "new_flow_cases": 13,
+  "exact_legacy_link_counterexamples_reproduced": 6,
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "c59da3366ca072f5164ccc42018a6b0cb5918d157fbcb410298cd90fcd322e38",
+    "backend/app/services/community/development_model_protocol.py": "aadb247f4dd68c3dc364171b48650b419f572a1c5010cba2137bee189630a2a3",
+    "backend/app/services/community/development_model_store.py": "6dc2df1449924db5bc7b0e40e9c3f1ce5f9d02665793994e7de1541ccda3f8eb",
+    "backend/app/services/community/development_model_flow.py": "516fc27a12635ace9d9390ceb5db89adecf5e3c4e4f7453f2e4d8466a5936427",
+    "backend/advance_community.py": "356303efa98525b52980b3c13edc65949901936b416ae9813bf316de49359c33",
+    "backend/tests/test_community_model_code.py": "6ca6db75f284ef710af759e1f3299ba3a3a7bca45884b3a226345d61d99f4f32",
+    "backend/tests/test_community_model_flow.py": "bf8ae700cf59e28f68cd92f2fdfcbbb6582219800e546f1bf198b12b118c4c09",
+    "backend/tests/fixtures/code_model_attach_v1.py": "ae3c0e075ff53b78de91e057b14b854b9d5b0352e5c4f202f4a4826622b73297",
+    "backend/tests/test_community_code_check_oci.py": "fe626b4e1b2b196272b4b9290b08e1f82f8394b5c2bdb78ed76302865ae990cd"
+  },
+  "junit_sha256": "a740b1f11c8f4aedada5aec4483c1457d94e03b8d707126e5f74964710c124c8",
+  "covers": [
+    "exact original commit/tree/version/source/features/acceptance association",
+    "legacy inert history remains readable without new advancement authority",
+    "actual owned model HTTP to exact actual local Git candidate",
+    "original staged/unstaged/private bytes preserved",
+    "explicit immutable image before candidate mutation",
+    "existing original check replay before source/Git/daemon gates",
+    "actual CLI offline candidate/check recovery without model requests"
+  ],
+  "required_actual_oci_case": "test_actual_fixed_profile[boundaries]",
+  "required_actual_oci_receipt": "community-code-check-verification.json::local_model_candidate_flow",
+  "exact_main_CI_required": true,
+  "exact_source_actual_oci_chain_verified": false,
+  "actual_ai_model_used": false,
+  "model_quality_qualified": false,
+  "independent_review_completed": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "overall_goal_complete": false
+}

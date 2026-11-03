@@ -14,6 +14,8 @@ import uuid
 import pytest
 
 from app.core.contracts.community_changes import CommunityChangeInput
+from app.core.contracts.community_model_code import CommunityCodeModelRequest
+from app.core.contracts.community_queue import QueueFinishInput
 from app.core.contracts.community_code_checks import CommunityCodeCheckInput,CodeCheckAdmission
 from app.services.community.candidate_git import CandidateGitRepository
 from app.services.community.change_bundles import build_change_bundle
@@ -23,10 +25,15 @@ from app.services.community.code_check_runtime import drive_allocated_check,reco
 from app.services.community.code_check_store import CommunityCodeCheckStore
 from app.services.community.evaluations import canonical
 from app.services.community.public_code import PublicCodeObservation
+from app.services.community.development_model import generate_original
+from app.services.community.development_model_store import CommunityCodeModelStore
+from app.services.community.development_model_flow import prepare_candidate,check_candidate
 from tests.test_community_change_bundles import prepared_change,TEST_PATH
-from tests.test_community_queue_leases import factory,key
-from tests.test_community_evaluations import CONFIG
+from tests.test_community_queue_leases import factory,key,claim_body,lease_body
+from tests.test_community_evaluations import CONFIG,proof
 from tests.test_community_candidate_git import git
+from tests.test_community_model_code import configuration
+from tests import test_community_advice as authored_model
 
 ROOT=Path(__file__).resolve().parents[2]
 IMAGE=os.environ.get('FAWNIMO_CODE_CHECK_OCI_IMAGE')
@@ -96,6 +103,10 @@ def oci_case(prepared_change,tmp_path,oci_report,request,monkeypatch):
     with isolated_docker_cli() as engine:
         engine.image(IMAGE)
 
+        def remember(identifier):
+            """Register an exact allocated attempt before any caller can mutate Docker, retaining common cleanup/report ownership."""
+            if identifier not in cases:cases.append(identifier)
+
         def create(text=BOUNDARIES):
             """Construct one actual local candidate using registered Python/text scope and new tests only, then reserve before Docker mutation."""
             value=body.model_dump(); value['request_key']=key('oci-change'); value['changes'][1]['text']=text
@@ -108,8 +119,9 @@ def oci_case(prepared_change,tmp_path,oci_report,request,monkeypatch):
             admission=CodeCheckAdmission(artifact['bundle_id'],artifact['bundle']['scope_hash'],candidate.commit,candidate.tree,candidate.parent,
                 IMAGE,CONFIG.repository_id,CONFIG.repository_name,artifact['bundle']['scope']['source_fingerprint'],time.time_ns()//1000)
             allocation=checks.allocate(intent,candidate,IMAGE,admission); frame=frame_for(checks,allocation,candidate,repository)
-            cases.append(allocation['id'])
+            remember(allocation['id'])
             return allocation,frame
+        create.remember=remember
 
         trusted_trace=[]; actual_attach=engine.attach
         async def trace_attach(identifier,raw,*,timeout):
@@ -142,13 +154,77 @@ def oci_case(prepared_change,tmp_path,oci_report,request,monkeypatch):
             assert git(ROOT,'rev-parse','HEAD').decode().strip()==head and hashlib.sha256((ROOT/'.git/index').read_bytes()).hexdigest()==original_index
 
 
+@pytest.fixture
+def actual_model_flow(oci_case,prepared_change,factory,monkeypatch,oci_report):
+    """Drive the positive real namespace case from authored model HTTP through original journals and actual Git, with existing owned cleanup tracking."""
+    checks,engine,_create,_trace,temporary=oci_case
+    original,_old_prepared,selected,registry=prepared_change
+    def run(text):
+        """Only the explicit positive OCI case calls this full local software chain; no actual AI model or external source is used."""
+        intake,_queue,preparation,_moment,values,_plan,ids,_materialized=factory()
+        claimed=preparation.claim(claim_body(ids[0]),proof(values[0]))
+        preparation.finish(lease_body(claimed,contract=QueueFinishInput,outcome='prepared',note='Prepare authored model-to-real-OCI software case only.'),proof(values[0]))
+        snapshot=replace(selected,commit=git(ROOT,'rev-parse','HEAD').decode().strip(),tree=git(ROOT,'rev-parse','HEAD^{tree}').decode().strip())
+        test_path='backend/tests/test_community_candidate_model_oci_'+uuid.uuid4().hex+'.py'
+        paths=[original.changes[0].path,test_path]
+        async def issue(_config,_number):
+            """Supply exact authored original public Issue data at a fresh real observation clock."""
+            return proof(values[0],now=time.time_ns()//1000)
+        async def code(_config,_features,requested):
+            """Use committed public source/registry bytes; model and candidate cannot select another source origin or path."""
+            assert requested==paths
+            return PublicCodeObservation(snapshot,time.time_ns()//1000,tuple('a'*64 for _ in range(7)))
+        monkeypatch.setattr('app.services.community.change_preparation.verify_public_issue',issue)
+        monkeypatch.setattr('app.services.community.change_preparation.verify_public_code',code)
+        monkeypatch.setattr('app.services.community.code_check_runtime.verify_public_issue',issue)
+        monkeypatch.setattr('app.services.community.code_check_runtime.verify_public_code',code)
+        journal=CommunityCodeModelStore(temporary/'model-flow-journal',17,'authored/fawnimo',initialize=True)
+        request=CommunityCodeModelRequest(request_key=key('oci-model-original'),work_id=ids[0],paths=paths,test_files=[test_path])
+        proposal={'title':'Authored model proposal for actual isolated boundary checks','files':[
+            {'path':paths[0],'text':original.changes[0].text},{'path':test_path,'text':text}]}
+        monkeypatch.setattr(authored_model,'ADVICE',proposal)
+        # Track allocations before the real executor can mutate Docker, just as
+        # the original manual case does, so failures retain normal owned cleanup.
+        allocate=checks.allocate
+        tracked=[]
+        def track(*args,**kwargs):
+            """Capture the original committed attempt before real execution, including a subsequently lost response."""
+            result=allocate(*args,**kwargs);tracked.append(result['id']);_create.remember(result['id'])
+            return result
+        monkeypatch.setattr(checks,'allocate',track)
+        async def chain():
+            """Use the actual owned local-model child, real Git candidate and existing real Linux executor once."""
+            with authored_model.authored_server() as (port,state):
+                config_path=temporary/'model-flow-private.json';config_path.write_text(configuration(port).model_dump_json(),'utf8')
+                generated=await generate_original(preparation,checks.changes,journal,request,config_path,source_verifier=issue,code_verifier=code)
+                assert generated['state']=='bundled' and state.posts==1
+            repository=CandidateGitRepository(repository=ROOT)
+            candidate=await prepare_candidate(preparation,checks.changes,journal,request,repository=repository)
+            assert candidate['bundle_id']==generated['bundle']['bundle_id']
+            result=await check_candidate(preparation,checks.changes,journal,request,checks,key('oci-model-check'),IMAGE,repository=repository,boundary=engine)
+            assert result['bundle_id']==generated['bundle']['bundle_id'] and result['new_model_requests']==0
+            assert result['check']['candidate_commit']==candidate['candidate']['commit'] and len(tracked)==1
+            assert result['check']['outcome']=='passed' and not result['check']['active_reservation']
+            oci_report['local_model_candidate_flow']={'profile':'local_model_candidate_flow_v1','authored_model_http_requests':state.posts,
+                'new_model_requests_during_advancement':result['new_model_requests'],'saved_bundle_reused':True,
+                'candidate_commit_reused':True,'actual_owned_isolated_check_passed':True,'cleanup_verified':True,
+                'actual_ai_model_used':False,'model_quality_qualified':False,'github_writes_performed':False,
+                'independent_review_completed':False,'external_model_calls':0,'paid_authorization':0}
+            return result['check']
+        return asyncio.run(chain())
+    return run
+
+
 @pytest.mark.parametrize('scenario,text,expected',[('boundaries',BOUNDARIES,'passed'),('failed_test',FAIL,'failed'),
     ('output_overflow',OVERFLOW,'failed'),('forged_candidate_stdout',FORGERY,'failed'),('timeout',SLEEP,'timed_out')],
     ids=['boundaries','failed-test','output-overflow','forged-stdout','timeout'])
-def test_actual_fixed_profile(oci_case,scenario,text,expected):
+def test_actual_fixed_profile(oci_case,actual_model_flow,scenario,text,expected):
     """Qualify actual low-UID readonly/no-network execution, failure, bounded output, unforgeable parent report and finite child timeout."""
-    checks,engine,create,trace,_temporary=oci_case; allocated,frame=create(text)
-    result=asyncio.run(drive_allocated_check(checks,engine,allocated,frame))
+    checks,engine,create,trace,_temporary=oci_case
+    if scenario=='boundaries':result=actual_model_flow(text)
+    else:
+        allocated,frame=create(text)
+        result=asyncio.run(drive_allocated_check(checks,engine,allocated,frame))
     assert result['outcome']==expected,canonical(trace)
     assert not result['active_reservation'] and not result['independent_review_completed'] and not result['ci_qualified']
     assert trace and trace[-1].get('code_executed') is True and trace[-1].get('uid_separation_verified') is True
