@@ -69,3 +69,16 @@ def test_existing_operator_clis_remain_separate_and_usable(name):
     result = subprocess.run([sys.executable, str(Path(__file__).resolve().parents[1] / name), '--help'], capture_output=True,
                             timeout=30, env={**os.environ, 'JELLYFISH_SKIP_ENV_FILE': '1'})
     assert result.returncode == 0 and b'usage:' in result.stdout
+
+
+def test_missing_durable_helper_result_is_normalized_without_exposing_transport_details(monkeypatch):
+    """A known stopped owned helper with no result remains observable/stoppable; its copy error is not identity loss or permission to retry."""
+    from app.services.community.code_check_docker import DockerBoundaryError
+    docker=RuntimeDocker(SimpleNamespace(),'a'*64)
+    monkeypatch.setattr(docker,'stopped',lambda value:{'State':{'Running':False,'Pid':0}})
+    def missing(*args):
+        """Inject only a private transport refusal, never a real daemon command or user's path."""
+        raise DockerBoundaryError('authored-private-transport-details')
+    monkeypatch.setattr(docker,'_read_private_json',missing)
+    with pytest.raises(RuntimeReleaseError) as observed:docker.helper_result({'operation':'b'*64},'probe')
+    assert 'authored-private-transport-details' not in str(observed.value)

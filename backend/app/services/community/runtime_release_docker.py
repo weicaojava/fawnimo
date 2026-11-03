@@ -310,8 +310,13 @@ class RuntimeDocker:
     def helper_result(self, value, action):
         """Read one small regular JSON file from the exact stopped helper via bounded in-memory tar parsing, never host extraction."""
         self.stopped(value)
-        location = '/tmp/result.json' if action == 'probe' else '/target/result.json'
-        result = self._read_private_json(value, location, 'result.json', 16384)
+        location = '/target/result.json'
+        try:result = self._read_private_json(value, location, 'result.json', 16384)
+        except DockerBoundaryError:
+            # Missing/crashed result storage does not invalidate an already
+            # verified container identity. Observation must still allow a
+            # separately requested exact owned stop, without retrying work.
+            raise RuntimeReleaseError('Original helper durable result is unavailable; retain its original outcome') from None
         if (not isinstance(result, dict) or result.get('profile') != 'local_runtime_helper_v1' or result.get('operation_id') != value['operation'] or result.get('action') != action
                 or type(result.get('external_model_calls')) is not int or result['external_model_calls'] != 0
                 or type(result.get('paid_authorization')) is not int or result['paid_authorization'] != 0 or type(result.get('ok')) is not bool):

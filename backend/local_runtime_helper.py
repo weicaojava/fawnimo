@@ -19,9 +19,9 @@ def main():
         result = {'profile': 'local_runtime_helper_v1', 'operation_id': value.get('operation_id'),
                   'action': value.get('action'), 'ok': False, 'reason': 'owned_runtime_helper_refused',
                   'external_model_calls': 0, 'paid_authorization': 0}
-    # Probe mounts no writable business data. Its result goes to its own small
-    # /tmp; all other results remain on the new private destination volume.
-    destination = Path('/tmp/result.json') if value.get('action') == 'probe' else Path('/target/result.json')
+    # Every result must survive container exit, including readiness. Probe
+    # mounts a separate own result volume and keeps business data read-only.
+    destination = Path('/target/result.json')
     write_json(destination, result)
     sys.stdout.buffer.write(json.dumps(result, sort_keys=True, separators=(',', ':')).encode() + b'\n')
     sys.stdout.buffer.flush()

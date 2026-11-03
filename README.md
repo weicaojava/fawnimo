@@ -25,6 +25,8 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 
  本机运行修复显式网段准入和失联后的实际资源ID绑定，冻结119通过/3跳过，先前实际运行容器失败已保留，新准确CI待验，不视为公网部署通过。
 
+ 本机运行就绪结果改为独立持久卷，缺失结果仍可核对并明确停止自有进程，冻结121通过/3跳过；先前实际容器失败/清理失败已保留，新准确CI待验，公网未验。
+
 本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
 
 代码保留并基于[Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish)继续开发，遵循[现有许可证](LICENSE)，来源和发布边界见[UPSTREAM.md](UPSTREAM.md)。现有代码包含上游、既有改动和AI辅助开发成果，不能宣称全部从零AI原创。仓库里的上游Issues、Actions、Pages与镜像链接属于上游，不是已交付的自有平台。

@@ -374,3 +374,17 @@ def test_failed_readonly_image_preflight_releases_slot_without_touching_current_
     store.set_policy(LocalRuntimePolicy(),expected_revision=2,request_key='repair-preflight-policy')
     count=len(calls)
     assert manager.activate(body)['phase']=='failed_closed' and len(calls)==count
+
+
+def test_probe_retains_result_in_separate_owned_writable_volume_and_business_readonly(runtime):
+    """Readiness completion can be checked after helper exit; its output is not placed on ephemeral tmpfs or writable business data."""
+    store,docker,manager,_=runtime
+    body=intent('controller-durable-probe-result')
+    assert manager.activate(body)['phase']=='committed'
+    events=store.get(operation_id(body.request_key))['events']
+    helper=next(event['details']['result'] for event in events if event['phase']=='mutation_completed' and event['details']['step']=='create_helper-probe')
+    source=next(item for item in helper['mounts'] if item['destination']=='/source')
+    target=next(item for item in helper['mounts'] if item['destination']=='/target')
+    assert source['readonly'] is True and target['readonly'] is False
+    assert target['volume']['role']=='probe-result' and target['volume']['id']!=source['volume']['id']
+    assert docker.inspect(target['volume']) is not None
