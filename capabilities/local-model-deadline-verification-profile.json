@@ -1,0 +1,34 @@
+{
+  "profile": "local_model_total_deadline_v1",
+  "source_tree": "fad2df11ad67c5ae5e97a421b353634d0385d865",
+  "scope": "本机模型的短连接上限与整体推理预算分离：连接仍最多5秒，模型加载/响应头/正文共用原30秒绝对期限，不能因逐字滴流延长期限；只有原socket由定时关闭打断，结束取消并回收计时线程。建议与代码提案共用修订，原请求/配额/未确认结果及无工具/执行权限保持。冻结119含新增4全部通过，保留旧版对5.3秒合法响应误超时的1个失败反例。两份真实CPU模型结果只证明本机协议结构：约8.3/6.5秒，语义1例符合、1例过度澄清；另有3次真实超时和1次纯加载，6个请求全部记载且进程树已关闭。来源均自作输入，实际App、建议日志集成、模型生成代码链、独立审核及公网未验证；模型质量不通过，外部模型调用及费用0。",
+  "connect_timeout_seconds": 5,
+  "inference_total_deadline_seconds": 30,
+  "owned_parent_timeout_seconds": 40,
+  "native_related_counts": {
+    "tests": 119,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "new_deadline_cases": 4,
+  "retained_old_timing_failures": 1,
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "403c59f9fc135cb1fdecd857581c17ab4cd94cfcc9624a537352a1298c7f2559",
+    "backend/app/services/community/advice_child.py": "4858690b25da0ed95b02da7b348a72c13c04ee5f15e8902b27cf3c104f6e146b",
+    "backend/tests/test_community_advice_deadline.py": "c906c5f0590966e66b89663402c83be43317e1a9eb299074d563e5ce1c7a8661"
+  },
+  "native_executed_source": "original immutable deadline base; all three deadline paths unchanged; published AH metadata inherited with no further product changes; exact final main CI still required",
+  "real_local_model_observation": "capabilities/real-local-qwen-advice-observation.json",
+  "real_local_structural_successes": 2,
+  "real_local_semantic_passed": 1,
+  "real_local_semantic_failed": 1,
+  "exact_main_CI_required": true,
+  "model_quality_qualified": false,
+  "independent_review_completed": false,
+  "actual_paid_model_called": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "public_deployment_verified": false,
+  "overall_goal_complete": false
+}

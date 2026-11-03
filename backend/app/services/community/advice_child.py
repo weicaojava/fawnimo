@@ -2,6 +2,8 @@
 import hashlib
 import http.client
 import json
+import socket
+import threading
 from pathlib import Path
 import sys
 import time
@@ -43,7 +45,20 @@ def local_json(port, method, route, body, deadline):
     if remaining <= 0:
         raise TimeoutError('Local advice deadline reached')
     connection = http.client.HTTPConnection('127.0.0.1',port,timeout=min(5,remaining))
+    watchdog=None;expired=threading.Event()
     try:
+        # Loading, headers and body share the original total budget after the
+        # short connect cap. A per-read timeout alone permits endless trickles.
+        connection.connect();wire=connection.sock
+        remaining=deadline-time.monotonic()
+        if remaining<=0:raise TimeoutError('Local advice deadline reached')
+        wire.settimeout(remaining)
+        def expire_original_socket():
+            """Interrupt only this owned socket at its original deadline, including partial status/header/body reads."""
+            expired.set()
+            try:wire.shutdown(socket.SHUT_RDWR)
+            except OSError:pass
+        watchdog=threading.Timer(remaining,expire_original_socket);watchdog.daemon=True;watchdog.start()
         connection.request(method,route,body=body,headers={'Content-Type':'application/json','Accept':'application/json','Accept-Encoding':'identity','Connection':'close'})
         response = connection.getresponse()
         if response.status != 200 or response.getheader('Content-Encoding') or response.getheader('Content-Type','').split(';',1)[0].strip().lower() != 'application/json':
@@ -61,9 +76,18 @@ def local_json(port, method, route, body, deadline):
             content.extend(part)
             if len(content) > MAX_BYTES:
                 raise ValueError('Local advice response exceeds its limit')
+        if expired.is_set() or time.monotonic()>=deadline:
+            raise TimeoutError('Local advice deadline reached')
         raw = bytes(content)
         return strict_json(raw),hashlib.sha256(raw).hexdigest()
+    except (OSError,http.client.HTTPException,ValueError):
+        if expired.is_set() or time.monotonic()>=deadline:
+            raise TimeoutError('Local advice deadline reached') from None
+        raise
     finally:
+        if watchdog is not None:
+            watchdog.cancel()
+            if watchdog.ident is not None:watchdog.join(timeout=1)
         connection.close()
 
 
