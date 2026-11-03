@@ -1,0 +1,9 @@
+{
+  "profile": "maintainer_local_ollama_advice_v1",
+  "enabled": false,
+  "port": 11434,
+  "model": "replace-with-installed-local-model:tag",
+  "model_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+  "max_requests": 0,
+  "external_fee_fen": 0
+}

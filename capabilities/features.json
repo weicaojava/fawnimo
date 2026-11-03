@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-11-04.04",
+  "register_version": "2026-11-04.05",
   "updated_at": "2026-11-04",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -853,6 +853,26 @@
         "F-010.04"
       ],
       "scope": "Linux离线档案增加严格原请求/声音匹配和原子旧约束升级；旧Windows历史、待处理任务及原请求保持原档案，不在Linux静默改声。相关109项、15项镜像执行守卫及7项自作音调页面检查通过；真实Linux发声/混音须另核对准确源码镜像固定3项及整体清理，人工发声内容/音色与完整成片未验收。"
+    },
+    {
+      "id": "EV-MAINTAINER-LOCAL-ADVICE",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/maintainer-advice-verification-profile.json",
+      "features": [
+        "F-013.02"
+      ],
+      "scope": "冻结91项通过，含新增35项：真实自有子进程/本地HTTP/CLI、严格响应与模型摘要、原键并发一次/次数额度、提交回执丢失/取消恢复、源撤回及SQL/显式rowid/目录保护。响应为自作夹具，未运行真实AI模型，未授予AI质量、独立审核、真实App/编码PR/公网或完整交付资格，费用授权0。 另有实际SQLite旧/新反例：旧367个待处理记录超额预留，修复后366个即在超额前拒绝；中文按UTF8字节计，每个待处理回执独立预留。"
+    },
+    {
+      "id": "EV-LINUX-SPEECH-EXACT-CI",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/linux-speech-ci-3df2a7b.json",
+      "features": [
+        "F-010.04"
+      ],
+      "scope": "准确3df2a7b主分支CI1962通过/3跳过/2私有历史未选，前端3219模块；实际非root只读Linux普通话/英语及候选采用混音五项导出固定3项通过，原声音7项/通用40项/候选10项/运行回退27项及自有清理分别通过。保留三轮失败；发声内容/音色、真实模型、完整成片、独立审核与公网资格仍未授予。"
     }
   ],
   "features": [
@@ -3282,7 +3302,8 @@
           "EV-SOUND-MUSIC-LOCAL",
           "EV-SOUND-MUSIC-CI",
           "EV-SOUND-IMAGE-PROFILE",
-          "EV-LINUX-SPEECH-PROFILE"
+          "EV-LINUX-SPEECH-PROFILE",
+          "EV-LINUX-SPEECH-EXACT-CI"
         ]
       },
       "deployment": {
@@ -3356,7 +3377,8 @@
         "实际浅目录镜像复现5项因测试工具路径祖先4/5越界而失败、2项通过，40项与清理通过；明确工具优先且旧路径后备有界，保留准确源码反例。修复后重新运行原生7项与14守卫通过；实际镜像成功仍须对应准确CI，不等于真实模型或完整成片。",
         "Linux离线档案增加严格原请求/声音匹配和原子旧约束升级；旧Windows历史、待处理任务及原请求保持原档案，不在Linux静默改声。相关109项、15项镜像执行守卫及7项自作音调页面检查通过；真实Linux发声/混音须另核对准确源码镜像固定3项及整体清理，人工发声内容/音色与完整成片未验收。",
         "首轮实际Linux三项均在读取引擎版本时返回-25而失败，原声音7项/通用40项与自有清理通过；保留原失败。加入只含退出码/字节数的诊断、固定版本命令的资源对比及禁用core文件，当前本机声音/历史/诊断11项通过；实际发声仍待重验，不以诊断递送或作者审阅授予资格。",
-        "保留三轮准确镜像失败及自有清理；固定独立版本命令在相同限制下可成功，配音私有HOME环境仍返回-25。增加仓库固定PulseAudio无播放配置，禁止共享内存/memfd与自动启动，不放宽32MiB文件和其他资源上限，不继承音频凭据；当前11项及环境/配置守卫通过，实际Linux三项须准确源码复验。"
+        "保留三轮准确镜像失败及自有清理；固定独立版本命令在相同限制下可成功，配音私有HOME环境仍返回-25。增加仓库固定PulseAudio无播放配置，禁止共享内存/memfd与自动启动，不放宽32MiB文件和其他资源上限，不继承音频凭据；当前11项及环境/配置守卫通过，实际Linux三项须准确源码复验。",
+        "准确3df2a7b主分支CI1962通过/3跳过/2私有历史未选，前端3219模块；实际非root只读Linux普通话/英语及候选采用混音五项导出固定3项通过，原声音7项/通用40项/候选10项/运行回退27项及自有清理分别通过。保留三轮失败；发声内容/音色、真实模型、完整成片、独立审核与公网资格仍未授予。"
       ],
       "depends_on": [
         "F-001.04",
@@ -3858,7 +3880,8 @@
         "evidence": [
           "EV-COMMUNITY-EVALUATION-LOCAL",
           "EV-COMMUNITY-INTEGRITY-FOLLOWUP",
-          "EV-COMMUNITY-ASSESSMENT-CI"
+          "EV-COMMUNITY-ASSESSMENT-CI",
+          "EV-MAINTAINER-LOCAL-ADVICE"
         ]
       },
       "deployment": {
@@ -3866,7 +3889,7 @@
         "url": null
       },
       "version": {
-        "implementation": "source-tree-3520a47b4498",
+        "implementation": "source-tree-58a801312044",
         "release": null
       },
       "entry": {
@@ -3881,23 +3904,31 @@
         "backend/app/services/community/store.py",
         "backend/review_community.py",
         "backend/app/services/community/rowid_guards.py",
-        "backend/migrate_community_guards.py"
+        "backend/migrate_community_guards.py",
+        "backend/app/core/contracts/community_advice.py",
+        "backend/app/services/community/advice.py",
+        "backend/app/services/community/advice_store.py",
+        "backend/app/services/community/advice_child.py",
+        "backend/advise_community.py",
+        "backend/community-advice.example.json"
       ],
       "tests": [
         "backend/tests/test_community_intake.py",
         "backend/tests/test_community_evaluations.py",
-        "backend/tests/test_community_rowid_guards.py"
+        "backend/tests/test_community_rowid_guards.py",
+        "backend/tests/test_community_advice.py"
       ],
       "acceptance": [
         "评估保存依据、需求版本、重复候选及合理性结果，给出公开理由",
         "资料不足进入澄清，允许补充/复议；合理与优先分别记录"
       ],
       "limits": [
-        "当前是本机维护者明确决定及有界Unicode文字相似建议；不是AI查重，advisory_note只保存未验证文字，不调用模型。",
+        "人工评估和有界Unicode查重建议保留；新增默认关闭、独立配置的本地Ollama模型建议入口，固定loopback、安装摘要及有限调用次数，外部费用0。模型建议不自动写入维护者评估、优先级、队列、编码、留言或发布。",
         "新评估须准确公开源复查，原请求可在来源后来变化后恢复；真实GitHub App/公网接入及当前外部Issue联合验收尚未通过。",
         "合理/待澄清/重复与优先、排队、执行、软件验收和上线分开；无公开评估写接口，不自动发送澄清/复议或理由留言。",
         "独立维护者模型与费用额度、AI评估质量、独立审核、自动研发及公网仍待完成；本机明确估值的路线图/准备租约另有入口，整项部分实现。",
-        "旧独立需求库须明确增量升级历史保护触发器；不重写已有行。升级仅接受准确旧表/源配置/原约束，显式rowid替换保护不依赖递归触发器开关。"
+        "旧独立需求库须明确增量升级历史保护触发器；不重写已有行。升级仅接受准确旧表/源配置/原约束，显式rowid替换保护不依赖递归触发器开关。",
+        "冻结91项通过，含新增35项：真实自有子进程/本地HTTP/CLI、严格响应与模型摘要、原键并发一次/次数额度、提交回执丢失/取消恢复、源撤回及SQL/显式rowid/目录保护。响应为自作夹具，未运行真实AI模型，未授予AI质量、独立审核、真实App/编码PR/公网或完整交付资格，费用授权0。 另有实际SQLite旧/新反例：旧367个待处理记录超额预留，修复后366个即在超额前拒绝；中文按UTF8字节计，每个待处理回执独立预留。"
       ],
       "depends_on": [
         "F-013.01"

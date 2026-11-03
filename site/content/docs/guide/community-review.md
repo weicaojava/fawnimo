@@ -34,6 +34,6 @@ python review_community.py --root <独立需求目录> --repository-id 143820283
 
 补充或复议时，先让受支持的源事件登记新的原需求版本，再以该准确版本提交新的评估，填写`appeal_of`为旧评估ID、`appeal_reason`为新增依据。相同版本也可明确复议；旧理由和问题始终保留。使用`--history <version_id>`查看同一逻辑需求的各次评估。
 
-当前维护者决定在本机保存，`advisory_note`只作为未验证文字保留。AI模型评估、公开澄清/复议留言及自动研发尚未接通；明确维护者估值的[路线图与准备队列](../community-queue/)可另行初始化。具体记录含义与来源检查见[当前架构](../../architecture/community-evaluations/)。
+当前维护者决定在本机保存，`advisory_note`只作为未验证文字保留。需要本地模型建议时，先按[独立建议入口](../community-model-advice/)明确配置与调用，再人工填写本评估；公开澄清/复议留言及自动研发尚未接通；明确维护者估值的[路线图与准备队列](../community-queue/)可另行初始化。具体记录含义与来源检查见[当前架构](../../architecture/community-evaluations/)。
 
 已有独立需求库升级历史保护时，先停止对应独立接入服务并保存一致备份，再在backend运行`python migrate_community_guards.py --root <独立需求目录> --repository-id 1438202832`，使用原repo名称和标签；非默认值还须原样填写。它只补充缺失的已知保护触发器，不重写需求/评估行或已有约束，可重复执行。结构、源配置或原约束不匹配时停止；不要删除约束、改版本号或覆盖备份来绕过检查。升级后启动服务并核对原历史。该补充不改变已有七张表，上一版评估代码仍可读取；更早不含评估扩展的代码仍按上文恢复扩展前备份。

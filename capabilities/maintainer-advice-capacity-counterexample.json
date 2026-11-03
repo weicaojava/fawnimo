@@ -1,0 +1,29 @@
+{
+  "counterexample_reproduced": true,
+  "original_tree": "ec0f1c427666d5369db0934e2010dcd9ec685ba7",
+  "fixed_tree": "58a801312044b70185c6c35fdc040c4bbeb9bc66",
+  "results": {
+    "old": {
+      "accepted_pending": 367,
+      "actual_utf8_payload_bytes": 4790451,
+      "reserved_receipt_bytes": 12025856,
+      "total_committed_and_reserved_bytes": 16816307,
+      "limit_bytes": 16777216,
+      "refused_before_overcommit": false,
+      "overcommitted": true
+    },
+    "fixed": {
+      "accepted_pending": 366,
+      "actual_utf8_payload_bytes": 4777398,
+      "reserved_receipt_bytes": 11993088,
+      "total_committed_and_reserved_bytes": 16770486,
+      "limit_bytes": 16777216,
+      "refused_before_overcommit": true,
+      "overcommitted": false
+    }
+  },
+  "authored_journal_only": true,
+  "actual_model_called": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0
+}

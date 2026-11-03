@@ -53,7 +53,7 @@
   "browser_receipt_sha256": "5059a2bc3b71cdc2a180f836c90d6856c8556b1b369d767486737470be77871f",
   "external_model_calls": 0,
   "paid_authorization": 0,
-  "actual_Linux_engine_qualified": false,
+  "actual_Linux_engine_qualified": true,
   "model_quality_qualified": false,
   "complete_film_qualified": false,
   "independent_review_completed": false,
@@ -87,5 +87,7 @@
     "shared_memory": false,
     "memfd": false,
     "maximum_wave_bytes": 33554432
-  }
+  },
+  "qualified_exact_source": "3df2a7bed9fe75b4a9721814811faa569d7f2841",
+  "actual_image_evidence_record": "capabilities/linux-speech-ci-3df2a7b.json"
 }

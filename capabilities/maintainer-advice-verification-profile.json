@@ -1,0 +1,42 @@
+{
+  "profile": "maintainer_local_ollama_advice_v1",
+  "source_tree": "58a801312044b70185c6c35fdc040c4bbeb9bc66",
+  "scope": "Authored loopback protocol and original public-source fixtures with actual owned child/CLI processes. No actual AI model, original user data or paid service used.",
+  "native_related_counts": {
+    "tests": 91,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "new_advice_cases": 35,
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "87fac549901ae2fc8b5c357d4a7c188b18a32cc6588b331d80e186921a813341",
+    "backend/app/core/contracts/community_advice.py": "e722139a5a1b9dc42385ef0a156c75552c9fc75a4502bda07a2332ba85c65170",
+    "backend/app/services/community/advice.py": "d1f76822a54c7c7725def62f0b680933493ceceb09e63448efd0ea97d899897d",
+    "backend/app/services/community/advice_store.py": "742a6ef716ee6d3c056b92798a08780cfc16f08b352de1dc7a360490926e9c39",
+    "backend/app/services/community/advice_child.py": "0ac9edcc4892676c848d04bcd72dfc17ebb1d1ccb7d23e806b69cd4173e2854e",
+    "backend/advise_community.py": "5e29bf459ef567103807d47df4eebbb12e3cad8d533335d4d41dff20823a5ca6",
+    "backend/tests/test_community_advice.py": "224cb3eef9b40ae13b3457dc8fba8b8643ff0da5de79e8a0444b234cbca92a0b",
+    "backend/community-advice.example.json": "04da0ba7026747a9f72e06a4d3e66c459e617d159c62dbb5e255dd669202c5de"
+  },
+  "junit_sha256": "66162b0787484f3bbbb04aa2aedaa0c0b4f28f4726d881c970edd4cdfbcdab20",
+  "covers": [
+    "strict zero-external-fee configuration and installed model digest",
+    "actual fixed local tags/chat protocol and owned child",
+    "invalid/truncated/tool/unknown-feature/duplicate/model/version/usage responses",
+    "one original POST under competing submissions and finite quota",
+    "lost committed acknowledgment, cancellation and no implicit resend",
+    "fresh public-source gate and withdrawal during inference",
+    "append-only SQL/explicit rowid history, repository/root identity and actual offline CLI recovery"
+  ],
+  "actual_model_called": false,
+  "model_quality_qualified": false,
+  "independent_review_completed": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "public_deployment_verified": false,
+  "overall_goal_complete": false,
+  "exact_main_ci_required": true,
+  "no_automatic_decision_queue_coding_or_publication": true,
+  "capacity_counterexample": "capabilities/maintainer-advice-capacity-counterexample.json"
+}
