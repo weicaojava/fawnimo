@@ -108,3 +108,25 @@ async def test_finite_concurrency_rejects_ninth_and_releases_after_completed_str
 def test_fixed_proxy_configuration_cannot_widen_authority(change):
     """Only the declared new slot host and a private fixed app IPv4 target are accepted; paths, credentials and arbitrary origins are forbidden."""
     with pytest.raises(ValueError): runtime.configuration(json.dumps(proxy_config() | change).encode())
+
+
+@pytest.mark.asyncio
+async def test_shared_transport_never_retains_or_injects_another_clients_login_cookie():
+    """Independent login jars and an anonymous caller send only their own session, while Set-Cookie still reaches each correct browser."""
+    seen=[]
+    async def upstream(request):
+        """Return ordinary synthetic login cookies through the actual HTTPX extraction/ASGI forwarding path."""
+        seen.append((request.url.path,request.headers.get('cookie')))
+        headers={}
+        if request.url.path.startswith('/login/'):
+            headers['Set-Cookie']='studio_session=session-'+request.url.path.rsplit('/',1)[-1]+'; HttpOnly; Path=/; SameSite=lax'
+        return httpx.Response(200,headers=headers,stream=Bytes(b'{}'))
+    app=runtime.proxy(proxy_config(),transport=httpx.MockTransport(upstream))
+    try:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url=proxy_config()['origin']) as a, \
+                   httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url=proxy_config()['origin']) as b, \
+                   httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url=proxy_config()['origin']) as anonymous:
+            await a.post('/login/a');await b.post('/login/b');await anonymous.get('/private');await a.get('/private');await b.get('/private')
+        assert seen==[('/login/a',None),('/login/b',None),('/private',None),('/private','studio_session=session-a'),('/private','studio_session=session-b')]
+        assert len(app.state.runtime_client.cookies)==0
+    finally:await app.state.runtime_client.aclose()

@@ -6,6 +6,7 @@ selected image's installed gateway, never host source or another slot's data.
 import asyncio
 from contextlib import asynccontextmanager
 import hmac
+from http.cookiejar import CookieJar, DefaultCookiePolicy
 import ipaddress
 import json
 import os
@@ -21,6 +22,18 @@ BODY_LIMIT = 70 * 1024 * 1024
 RESPONSE_LIMIT = 512 * 1024 * 1024
 HOP = {b'connection', b'keep-alive', b'proxy-authenticate', b'proxy-authorization',
        b'te', b'trailer', b'transfer-encoding', b'upgrade', b'content-length'}
+
+
+class ForwardedCookiePolicy(DefaultCookiePolicy):
+    """A shared reverse-proxy transport never owns a browser login; only explicitly forwarded per-request cookies are allowed."""
+
+    def set_ok(self, cookie, request):
+        """Do not retain upstream Set-Cookie in a cross-request jar; still forward the raw response header to its actual browser."""
+        return False
+
+    def return_ok(self, cookie, request):
+        """Never manufacture an outgoing Cookie header from transport-wide state."""
+        return False
 
 
 def configuration(raw):
@@ -124,6 +137,7 @@ def proxy(value, *, transport=None):
     target = 'http://' + value['target_ip'] + ':8000'
     expected_host = urlsplit(value['origin']).netloc.encode()
     client = httpx.AsyncClient(base_url=target, trust_env=False, follow_redirects=False, transport=transport,
+                               cookies=CookieJar(policy=ForwardedCookiePolicy()),
                                timeout=httpx.Timeout(60, connect=2, pool=1),
                                limits=httpx.Limits(max_connections=8, max_keepalive_connections=4))
     lanes = asyncio.Semaphore(8)
@@ -178,7 +192,9 @@ def proxy(value, *, transport=None):
             # a client-supplied absolute URL can never replace its authority.
             query = request.scope.get('query_string', b'')
             url = httpx.URL(target).copy_with(raw_path=raw_path + (b'?' + query if query else b''))
-            upstream = await client.send(client.build_request(request.method, url, headers=clean, content=bytes(body)), stream=True)
+            # Construct directly: build_request merges a client's cookie jar,
+            # which must never let another caller inherit/revoke a login.
+            upstream = await client.send(httpx.Request(request.method, url, headers=clean, content=bytes(body)), stream=True)
             response_connections = {part.strip().lower() for name, content in upstream.headers.raw if name.lower() == b'connection' for part in content.split(b',')}
             outgoing = [(name, content) for name, content in upstream.headers.raw if name.lower() not in HOP | response_connections]
 
