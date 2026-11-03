@@ -97,6 +97,15 @@ class ImageSpaces(ScriptSpaces):
                 body={'request_key':'same-image-'+project,'project_id':project,'model_id':'same-image-model','prompt':'Authored identity image '+side,
                     'expected_price_fingerprint':quote.fingerprint,'size':'1024x1024','references':[self.references[side][project]],'confirm_model_call':True}
                 self.intents[side][project]=(path,body);self.jobs[side][project]=self.ok(side,'POST',path,json=body)
+                # The previous accepted attempt owns bounded reference validation.
+                # Wait for its actual candidate before another positive setup request;
+                # no busy rejection is ignored and no request key is replaced.
+                for _ in range(200):
+                    prepared=self.ok(side,'GET','/asset-image-generation/jobs/'+self.jobs[side][project]['id'])
+                    if prepared['status'] not in {'queued','running'}:break
+                    time.sleep(.05)
+                assert prepared['status']=='candidate',(side,project,prepared)
+                self.jobs[side][project]=prepared
         for side in ('a','b'):
             for project in PROJECTS:
                 identity=self.jobs[side][project]['id']
