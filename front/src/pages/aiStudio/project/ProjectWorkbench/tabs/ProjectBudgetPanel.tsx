@@ -82,7 +82,13 @@ export function ProjectBudgetPanel({ projectId }: { projectId: string }) {
         { key: 'available', label: '剩余额度', children: money(budget.available_minor) },
         { key: 'unknown', label: '待核实费用', children: `${budget.uncertain_jobs} 条（继续保留额度）` },
         { key: 'verification', label: '账单记录', children: (budget.bill_receipt_count ?? 0) > 0 ? `${budget.bill_receipt_count} 条已核对` : '尚无核对记录' },
-        ...((budget.bill_receipt_count ?? 0) > 0 ? [{ key: 'billed', label: '账单已核对金额', children: exactMoney(budget.bill_receipt_total_minor ?? '0') }] : []),
+        ...((budget.bill_receipt_count ?? 0) > 0 ? [{ key: 'billed', label: '首次核对金额', children: exactMoney(budget.bill_receipt_total_minor ?? '0') },
+          { key: 'net-billed', label: '更正后账单金额', children: exactMoney(budget.bill_net_total_minor ?? budget.bill_receipt_total_minor ?? '0') }] : []),
+        ...((budget.bill_correction_count ?? 0) > 0 ? [
+          { key: 'bill-credits', label: '已核对退减', children: exactMoney(budget.bill_correction_credit_minor ?? '0') },
+          { key: 'bill-debits', label: '已核对补记', children: exactMoney(budget.bill_correction_debit_minor ?? '0') },
+          { key: 'corrections', label: '账单更正', children: `${budget.bill_correction_count} 条（保留原记录）` },
+        ] : []),
         ...((budget.unfunded_bill_minor ?? '0') !== '0' ? [{ key: 'unfunded', label: '账单待补入金额', children: exactMoney(budget.unfunded_bill_minor ?? '0') }] : []),
         ...((budget.unfunded_bill_minor ?? '0') !== '0' ? [{ key: 'after-bills', label: '计入待核对账单后', children: exactMoney(budget.available_after_bills_minor ?? '0') }] : []),
       ]} />}

@@ -61,8 +61,17 @@ async def apply(args,directory,workspace_id,actor_id):
         DATABASE_URL='sqlite+aiosqlite:///'+(directory/'studio.db').as_posix())
     from app.core.db import async_session_maker,close_db
     from app.core.contracts.model_accounting import BillingStatementContext
-    from app.services.worker.model_billing import import_statement,parse_normalized_csv,reconcile_statement,resolve_duplicate
+    from app.services.worker.model_billing import import_statement,parse_normalized_csv,reconcile_statement,reconcile_line,resolve_duplicate
+    from app.services.worker.model_billing_adjustments import assign_ambiguous_line,correct_billing_line
     try:
+        if args.correct_line:
+            result=await correct_billing_line(async_session_maker,line_id=args.correct_line,reference_receipt_id=args.reference_receipt,
+                expected_revision=args.expected_correction_revision,reason=args.reason,recorded_by=actor_id)
+            return {**result,'external_model_calls':0,'provider_automatically_authenticated':False}
+        if args.assign_line:
+            identifier=await assign_ambiguous_line(async_session_maker,line_id=args.assign_line,charge_id=args.charge_id,reason=args.reason,recorded_by=actor_id)
+            result=await reconcile_line(async_session_maker,args.assign_line,recorded_by=actor_id)
+            return {'assignment_id':identifier,**result,'external_model_calls':0,'provider_automatically_authenticated':False}
         if args.resolve_line:
             identifier=await resolve_duplicate(async_session_maker,args.resolve_line,args.reference_receipt,
                 reason=args.reason,recorded_by=actor_id)
@@ -79,7 +88,7 @@ async def apply(args,directory,workspace_id,actor_id):
             archive_evidence(directory,original,normalized)
             identifier=await import_statement(async_session_maker,context=context,normalized_csv=normalized,original_content=original,imported_by=actor_id)
         result=await reconcile_statement(async_session_maker,identifier,recorded_by=actor_id)
-        counts={status:sum(item['status']==status for item in result) for status in ('applied','unmatched','ambiguous','conflict','disputed','duplicate_resolved')}
+        counts={status:sum(item['status']==status for item in result) for status in ('applied','unmatched','ambiguous','conflict','disputed','duplicate_resolved','correction_applied')}
         return {'statement_id':identifier,'rows':len(result),**counts,'external_model_calls':0,'provider_automatically_authenticated':False}
     finally:
         await close_db()
@@ -92,6 +101,10 @@ def main():
     parser.add_argument('--account',required=True)
     parser.add_argument('--statement-id')
     parser.add_argument('--resolve-line')
+    parser.add_argument('--correct-line')
+    parser.add_argument('--expected-correction-revision',type=int)
+    parser.add_argument('--assign-line')
+    parser.add_argument('--charge-id')
     parser.add_argument('--reference-receipt')
     parser.add_argument('--reason')
     parser.add_argument('--original',type=Path)
@@ -102,11 +115,17 @@ def main():
     parser.add_argument('--statement-key')
     args=parser.parse_args()
     import_values=[args.original,args.normalized,args.provider_id,args.connection_version,args.account_version,args.statement_key]
-    resolution_values=[args.resolve_line,args.reference_receipt,args.reason]
-    if any(value is not None for value in resolution_values):
-        if any(value is None for value in resolution_values) or args.statement_id or any(value is not None for value in import_values):
+    decisions=[args.resolve_line,args.correct_line,args.assign_line]
+    if any(value is not None for value in decisions):
+        if sum(value is not None for value in decisions)!=1 or not args.reason or args.statement_id or any(value is not None for value in import_values):
+            parser.error('Choose one explicit billing decision with its required fields and reason')
+        if args.resolve_line and (not args.reference_receipt or args.expected_correction_revision is not None or args.charge_id is not None):
             parser.error('Duplicate resolution requires only --resolve-line, --reference-receipt and --reason')
-    elif (args.statement_id and any(value is not None for value in import_values)) or (not args.statement_id and any(value is None for value in import_values)):
+        if args.correct_line and (not args.reference_receipt or args.expected_correction_revision is None or args.expected_correction_revision<0 or args.charge_id is not None):
+            parser.error('Correction requires --correct-line, --reference-receipt, --expected-correction-revision and --reason')
+        if args.assign_line and (not args.charge_id or args.reference_receipt is not None or args.expected_correction_revision is not None):
+            parser.error('Ambiguous assignment requires only --assign-line, --charge-id and --reason')
+    elif any(value is not None for value in (args.reference_receipt,args.reason,args.expected_correction_revision,args.charge_id)) or (args.statement_id and any(value is not None for value in import_values)) or (not args.statement_id and any(value is None for value in import_values)):
         parser.error('Choose either an existing --statement-id, or all explicit source/account import fields')
     os.environ['JELLYFISH_SKIP_ENV_FILE']='1'
     from app.controlplane.maintenance import MaintenanceBusy,ProcessLease

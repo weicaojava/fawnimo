@@ -82,6 +82,10 @@ class ProjectBudgetRead(BaseModel):
     coverage: Literal['durable_video','project_ledger'] = 'durable_video'
     bill_receipt_count: int = 0
     bill_receipt_total_minor: str = '0'
+    bill_correction_count: int = 0
+    bill_correction_debit_minor: str = '0'
+    bill_correction_credit_minor: str = '0'
+    bill_net_total_minor: str = '0'
     pending_bill_reviews: int = 0
     observed_pending_bill_minor: str = '0'
     unfunded_bill_minor: str = '0'

@@ -64,6 +64,7 @@ jobs:
           tests/test_connection_versions.py tests/test_model_charges.py
           tests/test_model_prices.py tests/test_model_billing.py
           tests/test_model_billing_budget_view.py tests/test_model_billing_cli.py
+          tests/test_model_billing_adjustments.py tests/test_model_billing_adjustment_cli.py
           tests/test_model_accounting_guards.py
           tests/test_agent_execution.py tests/test_asset_image_generation.py
           tests/test_asset_image_references.py

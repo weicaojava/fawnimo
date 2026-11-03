@@ -2,6 +2,7 @@
 from sqlalchemy import text
 
 from app.models.model_billing import ModelBillingLine,ModelBillingReceipt,ModelBillingReview,ModelBillingStatement,ModelBillingResolution
+from app.services.worker.model_billing_adjustment_schema import migrate_billing_adjustments
 
 
 async def migrate_model_billing(engine):
@@ -86,3 +87,4 @@ async def migrate_model_billing(engine):
             await connection.execute(text(expected))
         elif ' '.join(actual.split())!=' '.join(expected.split()):
             raise RuntimeError('Model billing duplicate resolution guard differs from supported schema')
+        await migrate_billing_adjustments(connection)

@@ -13,6 +13,7 @@ from sqlalchemy import and_,case,exists,func,or_,select,text
 from app.core.contracts.model_accounting import BillingStatementContext,NormalizedBillingLine
 from app.models.execution_budget import ExecutionBudget,ExecutionBudgetEntry
 from app.models.model_billing import ModelBillingLine,ModelBillingReceipt,ModelBillingReview,ModelBillingStatement,ModelBillingResolution
+from app.models.model_billing_adjustment import ModelBillingAssignment,ModelBillingCorrection
 from app.models.model_charge import ModelCallCharge
 from app.services.worker.execution_budget import BudgetError,change_balance,transaction
 from app.services.worker.model_charges import actor
@@ -111,10 +112,19 @@ async def reconcile_line(factory,line_id,*,recorded_by='local_operator'):
             if duplicate is not None:
                 reference=await db.get(ModelBillingReceipt,duplicate.reference_receipt_id)
                 return {'status':'duplicate_resolved','receipt_id':reference.id,'project_id':reference.project_id,'replayed':True}
+            corrected=await db.scalar(select(ModelBillingCorrection).where(ModelBillingCorrection.line_id==line_id))
+            if corrected is not None:
+                return {'status':'correction_applied','receipt_id':corrected.reference_receipt_id,'project_id':corrected.project_id,'replayed':True}
             statement=await db.get(ModelBillingStatement,line.statement_id)
             candidates=(await db.scalars(select(ModelCallCharge).where(
                 ModelCallCharge.provider_id==statement.provider_id,ModelCallCharge.provider_connection_version==statement.provider_connection_version,
                 ModelCallCharge.account_version==statement.account_version,ModelCallCharge.provider_request_id==line.provider_request_id))).all()
+            assignment=await db.scalar(select(ModelBillingAssignment).where(ModelBillingAssignment.line_id==line_id))
+            if assignment is not None:
+                selected=[item for item in candidates if item.id==assignment.charge_id and item.project_id==assignment.project_id]
+                if len(selected)!=1:
+                    raise HTTPException(409,'人工归属与历史调用不符，原费用未改动')
+                candidates=selected
             if len(candidates)!=1:
                 status='unmatched' if not candidates else 'ambiguous'
                 await review(db,line,status,'request_account_match_required')
@@ -183,6 +193,9 @@ async def resolve_duplicate(factory,line_id,reference_receipt_id,*,reason,record
                 if prior.reference_receipt_id!=reference_receipt_id or prior.reason!=reason:
                     raise HTTPException(409,'该账单行已绑定另一份人工核对决定')
                 return prior.id
+            corrected=await db.scalar(select(ModelBillingCorrection.id).where(ModelBillingCorrection.line_id==line_id))
+            if corrected:
+                raise HTTPException(409,'已入账的更正不能重新归类为重复证据')
             line=await db.get(ModelBillingLine,line_id)
             receipt=await db.get(ModelBillingReceipt,reference_receipt_id)
             if line is None or receipt is None:
@@ -207,8 +220,9 @@ async def resolve_duplicate(factory,line_id,reference_receipt_id,*,reason,record
 
 
 def resolved_review():
-    """Keep historical reviews while excluding lines explicitly settled or confirmed as exact duplicates."""
+    """Keep historical reviews while excluding lines explicitly settled, corrected or confirmed as exact duplicates."""
     return or_(exists(select(ModelBillingReceipt.id).where(ModelBillingReceipt.line_id==ModelBillingReview.line_id).correlate(ModelBillingReview)),
+        exists(select(ModelBillingCorrection.id).where(ModelBillingCorrection.line_id==ModelBillingReview.line_id).correlate(ModelBillingReview)),
         exists(select(ModelBillingResolution.id).where(ModelBillingResolution.line_id==ModelBillingReview.line_id).correlate(ModelBillingReview)))
 
 
@@ -257,7 +271,10 @@ async def billing_summary(db,project_id):
     # charge. Overlapping evidence retains every review but contributes only
     # the highest observed total per call. Already posted full receipts (which
     # include adjustments) or still-held quotes cover part of that liability.
-    covered=case((ModelBillingReceipt.id.is_not(None),ModelBillingReceipt.actual_minor),
+    latest_total=select(ModelBillingCorrection.new_total_minor).where(ModelBillingCorrection.reference_receipt_id==ModelBillingReceipt.id).order_by(
+        ModelBillingCorrection.revision.desc()).limit(1).correlate(ModelBillingReceipt).scalar_subquery()
+    net_total=func.coalesce(latest_total,ModelBillingReceipt.actual_minor)
+    covered=case((ModelBillingReceipt.id.is_not(None),net_total),
         (ExecutionBudgetEntry.state.in_({'reserved','unknown'}),ExecutionBudgetEntry.quote_minor),else_=0)
     unfunded=(select(ExecutionBudgetEntry.job_id.label('charge_id'),func.max(ModelBillingLine.amount_minor).label('observed'),covered.label('covered')).select_from(ModelBillingLine)
         .join(ModelBillingReview,ModelBillingReview.line_id==ModelBillingLine.id)
@@ -274,8 +291,16 @@ async def billing_summary(db,project_id):
     stream=await db.stream(select(unfunded.c.observed,unfunded.c.covered).execution_options(yield_per=256))
     async for row in stream:
         observed+=int(row.observed);delta+=max(0,int(row.observed)-int(row.covered))
-    receipts,total=(await db.execute(select(func.count(),func.coalesce(func.sum(ModelBillingReceipt.actual_minor),0)).where(ModelBillingReceipt.project_id==project_id))).one()
+    receipts,total,net=0,0,0
+    receipt_stream=await db.stream(select(ModelBillingReceipt.actual_minor,net_total).where(ModelBillingReceipt.project_id==project_id).execution_options(yield_per=256))
+    async for original,current in receipt_stream:
+        receipts+=1;total+=int(original);net+=int(current)
+    corrections,debits,credits=0,0,0
+    correction_stream=await db.stream(select(ModelBillingCorrection.delta_minor).where(ModelBillingCorrection.project_id==project_id).execution_options(yield_per=256))
+    async for (amount,) in correction_stream:
+        corrections+=1;debits+=max(0,int(amount));credits+=max(0,-int(amount))
     return {'bill_receipt_count':receipts,'bill_receipt_total_minor':total,
+        'bill_correction_count':corrections,'bill_correction_debit_minor':debits,'bill_correction_credit_minor':credits,'bill_net_total_minor':net,
         'pending_bill_reviews':await db.scalar(select(func.count()).select_from(pending)),
         'observed_pending_bill_minor':observed,'unfunded_bill_minor':delta,
         'price_violation_count':await db.scalar(select(func.count()).select_from(ModelBillingReview).where(

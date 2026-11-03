@@ -149,7 +149,8 @@ async def read_project_budget(db, project_id: str) -> ProjectBudgetRead:
         return ProjectBudgetRead(project_id=project_id, exists=False, currency='CNY', limit_minor=0, reserved_minor=0,
                                  spent_minor=0, available_minor=0, revision=0, unsettled_jobs=0, uncertain_jobs=0)
     row, unsettled_jobs, uncertain_jobs = result
-    public_bill={**bill,**{key:str(bill[key]) for key in ('bill_receipt_total_minor','observed_pending_bill_minor','unfunded_bill_minor')}}
+    public_bill={**bill,**{key:str(bill[key]) for key in ('bill_receipt_total_minor','observed_pending_bill_minor','unfunded_bill_minor',
+        'bill_correction_debit_minor','bill_correction_credit_minor','bill_net_total_minor')}}
     return ProjectBudgetRead(project_id=project_id, exists=True, currency=row.currency,
                              limit_minor=row.limit_minor, reserved_minor=row.reserved_minor, spent_minor=row.spent_minor,
                              available_minor=row.limit_minor-row.reserved_minor-row.spent_minor, revision=row.revision,

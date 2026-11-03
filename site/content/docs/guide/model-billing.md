@@ -35,4 +35,4 @@ python reconcile_model_billing.py --root <identity-root> --account <existing-own
 python reconcile_model_billing.py --root <identity-root> --account <existing-owner> --resolve-line <conflicting-line-id> --reference-receipt <original-receipt-id> --reason "已人工核对同一请求的重复证据"
 ```
 
-不同金额、更正、退款或多个调用共用请求标识不能通过这个命令当成重复。它们继续保持未决；不要删除账目、改预留、伪造零费用或关闭保护来绕过。原始证据的完整性不等于供应商自动认证；`provider_bill_verified` 继续为false。
+不同金额、更正、退减或多个调用共用请求标识不能通过这个重复命令处理。另有[明确更正与归属指南](../model-billing-adjustments/)；未作有效决定时继续保持未决。不要删除账目、改预留、伪造零费用或关闭保护来绕过。原始证据的完整性不等于供应商自动认证；`provider_bill_verified` 继续为false。

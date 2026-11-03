@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "scope": "Explicit versioned operator billing total corrections/credits/debits and ambiguous-call assignment; original financial history and per-project net projections",
+  "source_tree": "d5746c7eba87fe74ae0b357713b7e53c72b4dc24",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "36d8f076f5d4581234e5a10a59d9f4b3618a4ba392e179d7b1b935739a98caad",
+    "backend/app/core/contracts/model_billing_adjustment.py": "669c017e3382960a00034a65ee78937567b9c8c34f6eb911882e0072f52e02f3",
+    "backend/app/models/model_billing_adjustment.py": "29b76d1af2fecb37909ac66ae3dbb5f34bf2f790a85b0706a66047762cdd5c47",
+    "backend/app/services/worker/model_billing_adjustment_schema.py": "93c24e7814c1962e01885a5b0464deae41d627aa22842fe934f4a8b0917a7a41",
+    "backend/app/services/worker/model_billing_adjustments.py": "cbc16df9bccb4648db4247bccf85c062c6f06414198dd47d6b964f215fcb829f",
+    "backend/app/services/worker/model_billing_schema.py": "8f830717d41357a4f081553eab031e09098bf2be259dff137fe3528fb73d4e10",
+    "backend/app/services/worker/model_billing.py": "df0d2c930f95fc32ba8782c40becd0b1e36f4e0c572af91ee765f7f341f7680e",
+    "backend/app/core/contracts/video_runtime_setup.py": "c14049d39563a03e7fdf49fbfc3aa5a088ba2ab3227a453d5f4fec67f5456527",
+    "backend/app/services/worker/workspace_video_runtime.py": "0079353f5dac4ccb40c3180dba9ab2f8f815063baad14f1a5bc47dfa10f50515",
+    "backend/reconcile_model_billing.py": "dbf059b194dc9afb29c93749451812672055ccc1750681c608f42848c889c276",
+    "backend/tests/test_model_billing_adjustments.py": "c9933b5116df3161b3c4bcabe44f999a52dea1f32d36aee3bb2194e398336c52",
+    "backend/tests/test_model_billing_adjustment_cli.py": "9db7c410916f0e44a82ba76ad80b163f6a11881ece029ba22d261a022aecd9ae",
+    "backend/tests/test_model_billing_budget_view.py": "7fee8ad1ac99f728f3c4668dc524e440cf38e092689e9e8d9cf5e2909f91578c",
+    "front/openapi.json": "9388a7331f16faa6b47e6772f5b581136ec8f2ed9d3ac84546adb893fb77ab2d",
+    "front/src/services/generated/models/ProjectBudgetRead.ts": "8399e8bc2aef9fd288784f127e6c0a4c4fb5f63e184e7c2904631e9c3a44cad6",
+    "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProjectBudgetPanel.tsx": "349a9a16d94d9191c629915031a27680afbd68ef0b9295278ddd346a1d061d8e"
+  },
+  "regression": {
+    "tests": 509,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 509,
+    "new_adjustment_and_real_CLI_cases": 22,
+    "test_files": [
+      "tests/test_execution_budget.py",
+      "tests/test_execution_accounting.py",
+      "tests/test_project_budget.py",
+      "tests/test_agent_execution.py",
+      "tests/test_asset_image_generation.py",
+      "tests/test_connection_versions.py",
+      "tests/test_model_accounting_guards.py",
+      "tests/test_model_billing.py",
+      "tests/test_model_billing_budget_view.py",
+      "tests/test_model_billing_cli.py",
+      "tests/test_model_charges.py",
+      "tests/test_model_prices.py",
+      "tests/test_agent_project_accounting.py",
+      "tests/test_cross_model_project_budget.py",
+      "tests/test_gateway_pricing_status.py",
+      "tests/test_image_project_accounting.py",
+      "tests/test_model_job_charges.py",
+      "tests/test_model_price_workspace.py",
+      "tests/test_quote_model_identity.py",
+      "tests/test_understanding_model_connections.py",
+      "tests/test_understanding_charges.py",
+      "tests/test_understanding_runtime_charges.py",
+      "tests/test_video_understanding.py",
+      "tests/test_trusted_http.py",
+      "tests/test_native_video_model_connections.py",
+      "tests/test_native_video_project_accounting.py",
+      "tests/test_native_video_planned_accounting.py",
+      "tests/test_native_video_http_accounting.py",
+      "tests/test_native_video_cancellation.py",
+      "tests/test_native_video_api.py",
+      "tests/test_model_billing_adjustments.py",
+      "tests/test_model_billing_adjustment_cli.py",
+      "tests/test_workspace_boundary.py",
+      "tests/test_workspace_resource_matrix.py",
+      "tests/test_identity_trials.py",
+      "tests/test_workspace_video_runtime.py"
+    ],
+    "seconds": 978.063,
+    "junit_sha256": "22537b827bad959e0c2a15d7652af7bcc6a4180b8967d86157cf7147c911bf53"
+  },
+  "browser": {
+    "passed": 8,
+    "failed": 0,
+    "source_tree": "d5746c7eba87fe74ae0b357713b7e53c72b4dc24",
+    "sha256": "44764213a2910ba28d06dca1697516237fdc81cf11f8aef264cff3ce35d548f6",
+    "trusted_fixture_virtual_clock": false,
+    "cases": [
+      {
+        "case": "actual_new_owner_login_and_existing_authored_projects",
+        "passed": true
+      },
+      {
+        "case": "actual_fixed_worker_net_budget_API",
+        "passed": true
+      },
+      {
+        "case": "render_original_gross_exact_minor_units",
+        "passed": true
+      },
+      {
+        "case": "render_current_net_exact_minor_units",
+        "passed": true
+      },
+      {
+        "case": "render_separate_credits_and_debits",
+        "passed": true
+      },
+      {
+        "case": "render_net_project_spend_and_unchanged_ceiling",
+        "passed": true
+      },
+      {
+        "case": "sibling_project_balance_and_no_workspace_monetary_cap",
+        "passed": true
+      },
+      {
+        "case": "private_evidence_and_provider_request_not_rendered",
+        "passed": true
+      }
+    ]
+  },
+  "frontend": {
+    "typecheck_and_build_passed": true,
+    "modules": 3219,
+    "vite_seconds": 19.34,
+    "build_log_sha256": "6c7d24a7a099568baf98b30a03fc61ddbb2fbcb29220d098031cc09c0e338565"
+  },
+  "schemas": {
+    "main_paths": 249,
+    "main_schemas": 591,
+    "community_paths": 2,
+    "community_schemas": 2,
+    "actual_openapi_update_and_generated_client": true,
+    "lifespan_started": false
+  },
+  "counterexample": {
+    "source_tree": "90fcccc2ccd2ebc3e50d2ea1fdb2a235fdae20be",
+    "synthetic_data_only": true,
+    "before_fix_review_history_replaced": true,
+    "passed": false,
+    "external_model_calls": 0,
+    "paid_authorization": 0
+  },
+  "source_review": {
+    "method": "author source review",
+    "independent": false,
+    "sha256": "c56544205b0b0232efcc0bb6a774981e48141f1753bfe09a3b6b98d830e32841"
+  },
+  "metadata_review": {
+    "method": "author combined source and metadata review",
+    "independent": false,
+    "scope": "Explicit versioned same-account/request total corrections/credits/debits, existing project headroom/CAS and original history, immutable real ambiguous-call choices/other holds, actual SQLite physical/context/snapshot guards, exact API/client and actual net UI, truthful provider/refund/public/independent limits, docs/register/links/privacy"
+  },
+  "current_commit_ci": "pending_publication_and_exact_commit_CI",
+  "provider_billing_authenticated": false,
+  "refund_requested": false,
+  "real_provider_refund_verified": false,
+  "gateway_paid_gate_opened": false,
+  "original_user_data_used": false,
+  "original_user_data_reassigned": false,
+  "shared_workspace_monetary_budget_added": false,
+  "independent_review_completed": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "full_feature_qualified": false,
+  "overall_goal_complete": false,
+  "count_note": "Frozen related regression includes22 new cases. Earlier60 compatibility/core and2 CLI runs overlap; final8 browser cases are not summed with earlier8. Synthetic evidence is not authenticated supplier billing or a provider refund."
+}

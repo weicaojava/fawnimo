@@ -145,15 +145,15 @@ async def test_budget_read_during_reconciliation_keeps_one_actual_sqlite_snapsho
         await save_project_budget(factory,'a',ProjectBudgetWrite(expected_revision=revision,limit_minor=200))
         reached=asyncio.Event();finished=asyncio.Event()
         async with factory() as reader:
-            original=reader.execute
+            original=reader.stream
             async def pause_between_financial_queries(query,*args,**kwargs):
                 """Let a genuine independent writer commit after the reader has inspected held bill liability."""
                 sql=str(query)
-                if not reached.is_set() and 'sum(model_billing_receipts.actual_minor)' in sql:
+                if not reached.is_set() and sql.startswith('SELECT model_billing_receipts.actual_minor,'):
                     reached.set()
                     await asyncio.wait_for(finished.wait(),10)
                 return await original(query,*args,**kwargs)
-            reader.execute=pause_between_financial_queries
+            reader.stream=pause_between_financial_queries
             async def writer():
                 """Settle the now-funded bill without reusing the read connection or its snapshot."""
                 await asyncio.wait_for(reached.wait(),10)
