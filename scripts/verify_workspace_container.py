@@ -31,6 +31,74 @@ LABEL = 'org.fawnimo.container-verification'
 REPO = Path(__file__).resolve().parents[1]
 HOP_HEADERS = {'connection', 'transfer-encoding', 'keep-alive', 'proxy-authenticate',
                'proxy-authorization', 'te', 'trailer', 'upgrade'}
+SOUND_CASES = (
+    'tests/test_sound_music.py::test_real_looped_music_ducking_samples_and_immutable_history[24000-1]',
+    'tests/test_sound_music.py::test_real_looped_music_ducking_samples_and_immutable_history[48000-2]',
+    'tests/test_sound_timeline.py::test_silent_picture_requires_separate_explicit_dub_and_old_v1_stays_blocked',
+    'tests/test_sound_timeline.py::test_owned_http_uses_strict_documents_and_actual_original_job',
+    'tests/test_sound_timeline.py::test_actual_sound_overlay_uses_final_crossfade_clock',
+    'tests/test_sound_timeline.py::test_local_sound_children_do_not_inherit_application_credentials',
+    'tests/test_demo_media_render.py::test_actual_seven_original_clips_and_frames_decode',
+)
+
+
+def sound_check_program():
+    """Run only seven fixed authored-media cases inside the existing owned image; retain no fixture media or raw logs."""
+    # The program has no user-supplied commands, paths, environment values or model connection.
+    return '''import hashlib, json, os, pathlib, subprocess, sys, tempfile, xml.etree.ElementTree as ET
+selected = ''' + json.dumps(SOUND_CASES) + '''
+try:
+    with tempfile.TemporaryDirectory(prefix='fawnimo-image-sound-', dir='/tmp') as directory:
+        root = pathlib.Path(directory)
+        report = root / 'junit.xml'
+        environment = dict(os.environ, JELLYFISH_SKIP_ENV_FILE='1', PYTHONDONTWRITEBYTECODE='1',
+            PYTEST_DISABLE_PLUGIN_AUTOLOAD='1', FAWNIMO_TEST_FFMPEG='/usr/bin/ffmpeg', TEST_MEDIA_PROBE='/usr/bin/ffmpeg')
+        with (root / 'private-test.log').open('wb') as log:
+            result = subprocess.run([sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider',
+                '--basetemp=' + str(root / 'temporary-tests'), '--junitxml=' + str(report), *selected],
+                cwd='/app/backend', env=environment, stdout=log, stderr=subprocess.STDOUT, timeout=240)
+        if result.returncode != 0 or not report.is_file() or report.is_symlink() or report.stat().st_size > 2097152:
+            raise RuntimeError('Fixed authored-media cases did not complete successfully')
+        raw = report.read_bytes()
+        document = ET.fromstring(raw)
+        suites = list(document.iter('testsuite'))
+        counts = {name: sum(int(suite.get(name, '0')) for suite in suites)
+            for name in ('tests', 'failures', 'errors', 'skipped')}
+        cases = list(document.iter('testcase'))
+        identities = [case.get('classname', '').replace('.', '/') + '.py::' + case.get('name', '') for case in cases]
+        if counts != dict(tests=7, failures=0, errors=0, skipped=0) or len(identities) != len(set(identities)) or set(identities) != set(selected):
+            raise RuntimeError('Fixed authored-media case identities/counts changed')
+        if any(list(case) for case in cases):
+            raise RuntimeError('Skipped/failed or unexpected case details are not successful qualification')
+        value = dict(profile='image_sound_software_v1', **counts, cases=sorted(identities),
+            junit_sha256=hashlib.sha256(raw).hexdigest(), uid=os.getuid(),
+            readonly_code=bool(os.statvfs('/app').f_flag & os.ST_RDONLY), external_model_calls=0,
+            model_quality_qualified=False, complete_film_qualified=False, public_deployment_verified=False)
+        print(json.dumps(value, separators=(',', ':')))
+except Exception as error:
+    print(json.dumps(dict(profile='image_sound_software_v1', status='failed', error_type=type(error).__name__)))
+    sys.exit(1)
+'''
+
+
+def validate_sound_result(value):
+    """Reject changed, missing, repeated or skipped cases; a successful process alone cannot qualify media exports."""
+    expected = {'profile', 'tests', 'failures', 'errors', 'skipped', 'cases', 'junit_sha256', 'uid',
+                'readonly_code', 'external_model_calls', 'model_quality_qualified', 'complete_film_qualified', 'public_deployment_verified'}
+    if not isinstance(value, dict) or set(value) != expected or value['profile'] != 'image_sound_software_v1':
+        raise RuntimeError('Invalid actual-image sound result')
+    counts = {'tests': 7, 'failures': 0, 'errors': 0, 'skipped': 0, 'uid': 10001, 'external_model_calls': 0}
+    if any(type(value[name]) is not int or value[name] != count for name, count in counts.items()):
+        raise RuntimeError('Actual-image sound cases were not all successful')
+    if (not isinstance(value['cases'], list) or any(not isinstance(item, str) for item in value['cases'])
+            or sorted(value['cases']) != sorted(SOUND_CASES)):
+        raise RuntimeError('Actual-image sound case identity changed')
+    if value['readonly_code'] is not True or any(value[name] is not False for name in
+            ('model_quality_qualified', 'complete_film_qualified', 'public_deployment_verified')):
+        raise RuntimeError('Actual-image sound scope or runtime controls changed')
+    if not isinstance(value['junit_sha256'], str) or re.fullmatch(r'[0-9a-f]{64}', value['junit_sha256']) is None:
+        raise RuntimeError('Actual-image sound result lacks its bounded original report hash')
+    return value
 
 
 def execute(arguments, *, environment=None, data=None, timeout=180, allowed_failure=False):
@@ -268,6 +336,21 @@ print(json.dumps(profiles))
         self.owned('container', identifier)
         self.command('rm', identifier, timeout=20)
 
+    def verify_sound_exports(self):
+        """Use only this invocation's current unprivileged stable image, with separate temporary media and no model calls."""
+        identifier = self.containers['stable']
+        observed = self.owned('container', identifier)
+        if (observed['Image'] != self.image_id or observed['Config']['User'] != '10001:10001'
+                or observed['HostConfig']['ReadonlyRootfs'] is not True or observed['State']['Running'] is not True):
+            raise RuntimeError('Actual-image sound check requires the exact running owned read-only image')
+        response = self.command('exec', '--user', '10001:10001', identifier, 'python', '-I', '-c', sound_check_program(), timeout=270)
+        current = self.owned('container', identifier)
+        if current['Image'] != self.image_id or current['State']['Running'] is not True:
+            raise RuntimeError('Owned sound image changed during verification')
+        if len(response.stdout) > 32768:
+            raise RuntimeError('Actual-image sound result exceeds its report budget')
+        return validate_sound_result(json.loads(response.stdout))
+
     def close(self):
         """Remove only resources labelled by this invocation, including a partially started Compose run."""
         failures = []
@@ -329,6 +412,7 @@ print(json.dumps({'uid': os.getuid(), 'readonly': readonly and bool(os.statvfs('
         check(side + '_actual_unprivileged_readonly_code_tmp_and_ffmpeg', observed == {'uid': 10001, 'readonly': True, 'ffmpeg': True})
     check('stable_and_preview_data_volumes_differ', mounted['stable'] != mounted['preview'])
     verify_http_workflows(runtime, profiles, check)
+    record['sound_exports'] = runtime.verify_sound_exports()
     record['runtime_verified'] = True
 
 

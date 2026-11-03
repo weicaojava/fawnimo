@@ -1,0 +1,38 @@
+{
+  "profile": "image_sound_software_v1",
+  "scope": "Fixed authored-media software verification inside the exact owned deployed image; no real model/film qualification.",
+  "required_cases": [
+    "tests/test_demo_media_render.py::test_actual_seven_original_clips_and_frames_decode",
+    "tests/test_sound_music.py::test_real_looped_music_ducking_samples_and_immutable_history[24000-1]",
+    "tests/test_sound_music.py::test_real_looped_music_ducking_samples_and_immutable_history[48000-2]",
+    "tests/test_sound_timeline.py::test_actual_sound_overlay_uses_final_crossfade_clock",
+    "tests/test_sound_timeline.py::test_local_sound_children_do_not_inherit_application_credentials",
+    "tests/test_sound_timeline.py::test_owned_http_uses_strict_documents_and_actual_original_job",
+    "tests/test_sound_timeline.py::test_silent_picture_requires_separate_explicit_dub_and_old_v1_stays_blocked"
+  ],
+  "required_counts": {
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "host_guard_test_count": 12,
+  "host_guard_tests_passed": true,
+  "native_cases_passed": 7,
+  "verification_source_sha256_lf_normalized": {
+    "scripts/verify_workspace_container.py": "c69cae969f38113e65dbe2567289cfc6d11706109378213a62400250712442cc",
+    "scripts/tests/test_workspace_container_verifier.py": "8cbb32c6139f7b9470c9fbca7f3f7d786e7c46b579ea83c52303d0e86ba25d4c"
+  },
+  "actual_image_evidence": "Exact-source Verify workspace container run: container-verification.json.sound_exports, plus successful runtime and cleanup fields. This profile definition and native result do not substitute for that run.",
+  "runtime": "Existing invocation-owned nonroot read-only Compose stable image; separate /tmp fixtures; exact seven cases/no skips; bounded child timeout; ownership rechecked before/after; normal owned cleanup still required.",
+  "preserves_generic_check_count": 40,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "model_quality_qualified": false,
+  "complete_film_qualified": false,
+  "independent_review_completed": false,
+  "public_deployment_verified": false,
+  "overall_goal_complete": false,
+  "native_junit_sha256": "565980dbaf8ff8b52850f036d849360c77bd9eb961a43a6c4e32619251abc447",
+  "host_guard_log_sha256": "2f2f7434534c2f2c411a9723ca9ed3d7d13592697a5c1fd9219ac5e6ccf56dfd"
+}
