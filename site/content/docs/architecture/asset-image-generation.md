@@ -7,7 +7,7 @@ description: 文本与已声明参考图协议、原项目费用、不可变输�
 
 演员、服装、场景和道具编辑页提供“生成图片候选”，调用 `/api/v1/asset-image-generation` 和生成的 `AssetImageGenerationService`。生成只新增候选，单独确认采用才更新原定图片槽。它不经过旧 Film/Celery 任务，不依赖视频执行可用性，也不自动把候选转成工程 ProductionMedia。角色实例、参考视频生成和人物一致性质量不在此入口的验收范围。
 
-## 明确声明的两种协议
+## 明确声明的三种协议
 
 模型管理在图片模型上保存 `params.asset_image_protocol`。开关、编辑配置和读取历史均不自动调用模型。旧文本协议要求 `openai` 供应商，Seedream要求火山引擎 `volcengine` 供应商；不能互换。模型地址、凭据和下载域名来自服务器保存的配置，不能由生成请求携带。
 
@@ -15,6 +15,14 @@ description: 文本与已声明参考图协议、原项目费用、不可变输�
 | --- | --- |
 | `openai_b64_v1` | 兼容原文本流程：256、512、1024方图；发送 `n=1`、`response_format=b64_json`；只接受恰好一张base64图片，不接受参考图或URL结果。旧任务绑定及默认空参考图的幂等指纹保持原域。 |
 | `volcengine_seedream_json_v1` | 固定单张协议；支持0至3张原项目参考图，以及明确选择的base64或受限URL结果。尺寸限定为2048×2048、2848×1600、1600×2848，输出必须真实解码并匹配所选尺寸。 |
+| `openai_gpt_image_json_v1` | 0至3张原项目参考图；固定两个GPT Image 2.5快照、medium质量、单张不透明PNG，三种标准画幅，不接受URL结果。 |
+
+
+`openai_gpt_image_json_v1`要求`openai`供应商，确切模型只能为`gpt-image-2.5-sunburst-2026-09-08`或`gpt-image-2.5-flare-2026-09-08`。固定medium质量、不透明单张PNG、关闭流式，尺寸为1024×1024、1536×1024或1024×1536。无参考图调用生成接口，有参考图通过JSON的`images`传送完整已验证data URL至编辑接口；不接受网页提供的URL、file ID、mask、任意参数或返回方式回退。不给该GPT档案发送旧`response_format`字段，也不下载结果网址。依据[官方图像编辑接口](https://developers.openai.com/api/reference/resources/images/methods/edit)与[生成接口](https://developers.openai.com/api/reference/resources/images/methods/generate)，核对日期2026-11-04；软件声明不证明真实账号可用或画质。
+
+新档案使用独立`gpt_image_input_sets`和`gpt_image_references`，两表均为SQLite WITHOUT ROWID。原排队任务、原项目费用、准确连接摘要和完整参考证明同事务封存；初始/密集顺序/封存/更新删除替换均受固定守卫约束。既有Seedream表、旧文字请求指纹和已接受历史不改写。结果HTTP身份先保存，再校验单张真实PNG及准确尺寸；失败、取消和不明结果沿用原项目费用规则。
+
+冻结73项中72通过/1平台跳过，新增23项全部通过；16项镜像验收守卫、4种生成DTO及3219模块构建通过。独立自作本地服务上的完整页面9项检查覆盖参考选择、画幅、确认、采用、当前页面原请求恢复与服务器历史刷新。恢复闭包只属于仍挂载的原页面；刷新/离开前先核对历史，刷新后读取原服务器任务，不声称浏览器保存了完整原提交。真实非root只读镜像另有固定文字/参考图2例，须准确本轮CI附件证明。收费身份网关仍关闭，实际供应商/账单、A/B、人物一致性及公网仍未验。
 
 Seedream只接受确切名称：`doubao-seedream-5-0-pro-260628`、`doubao-seedream-5-0-flash-260915` 使用 `single_v5`，不发送 `n`、`stream` 或 `sequential_image_generation`；兼容的 `doubao-seedream-4-5-251128`、`doubao-seedream-4-0-250828` 使用 `single_v4`，固定关闭连续组图与流式输出。水印固定开启。不转发任意模型参数，也不将未知模型或Endpoint ID猜作已支持模型。4.x是旧版兼容配置，供应商文档已列入即将下线范围。
 

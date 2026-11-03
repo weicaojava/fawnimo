@@ -216,6 +216,15 @@ class SoundQualificationTests(unittest.TestCase):
         compile(VERIFIER.sound_check_program('sound'), 'fixed-sound-profile', 'exec')
         compile(VERIFIER.sound_check_program('linux_speech'), 'fixed-linux-speech-profile', 'exec')
 
+    def test_gpt_image_requires_its_own_exact_non_skipped_cases_and_false_quality_gates(self):
+        """Unrelated sound/speech success, skipped synthetic image cases or a false AI-quality promotion cannot qualify the new actual-image software profile."""
+        correct={**self.result(),'profile':'image_gpt_image_software_v1','tests':2,'cases':list(VERIFIER.GPT_IMAGE_CASES)}
+        self.assertEqual(VERIFIER.validate_sound_result(correct,'gpt_image'),correct)
+        for invalid in (self.result(),{**correct,'skipped':1},{**correct,'tests':True},
+                {**correct,'cases':list(VERIFIER.SOUND_CASES[:2])},{**correct,'model_quality_qualified':True}):
+            with self.subTest(invalid=invalid),self.assertRaises(RuntimeError):VERIFIER.validate_sound_result(invalid,'gpt_image')
+        compile(VERIFIER.sound_check_program('gpt_image'),'fixed-gpt-image-profile','exec')
+
 
 if __name__ == '__main__':
     unittest.main()

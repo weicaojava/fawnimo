@@ -15,8 +15,9 @@ from sqlalchemy.dialects.sqlite import insert
 from app.core import local_storage
 from app.core.contracts.asset_image_generation import AssetImageAvailability, AssetImageJobRead, AssetImageSlotRead, ImageModelChoice
 from app.core.integrations.asset_image import AssetImageModelError, invoke_asset_image
-from app.core.contracts.asset_image_protocols import LEGACY_IMAGE_PROTOCOL, SEEDREAM_IMAGE_PROTOCOL, asset_image_protocol
+from app.core.contracts.asset_image_protocols import LEGACY_IMAGE_PROTOCOL, SEEDREAM_IMAGE_PROTOCOL, GPT_IMAGE_PROTOCOL, asset_image_protocol
 from app.core.integrations.seedream_asset_image import invoke_seedream_image
+from app.core.integrations.gpt_asset_image import invoke_gpt_image
 from app.core.owned_tasks import join_tasks
 from app.models.asset_image_generation import AssetImageJob
 from app.models.llm import Model, ModelSettings, Provider
@@ -36,6 +37,7 @@ from app.services.asset_image_inputs import (
     validate_requested_inputs, verify_references,
 )
 from app.models.asset_image_inputs import AssetImageInputSet, AssetImageReference
+from app.models.gpt_image_inputs import GptImageInputSet,GptImageReference
 
 FINAL = {'candidate', 'adopted', 'failed', 'cancelled'}
 PROTOCOL = 'openai_b64_v1'
@@ -57,6 +59,8 @@ async def migrate_asset_image_generation(engine):
         await connection.execute(text("CREATE TRIGGER IF NOT EXISTS immutable_asset_image_success_delete BEFORE DELETE ON asset_image_generation_jobs WHEN OLD.status IN ('candidate','adopted') BEGIN SELECT RAISE(ABORT,'immutable image candidate'); END"))
     from app.services.asset_image_input_schema import migrate_asset_image_inputs
     await migrate_asset_image_inputs(engine)
+    from app.services.gpt_image_input_schema import migrate_gpt_image_inputs
+    await migrate_gpt_image_inputs(engine)
 
 
 async def availability(db, runtime, model_id=None):
@@ -117,6 +121,8 @@ async def image_connection_material(db, model_id):
     resolved = {'model_id': model.id, 'model_name': model.name, 'provider_id': model.provider_id, 'provider_connection_version': revision, 'base_url': config.base_url, 'protocol': protocol.protocol}
     if protocol.protocol == SEEDREAM_IMAGE_PROTOCOL:
         resolved.update(seedream_profile=protocol.profile, result_hosts=list(protocol.result_hosts), capability_version=1)
+    elif protocol.protocol == GPT_IMAGE_PROTOCOL:
+        resolved.update(gpt_image_profile=protocol.profile,capability_version=1)
     return resolved, config.api_key
 
 
@@ -159,8 +165,9 @@ async def job_read(db,job):
     financial=await job_charge(db,'image',job.id)
     charge=await charged_job_unit(db,financial,'candidate') if financial else None
     entry=await db.get(ExecutionBudgetEntry,charge.id) if charge else None
-    references = list((await db.scalars(select(AssetImageReference).where(AssetImageReference.job_id == job.id).order_by(AssetImageReference.position))).all())
-    header = await db.get(AssetImageInputSet, job.id)
+    header_type,reference_type=(GptImageInputSet,GptImageReference) if job.model_binding.get('protocol')==GPT_IMAGE_PROTOCOL else (AssetImageInputSet,AssetImageReference)
+    references = list((await db.scalars(select(reference_type).where(reference_type.job_id == job.id).order_by(reference_type.position))).all())
+    header = await db.get(header_type, job.id)
     from app.core.contracts.asset_image_generation import AssetImageReferenceRead
     return AssetImageJobRead.model_validate(job).model_copy(update={'content_url': f'/api/v1/asset-image-generation/jobs/{job.id}/content' if job.status in {'candidate', 'adopted'} else None,
         'project_id':financial.project_id if financial else None,'authorized_max_minor':str(entry.quote_minor) if entry else None,
@@ -404,7 +411,7 @@ class AssetImageGenerationRuntime:
             token = uuid.uuid4().hex
             claimed = False
             if job_id:
-                lease_seconds = 150 if candidate.model_binding.get('protocol') == SEEDREAM_IMAGE_PROTOCOL else 75
+                lease_seconds = 150 if candidate.model_binding.get('protocol') in {SEEDREAM_IMAGE_PROTOCOL,GPT_IMAGE_PROTOCOL} else 75
                 result = await db.execute(update(AssetImageJob).execution_options(synchronize_session=False).where(AssetImageJob.id == job_id, AssetImageJob.status == 'queued').values(status='running', lease_token=token, lease_expires_at=clock() + timedelta(seconds=lease_seconds)))
                 claimed = bool(result.rowcount)
             await db.commit()
@@ -437,12 +444,17 @@ class AssetImageGenerationRuntime:
             if job.model_binding.get('protocol') == LEGACY_IMAGE_PROTOCOL:
                 protocol = asset_image_protocol(provider='openai', model=job.model_name,
                     params={'asset_image_protocol': LEGACY_IMAGE_PROTOCOL})
-            else:
+            elif job.model_binding.get('protocol')==SEEDREAM_IMAGE_PROTOCOL:
                 protocol = asset_image_protocol(provider='volcengine', model=job.model_name,
                     params={'asset_image_protocol': SEEDREAM_IMAGE_PROTOCOL,
                             'asset_image_result_hosts': job.model_binding.get('result_hosts')})
                 if protocol.profile != job.model_binding.get('seedream_profile'):
                     raise HTTPException(409, '图片模型的封存能力不一致')
+            elif job.model_binding.get('protocol')==GPT_IMAGE_PROTOCOL:
+                protocol=asset_image_protocol(provider='openai',model=job.model_name,params={'asset_image_protocol':GPT_IMAGE_PROTOCOL})
+                if protocol.profile!=job.model_binding.get('gpt_image_profile'):
+                    raise HTTPException(409,'图片模型的封存能力不一致')
+            else:raise HTTPException(409,'未知图片协议不能作为旧任务执行')
             validate_requested_inputs(protocol, size=job.size, response_format=response_format or 'b64_json', reference_count=len(candidates))
         async with self.reference_validation_lock:
             references = await verify_references(candidates)
@@ -484,11 +496,12 @@ class AssetImageGenerationRuntime:
                     prompt, size = job.prompt, job.size
             if asyncio.current_task().cancelling() or not self.running:
                 raise asyncio.CancelledError()
-            if resolved['protocol'] == SEEDREAM_IMAGE_PROTOCOL:
+            if resolved['protocol'] in {SEEDREAM_IMAGE_PROTOCOL,GPT_IMAGE_PROTOCOL}:
                 async def response_witness(provider_request_id):
                     """Persist the original POST identity before URL output or decoding can fail or be cancelled."""
                     await self._record_response(current_project, current_charge, provider_request_id)
-                call = asyncio.create_task(invoke_seedream_image(base_url=resolved['base_url'], api_key=secret,
+                adapter=invoke_gpt_image if resolved['protocol']==GPT_IMAGE_PROTOCOL else invoke_seedream_image
+                call = asyncio.create_task(adapter(base_url=resolved['base_url'], api_key=secret,
                     model=resolved['model_name'], prompt=prompt, size=size, protocol=prepared.protocol,
                     references=tuple((reference.image, reference.fields['purpose']) for reference in prepared.references),
                     response_format=prepared.response_format, trusted_local_host=self.trusted_local_host,

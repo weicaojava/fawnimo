@@ -45,14 +45,19 @@ LINUX_SPEECH_CASES = (
     'tests/test_linux_speech_oci.py::test_actual_installed_linux_voices_pcm_and_exclusive_output[en-us]',
     'tests/test_linux_speech_oci.py::test_actual_linux_original_job_candidate_mix_replay_and_windows_history',
 )
+GPT_IMAGE_CASES = (
+    'tests/test_gpt_asset_image.py::test_actual_http_exact_refs_png_candidate_original_fee_adoption_and_replay[text-square]',
+    'tests/test_gpt_asset_image.py::test_actual_http_exact_refs_png_candidate_original_fee_adoption_and_replay[references-wide]',
+)
 MEDIA_PROFILES = {
     'sound': ('image_sound_software_v1', SOUND_CASES),
     'linux_speech': ('image_linux_speech_software_v1', LINUX_SPEECH_CASES),
+    'gpt_image': ('image_gpt_image_software_v1', GPT_IMAGE_CASES),
 }
 
 
 def sound_check_program(profile='sound'):
-    """Run one of two server-fixed image profiles; callers cannot provide commands, case lists or media paths."""
+    """Run a server-fixed image profile; callers cannot provide commands, case lists or media paths."""
     if not isinstance(profile, str) or profile not in MEDIA_PROFILES:
         raise RuntimeError('Unknown fixed image media profile')
     expected_profile, selected_cases = MEDIA_PROFILES[profile]
@@ -421,7 +426,7 @@ print(json.dumps(profiles))
                 if isinstance(item, dict) and 'message' in item:
                     item['message'] = sound_failure_summary(item['message'])
         if record is not None:
-            record['sound_exports' if profile == 'sound' else 'linux_speech'] = value
+            record['sound_exports' if profile == 'sound' else profile] = value
         return validate_sound_result(value, profile)
 
     def close(self):
@@ -487,6 +492,7 @@ print(json.dumps({'uid': os.getuid(), 'readonly': readonly and bool(os.statvfs('
     verify_http_workflows(runtime, profiles, check)
     record['sound_exports'] = runtime.verify_sound_exports(record)
     record['linux_speech'] = runtime.verify_sound_exports(record, profile='linux_speech')
+    record['gpt_image'] = runtime.verify_sound_exports(record, profile='gpt_image')
     record['runtime_verified'] = True
 
 

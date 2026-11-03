@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 AssetImageKind = Literal['actor', 'costume', 'scene', 'prop']
-AssetImageProtocolKey = Literal['openai_b64_v1', 'volcengine_seedream_json_v1']
+AssetImageProtocolKey = Literal['openai_b64_v1', 'volcengine_seedream_json_v1', 'openai_gpt_image_json_v1']
 AssetImageResponseFormat = Literal['b64_json', 'url']
 
 
@@ -79,7 +79,7 @@ class AssetImageSubmit(BaseModel):
     expected_price_fingerprint: str = Field(pattern=r'^[a-f0-9]{64}$')
     model_id: str = Field(min_length=1, max_length=64)
     prompt: str = Field(min_length=1, max_length=8000)
-    size: Literal['256x256', '512x512', '1024x1024', '2048x2048', '2848x1600', '1600x2848'] = '1024x1024'
+    size: Literal['256x256', '512x512', '1024x1024', '2048x2048', '2848x1600', '1600x2848', '1536x1024', '1024x1536'] = '1024x1024'
     references: list[AssetImageReferenceInput] = Field(default_factory=list, max_length=3)
     response_format: AssetImageResponseFormat = 'b64_json'
     confirm_model_call: Literal[True]

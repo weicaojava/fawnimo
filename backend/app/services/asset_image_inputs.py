@@ -10,11 +10,12 @@ from fastapi import HTTPException
 from sqlalchemy import select
 
 from app.config import settings
-from app.core.contracts.asset_image_protocols import asset_image_protocol, LEGACY_IMAGE_PROTOCOL, SEEDREAM_IMAGE_PROTOCOL
+from app.core.contracts.asset_image_protocols import asset_image_protocol, LEGACY_IMAGE_PROTOCOL, SEEDREAM_IMAGE_PROTOCOL, GPT_IMAGE_PROTOCOL
 from app.core.integrations.asset_image import AssetImageModelError
 from app.core.integrations.verified_image import verify_image_bytes
 from app.core.owned_tasks import join_tasks
 from app.models.asset_image_inputs import AssetImageInputSet, AssetImageReference
+from app.models.gpt_image_inputs import GptImageInputSet,GptImageReference
 from app.models.llm import Model, Provider
 from app.models.production import ProductionMedia
 from app.services.agent_execution import digest
@@ -74,16 +75,21 @@ def public_reference_fields(row):
 
 async def saved_input_set(db, job, project_id):
     """Refuse absent, partial or mismatched new manifests; old text-only jobs do not gain a new protocol."""
-    header = await db.get(AssetImageInputSet, job.id)
-    references = list((await db.scalars(select(AssetImageReference).where(AssetImageReference.job_id == job.id).order_by(AssetImageReference.position))).all())
+    gpt=job.model_binding.get('protocol')==GPT_IMAGE_PROTOCOL
+    header_type,reference_type=(GptImageInputSet,GptImageReference) if gpt else (AssetImageInputSet,AssetImageReference)
+    other_header,other_reference=(AssetImageInputSet,AssetImageReference) if gpt else (GptImageInputSet,GptImageReference)
+    if await db.get(other_header,job.id) is not None or (await db.scalar(select(other_reference.job_id).where(other_reference.job_id==job.id).limit(1))) is not None:
+        raise HTTPException(409,'图片任务混用了其他协议的参考输入证明')
+    header = await db.get(header_type, job.id)
+    references = list((await db.scalars(select(reference_type).where(reference_type.job_id == job.id).order_by(reference_type.position))).all())
     if job.model_binding.get('protocol') == LEGACY_IMAGE_PROTOCOL:
         if header is not None or references:
             raise HTTPException(409, '历史文本图片任务不能附加新的参考输入')
         return None, []
     fields = [public_reference_fields(row) for row in references]
-    if (job.model_binding.get('protocol') != SEEDREAM_IMAGE_PROTOCOL or header is None or not header.sealed
+    if (job.model_binding.get('protocol') not in {SEEDREAM_IMAGE_PROTOCOL,GPT_IMAGE_PROTOCOL} or header is None or not header.sealed
             or header.project_id != project_id or header.protocol != job.model_binding['protocol']
-            or header.profile != job.model_binding.get('seedream_profile') or header.model_name != job.model_name
+            or header.profile != job.model_binding.get('gpt_image_profile' if gpt else 'seedream_profile') or header.model_name != job.model_name
             or header.size != job.size or header.request_hash != job.request_hash
             or header.binding_hash != binding_digest(job.model_binding)
             or header.reference_count != len(references) or [row.position for row in references] != list(range(header.reference_count))
@@ -189,13 +195,16 @@ async def install_input_set(db, job, project_id, prepared):
             raise HTTPException(422, '文本图片协议不支持参考图或网址返回')
         return
     fields = [reference.fields for reference in prepared.references]
-    header = AssetImageInputSet(job_id=job.id, project_id=project_id,
+    if prepared.protocol.protocol not in {SEEDREAM_IMAGE_PROTOCOL,GPT_IMAGE_PROTOCOL}:
+        raise HTTPException(422,'图片输入证明不支持未知协议')
+    header_type,reference_type=(GptImageInputSet,GptImageReference) if prepared.protocol.protocol==GPT_IMAGE_PROTOCOL else (AssetImageInputSet,AssetImageReference)
+    header = header_type(job_id=job.id, project_id=project_id,
         protocol=prepared.protocol.protocol, profile=prepared.protocol.profile, model_name=job.model_name,
         size=job.size, response_format=prepared.response_format, reference_count=len(fields), reference_hash=digest(fields),
         request_hash=job.request_hash, binding_hash=binding_digest(job.model_binding), sealed=False)
     db.add(header)
     await db.flush()
-    db.add_all([AssetImageReference(job_id=job.id, **value) for value in fields])
+    db.add_all([reference_type(job_id=job.id, **value) for value in fields])
     await db.flush()
     header.sealed = True
     await db.flush()

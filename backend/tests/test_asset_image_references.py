@@ -18,7 +18,7 @@ from pydantic import ValidationError
 from app.config import settings
 from app.core.contracts.asset_image_generation import AssetImageSubmit
 from app.core.contracts.asset_image_protocols import (
-    LEGACY_IMAGE_PROTOCOL, SEEDREAM_IMAGE_PROTOCOL, asset_image_protocol, result_host_policy,
+    LEGACY_IMAGE_PROTOCOL, SEEDREAM_IMAGE_PROTOCOL, GPT_IMAGE_PROTOCOL, asset_image_protocol, result_host_policy,
 )
 from app.core.contracts.model_accounting import ModelPriceConfiguration, ModelPriceEnvelope, ModelPriceRule
 from app.core.integrations import seedream_asset_image as adapter
@@ -55,17 +55,17 @@ async def balance(factory, project='image-project'):
 
 
 @asynccontextmanager
-async def reference_client(tmp_path, monkeypatch, server, *, model=MODEL5, hosts=None):
+async def reference_client(tmp_path, monkeypatch, server, *, model=MODEL5, hosts=None,protocol=SEEDREAM_IMAGE_PROTOCOL,output_size=(2048,2048)):
     """Configure one isolated explicitly priced protocol without importing any existing profile or secret."""
-    server['png'] = png((2048, 2048))
+    server['png'] = png(output_size)
     monkeypatch.setattr(settings, 'production_media_root', str(tmp_path / 'media'))
     async with fixture_client(tmp_path, monkeypatch, server) as (client, factory, slots, runtimes):
         runtime = runtimes[0]
         await runtime.stop()
         async with factory() as db:
-            await db.execute(update(Provider).where(Provider.id == 'image-provider').values(name='volcengine'))
+            await db.execute(update(Provider).where(Provider.id == 'image-provider').values(name='openai' if protocol==GPT_IMAGE_PROTOCOL else 'volcengine'))
             await db.execute(update(Model).where(Model.id == 'image-model').values(name=model,
-                params={'asset_image_protocol': SEEDREAM_IMAGE_PROTOCOL, 'asset_image_result_hosts': hosts or []}))
+                params={'asset_image_protocol': protocol, 'asset_image_result_hosts': hosts or []}))
             await db.commit()
         async with factory() as db:
             revision = (await db.get(ProviderConnectionVersion, 'image-provider')).revision
@@ -99,7 +99,7 @@ async def reference_client(tmp_path, monkeypatch, server, *, model=MODEL5, hosts
 
 async def reference_submit(client, slot, quote, references, *, key='reference-1', **extra):
     """Send only closed public reference fields and the original selected project's exact price confirmation."""
-    return await submit(client, 'actor', slot, key=key, size='2048x2048', references=references,
+    return await submit(client, 'actor', slot, key=key, size=extra.pop('size','2048x2048'), references=references,
         expected_price_fingerprint=quote.fingerprint, **extra)
 
 

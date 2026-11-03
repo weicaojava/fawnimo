@@ -5,6 +5,10 @@ import re
 
 LEGACY_IMAGE_PROTOCOL = 'openai_b64_v1'
 SEEDREAM_IMAGE_PROTOCOL = 'volcengine_seedream_json_v1'
+GPT_IMAGE_PROTOCOL = 'openai_gpt_image_json_v1'
+GPT_IMAGE_PROFILE = 'gpt25_single_medium_png_v1'
+GPT_IMAGE_MODELS = frozenset({'gpt-image-2.5-sunburst-2026-09-08', 'gpt-image-2.5-flare-2026-09-08'})
+GPT_IMAGE_SIZES = ('1024x1024', '1536x1024', '1024x1536')
 SEEDREAM_MODELS = {
     'doubao-seedream-5-0-pro-260628': 'single_v5',
     'doubao-seedream-5-0-flash-260915': 'single_v5',
@@ -59,6 +63,10 @@ def asset_image_protocol(*, provider: str, model: str, params: dict) -> AssetIma
     protocol = params.get('asset_image_protocol')
     if provider == 'openai' and protocol == LEGACY_IMAGE_PROTOCOL:
         return AssetImageProtocol(protocol, 'legacy_text_b64', ('256x256', '512x512', '1024x1024'))
+    if provider == 'openai' and protocol == GPT_IMAGE_PROTOCOL and model in GPT_IMAGE_MODELS:
+        if params.get('asset_image_result_hosts') not in (None, []):
+            raise ValueError('GPT Image does not use a URL result-host policy')
+        return AssetImageProtocol(protocol, GPT_IMAGE_PROFILE, GPT_IMAGE_SIZES, (), 3)
     if provider == 'volcengine' and protocol == SEEDREAM_IMAGE_PROTOCOL and model in SEEDREAM_MODELS:
         return AssetImageProtocol(protocol, SEEDREAM_MODELS[model], SEEDREAM_SIZES,
                                   result_host_policy(params.get('asset_image_result_hosts')), 3)

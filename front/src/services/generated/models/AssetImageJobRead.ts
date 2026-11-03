@@ -32,7 +32,7 @@ export type AssetImageJobRead = {
     provenance?: string;
     project_id?: (string | null);
     authorized_max_minor?: (string | null);
-    protocol?: ('openai_b64_v1' | 'volcengine_seedream_json_v1' | null);
+    protocol?: ('openai_b64_v1' | 'volcengine_seedream_json_v1' | 'openai_gpt_image_json_v1' | null);
     response_format?: 'b64_json' | 'url';
     references?: Array<AssetImageReferenceRead>;
 };

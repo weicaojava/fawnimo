@@ -13,7 +13,7 @@ export type ImageModelChoice = {
     priced?: boolean;
     max_call_minor?: (number | null);
     price_fingerprint?: (string | null);
-    protocol?: ('openai_b64_v1' | 'volcengine_seedream_json_v1' | null);
+    protocol?: ('openai_b64_v1' | 'volcengine_seedream_json_v1' | 'openai_gpt_image_json_v1' | null);
     supports_references?: boolean;
     max_reference_images?: number;
     allowed_sizes?: Array<string>;
