@@ -21,13 +21,13 @@
     "skipped": 0
   },
   "native_deselected_private_database_cases": 2,
-  "native_scope_note": "Current eleven speech/history/diagnostic cases pass; original109 and browser7 belong to the earlier source snapshot. Current frontend, contracts, schema and other media code are unchanged. Real image three failed at engine_version; no positive Linux-engine qualification.",
+  "native_scope_note": "Current eleven speech/history/headless-policy cases pass; original109 and browser7 belong to the earlier source snapshot. Current frontend, contracts, schema and other media code are unchanged. Three prior real-image attempts failed at engine_version; actual offline speech remains pending exact CI.",
   "browser_checks_passed": 7,
   "browser_engine": "explicitly authored tone fixture; not actual Linux synthesis",
   "host_guard_tests_passed": 15,
   "preserves_generic_check_count": 40,
   "preserves_sound_case_count": 7,
-  "source_tree": "456077b3f49db1d450392428e9004788faaf0ae1",
+  "source_tree": "d2da5de1f60848c6adb7078f9f054b4a769c698f",
   "source_sha256_lf_normalized": {
     ".github/workflows/verify-fawnimo.yml": "d83e46b273d4fb26aa21c32893a1c9b4b6979fae37d880fdfcf3565931056c96",
     "deploy/workspace/Dockerfile": "5b766fc4198fdb9cd09e129fa82f1f92a6d2c364dcbf625f1e5193bb912f53f9",
@@ -35,9 +35,9 @@
     "backend/app/core/contracts/local_speech_protocols.py": "ef327f4476a506ea807e28265cc397e83c1f9aa1631db66d05f1c251ebf3cccf",
     "backend/app/services/editing/local_speech.py": "ea82fbabc082964edf5276d63e9df64b5260ed7bc6307761e4915c5ebd4272e6",
     "backend/app/services/editing/local_speech_engine.py": "9edfc665d0ab88a7713084e24db5a185e38a9ef1679902537e26dd1900593678",
-    "backend/app/services/editing/local_speech_linux_child.py": "2cca9525f56014c0b0909df434cda359402c445f9721e439ef6bf25c28dcf5e4",
+    "backend/app/services/editing/local_speech_linux_child.py": "eceb06f395d63e82f5d6ca86e7c267cbe054a0fa6137f2456ba9a6fd3bc31034",
     "backend/app/services/editing/local_speech_schema.py": "8a66bfd71814a774df665db9577f9370241133cbfe3e4de98efe94873703b13e",
-    "backend/tests/test_linux_speech.py": "56192a883075f1312e9268af4824be1cf68034ec4d6fe0899934224c35889cea",
+    "backend/tests/test_linux_speech.py": "001be75af14df7e2ea26499f2f08cf5f147dd233b9849df08a3d9c3ad07e6847",
     "backend/tests/test_linux_speech_oci.py": "2ff08aa32f36e74a303f364c774b039f6bde8ca91f82e55bb66a1e3b73e332d6",
     "backend/tests/fixtures/local_speech_job_scope_v1.sql": "69b37807bcaa25539ec2a8af25bfc3d8c33229a8c5e184a35822d74ed2f467fe",
     "front/openapi.json": "cafd0cf1d9e8c8329188e4872a44d6da231e02580afaceb26a17e63c290218b6",
@@ -46,9 +46,10 @@
     "front/src/services/generated/models/LocalSpeechRequest.ts": "2b4e7b6cb030122f2e7ba0d77b390666460b8a3c247efc113d996f6306629df3",
     "front/src/pages/aiStudio/editor/SoundEditor.tsx": "e0c571fa72b74399af8d83c02a35a1845b923e7764137a58fd87faca64327fab",
     "scripts/verify_workspace_container.py": "64326b6c484d591bf68337f07330b0aa930360b7e9cf7a8cce1f04eb0f899144",
-    "scripts/tests/test_workspace_container_verifier.py": "2b21c704db0c350feb3cd888cb27119fa0be29d87632576cbaa599383ddfe52b"
+    "scripts/tests/test_workspace_container_verifier.py": "2b21c704db0c350feb3cd888cb27119fa0be29d87632576cbaa599383ddfe52b",
+    "backend/app/services/editing/local_speech_pulse.conf": "778d1cc79deced0711f389336fff52823f9f34cd601f4717f6c008d5c59fefdd"
   },
-  "native_junit_sha256": "f5728765876a371b3982fa9390456d166bb830b9fba37adc7d8f95cc1413cf37",
+  "native_junit_sha256": "b2ca06279aa9d2495a28772c6451c4b72115bf5762bddf6b7be4fd0b884caec7",
   "browser_receipt_sha256": "5059a2bc3b71cdc2a180f836c90d6856c8556b1b369d767486737470be77871f",
   "external_model_calls": 0,
   "paid_authorization": 0,
@@ -65,10 +66,10 @@
     "skipped": 0
   },
   "retained_actual_image_failure": {
-    "commit": "20087646b566cab52f92e798a04a6bf6a15499d8",
-    "run_id": 41678125764,
-    "artifact_id": 13252670294,
-    "artifact_sha256": "2cf97c3667c6045380698a4f53872d7e5d3e9c380e9a6292220826142a4d07e4",
+    "commit": "4f77fd9901e7ce73df0f6e7582d1784a2b775482",
+    "run_id": 41678856787,
+    "artifact_id": 13251293341,
+    "artifact_sha256": "7d1e2eece7ef6024d3d1588504b2e7db79093537ff840a912ffa13726fc45ffc",
     "linux_speech_counts": {
       "tests": 3,
       "failures": 3,
@@ -78,5 +79,13 @@
     "generic_passed": 40,
     "sound_passed": 7,
     "cleanup_verified": true
+  },
+  "headless_audio_policy": {
+    "path": "backend/app/services/editing/local_speech_pulse.conf",
+    "ambient_audio_credentials_forwarded": false,
+    "autospawn": false,
+    "shared_memory": false,
+    "memfd": false,
+    "maximum_wave_bytes": 33554432
   }
 }

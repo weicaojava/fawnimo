@@ -75,8 +75,14 @@ def test_installed_voice_catalog_refuses_ambiguous_basic_or_external_variants(tm
 def test_command_failure_exposes_counts_without_raw_stderr_or_dialogue(tmp_path, monkeypatch):
     """Retain bounded numeric resource diagnostics without reflecting any subprocess content."""
     from types import SimpleNamespace
+    monkeypatch.setenv('PULSE_CLIENTCONFIG','AUTHORED_AMBIENT_AUDIO_POLICY')
+    monkeypatch.setenv('PULSE_COOKIE','AUTHORED_PRIVATE_AUDIO_COOKIE')
     def fail(_arguments, **options):
         """Author a failed version command; no real system speech executable is launched."""
+        policy=Path(options['env']['PULSE_CLIENTCONFIG'])
+        assert policy == Path(child.__file__).with_name('local_speech_pulse.conf').resolve()
+        assert 'enable-shm = no' in policy.read_text('utf8') and 'autospawn = no' in policy.read_text('utf8')
+        assert 'PULSE_COOKIE' not in options['env'] and 'AUTHORED_AMBIENT' not in str(options['env'])
         options['stdout'].write(b'version')
         options['stderr'].write(b'private-original-dialogue-or-secret')
         return SimpleNamespace(returncode=-25)

@@ -107,6 +107,13 @@ def command(binary, arguments, folder, *, content=None, descriptors=(), timeout=
     """Keep subprocess input/output bounded and private, with literal arguments and an environment containing no application secrets."""
     environment = {'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'HOME': str(folder), 'TMPDIR': str(folder),
         'OMP_NUM_THREADS': '1', 'OPENBLAS_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1', 'NUMEXPR_NUM_THREADS': '1'}
+    # libpcaudio initializes a PulseAudio context even for --version. Its default
+    # 64MiB shared segment exceeds this profile's 32MiB file limit. WAV synthesis
+    # does not need playback, shared memory, autospawn or ambient user settings.
+    policy = Path(__file__).with_name('local_speech_pulse.conf')
+    if policy.is_symlink() or not policy.is_file() or policy.stat().st_size > 1024:
+        raise ValueError('Fixed headless audio policy is unavailable')
+    environment['PULSE_CLIENTCONFIG'] = str(policy.resolve())
     with tempfile.TemporaryFile(dir=folder) as output, tempfile.TemporaryFile(dir=folder) as errors:
         result = subprocess.run([str(binary), *arguments], input=content, stdout=output, stderr=errors,
             cwd=folder, env=environment, pass_fds=descriptors, timeout=timeout)

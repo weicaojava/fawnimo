@@ -46,3 +46,6 @@ API参考：[设置WAV输出](https://learn.microsoft.com/en-us/dotnet/api/syste
 
 
 Linux声音与导出另有固定3项实际镜像档案；本机109项及自作音调页面检查只验证对应软件范围。准确镜像的`linux_speech`、原7项`sound_exports`、通用40项与自有清理须分别通过。配置定义不等于实际镜像通过，也不证明发声内容、音色或完整成片质量。命令与声音参考：[eSpeak NG手册](https://manpages.debian.org/bookworm/espeak-ng/espeak-ng.1.en.html)。
+
+
+Linux WAV子程序显式加载仓库固定`local_speech_pulse.conf`，关闭PulseAudio自动启动、共享内存与memfd，不转发用户音频配置或Cookie。声音库即使读取版本也可能初始化播放上下文；固定无播放配置避免其默认共享段与32MiB文件限制冲突，输出文件、CPU/内存/时限上限保持原值。三轮失败记录与自有清理保留，实际声音资格仍需准确镜像的三个用例。参考：[PulseAudio客户端参数](https://manpages.debian.org/bookworm/pulseaudio/pulse-client.conf.5.en.html)。
