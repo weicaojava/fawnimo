@@ -55,11 +55,13 @@ def test_supervisor_and_host_agree_on_complete_source_subset(supervisor, path):
 
 
 @pytest.mark.parametrize('path',['backend/check_community.py','backend/queue_community.py','backend/assess_community.py',
-    'backend/review_community.py','backend/unseen_control_entry.py','backend/app/services/community/queue_planning.py','scripts/features.py'])
+    'backend/review_community.py','backend/unseen_control_entry.py','backend/app/services/community/queue_planning.py','scripts/features.py',
+    'backend/app/services/community/advice.py','backend/app/services/community/advice_store.py',
+    'backend/app/services/community/advice_child.py','backend/app/services/community/advice_future_worker.py'])
 def test_supervisor_and_host_agree_on_protected_control_entrypoints(supervisor,path):
     """The privileged execution policy mirrors the host's entry-point guard, including controller names introduced after this protocol."""
     assert supervisor.protected_code_path(path) == protected_code_path(path)
-    assert protected_code_path(path) == (path.startswith('backend/') and path.count('/')==1)
+    assert protected_code_path(path) == (path.startswith('backend/') and path.count('/')==1 or path.startswith('backend/app/services/community/advice'))
 
 
 def test_valid_input_is_inert_and_cannot_spawn_candidate_code(supervisor, frame, monkeypatch):

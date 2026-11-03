@@ -17,3 +17,6 @@ title: 本地维护者模型建议
 模型只提供建议，不写入`community_evaluations`，不赋予优先级、排队、编码、独立审核或发布权限，也不向GitHub留言。维护者须在[原评估工具](../../guide/community-review/)明确提交自己的理由、澄清或复议；付费维护者模型、实际AI质量和完整自动研发仍待完成。同一操作系统用户与维护者配置的本地模型服务器仍是受信边界，SQLite约束不是操作系统隔离。
 
 协议依据：[已安装模型列表](https://docs.ollama.com/api/tags)、[Chat接口](https://docs.ollama.com/api/chat)、[结构化输出](https://docs.ollama.com/capabilities/structured-outputs)。本轮软件测试使用自作HTTP响应，没有下载或运行真实AI模型。
+
+
+本地模型建议的`backend/app/services/community/advice*`控制器属于固定保护范围，包含模型调用、次数配额、原请求及回执存储，也覆盖未来同前缀的控制文件。即使功能登记关联该路径，新提案与公共源码收集仍拒绝；独立stdlib隔离执行器也在执行候选代码前重新拒绝。旧提案仅保留原惰性历史读取，不获得新执行权；这不改变维护者直接审阅和提交本项目源码的流程。

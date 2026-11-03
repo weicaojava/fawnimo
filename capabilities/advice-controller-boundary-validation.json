@@ -1,0 +1,37 @@
+{
+  "profile": "maintainer_advice_controller_boundary_v1",
+  "source_tree": "1035a5e54fac6cacb41131230e6c2391f9a82119",
+  "scope": "New proposal/public-source admission and the independent stdlib privileged runner reject the local-advice controller family, including future helpers. Inert historical bundle/store reads remain supported; no candidate code or model executes.",
+  "source_sha256_lf_normalized": {
+    "backend/app/services/community/change_bundles.py": "44167fcfceab25027a61882fc20901a753cf9da79d64e604b9f271dabf669663",
+    "backend/community_isolated_runner.py": "e44a988fe0eecffdf62f6219f102bbf50d9757c188ce14a4bee0d28d9c10addf",
+    "backend/tests/test_community_change_bundles.py": "2c7bb55803c8abd3a139ef0a5700b9e8c65acc2afb5a9995e1f83be0e4bd40b9",
+    "backend/tests/test_community_public_code.py": "0e5e391120522b6127a3302c9479d7e4df7850489153503d62994c1fa3a2c832",
+    "backend/tests/test_community_isolated_runner_contract.py": "58db948fcfdb439aab91669eecccc6afc9d1a819c73b1c26747f4e7547aed3a5"
+  },
+  "old_controller_sha256": {
+    "backend/app/services/community/change_bundles.py": "ed21f76a743feac488bb38d55280396ff068e4dbf07cdcdc839bc4a634c5413f",
+    "backend/community_isolated_runner.py": "e05e17f251694728064d68513dba75cb9f45d12321e0fc0fd11b3b435b4a23c7"
+  },
+  "negative_counts": {
+    "tests": 40,
+    "failures": 14,
+    "errors": 0,
+    "skipped": 0
+  },
+  "fixed_related_counts": {
+    "tests": 167,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "negative_junit_sha256": "2cd36e46e6df3bd431bd03082aa53191b363e97b31720d6d676a7aca1fca8e9a",
+  "fixed_junit_sha256": "7552cf8ab91ddd932421a1cd96e7832f769221d36b64f76d55b2ff0499624688",
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "actual_model_called": false,
+  "model_quality_qualified": false,
+  "independent_review_completed": false,
+  "public_deployment_verified": false,
+  "overall_goal_complete": false
+}

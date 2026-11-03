@@ -95,8 +95,8 @@ def git_blob(raw):
 
 
 def protected_code_path(path):
-    """Keep all present/future top-level backend entry points outside proposed changes without importing untrusted application policy."""
-    return path.startswith(PROTECTED) or path.startswith('backend/') and path.count('/') == 1
+    """Independently protect top-level entries and the current/future local-advice controller family without importing candidate policy."""
+    return path.startswith(PROTECTED) or path.startswith('backend/app/services/community/advice') or path.startswith('backend/') and path.count('/') == 1
 
 
 def process_status(identifier='self'):

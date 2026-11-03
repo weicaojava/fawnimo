@@ -108,7 +108,9 @@ def test_paths_reject_traversal_windows_aliases_and_option_like_names(path):
 @pytest.mark.parametrize('path', ['backend/app/core/owned_process.py', 'backend/app/services/community/queue_leases.py',
     'backend/app/services/community/change_bundles.py', 'backend/app/services/community/public_source.py',
     'backend/app/services/community/candidate_git.py', 'backend/app/services/community/public_code_child.py', 'backend/develop_community.py',
-    'backend/check_community.py', 'backend/queue_community.py', 'backend/assess_community.py', 'backend/review_community.py', 'backend/unseen_control_entry.py'])
+    'backend/check_community.py', 'backend/queue_community.py', 'backend/assess_community.py', 'backend/review_community.py', 'backend/unseen_control_entry.py',
+    'backend/app/services/community/advice.py','backend/app/services/community/advice_store.py',
+    'backend/app/services/community/advice_child.py','backend/app/services/community/advice_future_worker.py'])
 def test_protected_controller_cannot_be_selected_even_if_registry_lists_it(prepared_change, path):
     """A registry association cannot let a candidate rewrite its execution, source, lease or approval boundary."""
     body, prepared, snapshot, registry = prepared_change
@@ -120,10 +122,10 @@ def test_protected_controller_cannot_be_selected_even_if_registry_lists_it(prepa
         build_change_bundle(CommunityChangeInput.model_validate(changed), prepared, replace(snapshot, files=files), altered)
 
 
-@pytest.fixture
-def legacy_controller_bundle(prepared_change,monkeypatch):
+@pytest.fixture(params=['backend/check_community.py','backend/app/services/community/advice_store.py'])
+def legacy_controller_bundle(prepared_change,monkeypatch,request):
     """Reproduce only the former fixed-name guard to create inert historical bytes; restore current policy before any store/read/cleanup test."""
-    body,prepared,snapshot,registry=prepared_change; altered=deepcopy(registry); path='backend/check_community.py'
+    body,prepared,snapshot,registry=prepared_change; altered=deepcopy(registry); path=request.param
     next(item for item in altered['features'] if item['id']=='F-015.01')['code'].append(path)
     files=dict(snapshot.files); files['capabilities/features.json']=canonical(altered).encode('utf8'); selected=replace(snapshot,files=files)
     changed=body.model_dump(); changed['changes'][0]={'path':path,'before_sha256':None,'action':'write','text':'legacy_entry = True\n'}

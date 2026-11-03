@@ -25,8 +25,8 @@ CANDIDATE_TEST = re.compile(r'backend/tests/test_community_candidate_[a-z0-9_]+\
 
 
 def protected_code_path(path):
-    """Protect every backend top-level entry point, including future controllers, even if a feature register associates it with a candidate task."""
-    return path.startswith(PROTECTED) or path.startswith('backend/') and path.count('/') == 1
+    """Protect every backend entry point and the local-model advice controller family, including future quota/receipt helpers."""
+    return path.startswith(PROTECTED) or path.startswith('backend/app/services/community/advice') or path.startswith('backend/') and path.count('/') == 1
 
 
 @dataclass(frozen=True)

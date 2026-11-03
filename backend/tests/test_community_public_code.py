@@ -114,7 +114,9 @@ def test_unregistered_or_protected_files_are_not_collected(public_fixture, path)
 
 
 @pytest.mark.parametrize('path',['backend/check_community.py','backend/queue_community.py','backend/assess_community.py',
-    'backend/review_community.py','backend/unseen_control_entry.py'])
+    'backend/review_community.py','backend/unseen_control_entry.py','backend/app/services/community/advice.py',
+    'backend/app/services/community/advice_store.py','backend/app/services/community/advice_child.py',
+    'backend/app/services/community/advice_future_worker.py'])
 def test_root_controller_rejected_before_any_public_read(path):
     """A future registered controller name cannot widen source collection; policy rejection happens before any network request."""
     def forbidden(_path):
