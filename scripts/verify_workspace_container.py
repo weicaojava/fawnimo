@@ -45,20 +45,25 @@ SOUND_CASES = (
 def sound_check_program():
     """Run only seven fixed authored-media cases inside the existing owned image; retain no fixture media or raw logs."""
     # The program has no user-supplied commands, paths, environment values or model connection.
-    return '''import hashlib, json, os, pathlib, subprocess, sys, tempfile, xml.etree.ElementTree as ET
+    return '''import hashlib, json, os, pathlib, re, subprocess, sys, tempfile, xml.etree.ElementTree as ET
 selected = ''' + json.dumps(SOUND_CASES) + '''
+stage = 'prepare_private_fixture'
+diagnostics = []
+counts = None
 try:
     with tempfile.TemporaryDirectory(prefix='fawnimo-image-sound-', dir='/tmp') as directory:
         root = pathlib.Path(directory)
         report = root / 'junit.xml'
         environment = dict(os.environ, JELLYFISH_SKIP_ENV_FILE='1', PYTHONDONTWRITEBYTECODE='1',
             PYTEST_DISABLE_PLUGIN_AUTOLOAD='1', FAWNIMO_TEST_FFMPEG='/usr/bin/ffmpeg', TEST_MEDIA_PROBE='/usr/bin/ffmpeg')
+        stage = 'run_fixed_cases'
         with (root / 'private-test.log').open('wb') as log:
             result = subprocess.run([sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider',
                 '--basetemp=' + str(root / 'temporary-tests'), '--junitxml=' + str(report), *selected],
                 cwd='/app/backend', env=environment, stdout=log, stderr=subprocess.STDOUT, timeout=240)
-        if result.returncode != 0 or not report.is_file() or report.is_symlink() or report.stat().st_size > 2097152:
-            raise RuntimeError('Fixed authored-media cases did not complete successfully')
+        stage = 'read_junit'
+        if not report.is_file() or report.is_symlink() or report.stat().st_size > 2097152:
+            raise RuntimeError('Fixed authored-media report is missing or unbounded')
         raw = report.read_bytes()
         document = ET.fromstring(raw)
         suites = list(document.iter('testsuite'))
@@ -66,6 +71,24 @@ try:
             for name in ('tests', 'failures', 'errors', 'skipped')}
         cases = list(document.iter('testcase'))
         identities = [case.get('classname', '').replace('.', '/') + '.py::' + case.get('name', '') for case in cases]
+        for identity, case in zip(identities, cases):
+            for outcome in case:
+                if outcome.tag not in {'failure', 'error', 'skipped'}:
+                    continue
+                # Classify known error families without reflecting traceback text, credentials, media or arbitrary paths.
+                text = outcome.get('message', '') + ' ' + (outcome.text or '')
+                code = next((name for token, name in (
+                    ('Read-only file system', 'readonly_fixture_path'), ('PermissionError', 'fixture_permissions'),
+                    ('ModuleNotFoundError', 'missing_runtime_dependency'), ('No such file or directory', 'missing_fixture_path'),
+                    ('TimeoutExpired', 'fixture_deadline'), ('AssertionError', 'fixture_assertion'),
+                    ('ValueError', 'fixture_validation')) if token in text), 'fixture_case_failed')
+                locations = re.findall(r'/app/backend/[A-Za-z0-9_./-]{1,160}', text)
+                locations = sorted({path for path in locations if '..' not in path.split('/')})[:3]
+                diagnostics.append(dict(case=identity if identity in selected else 'unresolved_fixed_case',
+                    outcome=outcome.tag, code=code, code_locations=locations))
+        stage = 'validate_fixed_cases'
+        if result.returncode != 0:
+            raise RuntimeError('Fixed authored-media cases did not complete successfully')
         if counts != dict(tests=7, failures=0, errors=0, skipped=0) or len(identities) != len(set(identities)) or set(identities) != set(selected):
             raise RuntimeError('Fixed authored-media case identities/counts changed')
         if any(list(case) for case in cases):
@@ -74,10 +97,11 @@ try:
             junit_sha256=hashlib.sha256(raw).hexdigest(), uid=os.getuid(),
             readonly_code=bool(os.statvfs('/app').f_flag & os.ST_RDONLY), external_model_calls=0,
             model_quality_qualified=False, complete_film_qualified=False, public_deployment_verified=False)
-        print(json.dumps(value, separators=(',', ':')))
+    print(json.dumps(value, separators=(',', ':')))
 except Exception as error:
-    print(json.dumps(dict(profile='image_sound_software_v1', status='failed', error_type=type(error).__name__)))
-    sys.exit(1)
+    # A handled negative result is delivered successfully; the host stores it and explicitly refuses qualification.
+    print(json.dumps(dict(profile='image_sound_software_v1', status='failed', stage=stage,
+        error_type=type(error).__name__, counts=counts, diagnostics=diagnostics[:16])))
 '''
 
 
@@ -336,7 +360,7 @@ print(json.dumps(profiles))
         self.owned('container', identifier)
         self.command('rm', identifier, timeout=20)
 
-    def verify_sound_exports(self):
+    def verify_sound_exports(self, record=None):
         """Use only this invocation's current unprivileged stable image, with separate temporary media and no model calls."""
         identifier = self.containers['stable']
         observed = self.owned('container', identifier)
@@ -349,7 +373,10 @@ print(json.dumps(profiles))
             raise RuntimeError('Owned sound image changed during verification')
         if len(response.stdout) > 32768:
             raise RuntimeError('Actual-image sound result exceeds its report budget')
-        return validate_sound_result(json.loads(response.stdout))
+        value = json.loads(response.stdout)
+        if record is not None:
+            record['sound_exports'] = value
+        return validate_sound_result(value)
 
     def close(self):
         """Remove only resources labelled by this invocation, including a partially started Compose run."""
@@ -412,7 +439,7 @@ print(json.dumps({'uid': os.getuid(), 'readonly': readonly and bool(os.statvfs('
         check(side + '_actual_unprivileged_readonly_code_tmp_and_ffmpeg', observed == {'uid': 10001, 'readonly': True, 'ffmpeg': True})
     check('stable_and_preview_data_volumes_differ', mounted['stable'] != mounted['preview'])
     verify_http_workflows(runtime, profiles, check)
-    record['sound_exports'] = runtime.verify_sound_exports()
+    record['sound_exports'] = runtime.verify_sound_exports(record)
     record['runtime_verified'] = True
 
 

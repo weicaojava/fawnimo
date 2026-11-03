@@ -180,6 +180,19 @@ class SoundQualificationTests(unittest.TestCase):
             self.assertEqual(command.call_count, 1)
             self.assertEqual(command.call_args.args[:4], ('exec', '--user', '10001:10001', 'exact-owned-container'))
 
+    def test_delivered_negative_receipt_is_retained_and_still_fails(self):
+        """Successful diagnostic delivery cannot make a failed/skipped media test green or lose its safe failure details."""
+        runtime = self.runtime()
+        negative = {'profile': 'image_sound_software_v1', 'status': 'failed', 'stage': 'validate_fixed_cases',
+                    'error_type': 'RuntimeError', 'counts': {'tests': 7, 'failures': 1, 'errors': 0, 'skipped': 0},
+                    'diagnostics': [{'case': VERIFIER.SOUND_CASES[0], 'outcome': 'failure', 'code': 'fixture_assertion', 'code_locations': []}]}
+        record = {}
+        with patch.object(runtime, 'owned', return_value=self.observed()), patch.object(runtime, 'command', return_value=SimpleNamespace(stdout=json.dumps(negative).encode())):
+            with self.assertRaises(RuntimeError):
+                runtime.verify_sound_exports(record)
+        self.assertEqual(record['sound_exports'], negative)
+        self.assertNotIn('runtime_verified', record)
+
 
 if __name__ == '__main__':
     unittest.main()
