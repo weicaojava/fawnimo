@@ -21,7 +21,9 @@
   "native_cases_passed": 7,
   "verification_source_sha256_lf_normalized": {
     "scripts/verify_workspace_container.py": "4364e27f7d92f3dc5de747b8f052300a8c75360339f9bdd0549d3460956eb959",
-    "scripts/tests/test_workspace_container_verifier.py": "a05713d00832d2bf5e277f2f6d5a6064490235bb21645cd4eb08f74314c3eeb2"
+    "scripts/tests/test_workspace_container_verifier.py": "a05713d00832d2bf5e277f2f6d5a6064490235bb21645cd4eb08f74314c3eeb2",
+    "backend/tests/test_shot_plan.py": "a6de56d1f6f1b339ca83b39682c723e2cc8a7ab4b06cb9e65213e24830cfaf6c",
+    "backend/tests/test_transitions_v2.py": "bf5713eb6be4370fc4f88798c62926924c39350b4e9af0d0554c51cf723e544f"
   },
   "actual_image_evidence": "Exact-source Verify workspace container run: container-verification.json.sound_exports, plus successful runtime and cleanup fields. This profile definition and native result do not substitute for that run.",
   "runtime": "Existing invocation-owned nonroot read-only Compose stable image; separate /tmp fixtures; exact seven cases/no skips; bounded child timeout; ownership rechecked before/after; normal owned cleanup still required.",
@@ -33,16 +35,53 @@
   "independent_review_completed": false,
   "public_deployment_verified": false,
   "overall_goal_complete": false,
-  "native_junit_sha256": "565980dbaf8ff8b52850f036d849360c77bd9eb961a43a6c4e32619251abc447",
-  "host_guard_log_sha256": "2e0d092b90a4524a891304ad67e099a1c5a27f0bc7fcdb7719ce453a2f16d0bb",
+  "native_junit_sha256": "9599d31b13607a645b43752fbe60174142d0e6e7db1177ae7f1a7bdfc9a25032",
+  "host_guard_log_sha256": "8e4e2f1ad90f3c189b91925862daf3274516ef08082f779bf442ced249adca18",
   "previous_actual_image_failure": {
-    "commit": "73e29fcfb65a3c56068388026265492f7ad92363",
-    "run_id": 41645050400,
+    "commit": "4659b8d6327dff60f948184e824a600c797cd930",
+    "run_id": 41646680655,
     "generic_checks_passed": 40,
     "cleanup_verified": true,
-    "actual_image_media_verified": false,
-    "artifact_sha256": "fae312491b41c2b59ae6c268db2aad06669512fcdc0613983a411d79a19b3652",
-    "limit": "The previous run retained two passed/five failed cases with generic diagnostics; no root cause or successful sound qualification is inferred."
+    "media_counts": {
+      "tests": 7,
+      "failures": 5,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failure": "Configured-tool fixtures evaluated missing ancestor indices4/5 in shallow /app/backend paths.",
+    "artifact_sha256": "73e216ccfea0cd8c38c71002854fc4df3039756658f1a2b7f491b368a9ce7675",
+    "actual_image_media_verified": false
   },
-  "failure_evidence": "Handled negative delivery retains fixed stage/counts/case identity/error classification and bounded application-code locations; host still fails qualification. No raw traceback, media or credentials. Bounded exception summaries are redacted by the host before report storage; fixed runtime error markers contain no raw log lines."
+  "failure_evidence": "Handled negative delivery retains fixed stage/counts/case identity/error classification and bounded application-code locations; host still fails qualification. No raw traceback, media or credentials. Bounded exception summaries are redacted by the host before report storage; fixed runtime error markers contain no raw log lines.",
+  "shallow_layout_counterexample": {
+    "published_failure_commit": "4659b8d6327dff60f948184e824a600c797cd930",
+    "before": {
+      "backend/tests/test_shot_plan.py": {
+        "passed": false,
+        "error_type": "IndexError",
+        "ancestor_index": "4"
+      },
+      "backend/tests/test_transitions_v2.py": {
+        "passed": false,
+        "error_type": "IndexError",
+        "ancestor_index": "5"
+      }
+    },
+    "after": {
+      "backend/tests/test_shot_plan.py": {
+        "passed": true
+      },
+      "backend/tests/test_transitions_v2.py": {
+        "passed": true
+      }
+    },
+    "source_sha256_lf_normalized": {
+      "backend/tests/test_shot_plan.py": "a6de56d1f6f1b339ca83b39682c723e2cc8a7ab4b06cb9e65213e24830cfaf6c",
+      "backend/tests/test_transitions_v2.py": "bf5713eb6be4370fc4f88798c62926924c39350b4e9af0d0554c51cf723e544f"
+    },
+    "scope": "Exact assignment counterexample with a shallow path and explicit tool; separate from required actual OCI seven-case rerun.",
+    "actual_image_media_verified": false,
+    "paid_authorization": 0,
+    "external_model_calls": 0
+  }
 }

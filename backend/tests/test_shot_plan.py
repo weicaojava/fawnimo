@@ -52,7 +52,10 @@ class FixtureTransport:
 async def fixture(tmp_path,monkeypatch):
     """Publish an actual manual story, register existing entities and bind a fixture policy."""
     monkeypatch.setattr(settings,'production_media_root',str(tmp_path))
-    probe=Path(os.environ.get('TEST_MEDIA_PROBE',str(Path(__file__).resolve().parents[4]/'ffmpeg.exe')))
+    # Explicit tools must bypass the legacy developer-layout fallback, including inside shallow image paths.
+    fixture_parents=Path(__file__).resolve().parents
+    probe=Path(os.environ.get('TEST_MEDIA_PROBE') or os.environ.get('FAWNIMO_TEST_FFMPEG')
+               or fixture_parents[min(4,len(fixture_parents)-1)]/'ffmpeg.exe')
     monkeypatch.setattr(settings,'production_probe_executable',str(probe))
     engine,factory=await story_fixture(tmp_path);await migrate_shot_plan(engine)
     async with factory() as db:

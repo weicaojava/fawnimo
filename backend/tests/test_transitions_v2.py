@@ -34,7 +34,9 @@ from app.services.editing.media import run_child as probe_child, canonical_hash,
 from app.services.editing.transition_media import run_child as render_child
 from app.services.editing.transitions import compose
 
-ROOT = Path(__file__).resolve().parents[5]
+# Image test paths are shallower than a developer checkout; configured tools take precedence over the legacy fallback.
+_FIXTURE_PARENTS = Path(__file__).resolve().parents
+ROOT = _FIXTURE_PARENTS[min(5, len(_FIXTURE_PARENTS) - 1)]
 FFMPEG = Path(os.environ.get('FAWNIMO_TEST_FFMPEG') or os.environ.get('TEST_MEDIA_PROBE') or ROOT / 'work' / 'ffmpeg.exe')
 
 
