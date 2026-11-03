@@ -15,6 +15,9 @@ def main():
     parser.add_argument('--probe', type=Path)
     parser.add_argument('--public-origin')
     parser.add_argument('--allow-registration', action='store_true')
+    parser.add_argument('--registration-capacity',type=int,default=4)
+    parser.add_argument('--trial-days',type=int,default=7)
+    parser.add_argument('--trial-project-limit',type=int,default=2)
     parser.add_argument('--capacity', type=int, default=4)
     parser.add_argument('--insecure-local-cookie', action='store_true')
     parser.add_argument('--provision-account')
@@ -32,6 +35,11 @@ def main():
 
 def run_selected(args, parser):
     """Run provisioning or the gateway only while its root cannot be maintained concurrently."""
+    from app.core.contracts.identity_trials import TrialRegistrationPolicy
+    try:
+        trial_policy=TrialRegistrationPolicy(capacity=args.registration_capacity,duration_seconds=args.trial_days*86400,project_limit=args.trial_project_limit)
+    except ValueError:
+        parser.error('Trial registration needs 1–128 accounts, 1–30 days and 1–10 projects per personal space')
     if args.provision_account:
         if not args.credential_file or args.credential_file.exists():
             parser.error('Provisioning requires a new private --credential-file')
@@ -50,7 +58,7 @@ def run_selected(args, parser):
     import uvicorn
     app = create_gateway(args.root, frontend=args.frontend, probe=args.probe,
                          secure_cookies=not args.insecure_local_cookie, public_origin=args.public_origin,
-                         allow_registration=args.allow_registration, capacity=args.capacity)
+                         allow_registration=args.allow_registration, capacity=args.capacity,trial_registration_policy=trial_policy)
     uvicorn.run(app, host=args.host, port=args.port, proxy_headers=False, timeout_graceful_shutdown=10)
 
 

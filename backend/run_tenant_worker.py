@@ -28,8 +28,11 @@ SAFE_ENVIRONMENT_KEYS = frozenset({
 
 def configure_worker(message: dict) -> tuple[Path, str, int]:
     """Confine paths and replace inherited configuration before app settings import."""
-    if not isinstance(message, dict) or set(message) - {"root", "workspace_id", "port", "internal_token", "probe"}:
+    if not isinstance(message, dict) or set(message) - {"root", "workspace_id", "port", "internal_token", "probe","trial_policy"}:
         raise ValueError("Invalid private workspace startup fields")
+    if message.get('trial_policy') is not None:
+        from app.core.contracts.identity_trials import WorkspaceTrialPolicy
+        WorkspaceTrialPolicy.model_validate(message['trial_policy'])
     workspace_id = validate_workspace_id(message.get("workspace_id"))
     port, token = message.get("port"), message.get("internal_token")
     if type(port) is not int or not 1024 <= port <= 65535:
@@ -117,7 +120,7 @@ def configure_worker(message: dict) -> tuple[Path, str, int]:
     return database, workspace_id, port
 
 
-async def serve_worker(database: Path, workspace_id: str, port: int) -> None:
+async def serve_worker(database: Path, workspace_id: str, port: int,trial_policy=None) -> None:
     """Migrate only the already checked tenant database before starting its workers."""
     # Delayed imports are essential: Settings otherwise reads backend/.env.
     import app.api.v1  # noqa: F401
@@ -127,6 +130,8 @@ async def serve_worker(database: Path, workspace_id: str, port: int) -> None:
         await init_db()
         prepare_workspace_boundary(database, workspace_id, allow_initialize=True)
         assert_workspace_boundary(database, workspace_id)
+        from app.core.workspace_trial_quota import prepare_trial_project_quota
+        prepare_trial_project_quota(database,workspace_id,trial_policy)
         await build_server(port).serve()
     finally:
         await close_db()
@@ -146,7 +151,7 @@ def main() -> None:
     root = Path(message['root']).resolve()
     with ProcessLease(root / '.leases' / (workspace_id+'.lock')):
         database, workspace_id, port = configure_worker(message)
-        asyncio.run(serve_worker(database, workspace_id, port))
+        asyncio.run(serve_worker(database, workspace_id, port,trial_policy=message.get('trial_policy')))
 
 
 if __name__ == "__main__":

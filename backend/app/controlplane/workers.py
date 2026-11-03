@@ -37,16 +37,18 @@ class Worker:
     token: str
     process: asyncio.subprocess.Process
     job: WindowsProcessJob | None
+    trial_policy: dict | None = None
 
 
 class WorkspaceWorkers:
     """Route only to server-generated roots and keep running jobs in their original space."""
 
-    def __init__(self, root: Path, *, probe: Path | None = None, capacity: int = 4):
+    def __init__(self, root: Path, *, probe: Path | None = None, capacity: int = 4,trial_policy_provider=None):
         """Use a fixed capacity; reaching it refuses admission instead of evicting active tasks."""
         if not 1 <= capacity <= 16:
             raise ValueError('Workspace process capacity must be between 1 and 16')
         self.root, self.probe, self.capacity = root.resolve(), probe, capacity
+        self.trial_policy_provider=trial_policy_provider
         self.backend = Path(__file__).resolve().parents[2]
         self.workers: dict[str, Worker] = {}
         self.lock = asyncio.Lock()
@@ -83,7 +85,9 @@ class WorkspaceWorkers:
                     await self.stop_worker(stale)
                     self.workers.pop(stale_id)
             existing = self.workers.get(workspace_id)
+            policy=await asyncio.to_thread(self.trial_policy_provider,workspace_id) if self.trial_policy_provider else None
             if existing and existing.process.returncode is None:
+                if existing.trial_policy!=policy: raise HTTPException(503,'体验策略已变化，请联系维护者核对工作进程')
                 return existing
             if existing:
                 await self.stop_worker(existing)
@@ -102,10 +106,11 @@ class WorkspaceWorkers:
                 process = await asyncio.create_subprocess_exec(sys.executable, str(self.backend / 'run_tenant_worker.py'),
                     cwd=self.backend, env=worker_environment(), stdin=asyncio.subprocess.PIPE,
                     stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL, **options)
-                worker = Worker(workspace_id, port, token, process, job)
+                worker = Worker(workspace_id, port, token, process, job,policy)
                 if job:
                     job.attach(process.pid)
                 gate = {'root': str(self.root), 'workspace_id': workspace_id, 'port': port, 'internal_token': token}
+                if policy is not None: gate['trial_policy']=policy
                 if self.probe:
                     gate['probe'] = str(self.probe.resolve(strict=True))
                 process.stdin.write(json.dumps(gate).encode())
@@ -127,7 +132,7 @@ class WorkspaceWorkers:
                 raise RuntimeError('Workspace process readiness deadline exceeded')
             except BaseException:
                 if process:
-                    await self.stop_worker(Worker(workspace_id, port, token, process, job))
+                    await self.stop_worker(Worker(workspace_id, port, token, process, job,policy))
                 elif job:
                     await asyncio.to_thread(job.terminate_and_close)
                 raise HTTPException(503, '工作空间启动失败；原数据已保留') from None

@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "scope": "Opt-in finite community trial registration, immutable expiry/read-only access, fixed-worker active-project count, actual generated API/client/UI software",
+  "source_tree": "90fcccc2ccd2ebc3e50d2ea1fdb2a235fdae20be",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "5b1b744b48b83b2f9b210b2a5a764f1bc30f77146b22985ddb959f5baef9bc0d",
+    "backend/app/core/contracts/identity_trials.py": "9ee2dc552a61f8cb47998265db40ae785aa0e2a04047dda3509507cda12f0984",
+    "backend/app/core/contracts/identity.py": "70bbb821219065bacaad645e88d249edf9bf6badf28ff9f18d0bff6d7ddc76fd",
+    "backend/app/controlplane/trials.py": "c1ec894ddbda098288a80d0cdde843b0635c0ec4c0edb56f660a18adb36340e1",
+    "backend/app/controlplane/store.py": "9d127e7f262cc02e7b25e0b8654a72683d2d19ce5ba599cfc7eccd2ea15a5fd0",
+    "backend/app/controlplane/routes.py": "5f01247057a32c49d842f4d3050396e432ec91efed4ed7f6eeb8e8ab1b1f5a50",
+    "backend/app/controlplane/gateway.py": "cc72e0c3f137a0ff80bbbc2f31071449cb422005e9891e3b4ad24a8473401da7",
+    "backend/app/controlplane/workers.py": "acaddd5db7a249c239a1521fcf23771679560d7fcebcfc61e73b0fa6a6a7d666",
+    "backend/app/core/workspace_trial_quota.py": "1baf9f323855e15cf84fe4dd74fe60647f1ecef292cacbdfc526fba7b3cbd5f2",
+    "backend/app/core/workspace_boundary.py": "4ca8997f29f9fe6e97df24b086caa8da7cf78a8dced38cea8a94adcd88d32aec",
+    "backend/app/main.py": "8d5e097040f8f283cc2c42e3ede0966d32197dd18454b2a954c2329ff0d51ac4",
+    "backend/run_controlplane.py": "80f47df0db6a43483094df08fe7bde1c42e5d9e2f5c9b9a2d80dd29cff7cf5d3",
+    "backend/run_tenant_worker.py": "2ca25e8bc38c6a05168a8afceed8a5617f12c4e84f278ba9cc9b2594c69de31e",
+    "backend/tests/test_identity_trials.py": "6a8bed0f4890ce02ecc856d1fa84a689b0fa30899b85ae9ed0d84232b619fcfc",
+    "front/openapi.json": "2bcab01850044cb5dfcd0e19105ff2bafcc2975eec98e70b22148eacd495c002",
+    "front/src/services/generated/index.ts": "7992374a38f410c6ae670e8cae515bc40079b211f97515be81b1c9f02fcf0715",
+    "front/src/services/generated/models/IdentityRead.ts": "85e4b7ac9b5c81b96649bd9ff6b1a9e91992e3ecae8e297553fae6d7d005cccf",
+    "front/src/services/generated/models/IdentityStatus.ts": "7edc3d1b7034d72523aabd14163dc0ac0dcce0802bba62fdc5a09b911b25912e",
+    "front/src/services/generated/models/TrialAccessRead.ts": "3d3089de10f7a11477d8e25a5fef58645bf210a2433094333bcb95d23763e689",
+    "front/src/services/generated/models/TrialRegistrationRead.ts": "c0f956cecb95d60326bd36bc5923262711b0edf3f44db78a76d14b56f033b33e",
+    "front/src/identity/IdentityGate.tsx": "1ab199909d5082b5934916f9efec860eb778aa4d61f92ea92fa48fb3b0d2bb32",
+    "front/src/identity/DemoStarter.tsx": "a718b622dc500f3ae3152e1fb4c43f60fb43fd8972d0f38e76de675c3c60d726",
+    "front/src/pages/aiStudio/project/ProjectLobby.tsx": "090e4aba77dabb2a739f1a894f4cdaae1a6cf3259bf7e860840ea17db8c68bed",
+    "front/src/styles/studio.css": "f5186416be2b64094006753306f4af7ef12da8ea65a841a27de5696c33114f19"
+  },
+  "regression": {
+    "tests": 1767,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "passed": 1764,
+    "historical_private_upgrade_deselected": 2,
+    "seconds": 2631.113,
+    "junit_sha256": "965143bf55a7d2372d92e10cd3bcf2f5fd25e99efcbc0a2eb2598ee8aef9ff8d"
+  },
+  "browser": {
+    "passed": 12,
+    "failed": 0,
+    "source_tree": "90fcccc2ccd2ebc3e50d2ea1fdb2a235fdae20be",
+    "sha256": "be371ba318b45c59e4288d9889cf882624110b6d187a331c23ca4b85e56d3855",
+    "trusted_fixture_virtual_clock": true,
+    "cases": [
+      {
+        "case": "registration_limits_notice",
+        "passed": true
+      },
+      {
+        "case": "register_new_trial_real_UI",
+        "passed": true
+      },
+      {
+        "case": "first_project_created_via_real_UI",
+        "passed": true
+      },
+      {
+        "case": "second_project_quota_rejected_backend",
+        "passed": true
+      },
+      {
+        "case": "quota_denial_has_clear_visible_UI_message",
+        "passed": true
+      },
+      {
+        "case": "notice_preserves_viewport_layout",
+        "passed": true
+      },
+      {
+        "case": "server_expiry_refreshes_read_only_notice",
+        "passed": true
+      },
+      {
+        "case": "expired_create_actions_disabled",
+        "passed": true
+      },
+      {
+        "case": "expired_existing_project_still_visible",
+        "passed": true
+      },
+      {
+        "case": "expired_direct_submission_refused",
+        "passed": true
+      },
+      {
+        "case": "expired_account_can_save_appearance",
+        "passed": true
+      },
+      {
+        "case": "capacity_exhaustion_has_clear_guest_notice",
+        "passed": true
+      }
+    ]
+  },
+  "frontend": {
+    "typecheck_and_build_passed": true,
+    "modules": 3219,
+    "vite_seconds": 8.53,
+    "build_log_sha256": "b1e18314ab1fedaf2ff83173167737be4c1c521df3e65b3a6cb5640627224ebe"
+  },
+  "schemas": {
+    "main_paths": 249,
+    "main_schemas": 591,
+    "community_paths": 2,
+    "community_schemas": 2,
+    "actual_openapi_update_and_generated_client": true,
+    "lifespan_started": false
+  },
+  "counterexample": {
+    "kind": "actual_local_browser_counterexample",
+    "case": "quota_denial_visible_message",
+    "passed": false,
+    "backend_status": 409,
+    "visible_message": "创建失败",
+    "expected": "A clear project quota or expiry message",
+    "before_lobby_sha256": "e79cd35ed8b412db9cab0c07ed7cce334df030f653e7676e9369ddfe9dc56923",
+    "fixture_only": true,
+    "original_user_data_used": false,
+    "external_model_calls": 0,
+    "paid_authorization": 0
+  },
+  "source_review": {
+    "method": "author source review",
+    "independent": false,
+    "sha256": "3f2d478a95773f7ec73fbf351384e83a3dc7b19a774a30cf064c3fe9a82331ff"
+  },
+  "metadata_review": {
+    "method": "author combined source and metadata review",
+    "independent": false,
+    "scope": "Opt-in finite registration and immutable expiry/read-only access, fixed-worker atomic project quota, scope-fenced actual browser/generated API/client/UI, permanent users and project monetary budgets preserved, accurate virtual-clock/public/model/old-runtime limits, docs/register/links/privacy"
+  },
+  "current_commit_ci": "pending_publication_and_exact_commit_CI",
+  "registration_default_enabled": false,
+  "permanent_users_converted": false,
+  "original_user_data_used": false,
+  "original_user_data_reassigned": false,
+  "shared_workspace_monetary_budget_added": false,
+  "paid_model_gate_opened": false,
+  "real_public_claim_portal_verified": false,
+  "real_user_acceptance_verified": false,
+  "independent_review_completed": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "full_feature_qualified": false,
+  "overall_goal_complete": false,
+  "count_note": "Frozen full backend, earlier related259/1 and earlier27 overlap and are not added. Final12 browser cases share exact source hashes; expiry uses trusted fixture clock. Two private historical upgrades remain excluded."
+}

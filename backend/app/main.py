@@ -212,6 +212,8 @@ app.add_exception_handler(Exception, http_exception_handler)
 @app.exception_handler(IntegrityError)
 async def integrity_exception_handler(request: Request, exc: IntegrityError) -> JSONResponse:
     """Report rejected references without exposing SQL, parameters, or private data."""
+    if 'FAWNIMO_TRIAL_PROJECT_LIMIT' in str(exc.orig):
+        return JSONResponse(status_code=409,content={'code':409,'message':'体验项目数量已用完，请先删除不需要的项目后再创建','data':None})
     return JSONResponse(status_code=409, content={"code":409,"message":"数据引用冲突：请检查工程归属、版本或重复记录","data":None})
 
 

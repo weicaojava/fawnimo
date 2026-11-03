@@ -74,7 +74,7 @@ export const DemoStarter: React.FC = () => {
 
   return <Space direction="vertical" size="small">
     <Space wrap>{(Object.keys(MODES) as Mode[]).map(mode => <Button key={mode} type={mode === 'exportable' ? 'primary' : 'default'}
-      disabled={busy !== null} loading={busy === mode} onClick={() => {
+      disabled={busy !== null || identity.trial?.read_only === true} loading={busy === mode} onClick={() => {
         const expectedScope = workspaceRequestScope()
         if (pending[mode]) { void create(mode, expectedScope); return }
         Modal.confirm({ title: MODES[mode].title, content: MODES[mode].description, okText: '创建新示例', cancelText: '取消', onOk: () => create(mode, expectedScope) })

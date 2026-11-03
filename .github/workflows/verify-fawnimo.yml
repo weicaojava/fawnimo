@@ -46,6 +46,7 @@ jobs:
           .venv/bin/python -m pytest -q
           -k 'not actual_frozen_m4b_database_additive_editing_upgrade'
           tests/test_identity_controlplane.py tests/test_identity_review.py
+          tests/test_identity_trials.py
           tests/test_workspace_boundary.py tests/test_workspace_demo.py
           tests/test_demo_media_render.py tests/test_owned_process.py
           tests/test_local_example_contract_schema.py tests/test_local_example_media.py

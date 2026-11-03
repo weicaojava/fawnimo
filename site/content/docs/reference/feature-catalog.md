@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-11-03.9`，更新日期：2026-11-03。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-11-03.10`，更新日期：2026-11-03。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。 社区独立维护者评估/澄清/复议已有本机软件记录；另有明确维护者估值的版本路线图和仅限准备的租约；AI自动评估与实际研发仍待完成。 已prepared的需求可形成准确公开源码的惰性提案和本地候选Git提交；固定Linux检查已有准确主分支CI与真实隔离验收；另有默认关闭的PR审查/CI观察，真实独立身份和产品发布闭环未验。 候选草稿PR发布和未知响应追溯已有默认关闭的本机软件入口；真实来源/App/独立审核和发布闭环仍待验。 本机预览资料、全根目录离线备份、新路径回退和本机反馈已实现有界软件入口；真实策略上线/版本切换与公网继续待验。
+项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。 社区独立维护者评估/澄清/复议已有本机软件记录；另有明确维护者估值的版本路线图和仅限准备的租约；AI自动评估与实际研发仍待完成。 已prepared的需求可形成准确公开源码的惰性提案和本地候选Git提交；固定Linux检查已有准确主分支CI与真实隔离验收；另有默认关闭的PR审查/CI观察，真实独立身份和产品发布闭环未验。 候选草稿PR发布和未知响应追溯已有默认关闭的本机软件入口；真实来源/App/独立审核和发布闭环仍待验。 本机预览资料、全根目录离线备份、新路径回退和本机反馈已实现有界软件入口；真实策略上线/版本切换与公网继续待验。 有限体验注册、固定期限/到期只读和个人项目数量已完成本机软件与真实页面验证；默认关闭，真实公网与模型交付继续待验。
 
-本机预览/全网关SQLite-WAL备份/新路径恢复/反馈冻结720通过/3平台跳过，含新增24/1及真实网关/工作进程/实际控制器退出，作者审阅，新准确CI待验。父cc58ed2准确CI1723/2跳过/2历史未选、前端、通用40及实际Linux10/清理通过。API249/589与独立2/2不变；46已实现/15部分/3计划，当前16与长期1未完成，模型费用0；真实App/AI/独立审核/准确版本策略发布/完整成片/公网未交付。
+体验生命周期冻结1764通过/3跳过/2私有历史未选，准确源码真实浏览器12、前端及实际API更新通过；主249路径591组件、独立2/2。作者审阅，新准确CI待验。父06739fd准确CI1748/2跳过/2历史未选、前端、通用40与实际Linux10/清理通过。46已实现/15部分/3计划，当前16与长期1未完成，费用0；真实App/AI/独立审核/完整成片/策略上线/公网未交付。
 
 ## F-001 身份与工作空间
 
@@ -801,21 +801,21 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 | 编号 / 子功能 | 实现 | 软件验证 | 真实模型 | 部署 | 实际入口 |
 | --- | --- | --- | --- | --- | --- |
-| [F-012.01 独立测试账号A/B与安全领取](#f-012-01) | 部分实现 | 未验收 | 不适用 | 仅本机 | /projects · 新18000本机A/B账号；凭据由维护者安全提供 |
+| [F-012.01 独立测试账号A/B与安全领取](#f-012-01) | 部分实现 | 本阶段已验证 | 不适用 | 仅本机 | /projects · 新18000本机A/B账号；凭据由维护者安全提供 |
 | [F-012.02 可重置、有许可的示例工程](#f-012-02) | 已实现 | 本阶段已验证 | 不适用 | 仅本机 | API POST /api/v1/identity/demo-exportable · 项目大厅：创建可导出示例 / 创建文字分镜示例（已登录） |
-| [F-012.03 社区注册/独立体验空间与额度](#f-012-03) | 部分实现 | 未验收 | 不适用 | 仅本机 | API /api/v1/identity/register · 维护者可显式开放注册；当前本机默认领取独立账号 |
+| [F-012.03 社区注册/独立体验空间与额度](#f-012-03) | 部分实现 | 本阶段已验证 | 不适用 | 仅本机 | API /api/v1/identity/register · 明确开放的有限体验注册、到期只读与个人项目数量 |
 
 <a id="f-012-01"></a>
 
 ### F-012.01 独立测试账号A/B与安全领取
 
-需求：R-005；验收阶段：C；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-005；验收阶段：C；范围：本阶段交付；实现版本：`source-tree-90fcccc2ccd2`；发布版本：`未发布`。
 
 代码：[`backend/run_controlplane.py`](../../../../backend/run_controlplane.py)、[`backend/app/controlplane/store.py`](../../../../backend/app/controlplane/store.py)、[`front/src/identity/IdentityGate.tsx`](../../../../front/src/identity/IdentityGate.tsx)。
 
-限制：本机已建立A/B独立身份与个人空间；专用凭据不写公开仓库；真实浏览器全链验收尚未完成；没有可领取的公网账号平台；CLI创建凭据文件不覆盖已有文件，Windows文件访问权限由维护者保护。
+限制：本机已建立A/B独立身份与个人空间；专用凭据不写公开仓库；真实浏览器全链验收尚未完成；没有可领取的公网账号平台；CLI创建凭据文件不覆盖已有文件，Windows文件访问权限由维护者保护；另有明确开放的体验注册名额/期限/个人项目数量及到期只读，真实浏览器基础流程通过；CLI与专用预览账号保持永久，不自动改变既有账号，公网领取与完整制作验收继续未完成。。
 
-验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-DEMO-LOCAL`、`EV-IDENTITY-BROWSER`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-DEMO-LOCAL`、`EV-IDENTITY-BROWSER`、`EV-TRIAL-LIFECYCLE-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -837,13 +837,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-012.03 社区注册/独立体验空间与额度
 
-需求：R-002, R-005；验收阶段：C；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-002, R-005；验收阶段：C；范围：本阶段交付；实现版本：`source-tree-90fcccc2ccd2`；发布版本：`未发布`。
 
-代码：[`backend/run_controlplane.py`](../../../../backend/run_controlplane.py)、[`backend/app/controlplane/routes.py`](../../../../backend/app/controlplane/routes.py)、[`backend/app/controlplane/store.py`](../../../../backend/app/controlplane/store.py)、[`front/src/identity/IdentityGate.tsx`](../../../../front/src/identity/IdentityGate.tsx)。
+代码：[`backend/app/core/contracts/identity_trials.py`](../../../../backend/app/core/contracts/identity_trials.py)、[`backend/app/core/contracts/identity.py`](../../../../backend/app/core/contracts/identity.py)、[`backend/app/controlplane/trials.py`](../../../../backend/app/controlplane/trials.py)、[`backend/app/controlplane/store.py`](../../../../backend/app/controlplane/store.py)、[`backend/app/controlplane/routes.py`](../../../../backend/app/controlplane/routes.py)、[`backend/app/controlplane/gateway.py`](../../../../backend/app/controlplane/gateway.py)、[`backend/app/controlplane/workers.py`](../../../../backend/app/controlplane/workers.py)、[`backend/app/core/workspace_trial_quota.py`](../../../../backend/app/core/workspace_trial_quota.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`backend/app/main.py`](../../../../backend/app/main.py)、[`backend/run_controlplane.py`](../../../../backend/run_controlplane.py)、[`backend/run_tenant_worker.py`](../../../../backend/run_tenant_worker.py)、[`front/src/identity/IdentityGate.tsx`](../../../../front/src/identity/IdentityGate.tsx)、[`front/src/identity/DemoStarter.tsx`](../../../../front/src/identity/DemoStarter.tsx)、[`front/src/pages/aiStudio/project/ProjectLobby.tsx`](../../../../front/src/pages/aiStudio/project/ProjectLobby.tsx)、[`front/src/styles/studio.css`](../../../../front/src/styles/studio.css)。
 
-限制：注册开关默认关闭；每个新账号创建独立个人空间；公网注册/领取、费用额度、有效期与资源容量方案尚未验收；示例建立上限不是生成额度；所有空间收费提交保持503。
+限制：注册默认关闭；明确开放后默认4个本轮名额、7天、个人空间同时最多2项目。名额1–128/期限1–30天/项目1–10由维护者配置，注册请求不能改策略。；用户/唯一个人空间/成员/固定期限和项目数原子创建，过期不自动释放名额或删除数据；既有永久账号与原用户资料不转换、不分配给注册者。；每次会话由服务器复查用户及当前空间所有者期限；到期资料仍可查看下载，新的业务写入暂停，偏好/退出/已有成员切换可用。；固定owner策略经私有消息进入工作进程，原子SQLite触发器覆盖所有项目插入；删除项目可释放当前数量，客户端头/JSON/环境不能绕过或关闭已装策略。；真实UI显示准确期限/数量、用尽和到期提示，禁用到期新建；同范围聚焦/每分钟复查，后台立即拒绝新提交；原示例请求恢复先于数量诊断。；冻结1764通过/3跳过/2私有历史未选，实际API/generated client249路径591组件及前端、冻结真实浏览器12通过；作者审阅，新增准确CI待验。；本机自作账号与虚拟服务器时钟，不是公网领取/真实用户验收；服务器时钟/维护者受信，实际资源容量、续期/删除、旧版本回切、真实生成额度/模型与完整交付仍未完成，整项部分实现。；项目数量是资源限制；货币费用仍按各项目预算，收费入口继续503，本轮费用授权0。。
 
-验证依据：`EV-IDENTITY-CHECKPOINT`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-IDENTITY-CHECKPOINT`、`EV-TRIAL-LIFECYCLE-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -949,13 +949,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-013.07 隔离预览、策略发布、回退与反馈
 
-需求：R-003, R-004, R-006；验收阶段：E；范围：本阶段交付；实现版本：`source-tree-8ed7331c29fe`；发布版本：`未发布`。
+需求：R-003, R-004, R-006；验收阶段：E；范围：本阶段交付；实现版本：`commit-06739fd5768c`；发布版本：`未发布`。
 
 代码：[`backend/app/core/contracts/local_releases.py`](../../../../backend/app/core/contracts/local_releases.py)、[`backend/app/services/community/local_release_files.py`](../../../../backend/app/services/community/local_release_files.py)、[`backend/app/services/community/local_releases.py`](../../../../backend/app/services/community/local_releases.py)、[`backend/manage_local_release.py`](../../../../backend/manage_local_release.py)。
 
-限制：维护者独立私有日志根目录；新A/B预览账号/空间/领取文件，无稳定数据/连接复制，无自动启动，声明提交只作追溯，不等于实际运行镜像已验。；停止指定网关/工作进程后依次原生锁定；全根目录SQLite backup包含已提交WAL，逐库结构/所有行/序列/版本与文件摘要核对，普通-wal业务文件保留。；单次8GiB、文件/目录各50000、单文件2GiB、SQLite256表/8MiB值、120秒检查预算；复制期间增长受限，源/档案/目标不交叠，损坏/链接/新旧记录冲突拒绝。；原请求/目的路径绑定，进程实际退出保留意图和部分产物且不自动重做；恢复只到新路径，旧资料和后来编辑保留，POSIX新数据根0700。；真实新账号网关/固定空间工作进程/项目越权、SQLite/WAL和新路径恢复通过；冻结720/3平台跳过含新增24/1，作者审阅，本提交准确CI待验。；本机反馈与独立审核/真实用户验收/实际部署分记；策略上线、准确镜像激活/回切、真实App到发布、历史生产切换及公网仍未完成，整项部分实现。。
+限制：维护者独立私有日志根目录；新A/B预览账号/空间/领取文件，无稳定数据/连接复制，无自动启动，声明提交只作追溯，不等于实际运行镜像已验。；停止指定网关/工作进程后依次原生锁定；全根目录SQLite backup包含已提交WAL，逐库结构/所有行/序列/版本与文件摘要核对，普通-wal业务文件保留。；单次8GiB、文件/目录各50000、单文件2GiB、SQLite256表/8MiB值、120秒检查预算；复制期间增长受限，源/档案/目标不交叠，损坏/链接/新旧记录冲突拒绝。；原请求/目的路径绑定，进程实际退出保留意图和部分产物且不自动重做；恢复只到新路径，旧资料和后来编辑保留，POSIX新数据根0700。；真实新账号网关/固定空间工作进程/项目越权、SQLite/WAL和新路径恢复通过；冻结720/3平台跳过含新增24/1，作者审阅；随后准确06739fd主分支CI1748/2跳过/2历史未选、前端、通用40与实际Linux10/清理通过。；本机反馈与独立审核/真实用户验收/实际部署分记；策略上线、准确镜像激活/回切、真实App到发布、历史生产切换及公网仍未完成，整项部分实现。。
 
-验证依据：`EV-LOCAL-RELEASE-DATA`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-RELEASE-DATA`、`EV-LOCAL-RELEASE-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -993,7 +993,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。；后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。；4a38精确CI938通过、前端和既有容器40项/清理及独立31另行记录；不将通用容器文字检查当作新参考协议的容器验收。；8ccd精确CI1050通过/1跳过/2历史未选及既有容器40项/清理单列；不把通用容器检查算作新参考或声音链容器验收。；b364精确CI1105/2跳过/2历史未选、通用容器40/清理另列；原c1生命周期夹具失败完整保留，实际M4B副本3项不等于正式旧数据切换或所有恢复资格。；新增独立预览数据与全网关离线备份/新路径恢复、本机反馈；720冻结通过/3平台跳过，实际本机网关/SQLite/进程路径，作者审阅；服务器未购置，稳定/预览实际版本切换、掉电/正式迁移/公网仍待验。。
 
-验证依据：`EV-DEPLOY-CONFIG`、`EV-CONTAINER-RUNTIME-PREPARATION`、`EV-ORIGINAL-EXAMPLE-PUBLISHED-CI`、`EV-REFERENCE-IMAGE-PUBLISHED-CI`、`EV-VIDEO-REFERENCE-PUBLISHED-CI`、`EV-SOUND-PUBLISHED-CI`、`EV-LOCAL-RELEASE-DATA`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-DEPLOY-CONFIG`、`EV-CONTAINER-RUNTIME-PREPARATION`、`EV-ORIGINAL-EXAMPLE-PUBLISHED-CI`、`EV-REFERENCE-IMAGE-PUBLISHED-CI`、`EV-VIDEO-REFERENCE-PUBLISHED-CI`、`EV-SOUND-PUBLISHED-CI`、`EV-LOCAL-RELEASE-DATA`、`EV-LOCAL-RELEASE-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1125,6 +1125,8 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-COMMUNITY-PR-GATE-CI | software | repository · `capabilities/community-pr-gate-ci-validation.json` | 6edea8b准确main CI1666通过/2跳过/2历史未选、前端、通用Compose40及真实Linux10/确认清理；只读PR审查观察本机事实自作，不能替代真实独立审核或产品发布联合验收。 |
 | EV-LOCAL-RELEASE-DATA | software | repository · `capabilities/local-release-local-validation.json` | 本机独立预览A/B、全网关离线SQLite/WAL/文件备份、新路径恢复、原请求/实际控制器退出恢复及本机反馈；冻结720通过/3平台跳过含新增24/1，真实网关/工作进程项目隔离，作者审阅；运行版本/策略上线/独立审核/公网未验。 |
 | EV-COMMUNITY-PUBLICATION-CI | software | repository · `capabilities/community-publication-ci-validation.json` | cc58ed2准确main CI1723通过/2跳过/2历史未选、前端、通用Compose40与真实Linux10/确认清理；候选发布远端事实自作，真实App/公开产品候选/独立审核未联合验收。 |
+| EV-TRIAL-LIFECYCLE-LOCAL | software | repository · `capabilities/trial-local-validation.json` | 默认关闭的有限体验注册/固定有效期/到期只读/固定worker原子项目数量；冻结1764通过/3平台跳过/2私有历史未选，准确源码真实浏览器12、实际API与generated client及前端通过，作者审阅。自作账号与虚拟服务端时钟，公网/真实用户/模型费用未验。 |
+| EV-LOCAL-RELEASE-CI | software | repository · `capabilities/local-release-ci-validation.json` | 06739fd准确main CI1748通过/2跳过/2历史未选、前端、通用Compose40及实际Linux10/清理通过；本机预览资料/离线档案已验，准确镜像激活/策略上线/真实历史生产切换/公网仍未验。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

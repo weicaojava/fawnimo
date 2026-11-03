@@ -10,6 +10,9 @@
 /* Hallmark · answered F25 · Model tables pin the name column on the left and action column on the right; remaining columns scroll within the table at phone widths. */
 /* Hallmark · waive 72 · horizontally scrolling model table with pinned columns · The ant-table cells retain their own padding; offscreen text clips under the pinned operation column while scrolling, so the box check does not measure visible label padding. */
 .studio-shell.ant-layout { height: 100vh; height: 100dvh; display: flex; flex-direction: row; overflow: hidden; background: var(--color-paper); }
+.identity-session { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.identity-session > .ant-alert { flex-shrink: 0; }
+.identity-session > .studio-shell.ant-layout { flex: 1; min-height: 0; height: auto; }
 .studio-sidebar.ant-layout-sider { background: var(--color-paper-2); border-right: 1px solid var(--color-rule); flex-shrink: 0; overflow: auto; transition: none; }
 .studio-brand { display: flex; align-items: center; min-height: 80px; padding: var(--space-md) var(--space-5); gap: var(--space-sm); color: var(--color-ink); text-decoration: none; border-bottom: 1px solid var(--color-rule); }
 .studio-brand img { flex: 0 0 32px; }

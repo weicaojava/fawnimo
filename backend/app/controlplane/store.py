@@ -7,6 +7,7 @@ import hmac
 import re
 import secrets
 import sqlite3
+from app.controlplane.trials import initialize_trials,admit_trial,record_trial,current_trial_access,registration_status,workspace_trial_policy
 import time
 from pathlib import Path
 
@@ -37,9 +38,10 @@ def verify_password(password: str, saved: str) -> bool:
 class IdentityStore:
     """Keep identities separate from workspace files; every request rechecks membership."""
 
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, *,clock=None):
         """Initialize an additive private control database without importing studio settings."""
         self.root = root.resolve()
+        self.clock=clock or time.time
         self.root.mkdir(parents=True, exist_ok=True)
         self.path = self.root / "control.db"
         self.dummy_password = password_hash(secrets.token_urlsafe(32))
@@ -73,6 +75,7 @@ class IdentityStore:
                 CREATE TRIGGER IF NOT EXISTS request_audit_no_delete BEFORE DELETE ON request_audit
                     BEGIN SELECT RAISE(ABORT,'Immutable request audit'); END;
             """)
+            initialize_trials(db)
 
     @contextmanager
     def connect(self):
@@ -89,8 +92,8 @@ class IdentityStore:
         finally:
             db.close()
 
-    def provision(self, account: str, password: str, display_name: str | None = None) -> dict:
-        """Atomically create an account and exactly one owned personal workspace."""
+    def provision(self, account: str, password: str, display_name: str | None = None, *, trial_policy=None) -> dict:
+        """Atomically create one account/personal space and optional trusted new-user trial; existing permanent users are never converted."""
         account = account.strip().lower()
         if not ACCOUNT.fullmatch(account):
             raise HTTPException(422, "账号需要 3 至 64 个小写字母、数字或 ._- 字符")
@@ -98,20 +101,34 @@ class IdentityStore:
         if not 1 <= len(name) <= 100:
             raise HTTPException(422, "名称需要 1 至 100 个字符")
         encoded = password_hash(password)
-        user, workspace, now = "usr_" + secrets.token_hex(16), "ws_" + secrets.token_hex(16), int(time.time())
+        user, workspace, now = "usr_" + secrets.token_hex(16), "ws_" + secrets.token_hex(16), int(self.clock())
         try:
             with self.connect() as db:
                 db.execute("BEGIN IMMEDIATE")
+                if trial_policy is not None:
+                    admit_trial(db,trial_policy)
                 db.execute("INSERT INTO users(id,account,password_hash,display_name,created_at) VALUES(?,?,?,?,?)", (user, account, encoded, name, now))
                 db.execute("INSERT INTO workspaces(id,name,owner_id,created_at) VALUES(?,?,?,?)", (workspace, name + "的个人空间", user, now))
                 db.execute("INSERT INTO memberships VALUES(?,?,?)", (user, workspace, "owner"))
+                if trial_policy is not None:
+                    record_trial(db,user,trial_policy,now)
         except sqlite3.IntegrityError as exc:
             raise HTTPException(409, "账号已存在") from exc
         return {"user_id": user, "workspace_id": workspace, "account": account}
 
+    def trial_registration_status(self, policy):
+        """Expose only finite capacity/duration/project-count settings selected by the trusted gateway."""
+        with self.connect() as db:
+            return registration_status(db,policy)
+
+    def workspace_trial_policy(self, workspace_id):
+        """Resolve fixed worker quota from the actual space owner's immutable record, never the requesting actor or HTTP fields."""
+        with self.connect() as db:
+            return workspace_trial_policy(db,workspace_id)
+
     def login(self, account: str, password: str, peer: str) -> str:
         """Rate-limit failed attempts persistently and issue an opaque, hashed-at-rest session."""
-        account, now = account.strip().lower(), int(time.time())
+        account, now = account.strip().lower(), int(self.clock())
         keys = [hashlib.sha256((prefix + value).encode()).hexdigest() for prefix, value in (("account:", account), ("peer:", peer))]
         with self.connect() as db:
             for key in keys:
@@ -148,11 +165,14 @@ class IdentityStore:
             row = db.execute("""SELECT u.id,u.account,u.display_name,u.language,u.theme,s.workspace_id,m.role
                 FROM sessions s JOIN users u ON u.id=s.user_id
                 JOIN memberships m ON m.user_id=u.id AND m.workspace_id=s.workspace_id
-                WHERE s.token_hash=? AND s.expires_at>? AND u.disabled=0""", (hashlib.sha256(token.encode()).hexdigest(), int(time.time()))).fetchone()
+                WHERE s.token_hash=? AND s.expires_at>? AND u.disabled=0""", (hashlib.sha256(token.encode()).hexdigest(), int(self.clock()))).fetchone()
             if row is None:
                 raise HTTPException(401, "登录已失效，请重新登录")
             workspaces = db.execute("SELECT w.id,w.name,m.role FROM workspaces w JOIN memberships m ON m.workspace_id=w.id WHERE m.user_id=? ORDER BY w.created_at,w.id", (row["id"],)).fetchall()
-        return {"user": {key: row[key] for key in ("id", "account", "display_name", "language", "theme")}, "workspace_id": row["workspace_id"], "role": row["role"], "workspaces": [dict(value) for value in workspaces]}
+            trial=current_trial_access(db,row['id'],row['workspace_id'],int(self.clock()))
+        result={"user": {key: row[key] for key in ("id", "account", "display_name", "language", "theme")}, "workspace_id": row["workspace_id"], "role": row["role"], "workspaces": [dict(value) for value in workspaces]}
+        if trial is not None: result['trial']=trial
+        return result
 
     def switch(self, token: str, workspace_id: str) -> dict:
         """Accept only a membership-owned ID; paths and worker addresses are never client inputs."""

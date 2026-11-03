@@ -1,6 +1,7 @@
 """Public identity contracts shared by the gateway and generated studio client."""
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
+from app.core.contracts.identity_trials import TrialAccessRead,TrialRegistrationRead
 
 
 class LoginRequest(BaseModel):
@@ -51,12 +52,14 @@ class IdentityRead(BaseModel):
     workspace_id: str
     role: Literal['owner', 'editor', 'viewer']
     workspaces: list[IdentityWorkspace]
+    trial: TrialAccessRead | None = None
 
 
 class IdentityStatus(BaseModel):
     """Distinguish the supported legacy local studio from a login-required gateway."""
     mode: Literal['local', 'workspace']
     registration_enabled: bool
+    trial_registration: TrialRegistrationRead | None = None
 
 
 class DemoCreate(BaseModel):

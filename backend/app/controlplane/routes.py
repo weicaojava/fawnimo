@@ -36,7 +36,7 @@ def set_cookie(request: Request, response: Response, token: str) -> None:
     response.headers['Cache-Control'] = 'no-store'
 
 
-def current_context(request: Request, *, required: bool = True) -> dict:
+def current_context(request: Request, *, required: bool = True, allow_expired_write: bool = False) -> dict:
     """Fence stale tabs even on identity routes that do not pass through the studio proxy."""
     current = store_for(request).current(request.cookies.get(COOKIE))
     user, workspace = request.headers.get('x-identity-id'), request.headers.get('x-workspace-id')
@@ -44,6 +44,9 @@ def current_context(request: Request, *, required: bool = True) -> dict:
         raise HTTPException(409, '登录身份已变化，请刷新后再操作')
     if (required or workspace) and workspace != current['workspace_id']:
         raise HTTPException(409, '工作空间已变化，请刷新后再操作')
+    if request.method not in {'GET','HEAD','OPTIONS'} and not allow_expired_write:
+        from app.controlplane.trials import require_trial_write
+        require_trial_write(current)
     return current
 
 
@@ -51,7 +54,9 @@ def current_context(request: Request, *, required: bool = True) -> dict:
 def identity_status(request: Request):
     """Let the same built studio choose local entry or the real login flow."""
     enabled = hasattr(request.app.state, 'identity_store')
-    return success_response(IdentityStatus(mode='workspace' if enabled else 'local', registration_enabled=enabled and getattr(request.app.state, 'allow_registration', False)))
+    registration=enabled and getattr(request.app.state,'allow_registration',False)
+    trial=store_for(request).trial_registration_status(request.app.state.trial_registration_policy) if registration else None
+    return success_response(IdentityStatus(mode='workspace' if enabled else 'local',registration_enabled=registration,trial_registration=trial))
 
 
 @router.post('/login', response_model=ApiResponse[IdentityRead])
@@ -75,7 +80,7 @@ async def register(body: RegisterRequest, request: Request, response: Response):
     if not request.app.state.allow_registration:
         raise HTTPException(403, '请向维护者领取独立体验账号')
     async with request.app.state.auth_slots:
-        await asyncio.to_thread(store.provision, body.account, body.password, body.display_name)
+        await asyncio.to_thread(store.provision, body.account, body.password, body.display_name,trial_policy=request.app.state.trial_registration_policy)
         token = await asyncio.to_thread(store.login, body.account, body.password, request.client.host if request.client else 'unknown')
     await asyncio.to_thread(store.logout, request.cookies.get(COOKIE))
     set_cookie(request, response, token)
@@ -93,7 +98,7 @@ def me(request: Request, response: Response):
 def profile(body: ProfileRequest, request: Request):
     """Update personal preferences without accepting role, ownership or identity changes."""
     check_origin(request)
-    current_context(request)
+    current_context(request,allow_expired_write=True)
     return success_response(store_for(request).profile(request.cookies.get(COOKIE), body.model_dump(exclude_none=True)))
 
 
@@ -101,7 +106,7 @@ def profile(body: ProfileRequest, request: Request):
 def switch(body: WorkspaceSwitch, request: Request):
     """Switch only to a current membership; the client reloads before accessing new data."""
     check_origin(request)
-    current_context(request)
+    current_context(request,allow_expired_write=True)
     return success_response(store_for(request).switch(request.cookies.get(COOKIE), body.workspace_id))
 
 
@@ -109,7 +114,7 @@ def switch(body: WorkspaceSwitch, request: Request):
 def logout(request: Request, response: Response):
     """Persistently revoke the session and remove the browser's cookie."""
     check_origin(request)
-    current_context(request)
+    current_context(request,allow_expired_write=True)
     store_for(request).logout(request.cookies.get(COOKIE))
     response.delete_cookie(COOKIE, path='/', secure=getattr(request.app.state, 'secure_cookies', True), httponly=True, samesite='strict')
     response.headers['Cache-Control'] = 'no-store'
@@ -121,6 +126,8 @@ async def create_example(body: DemoCreate, request: Request):
     """Create a fresh editable example, preserving all previous examples and user edits."""
     check_origin(request)
     identity = current_context(request)
+    from app.controlplane.trials import preflight_trial_example
+    await asyncio.to_thread(preflight_trial_example,store_for(request),request.app.state.workers,identity,body.request_key)
     from app.controlplane.demo import create_demo
     return success_response(await create_demo(store_for(request), request.app.state.workers, identity, body.request_key))
 
@@ -130,6 +137,8 @@ async def create_exportable_example(body: LocalExampleInput, request: Request, r
     """Create a separate original-media example with a recoverable key, keeping all existing projects and edits."""
     check_origin(request)
     identity = current_context(request)
+    from app.controlplane.trials import preflight_trial_example
+    await asyncio.to_thread(preflight_trial_example,store_for(request),request.app.state.workers,identity,body.request_key)
     response.headers['Cache-Control'] = 'no-store'
     from app.controlplane.local_example import create_exportable_demo
     return success_response(await create_exportable_demo(store_for(request),request.app.state.workers,identity,body.request_key))

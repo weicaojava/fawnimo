@@ -27,7 +27,7 @@ import {
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { chapters as mockChapters, projects as mockProjects, type Project } from '../../../mocks/data'
-import { StudioChaptersService, StudioProjectsService } from '../../../services/generated'
+import { ApiError, StudioChaptersService, StudioProjectsService } from '../../../services/generated'
 import type { ChapterRead, ProjectRead, ProjectStyle } from '../../../services/generated'
 import {
   ProjectVisualStyleAndStyleFields,
@@ -36,6 +36,7 @@ import {
 import { useProjectStyleOptions } from './useProjectStyleOptions'
 import { ProjectStageTrack } from './ProjectSection'
 import { DemoStarter } from '../../../identity/DemoStarter'
+import { useIdentity } from '../../../identity/IdentityGate'
 import './project-studio.css'
 import { getChapterPreparationState } from './ProjectWorkbench/chapterPreparation'
 import { ensureHasShotsBeforeShooting } from './ProjectWorkbench/ensureHasShotsBeforeShooting'
@@ -76,6 +77,7 @@ function formatProjectUpdatedAt(value: string): string {
 const ProjectLobby: React.FC = () => {
   const navigate = useNavigate()
   const [projects, setProjects] = useState<ProjectView[]>([])
+  const readOnlyTrial = useIdentity()?.trial?.read_only === true
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -400,6 +402,7 @@ const ProjectLobby: React.FC = () => {
   }
 
   const handleOpenCreate = () => {
+    if (readOnlyTrial) { message.warning('体验已到期，当前可查看和下载资料，项目编辑已暂停'); return }
     form.resetFields()
     const defaultVisual = (projectStyleOptions.visualStyles[0]?.value ?? '现实') as ProjectVisualStyleChoice
     const defaultStyle =
@@ -446,8 +449,8 @@ const ProjectLobby: React.FC = () => {
       setCreateModalOpen(false)
       setProjects((prev) => (Array.isArray(prev) ? [...prev, ui] : [ui]))
       navigate(`/projects/${ui.id}`)
-    } catch {
-      message.error('创建失败')
+    } catch (error) {
+      message.error(error instanceof ApiError && [403, 409].includes(error.status) && typeof error.body?.message === 'string' ? error.body.message : '创建失败')
     }
   }
 
@@ -698,7 +701,7 @@ const ProjectLobby: React.FC = () => {
             </Popconfirm>
           )}
           <DemoStarter />
-          <Button icon={<PlusOutlined />} onClick={handleOpenCreate}>新建项目</Button>
+          <Button icon={<PlusOutlined />} disabled={readOnlyTrial} onClick={handleOpenCreate}>新建项目</Button>
         </Space>
       </header>
 
@@ -761,7 +764,7 @@ const ProjectLobby: React.FC = () => {
           {!loading && !loadError && filteredSorted.length === 0 && (
             <div className="project-empty-state">
               <p>{search ? '没有匹配的项目' : '暂无项目，点击「新建项目」开始'}</p>
-              {!search && <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate}>新建项目</Button>}
+              {!search && <Button type="primary" icon={<PlusOutlined />} disabled={readOnlyTrial} onClick={handleOpenCreate}>新建项目</Button>}
             </div>
           )}
           {!loading && filteredSorted.map(renderCard)}
@@ -848,7 +851,7 @@ const ProjectLobby: React.FC = () => {
           <Form.Item className="mb-0">
             <Space>
               <Button onClick={() => setCreateModalOpen(false)}>取消</Button>
-              <Button type="primary" htmlType="submit">
+              <Button type="primary" htmlType="submit" disabled={readOnlyTrial}>
                 创建并进入
               </Button>
             </Space>

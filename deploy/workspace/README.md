@@ -82,3 +82,5 @@ docker compose -f deploy/workspace/compose.yaml --profile stable up -d stable
 参考：[uv 官方 Docker 集成](https://docs.astral.sh/uv/guides/integration/docker/)。
 
 另有[本机预览资料与离线回退指南](../../site/content/docs/guide/local-releases.md)。它准备独立账号及完整私有档案，恢复到新路径；实际镜像切换/公网验收仍单独进行。
+
+维护者另可明确开放[有限体验注册](../../site/content/docs/guide/trials.md)。名额、有效期和个人项目数量独立于项目费用；真实公网与资源容量仍需实际部署验收。

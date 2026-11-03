@@ -30,3 +30,5 @@ GitHub 的 `Verify workspace container` 运行同一入口，并保存精确提�
 日常稳定/预览部署的 origin、反向代理、版本、备份与回退步骤见仓库中的 [deploy/workspace/README.md](https://github.com/weicaojava/fawnimo/blob/main/deploy/workspace/README.md)。当前单节点文件不能用作共享 SQLite 的多副本方案，也不能替代服务器和公网实机验收。
 
 本机可使用单独私有目录进行[预览资料与离线回退准备](../local-releases/)，建立全新账号、完整备份与新路径恢复；实际运行版本和策略上线仍分别验收。
+
+维护者可按[有限体验注册指南](../trials/)明确开放名额/期限/个人项目数量；默认关闭，收费仍关闭，原账号和项目预算保持原规则。

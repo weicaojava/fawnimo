@@ -565,6 +565,8 @@ export type { TransitionIssue } from './models/TransitionIssue';
 export type { TransitionPatch } from './models/TransitionPatch';
 export type { TransitionPublicationRead } from './models/TransitionPublicationRead';
 export type { TransitionPublicationSummary } from './models/TransitionPublicationSummary';
+export type { TrialAccessRead } from './models/TrialAccessRead';
+export type { TrialRegistrationRead } from './models/TrialRegistrationRead';
 export type { UnderstandingAttemptControl } from './models/UnderstandingAttemptControl';
 export type { UnderstandingAttemptRead } from './models/UnderstandingAttemptRead';
 export type { UnderstandingConnection } from './models/UnderstandingConnection';

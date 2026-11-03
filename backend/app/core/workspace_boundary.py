@@ -23,6 +23,7 @@ READINESS_PATH = "/__workspace/ready"
 # These tables contain schema versions or service-local concurrency leases only.
 # New tables are private business data unless explicitly reviewed into this list.
 INFRASTRUCTURE_TABLES = frozenset({
+    "workspace_trial_quota",
     MARKER_TABLE, "production_schema", "execution_schema", "reverse_schema",
     "benchmark_schema", "script_preparation_schema", "shot_plan_schema",
     "editing_schema", "edit_export_schema", "video_dna_schema",

@@ -32,10 +32,14 @@ CLOSED_AVAILABILITY_PATHS = frozenset({'/api/v1/agent-execution/availability','/
 
 def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | None = None,
                    secure_cookies: bool = True, public_origin: str | None = None,
-                   allow_registration: bool = False, capacity: int = 4, workers=None) -> FastAPI:
+                   allow_registration: bool = False, capacity: int = 4, workers=None,trial_registration_policy=None) -> FastAPI:
     """Build an independent control plane; never import or open the legacy studio database."""
     store = IdentityStore(root)
     pool = workers or WorkspaceWorkers(root / 'workspaces', probe=probe, capacity=capacity)
+    from app.core.contracts.identity_trials import TrialRegistrationPolicy
+    from app.controlplane.trials import IdentityBodyLimit
+    registration_policy=TrialRegistrationPolicy() if trial_registration_policy is None else TrialRegistrationPolicy.model_validate(trial_registration_policy)
+    if isinstance(pool,WorkspaceWorkers): pool.trial_policy_provider=store.workspace_trial_policy
 
     @asynccontextmanager
     async def lifespan(application):
@@ -48,10 +52,12 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
     app = FastAPI(title='Fawnimo workspace identity gateway', lifespan=lifespan)
     app.state.identity_store = store
     app.state.allow_registration = allow_registration
+    app.state.trial_registration_policy=registration_policy
     app.state.secure_cookies = secure_cookies
     app.state.public_origin = public_origin
     app.state.auth_slots = asyncio.Semaphore(4)
     app.state.workers = pool
+    app.add_middleware(IdentityBodyLimit)
     app.include_router(router, prefix='/api/v1')
 
     @app.exception_handler(RequestValidationError)
@@ -108,6 +114,8 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
                 raise HTTPException(409, '请先刷新页面，确认当前工作空间')
             if identity['role'] == 'viewer':
                 raise HTTPException(403, '此工作空间只有查看权限')
+            from app.controlplane.trials import require_trial_write
+            require_trial_write(identity)
         route = '/api/v1/' + path
         policy_route = route.rstrip('/')
         if route.rstrip('/').startswith('/api/v1/video-runtime/workspace-budget'):
