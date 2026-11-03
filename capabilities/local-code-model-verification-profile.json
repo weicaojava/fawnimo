@@ -1,0 +1,45 @@
+{
+  "profile": "maintainer_local_ollama_code_v1",
+  "source_tree": "b982801bc62bdb09bff265ef75e4d3231190c380",
+  "scope": "Explicit local-model inert Python proposals bound to exact prepared public requirement/base. Authored model/public-source fixtures and actual owned child/HTTP/SQLite/Git/CLI checks; no actual AI model or candidate code execution.",
+  "native_related_counts": {
+    "tests": 67,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "new_model_code_cases": 45,
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "7e5439df09e19591f6139c7f3877f1e80868c9969ca271435d3d2e4a0d3bfeea",
+    "backend/app/core/contracts/community_model_code.py": "f2d5be3ef9f956aea2228f56b34da1213b5918dd320a3e4093be50c52eb74ac4",
+    "backend/app/services/community/development_model.py": "128f6c82057ae66d93a47381ed82dd3657e44b55af211bed7b7b66253de6d7ca",
+    "backend/app/services/community/development_model_child.py": "5006bbbf8538ac9262fabed617a1b457bd666922c62feade22d79d69f6b92e58",
+    "backend/app/services/community/development_model_protocol.py": "1df053f3aef4d12484f887bbddd3ed6b7e5df591c9b9202262d3d935d5cd3cda",
+    "backend/app/services/community/development_model_store.py": "5b436499538b586622f4cdae3be775ba0c7542bee822e5c77926de7832dbe8e9",
+    "backend/app/services/community/change_preparation.py": "fe2a83cbacb449912fc7377d413b8d50180bdf9d6e51c7ba6b244573a0509824",
+    "backend/generate_community.py": "4e6a42fbbee6eec27ee6aa3add63672567c9cd8737acf13962efe0a708e7db8f",
+    "backend/local-code-model.example.json": "e4c6e2687c3865a20186b6e4fe36eb0c836f24bce24a31b92675f5f3716ac385",
+    "backend/tests/test_community_model_code.py": "dc2242620b15b7af1cf91f9e0b267a365dca26a731f25cd684042a4c7e01d03d"
+  },
+  "junit_sha256": "8093630c31488b43b14183c55ab687234c79c1d0857480025636a8033a7c7bb3",
+  "covers": [
+    "strict separate local-model profile and source/new-test selection",
+    "actual owned helper and fixed local tags/chat protocol",
+    "one original inference under competing reservation and explicit quota",
+    "generated result and existing inert change-bundle linkage",
+    "public main/prepared selection drift blocks implicit rebasing",
+    "actual cancellation and ambiguous original recovery",
+    "lost model acknowledgment and committed bundle/link interruption with actual CLI recovery",
+    "UTF8 capacity including every pending response/link",
+    "protected controller rejection before source/model reads"
+  ],
+  "actual_model_called": false,
+  "candidate_code_executed": false,
+  "model_quality_qualified": false,
+  "independent_review_completed": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "exact_main_CI_required": true,
+  "overall_goal_complete": false
+}

@@ -1,6 +1,7 @@
 """Observe exact public source before saving inert proposals, retaining original-key recovery without granting code execution."""
 from contextlib import closing
 import json
+import re
 import time
 
 from app.services.community.change_bundles import build_change_bundle
@@ -19,11 +20,15 @@ def current_prepared_work(preparation, db, work_id):
     return value
 
 
-async def assemble_current_change(preparation, changes, body):
+async def assemble_current_change(preparation, changes, body, *, expected_base_commit=None, expected_work_hash=None):
     """Observe GitHub outside writers, then recheck original source/plan under its writer before appending to the separate inert store."""
     original = changes.replay(body)
     if original is not None:
         return original
+    if expected_base_commit is not None and re.fullmatch(r'[a-f0-9]{40}',expected_base_commit) is None:
+        raise CommunityStoreConflict('Invalid original expected public base')
+    if expected_work_hash is not None and re.fullmatch(r'[a-f0-9]{64}',expected_work_hash) is None:
+        raise CommunityStoreConflict('Invalid original expected prepared scope')
     intake = preparation.intake
     if changes.config.repository_id != intake.config.repository_id or changes.config.repository_name.casefold() != intake.config.repository_name.casefold():
         raise CommunityStoreConflict('Public change and intake roots belong to different sources')
@@ -31,9 +36,13 @@ async def assemble_current_change(preparation, changes, body):
         raise CommunityStoreConflict('Public change and intake roots must be separate dedicated directories')
     with closing(intake.connect()) as db:
         prepared = current_prepared_work(preparation, db, body.work_id)
+        if expected_work_hash is not None and digest(prepared['work'])!=expected_work_hash:
+            raise CommunityStoreConflict('Original prepared work changed after model generation')
         source = source_row(db, prepared['work']['entry']['version_id'])
     issue_observation = await verify_public_issue(intake.config, source['issue_number'])
     code_observation = await verify_public_code(intake.config, prepared['work']['entry']['feature_ids'], [change.path for change in body.changes])
+    if expected_base_commit is not None and code_observation.snapshot.commit!=expected_base_commit:
+        raise CommunityStoreConflict('Original public code base changed after model generation')
     registry = json.loads(code_observation.snapshot.files['capabilities/features.json'].decode('utf8'))
     if digest(registry) != digest(preparation.queue.catalog()):
         raise CommunityStoreConflict('Public main and installed controller use different feature-register versions')
@@ -41,6 +50,8 @@ async def assemble_current_change(preparation, changes, body):
         db.execute('BEGIN IMMEDIATE')
         try:
             prepared = current_prepared_work(preparation, db, body.work_id)
+            if expected_work_hash is not None and digest(prepared['work'])!=expected_work_hash:
+                raise CommunityStoreConflict('Original prepared work changed before proposal save')
             # This source transaction appends no source data. It holds the
             # checked original selection stable while the separate inert store
             # appends its recoverable receipt in a fixed lock order.

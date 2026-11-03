@@ -38,5 +38,8 @@
   "overall_goal_complete": false,
   "exact_main_ci_required": true,
   "no_automatic_decision_queue_coding_or_publication": true,
-  "capacity_counterexample": "capabilities/maintainer-advice-capacity-counterexample.json"
+  "capacity_counterexample": "capabilities/maintainer-advice-capacity-counterexample.json",
+  "qualified_exact_source": "d4430d5fecc2f70170fc0690a019618664ad9d94",
+  "exact_CI_evidence_record": "capabilities/maintainer-advice-ci-d4430d5.json",
+  "local_protocol_exact_CI_verified": true
 }
