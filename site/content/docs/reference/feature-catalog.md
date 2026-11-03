@@ -7,7 +7,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-11-03.13`，更新日期：2026-11-03。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-11-03.14`，更新日期：2026-11-03。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
@@ -15,7 +15,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。 社区独立维护者评估/澄清/复议已有本机软件记录；另有明确维护者估值的版本路线图和仅限准备的租约；AI自动评估与实际研发仍待完成。 已prepared的需求可形成准确公开源码的惰性提案和本地候选Git提交；固定Linux检查已有准确主分支CI与真实隔离验收；另有默认关闭的PR审查/CI观察，真实独立身份和产品发布闭环未验。 候选草稿PR发布和未知响应追溯已有默认关闭的本机软件入口；真实来源/App/独立审核和发布闭环仍待验。 本机预览资料、全根目录离线备份、新路径回退和本机反馈已实现有界软件入口；真实策略上线/版本切换与公网继续待验。 有限体验注册、固定期限/到期只读和个人项目数量已完成本机软件与真实页面验证；默认关闭，真实公网与模型交付继续待验。 账单更正总额、固定版本退减/补记、歧义调用人工归属及项目净额页面已完成本机软件验证；真实账单认证和供应商退款未验。 固定身份的参考视频只读交付完成本机软件验证，真实远程供应商取素材及收费资格仍未验。 显式配乐循环与已确认对白的音乐避让已完成本机混音验证；云端声音与完整成片质量仍未验。
 
-配乐循环/对白避让冻结114含新增21、2私有历史按CI未选，准确源码浏览器10、下载PCM独立测量、实际API/client/前端通过；主249路径592组件、独立2/2，作者审阅，新准确CI待验。父3aac2c2准确CI1839/2跳过/2私有历史未选、前端、通用40与实际Linux10/清理通过。46已实现/15部分/3计划，当前16与长期1未完成，费用0；真实声音/模型/账单/App/独立审核/完整成片/策略上线/公网未交付。
+配乐循环/对白避让冻结114含新增21、2私有历史按CI未选，准确源码浏览器10、下载PCM独立测量、实际API/client/前端通过；主249路径592组件、独立2/2，作者审阅，新准确CI待验。父3aac2c2准确CI1839/2跳过/2私有历史未选、前端、通用40与实际Linux10/清理通过。46已实现/15部分/3计划，当前16与长期1未完成，费用0；真实声音/模型/账单/App/独立审核/完整成片/策略上线/公网未交付。 新增默认关闭的自有本机稳定/预览运行：准确镜像声明、隔离网络代理、完整停机快照、新卷恢复、当前安全/费用保留及中断核对；冻结110通过/3跳过，实际Docker跨版本与网络检查待准确CI单列，公网/生产历史/独立审核仍待验。
 
 ## F-001 身份与工作空间
 
@@ -722,9 +722,9 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 代码：[`backend/app/config.py`](../../../../backend/app/config.py)、[`backend/app/main.py`](../../../../backend/app/main.py)、[`backend/app/api/v1/__init__.py`](../../../../backend/app/api/v1/__init__.py)、[`backend/app/api/v1/routes/film/task_status.py`](../../../../backend/app/api/v1/routes/film/task_status.py)、[`backend/app/core/db.py`](../../../../backend/app/core/db.py)、[`backend/app/core/workspace_boundary.py`](../../../../backend/app/core/workspace_boundary.py)、[`backend/app/api/sound_timeline.py`](../../../../backend/app/api/sound_timeline.py)、[`backend/app/core/contracts/local_speech.py`](../../../../backend/app/core/contracts/local_speech.py)、[`backend/app/core/contracts/sound_timeline.py`](../../../../backend/app/core/contracts/sound_timeline.py)、[`backend/app/models/local_speech.py`](../../../../backend/app/models/local_speech.py)、[`backend/app/models/sound_timeline.py`](../../../../backend/app/models/sound_timeline.py)、[`backend/app/services/editing/local_speech.ps1`](../../../../backend/app/services/editing/local_speech.ps1)、[`backend/app/services/editing/local_speech.py`](../../../../backend/app/services/editing/local_speech.py)、[`backend/app/services/editing/local_speech_engine.py`](../../../../backend/app/services/editing/local_speech_engine.py)、[`backend/app/services/editing/local_speech_schema.py`](../../../../backend/app/services/editing/local_speech_schema.py)、[`backend/app/services/editing/sound_child.py`](../../../../backend/app/services/editing/sound_child.py)、[`backend/app/services/editing/sound_exports.py`](../../../../backend/app/services/editing/sound_exports.py)、[`backend/app/services/editing/sound_media.py`](../../../../backend/app/services/editing/sound_media.py)、[`backend/app/services/editing/sound_probe_child.py`](../../../../backend/app/services/editing/sound_probe_child.py)、[`backend/app/services/editing/sound_process.py`](../../../../backend/app/services/editing/sound_process.py)、[`backend/app/services/editing/sound_schema.py`](../../../../backend/app/services/editing/sound_schema.py)、[`backend/app/services/editing/sound_timeline.py`](../../../../backend/app/services/editing/sound_timeline.py)、[`backend/app/services/editing/sound_wave.py`](../../../../backend/app/services/editing/sound_wave.py)、[`front/src/pages/aiStudio/editor/VideoEditor.tsx`](../../../../front/src/pages/aiStudio/editor/VideoEditor.tsx)、[`front/src/pages/aiStudio/components/taskCenterMeta.ts`](../../../../front/src/pages/aiStudio/components/taskCenterMeta.ts)、[`front/src/pages/aiStudio/components/taskCopy.ts`](../../../../front/src/pages/aiStudio/components/taskCopy.ts)、[`front/src/pages/aiStudio/editor/SoundEditor.tsx`](../../../../front/src/pages/aiStudio/editor/SoundEditor.tsx)、[`backend/app/core/contracts/sound_mix.py`](../../../../backend/app/core/contracts/sound_mix.py)。
 
-限制：独立声音v3支持明确采用的PCM16 WAV配音/音效/配乐，24/48kHz、单双声道、单项32MiB/300秒；10ms位置裁剪、整数dB与原对白人工确认。；windows_sapi_pcm_v1仅用Windows实际已安装声音生成原计划对白候选，外部费用0；Linux/容器不提供该系统引擎，仍支持WAV导入混音。；实际本机声音与短色片、两轨混音及五类下载、原提交恢复/真实重启/任务回跳仅验证软件；未声称完整短剧、音色/发声内容/语义/口型质量通过。；云端配音和生成式音效/音乐模型、更多格式/自动对齐、托管A/B浏览器联合验收、独立审核及公网仍待完成，整项部分实现。；配乐可明确循环所选真实源区间至现有画面终点内，保持原速；已确认有效原对白期间可按-30至-3整数dB避让，固定提前50ms/恢复150ms，重叠取最强一次。未提供有效配音则不能锁定，静音音乐保留参数且不要求闲置避让配音。；新music可选字段空值不进入旧v3规范文档；新规则进入独立快照，原版本/导出保留，私有滤镜脚本1MiB及原120秒/容量/子进程界限不变。冻结114含新增21、准确浏览器10及独立下载PCM、API/client/前端通过；作者审阅，新准确CI待验。；实际自作200ms音乐循环至1400ms，12dB/渐变/配音幅度/旧产物与原请求恢复通过；循环接缝仍需人工试听，未证明真实音色/内容/响度/完整成片或收费模型资格，费用授权0。。
+限制：独立声音v3支持明确采用的PCM16 WAV配音/音效/配乐，24/48kHz、单双声道、单项32MiB/300秒；10ms位置裁剪、整数dB与原对白人工确认。；windows_sapi_pcm_v1仅用Windows实际已安装声音生成原计划对白候选，外部费用0；Linux/容器不提供该系统引擎，仍支持WAV导入混音。；实际本机声音与短色片、两轨混音及五类下载、原提交恢复/真实重启/任务回跳仅验证软件；未声称完整短剧、音色/发声内容/语义/口型质量通过。；云端配音和生成式音效/音乐模型、更多格式/自动对齐、托管A/B浏览器联合验收、独立审核及公网仍待完成，整项部分实现。；配乐可明确循环所选真实源区间至现有画面终点内，保持原速；已确认有效原对白期间可按-30至-3整数dB避让，固定提前50ms/恢复150ms，重叠取最强一次。未提供有效配音则不能锁定，静音音乐保留参数且不要求闲置避让配音。；新music可选字段空值不进入旧v3规范文档；新规则进入独立快照，原版本/导出保留，私有滤镜脚本1MiB及原120秒/容量/子进程界限不变。冻结114含新增21、准确浏览器10及独立下载PCM、API/client/前端通过；作者审阅，新准确CI待验。；实际自作200ms音乐循环至1400ms，12dB/渐变/配音幅度/旧产物与原请求恢复通过；循环接缝仍需人工试听，未证明真实音色/内容/响度/完整成片或收费模型资格，费用授权0。；随后准确fde5745主分支CI1860通过/2跳过/2历史未选、前端与通用40/实际候选检查10及清理通过，独立声学测量/本机浏览器证据另列；模型质量和新音频在实际镜像内联合验收不由通用容器结果代替。。
 
-验证依据：`EV-SOUND-TIMELINE-LOCAL`、`EV-SOUND-PUBLISHED-CI`、`EV-SOUND-MUSIC-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-SOUND-TIMELINE-LOCAL`、`EV-SOUND-PUBLISHED-CI`、`EV-SOUND-MUSIC-LOCAL`、`EV-SOUND-MUSIC-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -859,7 +859,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | [F-013.04 租约、幂等、取消与资源上限](#f-013-04) | 部分实现 | 本阶段已验证 | 不适用 | 仅本机 | CLI: backend/check_community.py · 维护者明确启用的Linux候选检查、取消与对账 |
 | [F-013.05 隔离开发、变更提交与PR追溯](#f-013-05) | 部分实现 | 本阶段已验证 | 不适用 | 仅本机 | CLI: backend/publish_community.py · 维护者明确启用的准确候选草稿发布与原请求追溯 |
 | [F-013.06 独立审查、客观测试与CI触发验证](#f-013-06) | 部分实现 | 本阶段已验证 | 不适用 | 未部署 | CLI: backend/observe_community_pr.py · 维护者准确PR/独立审查/CI观察；不授予行动权限 |
-| [F-013.07 隔离预览、策略发布、回退与反馈](#f-013-07) | 部分实现 | 本阶段已验证 | 不适用 | 仅本机 | CLI: backend/manage_local_release.py · 本机独立预览资料、离线备份、新路径回退准备与反馈 |
+| [F-013.07 隔离预览、策略发布、回退与反馈](#f-013-07) | 部分实现 | 本阶段已验证 | 不适用 | 仅本机 | CLI: backend/manage_runtime_release.py · 默认关闭的自有本机稳定/预览运行、新卷切换/回退与中断核对；公网未验 |
 
 <a id="f-013-01"></a>
 
@@ -949,13 +949,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-013.07 隔离预览、策略发布、回退与反馈
 
-需求：R-003, R-004, R-006；验收阶段：E；范围：本阶段交付；实现版本：`commit-06739fd5768c`；发布版本：`未发布`。
+需求：R-003, R-004, R-006；验收阶段：E；范围：本阶段交付；实现版本：`source-tree-ccbc375d8793`；发布版本：`未发布`。
 
-代码：[`backend/app/core/contracts/local_releases.py`](../../../../backend/app/core/contracts/local_releases.py)、[`backend/app/services/community/local_release_files.py`](../../../../backend/app/services/community/local_release_files.py)、[`backend/app/services/community/local_releases.py`](../../../../backend/app/services/community/local_releases.py)、[`backend/manage_local_release.py`](../../../../backend/manage_local_release.py)。
+代码：[`backend/app/core/contracts/local_releases.py`](../../../../backend/app/core/contracts/local_releases.py)、[`backend/app/services/community/local_release_files.py`](../../../../backend/app/services/community/local_release_files.py)、[`backend/app/services/community/local_releases.py`](../../../../backend/app/services/community/local_releases.py)、[`backend/manage_local_release.py`](../../../../backend/manage_local_release.py)、[`deploy/workspace/Dockerfile`](../../../../deploy/workspace/Dockerfile)、[`backend/app/core/contracts/local_runtime_release.py`](../../../../backend/app/core/contracts/local_runtime_release.py)、[`backend/app/services/community/runtime_release_safety.py`](../../../../backend/app/services/community/runtime_release_safety.py)、[`backend/app/services/community/runtime_release_store.py`](../../../../backend/app/services/community/runtime_release_store.py)、[`backend/app/services/community/runtime_release_docker.py`](../../../../backend/app/services/community/runtime_release_docker.py)、[`backend/app/services/community/runtime_release_helper.py`](../../../../backend/app/services/community/runtime_release_helper.py)、[`backend/app/services/community/runtime_releases.py`](../../../../backend/app/services/community/runtime_releases.py)、[`backend/manage_runtime_release.py`](../../../../backend/manage_runtime_release.py)、[`backend/local_runtime_bootstrap.py`](../../../../backend/local_runtime_bootstrap.py)、[`backend/local_runtime_helper.py`](../../../../backend/local_runtime_helper.py)。
 
-限制：维护者独立私有日志根目录；新A/B预览账号/空间/领取文件，无稳定数据/连接复制，无自动启动，声明提交只作追溯，不等于实际运行镜像已验。；停止指定网关/工作进程后依次原生锁定；全根目录SQLite backup包含已提交WAL，逐库结构/所有行/序列/版本与文件摘要核对，普通-wal业务文件保留。；单次8GiB、文件/目录各50000、单文件2GiB、SQLite256表/8MiB值、120秒检查预算；复制期间增长受限，源/档案/目标不交叠，损坏/链接/新旧记录冲突拒绝。；原请求/目的路径绑定，进程实际退出保留意图和部分产物且不自动重做；恢复只到新路径，旧资料和后来编辑保留，POSIX新数据根0700。；真实新账号网关/固定空间工作进程/项目越权、SQLite/WAL和新路径恢复通过；冻结720/3平台跳过含新增24/1，作者审阅；随后准确06739fd主分支CI1748/2跳过/2历史未选、前端、通用40与实际Linux10/清理通过。；本机反馈与独立审核/真实用户验收/实际部署分记；策略上线、准确镜像激活/回切、真实App到发布、历史生产切换及公网仍未完成，整项部分实现。。
+限制：维护者独立私有日志根目录；新A/B预览账号/空间/领取文件，无稳定数据/连接复制，无自动启动，声明提交只作追溯，不等于实际运行镜像已验。；停止指定网关/工作进程后依次原生锁定；全根目录SQLite backup包含已提交WAL，逐库结构/所有行/序列/版本与文件摘要核对，普通-wal业务文件保留。；单次8GiB、文件/目录各50000、单文件2GiB、SQLite256表/8MiB值、120秒检查预算；复制期间增长受限，源/档案/目标不交叠，损坏/链接/新旧记录冲突拒绝。；原请求/目的路径绑定，进程实际退出保留意图和部分产物且不自动重做；恢复只到新路径，旧资料和后来编辑保留，POSIX新数据根0700。；真实新账号网关/固定空间工作进程/项目越权、SQLite/WAL和新路径恢复通过；冻结720/3平台跳过含新增24/1，作者审阅；随后准确06739fd主分支CI1748/2跳过/2历史未选、前端、通用40与实际Linux10/清理通过。；本机反馈与独立审核/真实用户验收/实际部署分记；策略上线、真实生产镜像激活/回切、真实App到发布、历史生产切换及公网仍未完成，整项部分实现。；新增独立默认关闭本机运行策略：只建自有命名卷/容器/网络，镜像ID+标签/源码声明/启动摘要固定，本地Docker28+/cgroupv2，原服务/主机目录/凭据不接管；声明不是独立审核。；应用仅isolated internal网络，数据无关固定目标代理发布新回环地址；非root/只读/无cap/有限CPU内存PID/日志/HTTP，稳定与预览host-only Cookie和首次新A/B资料分离。；停止全部自有写入者后核对任务/费用/租约/账单，完整全根档案绑定原清单；恢复仅新卷，费用/模型/身份拓扑不符拒绝，当前控制库/会话撤销/体验/密钥状态带入新副本，较新卷保留不自动合并。；追加SQLite原始意图/事件/策略/代次/档案防rowid替换，当前指针原子提交；旧键只读历史，未知接收不重复，reconcile只观察，显式quiesce绑定新观察且仅停自有服务，数据不删。；冻结本机110通过/3跳过含86新增，真实原生工作进程/SQLite/文件路径；实际Docker2项本机未运行，准确新旧镜像/真实网络/回退与清理等待CI单列。公网、生产历史、付费成片、真实App与独立审核不因本机通过而完成。。
 
-验证依据：`EV-LOCAL-RELEASE-DATA`、`EV-LOCAL-RELEASE-CI`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-RELEASE-DATA`、`EV-LOCAL-RELEASE-CI`、`EV-LOCAL-RUNTIME-RELEASE`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -966,7 +966,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | 编号 / 子功能 | 实现 | 软件验证 | 真实模型 | 部署 | 实际入口 |
 | --- | --- | --- | --- | --- | --- |
 | [F-014.01 GitHub源码发布与来源说明](#f-014-01) | 已实现 | 本阶段已验证 | 不适用 | 未部署 | https://github.com/weicaojava/fawnimo · GitHub：Fawnimo源码、功能目录、路线图与CI |
-| [F-014.02 稳定/预览部署与数据/执行环境分离](#f-014-02) | 部分实现 | 未验收 | 不适用 | 未部署 | CLI deploy/workspace/compose.yaml · 稳定/预览单节点容器准备文件，未运行部署 |
+| [F-014.02 稳定/预览部署与数据/执行环境分离](#f-014-02) | 部分实现 | 未验收 | 不适用 | 未部署 | CLI: backend/manage_runtime_release.py · 默认关闭的自有本机稳定/预览运行、新卷切换/回退与中断核对；公网未验 |
 | [F-014.03 公网实机、交付账号与关键制作链验收](#f-014-03) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
 
 <a id="f-014-01"></a>
@@ -987,13 +987,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-014.02 稳定/预览部署与数据/执行环境分离
 
-需求：R-006；验收阶段：F；范围：本阶段交付；实现版本：`working-tree-2026-11-02`；发布版本：`未发布`。
+需求：R-006；验收阶段：F；范围：本阶段交付；实现版本：`source-tree-ccbc375d8793`；发布版本：`未发布`。
 
-代码：[`deploy/workspace/Dockerfile`](../../../../deploy/workspace/Dockerfile)、[`deploy/workspace/compose.yaml`](../../../../deploy/workspace/compose.yaml)、[`deploy/workspace/README.md`](../../../../deploy/workspace/README.md)、[`backend/run_controlplane.py`](../../../../backend/run_controlplane.py)、[`scripts/verify_workspace_container.py`](../../../../scripts/verify_workspace_container.py)、[`.github/workflows/verify-workspace-container.yml`](../../../../.github/workflows/verify-workspace-container.yml)。
+代码：[`deploy/workspace/Dockerfile`](../../../../deploy/workspace/Dockerfile)、[`deploy/workspace/compose.yaml`](../../../../deploy/workspace/compose.yaml)、[`deploy/workspace/README.md`](../../../../deploy/workspace/README.md)、[`backend/run_controlplane.py`](../../../../backend/run_controlplane.py)、[`scripts/verify_workspace_container.py`](../../../../scripts/verify_workspace_container.py)、[`.github/workflows/verify-workspace-container.yml`](../../../../.github/workflows/verify-workspace-container.yml)、[`backend/app/core/contracts/local_runtime_release.py`](../../../../backend/app/core/contracts/local_runtime_release.py)、[`backend/app/services/community/local_release_files.py`](../../../../backend/app/services/community/local_release_files.py)、[`backend/app/services/community/runtime_release_safety.py`](../../../../backend/app/services/community/runtime_release_safety.py)、[`backend/app/services/community/runtime_release_store.py`](../../../../backend/app/services/community/runtime_release_store.py)、[`backend/app/services/community/runtime_release_docker.py`](../../../../backend/app/services/community/runtime_release_docker.py)、[`backend/app/services/community/runtime_release_helper.py`](../../../../backend/app/services/community/runtime_release_helper.py)、[`backend/app/services/community/runtime_releases.py`](../../../../backend/app/services/community/runtime_releases.py)、[`backend/manage_runtime_release.py`](../../../../backend/manage_runtime_release.py)、[`backend/local_runtime_bootstrap.py`](../../../../backend/local_runtime_bootstrap.py)、[`backend/local_runtime_helper.py`](../../../../backend/local_runtime_helper.py)。
 
-限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；两个服务使用同一候选镜像；跨版本升级/回退、完整备份恢复、公网平台和浏览器关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。；后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。；4a38精确CI938通过、前端和既有容器40项/清理及独立31另行记录；不将通用容器文字检查当作新参考协议的容器验收。；8ccd精确CI1050通过/1跳过/2历史未选及既有容器40项/清理单列；不把通用容器检查算作新参考或声音链容器验收。；b364精确CI1105/2跳过/2历史未选、通用容器40/清理另列；原c1生命周期夹具失败完整保留，实际M4B副本3项不等于正式旧数据切换或所有恢复资格。；新增独立预览数据与全网关离线备份/新路径恢复、本机反馈；720冻结通过/3平台跳过，实际本机网关/SQLite/进程路径，作者审阅；服务器未购置，稳定/预览实际版本切换、掉电/正式迁移/公网仍待验。。
+限制：2ced83d精确镜像在GitHub Linux runner通过40项实际容器检查，包含双账号、独立卷、上传/Range、项目预算、示例与删除后重建；测试资源清理通过。；14静态检查、8拒绝方法、30原生断言与40容器断言分别记录，不能合计为新的后端用例数。；历史Compose检查使用同一候选镜像；另有独立本机运行入口的软件路径，准确Docker跨版本切换/回退待CI，公网与真实关键制作链仍未验收。；本机Windows Docker引擎仍未运行；CI容器通过不等于用户服务器已经部署，仅支持单节点SQLite。；后续858a915镜像也通过既有40项及清理，实际报告另列original-example-ci-validation.json；不将通用文字示例检查当作新媒体渲染器的容器验收。；4a38精确CI938通过、前端和既有容器40项/清理及独立31另行记录；不将通用容器文字检查当作新参考协议的容器验收。；8ccd精确CI1050通过/1跳过/2历史未选及既有容器40项/清理单列；不把通用容器检查算作新参考或声音链容器验收。；b364精确CI1105/2跳过/2历史未选、通用容器40/清理另列；原c1生命周期夹具失败完整保留，实际M4B副本3项不等于正式旧数据切换或所有恢复资格。；新增独立预览数据与全网关离线备份/新路径恢复、本机反馈；720冻结通过/3平台跳过，实际本机网关/SQLite/进程路径，作者审阅；服务器未购置，稳定/预览真实生产版本切换、掉电/正式迁移/公网仍待验。；新增独立默认关闭本机运行策略：只建自有命名卷/容器/网络，镜像ID+标签/源码声明/启动摘要固定，本地Docker28+/cgroupv2，原服务/主机目录/凭据不接管；声明不是独立审核。；应用仅isolated internal网络，数据无关固定目标代理发布新回环地址；非root/只读/无cap/有限CPU内存PID/日志/HTTP，稳定与预览host-only Cookie和首次新A/B资料分离。；停止全部自有写入者后核对任务/费用/租约/账单，完整全根档案绑定原清单；恢复仅新卷，费用/模型/身份拓扑不符拒绝，当前控制库/会话撤销/体验/密钥状态带入新副本，较新卷保留不自动合并。；追加SQLite原始意图/事件/策略/代次/档案防rowid替换，当前指针原子提交；旧键只读历史，未知接收不重复，reconcile只观察，显式quiesce绑定新观察且仅停自有服务，数据不删。；冻结本机110通过/3跳过含86新增，真实原生工作进程/SQLite/文件路径；实际Docker2项本机未运行，准确新旧镜像/真实网络/回退与清理等待CI单列。公网、生产历史、付费成片、真实App与独立审核不因本机通过而完成。。
 
-验证依据：`EV-DEPLOY-CONFIG`、`EV-CONTAINER-RUNTIME-PREPARATION`、`EV-ORIGINAL-EXAMPLE-PUBLISHED-CI`、`EV-REFERENCE-IMAGE-PUBLISHED-CI`、`EV-VIDEO-REFERENCE-PUBLISHED-CI`、`EV-SOUND-PUBLISHED-CI`、`EV-LOCAL-RELEASE-DATA`、`EV-LOCAL-RELEASE-CI`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-DEPLOY-CONFIG`、`EV-CONTAINER-RUNTIME-PREPARATION`、`EV-ORIGINAL-EXAMPLE-PUBLISHED-CI`、`EV-REFERENCE-IMAGE-PUBLISHED-CI`、`EV-VIDEO-REFERENCE-PUBLISHED-CI`、`EV-SOUND-PUBLISHED-CI`、`EV-LOCAL-RELEASE-DATA`、`EV-LOCAL-RELEASE-CI`、`EV-LOCAL-RUNTIME-RELEASE`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1133,6 +1133,8 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-BILLING-ADJUSTMENTS-CI | software | repository · `capabilities/billing-adjustments-ci-validation.json` | 757c61c准确main CI1787通过/2跳过/2私有历史未选，前端、通用40与实际Linux10/清理通过；本地更正/归属/净额软件，真实供应商账单/退款/收费/独立审核未验。 |
 | EV-SOUND-MUSIC-LOCAL | software | repository · `capabilities/sound-music-local-validation.json` | 明确配乐循环/已确认原对白避让/原历史与样本保留；冻结114通过含新增21、2私有历史按CI未选，准确浏览器10、下载PCM独立测量和实际API/client/前端通过；作者审阅，云声音/模型质量/完整片/公网未验。 |
 | EV-WORKSPACE-REFERENCE-CI | software | repository · `capabilities/workspace-reference-ci-validation.json` | 3aac2c2准确main CI1839通过/2跳过/2私有历史未选，前端、通用40与实际Linux10/清理通过；固定身份参考素材软件，真实远程模型/账单/收费/独立审核/公网未验。 |
+| EV-LOCAL-RUNTIME-RELEASE | software | repository · `capabilities/runtime-release-local-validation.json` | 冻结本机110通过/3跳过，含86新增；真实新SQLite/原生工作进程/离线数据路径，作者审阅；实际Docker镜像切换另待准确CI，未验公网/付费/独立审核。 |
+| EV-SOUND-MUSIC-CI | software | repository · `capabilities/sound-music-ci-validation.json` | fde5745准确main CI1860通过/2跳过/2历史未选，前端、通用40与实际候选检查10及清理通过；通用容器不单独代表新音频渲染器/模型质量验收。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

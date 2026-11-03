@@ -96,17 +96,22 @@ def inventory(root,deadline):
 def database_receipt(path,deadline):
     """Check exact SQLite business content with bounded row values, table count and progress; private rows never enter a report."""
     with closing(sqlite3.connect(plain(path).as_uri()+'?mode=ro',uri=True,timeout=1.5)) as db:
-        db.setlimit(sqlite3.SQLITE_LIMIT_LENGTH,8388608)
-        db.set_progress_handler(lambda:1 if time.monotonic()>deadline else 0,1000)
-        if db.execute('PRAGMA quick_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchone() is not None:
-            raise LocalReleaseError('SQLite snapshot integrity check failed')
-        if db.execute("SELECT count(*) FROM sqlite_master WHERE type='table'").fetchone()[0]>256:
-            raise LocalReleaseError('SQLite table limit reached')
-        names={row[0]:None for row in db.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")}
-        schema=db.execute("SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name").fetchall()
-        return {'tables':table_receipts(db,expected=names),
-            'schema_sha256':hashlib.sha256(json.dumps(schema,ensure_ascii=False,separators=(',',':')).encode()).hexdigest(),
-            'user_version':db.execute('PRAGMA user_version').fetchone()[0],'application_id':db.execute('PRAGMA application_id').fetchone()[0]}
+        return connection_receipt(db,deadline)
+
+
+def connection_receipt(db,deadline):
+    """Use the caller's existing read snapshot for the same bounded row/schema proof, without opening a later database generation."""
+    db.setlimit(sqlite3.SQLITE_LIMIT_LENGTH,8388608)
+    db.set_progress_handler(lambda:1 if time.monotonic()>deadline else 0,1000)
+    if db.execute('PRAGMA quick_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchone() is not None:
+        raise LocalReleaseError('SQLite snapshot integrity check failed')
+    if db.execute("SELECT count(*) FROM sqlite_master WHERE type='table'").fetchone()[0]>256:
+        raise LocalReleaseError('SQLite table limit reached')
+    names={row[0]:None for row in db.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")}
+    schema=db.execute("SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name").fetchall()
+    return {'tables':table_receipts(db,expected=names),
+        'schema_sha256':hashlib.sha256(json.dumps(schema,ensure_ascii=False,separators=(',',':')).encode()).hexdigest(),
+        'user_version':db.execute('PRAGMA user_version').fetchone()[0],'application_id':db.execute('PRAGMA application_id').fetchone()[0]}
 
 
 def flush_copy(directory,deadline):

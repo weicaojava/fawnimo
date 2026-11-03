@@ -35,19 +35,21 @@ jobs:
   workspace-container:
     if: github.repository == 'weicaojava/fawnimo'
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 50
     env:
       IMAGE: fawnimo-container-check:${{ github.sha }}
       RUN_PREFIX: fawnimo-check-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 32
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Verify local-engine and cleanup refusal guards
         run: python -m unittest discover -s scripts/tests -p test_workspace_container_verifier.py -v
       - name: Build the actual same-origin workspace image without publishing
-        run: docker build --file deploy/workspace/Dockerfile --tag "$IMAGE" .
+        run: docker build --build-arg FAWNIMO_SOURCE_COMMIT="$GITHUB_SHA" --file deploy/workspace/Dockerfile --tag "$IMAGE" .
       - name: Verify Compose runtime, private accounts and persistent reconstruction
         run: python scripts/verify_workspace_container.py --image "$IMAGE" --run-prefix "$RUN_PREFIX" --report container-verification.json
       - name: Install locked host controller dependencies for the separate code-check profile
@@ -64,6 +66,34 @@ jobs:
         run: |
           export FAWNIMO_CODE_CHECK_OCI_IMAGE="$(docker image inspect --format '{{.Id}}' "$IMAGE")"
           .venv/bin/python -m pytest tests/test_community_code_check_oci.py -q --tb=short --junitxml=../community-code-check-oci.xml
+      - name: Build the actual qualified previous source and a separate deliberately broken fixture
+        run: |
+          PREVIOUS_COMMIT=fde5745e2c5615e2f6b5cc23d0e88a5060fc7b1d
+          PREVIOUS_DIR="$(mktemp -d)"
+          git archive "$PREVIOUS_COMMIT" | tar -x -C "$PREVIOUS_DIR"
+          docker build --label "org.opencontainers.image.revision=$PREVIOUS_COMMIT" --file "$PREVIOUS_DIR/deploy/workspace/Dockerfile" --tag "fawnimo-runtime-previous:$GITHUB_SHA" "$PREVIOUS_DIR"
+          FAULT_DIR="$(mktemp -d)"
+          cat > "$FAULT_DIR/Dockerfile" <<'EOF'
+          ARG SOURCE_IMAGE
+          FROM ${SOURCE_IMAGE}
+          USER root
+          RUN rm /app/backend/app/core/contracts/sound_mix.py
+          USER 10001:10001
+          EOF
+          docker build --build-arg SOURCE_IMAGE="$IMAGE" --label org.opencontainers.image.revision=ffffffffffffffffffffffffffffffffffffffff --tag "fawnimo-runtime-broken-fixture:$GITHUB_SHA" "$FAULT_DIR"
+      - name: Verify actual owned local activation, rollback, security preservation and interrupted-operation quiescence
+        working-directory: backend
+        env:
+          JELLYFISH_SKIP_ENV_FILE: "1"
+          PYTHONDONTWRITEBYTECODE: "1"
+          FAWNIMO_RUNTIME_OCI_COMMIT: ${{ github.sha }}
+          FAWNIMO_RUNTIME_OCI_PREVIOUS_COMMIT: fde5745e2c5615e2f6b5cc23d0e88a5060fc7b1d
+          FAWNIMO_RUNTIME_OCI_REPORT: ${{ github.workspace }}/runtime-release-verification.json
+        run: |
+          export FAWNIMO_RUNTIME_OCI_IMAGE="$(docker image inspect --format '{{.Id}}' "$IMAGE")"
+          export FAWNIMO_RUNTIME_OCI_PREVIOUS_IMAGE="$(docker image inspect --format '{{.Id}}' "fawnimo-runtime-previous:$GITHUB_SHA")"
+          export FAWNIMO_RUNTIME_OCI_FAULT_IMAGE="$(docker image inspect --format '{{.Id}}' "fawnimo-runtime-broken-fixture:$GITHUB_SHA")"
+          .venv/bin/python -m pytest tests/test_local_runtime_oci.py -q --tb=short --junitxml=../local-runtime-oci.xml
       - name: Retain the bounded qualification result without fixture credentials or media
         if: always()
         uses: actions/upload-artifact@v4
@@ -73,5 +103,7 @@ jobs:
             container-verification.json
             community-code-check-verification.json
             community-code-check-oci.xml
+            runtime-release-verification.json
+            local-runtime-oci.xml
           if-no-files-found: ignore
           retention-days: 14

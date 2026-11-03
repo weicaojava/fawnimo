@@ -108,6 +108,9 @@ jobs:
           tests/test_community_publication.py
           tests/test_community_publication_admission.py tests/test_community_publication_transport.py
           tests/test_local_releases.py
+          tests/test_local_runtime_safety.py tests/test_local_runtime_store.py tests/test_local_runtime_helper.py
+          tests/test_local_runtime_controller.py tests/test_local_runtime_proxy.py
+          tests/test_local_runtime_cli.py
           tests/test_script_preparation.py tests/test_shot_extracted_candidates_api_responses.py
           tests/test_seedance25_independent.py tests/test_workspace_video_pipeline.py
 

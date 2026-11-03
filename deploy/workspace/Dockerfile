@@ -10,6 +10,8 @@ RUN pnpm run build \
     && printf 'window.__ENV = { BACKEND_URL: "" };\n' > dist/env.js
 
 FROM python:3.12-slim-bookworm AS runtime
+ARG FAWNIMO_SOURCE_COMMIT
+LABEL org.opencontainers.image.revision=$FAWNIMO_SOURCE_COMMIT
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_NO_CACHE=1 \
@@ -30,8 +32,8 @@ COPY capabilities/features.json /app/capabilities/features.json
 RUN uv sync --locked --no-dev --extra dev \
     && groupadd --gid 10001 studio \
     && useradd --uid 10001 --gid studio --no-create-home studio \
-    && mkdir -p /data \
-    && chown studio:studio /data
+    && mkdir -p /data /source /target /current /bootstrap \
+    && chown studio:studio /data /source /target /current /bootstrap
 COPY --from=frontend /build/front/dist /app/front/dist
 COPY LICENSE /app/LICENSE
 USER 10001:10001
