@@ -193,6 +193,15 @@ class SoundQualificationTests(unittest.TestCase):
         self.assertEqual(record['sound_exports'], negative)
         self.assertNotIn('runtime_verified', record)
 
+    def test_fixture_failure_summary_removes_credentials_and_keeps_useful_error(self):
+        """Negative fixture diagnostics must remain useful without publishing bearer credentials, key fields or URL payloads."""
+        raw = "CalledProcessError: encoder failed api_key='private-key-value' password=private-password secret='private secret with spaces' Bearer private-bearer https://fixture.invalid/download?secret=private-query " + 'Z' * 64
+        summary = VERIFIER.sound_failure_summary(raw)
+        self.assertIn('CalledProcessError: encoder failed', summary)
+        for secret in ('private-key-value', 'private-password', 'private secret with spaces', 'private-bearer', 'private-query', 'Z' * 64):
+            self.assertNotIn(secret, summary)
+        self.assertLessEqual(len(summary), 384)
+
 
 if __name__ == '__main__':
     unittest.main()

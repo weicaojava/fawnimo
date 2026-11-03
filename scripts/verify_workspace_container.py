@@ -50,6 +50,7 @@ selected = ''' + json.dumps(SOUND_CASES) + '''
 stage = 'prepare_private_fixture'
 diagnostics = []
 counts = None
+runtime_markers = []
 try:
     with tempfile.TemporaryDirectory(prefix='fawnimo-image-sound-', dir='/tmp') as directory:
         root = pathlib.Path(directory)
@@ -70,6 +71,15 @@ try:
         counts = {name: sum(int(suite.get(name, '0')) for suite in suites)
             for name in ('tests', 'failures', 'errors', 'skipped')}
         cases = list(document.iter('testcase'))
+        with (root / 'private-test.log').open('rb') as log:
+            log.seek(max(0, log.seek(0, 2) - 65536))
+            tail = log.read(65536).decode('utf8', errors='replace')
+        runtime_markers = [name for token, name in (
+            ('Resource temporarily unavailable', 'temporary_resource_exhaustion'), ('pthread_create', 'thread_creation_failed'),
+            ('OpenBLAS', 'blas_runtime'), ('CalledProcessError', 'child_process_failed'),
+            ('Read-only file system', 'readonly_fixture_path'), ('readonly database', 'readonly_fixture_database'),
+            ('Permission denied', 'fixture_permissions'), ('No such file or directory', 'missing_fixture_path'),
+            ('Error while opening encoder', 'encoder_initialization'), ('Failed to configure output pad', 'filter_configuration')) if token in tail]
         identities = [case.get('classname', '').replace('.', '/') + '.py::' + case.get('name', '') for case in cases]
         for identity, case in zip(identities, cases):
             for outcome in case:
@@ -85,7 +95,8 @@ try:
                 locations = re.findall(r'/app/backend/[A-Za-z0-9_./-]{1,160}', text)
                 locations = sorted({path for path in locations if '..' not in path.split('/')})[:3]
                 diagnostics.append(dict(case=identity if identity in selected else 'unresolved_fixed_case',
-                    outcome=outcome.tag, code=code, code_locations=locations))
+                    outcome=outcome.tag, code=code, code_locations=locations,
+                    message=outcome.get('message', '')[:1024]))
         stage = 'validate_fixed_cases'
         if result.returncode != 0:
             raise RuntimeError('Fixed authored-media cases did not complete successfully')
@@ -101,8 +112,20 @@ try:
 except Exception as error:
     # A handled negative result is delivered successfully; the host stores it and explicitly refuses qualification.
     print(json.dumps(dict(profile='image_sound_software_v1', status='failed', stage=stage,
-        error_type=type(error).__name__, counts=counts, diagnostics=diagnostics[:16])))
+        error_type=type(error).__name__, counts=counts, runtime_markers=runtime_markers, diagnostics=diagnostics[:16])))
 '''
+
+
+def sound_failure_summary(message):
+    """Keep a bounded local-fixture exception summary while removing credentials, URLs and encoded payloads before report storage."""
+    if not isinstance(message, str):
+        return ''
+    message = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', message)
+    message = re.sub(r'https?://[^\s\'"<>]+|data:[^\s\'"<>]+', '[redacted-url-or-data]', message)
+    message = re.sub(r'(?i)\b(?:bearer|basic)\s+[A-Za-z0-9_.+/=-]+', '[redacted-authorization]', message)
+    message = re.sub(r'''(?i)(['"]?(?:api[_-]?key|password|passwd|secret|token|authorization|cookie|session)['"]?\s*[:=]\s*)(?:'[^']*'|"[^"]*"|[^\s,}]+)''', r'\1[redacted]', message)
+    message = re.sub(r'[A-Za-z0-9_+/=-]{32,}', '[redacted-long-value]', message)
+    return ' '.join(message.split())[:384]
 
 
 def validate_sound_result(value):
@@ -374,6 +397,10 @@ print(json.dumps(profiles))
         if len(response.stdout) > 32768:
             raise RuntimeError('Actual-image sound result exceeds its report budget')
         value = json.loads(response.stdout)
+        if isinstance(value, dict) and value.get('status') == 'failed':
+            for item in value.get('diagnostics', []):
+                if isinstance(item, dict) and 'message' in item:
+                    item['message'] = sound_failure_summary(item['message'])
         if record is not None:
             record['sound_exports'] = value
         return validate_sound_result(value)
