@@ -202,6 +202,20 @@ class SoundQualificationTests(unittest.TestCase):
             self.assertNotIn(secret, summary)
         self.assertLessEqual(len(summary), 384)
 
+    def test_linux_speech_cannot_reuse_a_different_profile_or_case_receipt(self):
+        """The seven authored sound cases do not qualify any of the three actual installed-engine speech cases."""
+        with self.assertRaises(RuntimeError):
+            VERIFIER.validate_sound_result(self.result(), 'linux_speech')
+        correct = {**self.result(), 'profile': 'image_linux_speech_software_v1', 'tests': 3,
+                   'cases': list(VERIFIER.LINUX_SPEECH_CASES)}
+        self.assertEqual(VERIFIER.validate_sound_result(correct, 'linux_speech'), correct)
+        with self.assertRaises(RuntimeError):
+            VERIFIER.validate_sound_result({**correct, 'cases': list(VERIFIER.SOUND_CASES[:3])}, 'linux_speech')
+        with self.assertRaises(RuntimeError):
+            VERIFIER.sound_check_program('arbitrary-command')
+        compile(VERIFIER.sound_check_program('sound'), 'fixed-sound-profile', 'exec')
+        compile(VERIFIER.sound_check_program('linux_speech'), 'fixed-linux-speech-profile', 'exec')
+
 
 if __name__ == '__main__':
     unittest.main()

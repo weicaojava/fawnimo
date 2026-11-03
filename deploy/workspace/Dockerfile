@@ -20,7 +20,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app/backend
 COPY --from=ghcr.io/astral-sh/uv:0.13.6 /uv /usr/local/bin/uv
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates ffmpeg \
+    && apt-get install -y --no-install-recommends ca-certificates ffmpeg espeak-ng \
     && rm -rf /var/lib/apt/lists/*
 COPY backend/pyproject.toml backend/uv.lock backend/README.md ./
 # langchain-openai currently lives in the locked optional dev extra and is

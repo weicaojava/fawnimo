@@ -16,7 +16,8 @@ from app.models.task import GenerationTask
 from app.models.task_links import GenerationTaskLink
 from app.services.editing.common import chapter_owned, owned_plan, original_items, plan_script
 from app.services.editing.media import canonical_hash, stat_identity
-from app.services.editing.local_speech_engine import LocalSpeechEngine, PROFILE, available
+from app.services.editing.local_speech_engine import LocalSpeechEngine, available
+from app.core.contracts.local_speech_protocols import WINDOWS_PROFILE, LINUX_PROFILE
 from app.services.editing.sound_timeline import candidate_view
 from app.services.editing.sound_process import cancel_and_join
 from app.services.studio.production_media import media_path
@@ -48,7 +49,7 @@ async def job_view(db, row):
     return {'id': row.id, 'project_id': row.project_id, 'chapter_id': row.chapter_id, 'task_id': row.task_id,
         'state': row.state, 'reason': row.reason, 'attempts': row.attempts, 'plan_id': intent['plan_id'], 'dialogue_id': intent['dialogue_id'],
         'text': intent['text'], 'speaker_id': intent['speaker_id'], 'voice': intent['voice'], 'rate': intent['rate'],
-        'profile': PROFILE, 'external_fee_fen': 0, 'candidate': candidate}
+        'profile': intent['profile'], 'external_fee_fen': 0, 'candidate': candidate}
 
 
 async def get_job(factory, project_id, identifier):
@@ -92,7 +93,7 @@ async def create_job(factory, project_id, body, engine=None):
     identifier, task_id = str(uuid.uuid4()), str(uuid.uuid4())
     intent = {'job_id': identifier, 'project_id': project_id, 'chapter_id': chapter_id, 'plan_id': body.plan_id, 'plan_hash': plan_hash,
         'dialogue_id': body.dialogue_id, 'text': line['text'], 'speaker_id': line['speaker_id'], 'voice': voices[0], 'rate': body.rate,
-        'profile': PROFILE, 'external_fee_fen': 0}
+        'profile': body.profile, 'external_fee_fen': 0}
     async with factory() as db:
         async with transaction(db):
             previous = await replay(db, project_id, body)
@@ -160,13 +161,17 @@ class LocalSpeechWorker:
     async def claim(self):
         """CAS one original local job under the global speech lease, with at most three attempts."""
         if not settings.local_speech_enabled or settings.workspace_runtime_locked: return None
+        profile = getattr(self.engine, 'profile', WINDOWS_PROFILE)
+        if profile not in {WINDOWS_PROFILE, LINUX_PROFILE}: raise RuntimeError('Unsupported local speech worker profile')
         async with self.factory() as db:
             async with transaction(db):
                 slot = await db.get(LocalSpeechSlot, 1)
                 if slot is None: raise RuntimeError('Run local speech migration first')
                 now = self.clock()
                 if slot.job_id is not None and slot.lease_until > now: return None
-                jobs = (await db.execute(select(LocalSpeechJob).where(LocalSpeechJob.state.in_(('queued', 'running')), LocalSpeechJob.lease_until <= now).order_by(LocalSpeechJob.created_at, LocalSpeechJob.id).limit(200))).scalars().all()
+                jobs = (await db.execute(select(LocalSpeechJob).where(LocalSpeechJob.state.in_(('queued', 'running')),
+                    LocalSpeechJob.intent['profile'].as_string() == profile, LocalSpeechJob.lease_until <= now)
+                    .order_by(LocalSpeechJob.created_at, LocalSpeechJob.id).limit(200))).scalars().all()
                 for job in jobs:
                     task = await db.get(GenerationTask, job.task_id)
                     if job.cancel_requested or task.cancel_requested:

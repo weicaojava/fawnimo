@@ -16,12 +16,12 @@
     "errors": 0,
     "skipped": 0
   },
-  "host_guard_test_count": 14,
+  "host_guard_test_count": 15,
   "host_guard_tests_passed": true,
   "native_cases_passed": 7,
   "verification_source_sha256_lf_normalized": {
-    "scripts/verify_workspace_container.py": "4364e27f7d92f3dc5de747b8f052300a8c75360339f9bdd0549d3460956eb959",
-    "scripts/tests/test_workspace_container_verifier.py": "a05713d00832d2bf5e277f2f6d5a6064490235bb21645cd4eb08f74314c3eeb2",
+    "scripts/verify_workspace_container.py": "64326b6c484d591bf68337f07330b0aa930360b7e9cf7a8cce1f04eb0f899144",
+    "scripts/tests/test_workspace_container_verifier.py": "2b21c704db0c350feb3cd888cb27119fa0be29d87632576cbaa599383ddfe52b",
     "backend/tests/test_shot_plan.py": "a6de56d1f6f1b339ca83b39682c723e2cc8a7ab4b06cb9e65213e24830cfaf6c",
     "backend/tests/test_transitions_v2.py": "bf5713eb6be4370fc4f88798c62926924c39350b4e9af0d0554c51cf723e544f"
   },
@@ -36,7 +36,7 @@
   "public_deployment_verified": false,
   "overall_goal_complete": false,
   "native_junit_sha256": "9599d31b13607a645b43752fbe60174142d0e6e7db1177ae7f1a7bdfc9a25032",
-  "host_guard_log_sha256": "8e4e2f1ad90f3c189b91925862daf3274516ef08082f779bf442ced249adca18",
+  "host_guard_log_sha256": "17bdf79360fe9ead3b4b785ec599562f41527e8ed207ab471be44e2915073e6f",
   "previous_actual_image_failure": {
     "commit": "4659b8d6327dff60f948184e824a600c797cd930",
     "run_id": 41646680655,

@@ -1,0 +1,61 @@
+{
+  "profile": "image_linux_speech_software_v1",
+  "engine_profile": "linux_espeak_pcm_v1",
+  "scope": "Fixed installed Linux offline speech and authored original-dialogue software checks inside the exact owned deployed image; no spoken-content, voice-quality or real-film qualification.",
+  "required_cases": [
+    "tests/test_linux_speech_oci.py::test_actual_installed_linux_voices_pcm_and_exclusive_output[cmn]",
+    "tests/test_linux_speech_oci.py::test_actual_installed_linux_voices_pcm_and_exclusive_output[en-us]",
+    "tests/test_linux_speech_oci.py::test_actual_linux_original_job_candidate_mix_replay_and_windows_history"
+  ],
+  "required_counts": {
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "actual_image_evidence": "Exact-source Verify workspace container: container-verification.json.linux_speech, sound_exports, generic runtime and successful owned cleanup. This profile definition, native checks and authored-tone browser checks do not substitute for the actual image run.",
+  "native_related_counts": {
+    "tests": 109,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "native_deselected_private_database_cases": 2,
+  "native_scope_note": "The 109-case snapshot differs only in SoundEditor explanatory copy; backend, tests, workflow and container verifier hashes are identical. Current copy separately typechecked, built and browser-checked.",
+  "browser_checks_passed": 7,
+  "browser_engine": "explicitly authored tone fixture; not actual Linux synthesis",
+  "host_guard_tests_passed": 15,
+  "preserves_generic_check_count": 40,
+  "preserves_sound_case_count": 7,
+  "source_tree": "cd22b152b312b3241aa1e5d231ea0e94a5f4ba17",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "d83e46b273d4fb26aa21c32893a1c9b4b6979fae37d880fdfcf3565931056c96",
+    "deploy/workspace/Dockerfile": "5b766fc4198fdb9cd09e129fa82f1f92a6d2c364dcbf625f1e5193bb912f53f9",
+    "backend/app/core/contracts/local_speech.py": "8517fd813d6ea0ccd8e37d9b9e9cbde4367138724472a1e5be4f7795d506c844",
+    "backend/app/core/contracts/local_speech_protocols.py": "ef327f4476a506ea807e28265cc397e83c1f9aa1631db66d05f1c251ebf3cccf",
+    "backend/app/services/editing/local_speech.py": "ea82fbabc082964edf5276d63e9df64b5260ed7bc6307761e4915c5ebd4272e6",
+    "backend/app/services/editing/local_speech_engine.py": "33076262c9f83fb291b9ee020d6fcf8b0701000418b6b8f69bf6924343448c6e",
+    "backend/app/services/editing/local_speech_linux_child.py": "355f863f2e532d8be8bdfa0bcd90363e25cd7e8c57c2fbe9e600b4f46264e36d",
+    "backend/app/services/editing/local_speech_schema.py": "8a66bfd71814a774df665db9577f9370241133cbfe3e4de98efe94873703b13e",
+    "backend/tests/test_linux_speech.py": "4b7e63134de1e71dd3f10a51c87080a0f0e88eb43e96cdc6d595441196737c0b",
+    "backend/tests/test_linux_speech_oci.py": "0e5da63d3b8a2d165e759c87e24a657ba54938a9035b6dadfdeb159243c1dbb7",
+    "backend/tests/fixtures/local_speech_job_scope_v1.sql": "69b37807bcaa25539ec2a8af25bfc3d8c33229a8c5e184a35822d74ed2f467fe",
+    "front/openapi.json": "cafd0cf1d9e8c8329188e4872a44d6da231e02580afaceb26a17e63c290218b6",
+    "front/src/services/generated/models/LocalSpeechCatalog.ts": "3ec67560c33bad79ae41ad192495813d8fa5db8ab77e05aad162ffa44b8a937b",
+    "front/src/services/generated/models/LocalSpeechRead.ts": "8acc172c557af164b7d75b35bd9ae2a8f0af5d638010f6ed82b642b873e9423e",
+    "front/src/services/generated/models/LocalSpeechRequest.ts": "2b4e7b6cb030122f2e7ba0d77b390666460b8a3c247efc113d996f6306629df3",
+    "front/src/pages/aiStudio/editor/SoundEditor.tsx": "e0c571fa72b74399af8d83c02a35a1845b923e7764137a58fd87faca64327fab",
+    "scripts/verify_workspace_container.py": "64326b6c484d591bf68337f07330b0aa930360b7e9cf7a8cce1f04eb0f899144",
+    "scripts/tests/test_workspace_container_verifier.py": "2b21c704db0c350feb3cd888cb27119fa0be29d87632576cbaa599383ddfe52b"
+  },
+  "native_junit_sha256": "0e7b0265680ed9b639fe8d879177f0a7149a56f7b52874cd53156ab52453f5e7",
+  "browser_receipt_sha256": "5059a2bc3b71cdc2a180f836c90d6856c8556b1b369d767486737470be77871f",
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "actual_Linux_engine_qualified": false,
+  "model_quality_qualified": false,
+  "complete_film_qualified": false,
+  "independent_review_completed": false,
+  "public_deployment_verified": false,
+  "overall_goal_complete": false
+}

@@ -40,13 +40,26 @@ SOUND_CASES = (
     'tests/test_sound_timeline.py::test_local_sound_children_do_not_inherit_application_credentials',
     'tests/test_demo_media_render.py::test_actual_seven_original_clips_and_frames_decode',
 )
+LINUX_SPEECH_CASES = (
+    'tests/test_linux_speech_oci.py::test_actual_installed_linux_voices_pcm_and_exclusive_output[cmn]',
+    'tests/test_linux_speech_oci.py::test_actual_installed_linux_voices_pcm_and_exclusive_output[en-us]',
+    'tests/test_linux_speech_oci.py::test_actual_linux_original_job_candidate_mix_replay_and_windows_history',
+)
+MEDIA_PROFILES = {
+    'sound': ('image_sound_software_v1', SOUND_CASES),
+    'linux_speech': ('image_linux_speech_software_v1', LINUX_SPEECH_CASES),
+}
 
 
-def sound_check_program():
-    """Run only seven fixed authored-media cases inside the existing owned image; retain no fixture media or raw logs."""
+def sound_check_program(profile='sound'):
+    """Run one of two server-fixed image profiles; callers cannot provide commands, case lists or media paths."""
+    if not isinstance(profile, str) or profile not in MEDIA_PROFILES:
+        raise RuntimeError('Unknown fixed image media profile')
+    expected_profile, selected_cases = MEDIA_PROFILES[profile]
     # The program has no user-supplied commands, paths, environment values or model connection.
     return '''import hashlib, json, os, pathlib, re, subprocess, sys, tempfile, xml.etree.ElementTree as ET
-selected = ''' + json.dumps(SOUND_CASES) + '''
+selected = ''' + json.dumps(selected_cases) + '''
+profile_name = ''' + json.dumps(expected_profile) + '''
 stage = 'prepare_private_fixture'
 diagnostics = []
 counts = None
@@ -56,7 +69,8 @@ try:
         root = pathlib.Path(directory)
         report = root / 'junit.xml'
         environment = dict(os.environ, JELLYFISH_SKIP_ENV_FILE='1', PYTHONDONTWRITEBYTECODE='1',
-            PYTEST_DISABLE_PLUGIN_AUTOLOAD='1', FAWNIMO_TEST_FFMPEG='/usr/bin/ffmpeg', TEST_MEDIA_PROBE='/usr/bin/ffmpeg')
+            PYTEST_DISABLE_PLUGIN_AUTOLOAD='1', FAWNIMO_TEST_FFMPEG='/usr/bin/ffmpeg', TEST_MEDIA_PROBE='/usr/bin/ffmpeg',
+            FAWNIMO_TEST_LINUX_SPEECH='1' if profile_name == 'image_linux_speech_software_v1' else '0')
         stage = 'run_fixed_cases'
         with (root / 'private-test.log').open('wb') as log:
             result = subprocess.run([sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider',
@@ -100,18 +114,18 @@ try:
         stage = 'validate_fixed_cases'
         if result.returncode != 0:
             raise RuntimeError('Fixed authored-media cases did not complete successfully')
-        if counts != dict(tests=7, failures=0, errors=0, skipped=0) or len(identities) != len(set(identities)) or set(identities) != set(selected):
+        if counts != dict(tests=len(selected), failures=0, errors=0, skipped=0) or len(identities) != len(set(identities)) or set(identities) != set(selected):
             raise RuntimeError('Fixed authored-media case identities/counts changed')
         if any(list(case) for case in cases):
             raise RuntimeError('Skipped/failed or unexpected case details are not successful qualification')
-        value = dict(profile='image_sound_software_v1', **counts, cases=sorted(identities),
+        value = dict(profile=profile_name, **counts, cases=sorted(identities),
             junit_sha256=hashlib.sha256(raw).hexdigest(), uid=os.getuid(),
             readonly_code=bool(os.statvfs('/app').f_flag & os.ST_RDONLY), external_model_calls=0,
             model_quality_qualified=False, complete_film_qualified=False, public_deployment_verified=False)
     print(json.dumps(value, separators=(',', ':')))
 except Exception as error:
     # A handled negative result is delivered successfully; the host stores it and explicitly refuses qualification.
-    print(json.dumps(dict(profile='image_sound_software_v1', status='failed', stage=stage,
+    print(json.dumps(dict(profile=profile_name, status='failed', stage=stage,
         error_type=type(error).__name__, counts=counts, runtime_markers=runtime_markers, diagnostics=diagnostics[:16])))
 '''
 
@@ -128,17 +142,20 @@ def sound_failure_summary(message):
     return ' '.join(message.split())[:384]
 
 
-def validate_sound_result(value):
-    """Reject changed, missing, repeated or skipped cases; a successful process alone cannot qualify media exports."""
+def validate_sound_result(value, profile='sound'):
+    """Bind exact successful cases to their own fixed profile; existing media passes cannot qualify Linux synthesis."""
+    if not isinstance(profile, str) or profile not in MEDIA_PROFILES:
+        raise RuntimeError('Unknown fixed image media profile')
+    expected_profile, selected_cases = MEDIA_PROFILES[profile]
     expected = {'profile', 'tests', 'failures', 'errors', 'skipped', 'cases', 'junit_sha256', 'uid',
                 'readonly_code', 'external_model_calls', 'model_quality_qualified', 'complete_film_qualified', 'public_deployment_verified'}
-    if not isinstance(value, dict) or set(value) != expected or value['profile'] != 'image_sound_software_v1':
+    if not isinstance(value, dict) or set(value) != expected or value['profile'] != expected_profile:
         raise RuntimeError('Invalid actual-image sound result')
-    counts = {'tests': 7, 'failures': 0, 'errors': 0, 'skipped': 0, 'uid': 10001, 'external_model_calls': 0}
+    counts = {'tests': len(selected_cases), 'failures': 0, 'errors': 0, 'skipped': 0, 'uid': 10001, 'external_model_calls': 0}
     if any(type(value[name]) is not int or value[name] != count for name, count in counts.items()):
         raise RuntimeError('Actual-image sound cases were not all successful')
     if (not isinstance(value['cases'], list) or any(not isinstance(item, str) for item in value['cases'])
-            or sorted(value['cases']) != sorted(SOUND_CASES)):
+            or sorted(value['cases']) != sorted(selected_cases)):
         raise RuntimeError('Actual-image sound case identity changed')
     if value['readonly_code'] is not True or any(value[name] is not False for name in
             ('model_quality_qualified', 'complete_film_qualified', 'public_deployment_verified')):
@@ -383,14 +400,16 @@ print(json.dumps(profiles))
         self.owned('container', identifier)
         self.command('rm', identifier, timeout=20)
 
-    def verify_sound_exports(self, record=None):
+    def verify_sound_exports(self, record=None, *, profile='sound'):
         """Use only this invocation's current unprivileged stable image, with separate temporary media and no model calls."""
+        if not isinstance(profile, str) or profile not in MEDIA_PROFILES:
+            raise RuntimeError('Unknown fixed image media profile')
         identifier = self.containers['stable']
         observed = self.owned('container', identifier)
         if (observed['Image'] != self.image_id or observed['Config']['User'] != '10001:10001'
                 or observed['HostConfig']['ReadonlyRootfs'] is not True or observed['State']['Running'] is not True):
             raise RuntimeError('Actual-image sound check requires the exact running owned read-only image')
-        response = self.command('exec', '--user', '10001:10001', identifier, 'python', '-I', '-c', sound_check_program(), timeout=270)
+        response = self.command('exec', '--user', '10001:10001', identifier, 'python', '-I', '-c', sound_check_program(profile), timeout=270)
         current = self.owned('container', identifier)
         if current['Image'] != self.image_id or current['State']['Running'] is not True:
             raise RuntimeError('Owned sound image changed during verification')
@@ -402,8 +421,8 @@ print(json.dumps(profiles))
                 if isinstance(item, dict) and 'message' in item:
                     item['message'] = sound_failure_summary(item['message'])
         if record is not None:
-            record['sound_exports'] = value
-        return validate_sound_result(value)
+            record['sound_exports' if profile == 'sound' else 'linux_speech'] = value
+        return validate_sound_result(value, profile)
 
     def close(self):
         """Remove only resources labelled by this invocation, including a partially started Compose run."""
@@ -467,6 +486,7 @@ print(json.dumps({'uid': os.getuid(), 'readonly': readonly and bool(os.statvfs('
     check('stable_and_preview_data_volumes_differ', mounted['stable'] != mounted['preview'])
     verify_http_workflows(runtime, profiles, check)
     record['sound_exports'] = runtime.verify_sound_exports(record)
+    record['linux_speech'] = runtime.verify_sound_exports(record, profile='linux_speech')
     record['runtime_verified'] = True
 
 

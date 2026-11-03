@@ -21,7 +21,7 @@ export type LocalSpeechRead = {
     speaker_id: (string | null);
     voice: LocalSpeechVoice;
     rate: number;
-    profile: string;
+    profile: 'windows_sapi_pcm_v1' | 'linux_espeak_pcm_v1';
     external_fee_fen?: number;
     candidate?: (SoundCandidateRead | null);
 };

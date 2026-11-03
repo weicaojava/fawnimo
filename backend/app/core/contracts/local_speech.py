@@ -1,8 +1,10 @@
 """Zero external fee, explicitly selected installed-system speech contracts."""
 from typing import Literal
-from pydantic import Field, StrictInt
+from pydantic import Field, StrictInt, model_validator
 from app.core.contracts.editing import EditingDTO
 from app.core.contracts.sound_timeline import SoundCandidateRead
+
+LocalSpeechProfile = Literal['windows_sapi_pcm_v1', 'linux_espeak_pcm_v1']
 
 
 class LocalSpeechVoice(EditingDTO):
@@ -16,7 +18,7 @@ class LocalSpeechCatalog(EditingDTO):
     """An unavailable offline engine never silently falls back to a paid service."""
     enabled: bool
     reason: str
-    profile: Literal['windows_sapi_pcm_v1'] = 'windows_sapi_pcm_v1'
+    profile: LocalSpeechProfile = 'windows_sapi_pcm_v1'
     external_fee_fen: Literal[0] = 0
     voices: list[LocalSpeechVoice]
 
@@ -26,9 +28,17 @@ class LocalSpeechRequest(EditingDTO):
     request_key: str = Field(min_length=1, max_length=128, pattern=r'.*\S.*')
     plan_id: str = Field(min_length=1, max_length=64)
     dialogue_id: str = Field(min_length=1, max_length=64)
-    voice_id: str = Field(pattern=r'^sapi_[a-f0-9]{64}$')
+    voice_id: str = Field(pattern=r'^(?:sapi_|espeak_)[a-f0-9]{64}$')
     rate: StrictInt = Field(default=0, ge=-2, le=2)
-    profile: Literal['windows_sapi_pcm_v1']
+    profile: LocalSpeechProfile
+
+    @model_validator(mode='after')
+    def original_voice_profile(self):
+        """An explicit voice cannot silently switch between the installed Windows and Linux engines."""
+        prefix = 'sapi_' if self.profile == 'windows_sapi_pcm_v1' else 'espeak_'
+        if not self.voice_id.startswith(prefix):
+            raise ValueError('Selected voice does not match its explicit local speech profile')
+        return self
 
 
 class LocalSpeechRead(EditingDTO):
@@ -46,7 +56,7 @@ class LocalSpeechRead(EditingDTO):
     speaker_id: str | None
     voice: LocalSpeechVoice
     rate: int
-    profile: Literal['windows_sapi_pcm_v1']
+    profile: LocalSpeechProfile
     external_fee_fen: Literal[0] = 0
     candidate: SoundCandidateRead | None = None
 

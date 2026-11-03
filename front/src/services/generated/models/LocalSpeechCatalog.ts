@@ -9,7 +9,7 @@ import type { LocalSpeechVoice } from './LocalSpeechVoice';
 export type LocalSpeechCatalog = {
     enabled: boolean;
     reason: string;
-    profile?: string;
+    profile?: 'windows_sapi_pcm_v1' | 'linux_espeak_pcm_v1';
     external_fee_fen?: number;
     voices: Array<LocalSpeechVoice>;
 };

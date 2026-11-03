@@ -11,6 +11,6 @@ export type LocalSpeechRequest = {
     dialogue_id: string;
     voice_id: string;
     rate?: number;
-    profile: string;
+    profile: 'windows_sapi_pcm_v1' | 'linux_espeak_pcm_v1';
 };
 
