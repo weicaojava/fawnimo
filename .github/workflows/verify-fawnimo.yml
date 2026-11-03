@@ -97,6 +97,7 @@ jobs:
           tests/test_gpt_asset_image.py
           tests/test_workspace_image_admission.py tests/test_workspace_image_gateway.py
           tests/test_workspace_execution_admission.py tests/test_workspace_execution_gateway.py
+          tests/test_workspace_execution_actions.py
           tests/test_community_intake.py tests/test_community_evaluations.py tests/test_community_advice.py tests/test_community_model_code.py tests/test_community_model_flow.py tests/test_community_model_delivery.py tests/test_community_rowid_guards.py
           tests/test_community_queue_planning.py tests/test_community_queue_store.py
           tests/test_community_queue_leases.py tests/test_community_queue_cli.py

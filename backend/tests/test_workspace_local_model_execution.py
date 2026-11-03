@@ -24,6 +24,7 @@ def model_origin(side):
     """Serve deterministic authored text/PNG responses on this fixture's own loopback origin."""
     stream = BytesIO(); Image.new('RGB', (256, 256), (170, 30, 20) if side == 'a' else (20, 40, 170)).save(stream, 'PNG')
     state = {'key': 'authored-local-' + side, 'calls': [], 'native_queries': [], 'png': stream.getvalue()}
+    state.update(mode='ok',blocked=threading.Event(),release=threading.Event())
     class Handler(BaseHTTPRequestHandler):
         """Implement compatible transports without exposing authorization values or pretending to assess quality."""
         def log_message(self, *_):
@@ -36,6 +37,13 @@ def model_origin(side):
             state['calls'].append({'path': self.path, 'authenticated': authenticated, 'has_wav': b'RIFF' in raw})
             if not authenticated:
                 self.send_error(403); return
+            mode=state['mode'];state['mode']='ok'
+            if mode=='fail_once':
+                self.send_response(500);self.send_header('Content-Length','0')
+                self.send_header('X-Request-Id','authored-failed-'+side+'-'+str(len(state['calls'])))
+                self.end_headers();return
+            if mode=='block_once':
+                state['blocked'].set();state['release'].wait(timeout=8)
             if self.path == '/v1/images/generations':
                 result = {'data': [{'b64_json': base64.b64encode(state['png']).decode()}]}
             elif self.path == '/api/v3/contents/generations/tasks':
@@ -61,7 +69,9 @@ def model_origin(side):
             data = json.dumps(result).encode()
             self.send_response(200); self.send_header('Content-Type', 'application/json'); self.send_header('Content-Length', str(len(data)))
             self.send_header('X-Request-Id', 'private-authored-' + side + '-' + str(len(state['calls'])))
-            self.end_headers(); self.wfile.write(data)
+            self.end_headers()
+            try:self.wfile.write(data)
+            except (BrokenPipeError,ConnectionResetError):pass  # Owned caller may explicitly cancel its in-flight fixture request.
         def do_GET(self):
             """Return only the same authored native task's running state, never a video or another account's handle."""
             authenticated = self.headers.get('Authorization') == 'Bearer ' + state['key']
