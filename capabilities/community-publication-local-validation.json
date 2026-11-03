@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "scope": "Default-closed exact checked candidate draft-publication software, not live App/independent-review/full-platform qualification",
+  "source_tree": "ae9afbea4047c13800879c6d72569ce3e77bf249",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "a83934c8d28f574e168a3bc7af75bdb14ce27533e13f2041caee52c5ce3d2009",
+    "backend/app/core/contracts/community_publication.py": "33157238584d1ee88ae52f6ee582dce786c2e6d622d44bdcb3088224c1333287",
+    "backend/app/services/community/publication_objects.py": "5e14b4322cb39b59abe7df9ce91645542e9a7c8000565bad0081a94097abacde",
+    "backend/app/services/community/publication_store.py": "a4590e98fdd87703de43f0a28c7d9b3f7b68a9276634b962f4997c08a3c2f54e",
+    "backend/app/services/community/publication_transport.py": "d50570759ff6c4c21d62cc0507c9b940241ea92c5c672a3b1c15628bf5f334d4",
+    "backend/app/services/community/publication_runtime.py": "db9e8c883fb7e11193987e6b67b1c4c67c75f00976519067bba6641600dfdafc",
+    "backend/app/services/community/publication_admission.py": "fec552ac80873956d0b7a0ecd8e3c0acc550bc58a2a8667d2e30bf6c2197436d",
+    "backend/publish_community.py": "e4d50bfcedacf89f570c6771d0fc0fa026643e81665c069486df2cb573f7a06a",
+    "backend/tests/test_community_publication.py": "c3897e82f9fb9e3b7b482d453f8376cfb8a5fd7531bf2113d5fc416e22839eb5",
+    "backend/tests/test_community_publication_admission.py": "c5a388c5609cc8ce0fabfa9020d256e531a64e6149983f70b1e0cda0c6109bc9",
+    "backend/tests/test_community_publication_transport.py": "bd0ec030960dd1d1bf22175762a72ac3ffe4c6c4af9e3fc8f14704d6e10b3456"
+  },
+  "regression": {
+    "passed": 666,
+    "skipped": 2,
+    "disjoint_suites": [
+      {
+        "file": "frozen-publication-community-v1.xml",
+        "sha256": "54733fffd3801120f77f6944a5f3351acc47d33b31a9d7dbc429c8e69bf382d1",
+        "tests": 659,
+        "skipped": 0,
+        "passed": 659
+      },
+      {
+        "file": "frozen-publication-owned-process.xml",
+        "sha256": "238cda67771cb9a385f2f0f05ed8013bf7578fbdfb2956af9bb82dd0b621017d",
+        "tests": 9,
+        "skipped": 2,
+        "passed": 7
+      }
+    ],
+    "seconds": 127.87
+  },
+  "schemas": {
+    "main_paths": 249,
+    "main_schemas": 589,
+    "community_paths": 2,
+    "community_schemas": 2,
+    "schemas_unchanged": true,
+    "lifespan_started": false
+  },
+  "source_review": {
+    "method": "author source review",
+    "independent": false,
+    "sha256": "4861a26854d355549251570a6a755d9e8fc46bc1d2507785335ec5432d52d95f"
+  },
+  "metadata_review": {
+    "method": "author combined source and metadata review",
+    "independent": false,
+    "scope": "Default-closed exact candidate/check/source binding, object SHA/new-ref/draft-only protocol, durable unknown writes, separate finite immutable audit, historical non-authority, docs/register/links/privacy"
+  },
+  "current_commit_ci": "pending_publication_and_exact_commit_CI",
+  "publication_default_enabled": false,
+  "historical_receipt_is_write_authority": false,
+  "github_publication_requests_in_this_validation": 0,
+  "live_publication_qualified": false,
+  "live_github_app_qualified": false,
+  "real_independent_reviewer_qualified": false,
+  "independent_review_completed": false,
+  "merge_authorized": false,
+  "deployment_authorized": false,
+  "automatic_development_qualified": false,
+  "full_feature_qualified": false,
+  "public_deployment_verified": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "overall_goal_complete": false,
+  "count_note": "659 frozen community cases and7 passed/2 platform-skipped owned-process cases are disjoint on one frozen tree. Evolving57 overlaps. Parent CI1666 is separate and not added."
+}

@@ -24,3 +24,5 @@ description: 默认关闭的本机维护者门禁、独立身份、准确版本�
 结果中的 `eligible_at_observation` 只描述观察时刻；`promotion_authorized`、`merge_authorized`、`deployment_authorized` 始终为 false。恢复结果还明确标记历史用途和行动前重查。可信维护者、安装代码、本机 Git/数据库及 GitHub 服务处于信任边界内。当前实际独立账号审查、生产 GitHub App 联合接入、候选 PR 发布及完整自动研发资格分别保留为未完成，不能用自作账号/CI 数据或作者审阅代替。
 
 操作见[维护指南](../../guide/community-pr-gates/)，执行来源见[固定代码检查](../community-code-checks/)，后续工作见[平台交付计划](../../plans/platform-delivery/)。
+
+维护者另可明确配置[准确候选草稿发布](../community-publication/)。它保存独立意图和原PR追溯，默认关闭，不提交审查或授予合并/部署权限。

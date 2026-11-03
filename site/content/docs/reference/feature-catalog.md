@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-11-03.7`，更新日期：2026-11-03。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-11-03.8`，更新日期：2026-11-03。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。 社区独立维护者评估/澄清/复议已有本机软件记录；另有明确维护者估值的版本路线图和仅限准备的租约；AI自动评估与实际研发仍待完成。 已prepared的需求可形成准确公开源码的惰性提案和本地候选Git提交；固定Linux检查已有准确主分支CI与真实隔离验收；另有默认关闭的PR审查/CI观察，真实独立身份和产品发布闭环未验。
+项目隔离及独立预算、六类费用kind、AI剧本候选、原创可导出示例、已声明参考图/视频，以及本机配音与声音剪辑的软件流程可用。全部收费身份、更多协议/云声音、真实模型/成片、社区研发及公网仍待完成。 社区独立维护者评估/澄清/复议已有本机软件记录；另有明确维护者估值的版本路线图和仅限准备的租约；AI自动评估与实际研发仍待完成。 已prepared的需求可形成准确公开源码的惰性提案和本地候选Git提交；固定Linux检查已有准确主分支CI与真实隔离验收；另有默认关闭的PR审查/CI观察，真实独立身份和产品发布闭环未验。 候选草稿PR发布和未知响应追溯已有默认关闭的本机软件入口；真实来源/App/独立审核和发布闭环仍待验。
 
-准确PR门禁锁定609通过/2本机平台跳过，实际Git/SQLite/CLI与有界公开读取契约通过，作者审阅，新精确CI待验。父版本880c0d9主分支CI1524通过/2跳过/2历史未选、前端、通用Compose40及真实Linux10/确认清理通过。主249/589和独立2/2接口不变；46已实现/14部分/4计划，current17与longterm1，费用0；真实来源/AI/独立产品PR审核/完整成片/公网未交付。
+准确候选草稿发布冻结659社区和7子进程通过/2平台跳过，作者审阅，新准确CI待验。父6edea8b准确CI1666/2跳过/2历史未选、前端、通用40与实际Linux10/清理通过。API249/589及独立2/2不变；46已实现/14部分/4计划，当前17与长期1未完成，模型费用0；真实来源/App/AI/独立审核/完整成片/公网未交付。
 
 ## F-001 身份与工作空间
 
@@ -857,7 +857,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | [F-013.02 AI查重、澄清、合理性评估与复议](#f-013-02) | 部分实现 | 本阶段已验证 | 未验收 | 仅本机 | CLI: backend/review_community.py · 维护者独立需求库：建议、评估与历史 |
 | [F-013.03 依赖、价值、成本与容量排队](#f-013-03) | 部分实现 | 本阶段已验证 | 不适用 | 仅本机 | CLI: backend/queue_community.py · 维护者路线图与准备租约；没有编码执行器 |
 | [F-013.04 租约、幂等、取消与资源上限](#f-013-04) | 部分实现 | 本阶段已验证 | 不适用 | 仅本机 | CLI: backend/check_community.py · 维护者明确启用的Linux候选检查、取消与对账 |
-| [F-013.05 隔离开发、变更提交与PR追溯](#f-013-05) | 部分实现 | 本阶段已验证 | 不适用 | 仅本机 | CLI: backend/check_community.py · 维护者明确启用的Linux候选检查、取消与对账 |
+| [F-013.05 隔离开发、变更提交与PR追溯](#f-013-05) | 部分实现 | 本阶段已验证 | 不适用 | 仅本机 | CLI: backend/publish_community.py · 维护者明确启用的准确候选草稿发布与原请求追溯 |
 | [F-013.06 独立审查、客观测试与CI触发验证](#f-013-06) | 部分实现 | 本阶段已验证 | 不适用 | 未部署 | CLI: backend/observe_community_pr.py · 维护者准确PR/独立审查/CI观察；不授予行动权限 |
 | [F-013.07 隔离预览、策略发布、回退与反馈](#f-013-07) | 待实现 | 未验收 | 不适用 | 未部署 | 尚无入口 · 尚无可验收入口 |
 
@@ -913,7 +913,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 限制：preparation_lease_v1只管理准备；新增linux_pytest_check_v1由维护者单独明确启用，不能把准备租约用于真实外部重试。；执行前持久预留并记录创建/启动意图；未知接受或清理结果保留并发名额，过期与查询暂时无资源不能自动释放；有限新尝试须先确认原资源清理。；固定费用0、并发1、每包3次、全库384次、事件4096及CPU/内存/进程/输出/时间上限；个人视频项目预算不变。；新执行复查准确公开源/准备/计划选择，Docker操作在事务外；取消先保存意图，原结果恢复不重复外部调用。；检查扩展库为5张业务表，旧代码不识别；一致备份、保留新历史后回退到专用目录。需求准备库12/15表独立保留。；固定检查880c0d9主分支CI1524通过/2跳过/2历史未选，真实Linux10项及通用Compose40/确认清理通过；独立审查与真实产品PR/完整平台未交付。。
 
-验证依据：`EV-COMMUNITY-QUEUE-LOCAL`、`EV-COMMUNITY-QUEUE-CI`、`EV-COMMUNITY-CODE-CHECK-LOCAL`、`EV-COMMUNITY-CODE-CHECK-CI`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-COMMUNITY-QUEUE-LOCAL`、`EV-COMMUNITY-QUEUE-CI`、`EV-COMMUNITY-CODE-CHECK-LOCAL`、`EV-COMMUNITY-CODE-CHECK-CI`、`EV-COMMUNITY-PR-GATE-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -921,13 +921,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-013.05 隔离开发、变更提交与PR追溯
 
-需求：R-003, R-004；验收阶段：E；范围：本阶段交付；实现版本：`commit-880c0d999bcaa`；发布版本：`未发布`。
+需求：R-003, R-004；验收阶段：E；范围：本阶段交付；实现版本：`source-tree-ae9afbea4047`；发布版本：`未发布`。
 
-代码：[`backend/app/core/contracts/community_changes.py`](../../../../backend/app/core/contracts/community_changes.py)、[`backend/app/services/community/change_bundles.py`](../../../../backend/app/services/community/change_bundles.py)、[`backend/app/services/community/public_code.py`](../../../../backend/app/services/community/public_code.py)、[`backend/app/services/community/public_code_child.py`](../../../../backend/app/services/community/public_code_child.py)、[`backend/app/services/community/change_store.py`](../../../../backend/app/services/community/change_store.py)、[`backend/app/services/community/change_preparation.py`](../../../../backend/app/services/community/change_preparation.py)、[`backend/app/services/community/candidate_git.py`](../../../../backend/app/services/community/candidate_git.py)、[`backend/app/services/community/candidate_lock.py`](../../../../backend/app/services/community/candidate_lock.py)、[`backend/develop_community.py`](../../../../backend/develop_community.py)、[`backend/app/core/contracts/community_code_checks.py`](../../../../backend/app/core/contracts/community_code_checks.py)、[`backend/app/services/community/code_check_schema.py`](../../../../backend/app/services/community/code_check_schema.py)、[`backend/app/services/community/code_check_store.py`](../../../../backend/app/services/community/code_check_store.py)、[`backend/app/services/community/code_check_docker.py`](../../../../backend/app/services/community/code_check_docker.py)、[`backend/app/services/community/code_check_runtime.py`](../../../../backend/app/services/community/code_check_runtime.py)、[`backend/community_isolated_runner.py`](../../../../backend/community_isolated_runner.py)、[`backend/check_community.py`](../../../../backend/check_community.py)。
+代码：[`backend/app/core/contracts/community_changes.py`](../../../../backend/app/core/contracts/community_changes.py)、[`backend/app/services/community/change_bundles.py`](../../../../backend/app/services/community/change_bundles.py)、[`backend/app/services/community/public_code.py`](../../../../backend/app/services/community/public_code.py)、[`backend/app/services/community/public_code_child.py`](../../../../backend/app/services/community/public_code_child.py)、[`backend/app/services/community/change_store.py`](../../../../backend/app/services/community/change_store.py)、[`backend/app/services/community/change_preparation.py`](../../../../backend/app/services/community/change_preparation.py)、[`backend/app/services/community/candidate_git.py`](../../../../backend/app/services/community/candidate_git.py)、[`backend/app/services/community/candidate_lock.py`](../../../../backend/app/services/community/candidate_lock.py)、[`backend/develop_community.py`](../../../../backend/develop_community.py)、[`backend/app/core/contracts/community_code_checks.py`](../../../../backend/app/core/contracts/community_code_checks.py)、[`backend/app/services/community/code_check_schema.py`](../../../../backend/app/services/community/code_check_schema.py)、[`backend/app/services/community/code_check_store.py`](../../../../backend/app/services/community/code_check_store.py)、[`backend/app/services/community/code_check_docker.py`](../../../../backend/app/services/community/code_check_docker.py)、[`backend/app/services/community/code_check_runtime.py`](../../../../backend/app/services/community/code_check_runtime.py)、[`backend/community_isolated_runner.py`](../../../../backend/community_isolated_runner.py)、[`backend/check_community.py`](../../../../backend/check_community.py)、[`backend/app/core/contracts/community_publication.py`](../../../../backend/app/core/contracts/community_publication.py)、[`backend/app/services/community/publication_objects.py`](../../../../backend/app/services/community/publication_objects.py)、[`backend/app/services/community/publication_store.py`](../../../../backend/app/services/community/publication_store.py)、[`backend/app/services/community/publication_transport.py`](../../../../backend/app/services/community/publication_transport.py)、[`backend/app/services/community/publication_runtime.py`](../../../../backend/app/services/community/publication_runtime.py)、[`backend/app/services/community/publication_admission.py`](../../../../backend/app/services/community/publication_admission.py)、[`backend/publish_community.py`](../../../../backend/publish_community.py)。
 
-限制：惰性提案/本地提交不会执行代码；维护者可另行明确启用固定Linux候选检查，不调用模型、不推送候选分支或创建PR。；检查绑定准确已准备需求、功能/评估/计划/选择及公开main/提交/树；完整基础/候选源码清单由Git对象核对，旧镜像或维护者暂存/工作树不能替代。；固定本地Docker端点/空白配置/镜像ID，无主机挂载/凭据/外网；标准库父程序与UID10001子程序分离，固定内核/资源/读写/超时能力已有10项真实Linux验收；完整自动研发不由这项单独证明。；私有所有权和具体容器身份核对后确认删除，未知结果不重放，候选输出只留哈希/长度且不能冒充可信结果。；本机维护者/守护程序/可信镜像仍受信；控制器强制结束可留下空白操作系统临时配置目录。；作者审阅；准确主分支CI1524通过/2跳过/2历史未选、前端、通用Compose40及真实Linux10/清理通过；真实需求到PR/独立审核/CI晋级/公网仍未联合验收，整项部分实现。。
+限制：惰性提案/本地提交不会执行代码；维护者可另行明确启用固定Linux候选检查，不调用模型；另有维护者单独配置的候选草稿PR发布服务，默认关闭。；检查绑定准确已准备需求、功能/评估/计划/选择及公开main/提交/树；完整基础/候选源码清单由Git对象核对，旧镜像或维护者暂存/工作树不能替代。；固定本地Docker端点/空白配置/镜像ID，无主机挂载/凭据/外网；标准库父程序与UID10001子程序分离，固定内核/资源/读写/超时能力已有10项真实Linux验收；完整自动研发不由这项单独证明。；私有所有权和具体容器身份核对后确认删除，未知结果不重放，候选输出只留哈希/长度且不能冒充可信结果。；本机维护者/守护程序/可信镜像仍受信；控制器强制结束可留下空白操作系统临时配置目录。；作者审阅；准确主分支CI1524通过/2跳过/2历史未选、前端、通用Compose40及真实Linux10/清理通过；真实需求到PR/独立审核/CI晋级/公网仍未联合验收，整项部分实现。；准确候选/已确认清理的原通过检查/可信镜像父程序及工作流必须匹配；新发布反复核对当前公开需求/main/登记/准备与选择，候选不能指定令牌/目的地址/权限。；固定GitHub Git对象逐SHA核对，只创建保留的新候选分支和草稿PR；独立凭据留维护者控制器，未发现个人登录或模型密钥，不执行候选输出。；独立固定策略与三表审计、每包唯一原发布、64意图/512事件/16MiB，未知接受先留意图，旧键只恢复，明确对账只读且不会重复POST或覆写分支。；同一冻结树659社区与7子进程通过/2平台跳过，真实临时Git/SQLite/并发/CLI通过，远端事实自作且作者审阅；本提交CI待验，真实GitHub App/需求到候选PR/独立审核/晋级/公网仍未联合验收，整项部分实现。。
 
-验证依据：`EV-COMMUNITY-CHANGES-LOCAL`、`EV-COMMUNITY-CODE-CHECK-LOCAL`、`EV-COMMUNITY-CHANGES-CI`、`EV-COMMUNITY-CODE-CHECK-CI`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-COMMUNITY-CHANGES-LOCAL`、`EV-COMMUNITY-CODE-CHECK-LOCAL`、`EV-COMMUNITY-CHANGES-CI`、`EV-COMMUNITY-CODE-CHECK-CI`、`EV-COMMUNITY-PUBLICATION-LOCAL`、`EV-COMMUNITY-PR-GATE-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -935,13 +935,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-013.06 独立审查、客观测试与CI触发验证
 
-需求：R-003, R-004；验收阶段：E；范围：本阶段交付；实现版本：`source-tree-f0886a5f6a33`；发布版本：`未发布`。
+需求：R-003, R-004；验收阶段：E；范围：本阶段交付；实现版本：`commit-6edea8bd42c3`；发布版本：`未发布`。
 
 代码：[`backend/app/core/contracts/community_review_gates.py`](../../../../backend/app/core/contracts/community_review_gates.py)、[`backend/app/services/community/review_gate_decisions.py`](../../../../backend/app/services/community/review_gate_decisions.py)、[`backend/app/services/community/review_gate_source.py`](../../../../backend/app/services/community/review_gate_source.py)、[`backend/app/services/community/review_gate_source_child.py`](../../../../backend/app/services/community/review_gate_source_child.py)、[`backend/app/services/community/review_gate_schema.py`](../../../../backend/app/services/community/review_gate_schema.py)、[`backend/app/services/community/review_gate_store.py`](../../../../backend/app/services/community/review_gate_store.py)、[`backend/app/services/community/review_gate_admission.py`](../../../../backend/app/services/community/review_gate_admission.py)、[`backend/app/services/community/candidate_git.py`](../../../../backend/app/services/community/candidate_git.py)、[`backend/observe_community_pr.py`](../../../../backend/observe_community_pr.py)。
 
-限制：默认关闭，独立账号/开发账号分离，可信镜像/父程序/准确工作流blob需维护者明确配置；需求和候选输出不能自批或改策略。；新观察绑定原已通过且清理的检查、准确候选及当前需求/准备/计划选择/功能登记/公开main；固定公开匿名GET有界并复查变化，实际生产App联合接入未验。；准确PR头/基础/测试合并树及最新同工作流尝试必须匹配；旧批准/自批/机器人、草稿、失败/缺失/跳过/运行中阻止观察通过，混用工作流身份直接拒绝。；独立审计库固定策略/显式序号/不可变记录，最多384条/16MiB；旧请求恢复只作历史，所有合并/晋级/部署权限始终false，不能拿旧快照发布。；609锁定本机通过/2平台跳过，实际临时Git/SQLite/CLI通过，审查/CI数据自作且作者审阅；真实独立账号、候选PR发布/CI晋级和完整自动研发仍未联合验收，整项部分实现。。
+限制：默认关闭，独立账号/开发账号分离，可信镜像/父程序/准确工作流blob需维护者明确配置；需求和候选输出不能自批或改策略。；新观察绑定原已通过且清理的检查、准确候选及当前需求/准备/计划选择/功能登记/公开main；固定公开匿名GET有界并复查变化，实际生产App联合接入未验。；准确PR头/基础/测试合并树及最新同工作流尝试必须匹配；旧批准/自批/机器人、草稿、失败/缺失/跳过/运行中阻止观察通过，混用工作流身份直接拒绝。；独立审计库固定策略/显式序号/不可变记录，最多384条/16MiB；旧请求恢复只作历史，所有合并/晋级/部署权限始终false，不能拿旧快照发布。；609锁定本机通过/2平台跳过，实际临时Git/SQLite/CLI通过，审查/CI数据自作且作者审阅；真实独立账号、候选PR发布/CI晋级和完整自动研发仍未联合验收，整项部分实现。；随后准确6edea8b主分支CI1666通过/2跳过/2历史未选、前端、通用Compose40和真实Linux10/清理通过；不扩展为真实独立账号或产品PR联合验收。。
 
-验证依据：`EV-COMMUNITY-PR-GATE-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-COMMUNITY-PR-GATE-LOCAL`、`EV-COMMUNITY-PR-GATE-CI`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1119,6 +1119,8 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-COMMUNITY-CHANGES-CI | software | repository · `capabilities/community-change-ci-validation.json` | fdcacf9准确CI1365通过/2跳过/2历史未选、前端及通用容器40/清理通过；仅覆盖前一惰性提案/本地提交版本，不覆盖新增代码执行器。 |
 | EV-COMMUNITY-PR-GATE-LOCAL | software | repository · `capabilities/community-pr-gate-local-validation.json` | 默认关闭的准确PR/独立数字身份/最新同工作流CI尝试观察、固定只读子程序、独立不可变审计库及CLI；609锁定本机通过/2平台跳过，作者审阅。自作审查/CI事实不是真实独立审查、生产App接入或自动发布资格。 |
 | EV-COMMUNITY-CODE-CHECK-CI | software | repository · `capabilities/community-code-check-ci-validation.json` | 880c0d9准确主分支CI1524通过/2跳过/2历史未选、前端、通用Compose40及真实Linux隔离10/确认清理通过；保留先前实际启动失败与修复。只验证固定Linux检查协议和维护PR传输，非真实需求到PR的自动研发联合验收。 |
+| EV-COMMUNITY-PUBLICATION-LOCAL | software | repository · `capabilities/community-publication-local-validation.json` | 默认关闭的准确候选草稿PR发布、固定认证目的地、Git对象SHA、独立不可变意图/未知结果追溯及CLI；659社区和7子进程通过/2平台跳过，作者审阅。远端自作，真实App/公开候选PR/独立审查未联合验收。 |
+| EV-COMMUNITY-PR-GATE-CI | software | repository · `capabilities/community-pr-gate-ci-validation.json` | 6edea8b准确main CI1666通过/2跳过/2历史未选、前端、通用Compose40及真实Linux10/确认清理；只读PR审查观察本机事实自作，不能替代真实独立审核或产品发布联合验收。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

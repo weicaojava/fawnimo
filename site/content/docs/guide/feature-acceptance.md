@@ -633,14 +633,14 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 ### F-013.05 隔离开发、变更提交与PR追溯
 
-入口：`CLI: backend/check_community.py`，维护者明确启用的Linux候选检查、取消与对账。当前：部分实现 / 本阶段已验证 / 仅本机。
+入口：`CLI: backend/publish_community.py`，维护者明确启用的准确候选草稿发布与原请求追溯。当前：部分实现 / 本阶段已验证 / 仅本机。
 
 1. 开发attempt绑定精确需求版本、功能ID、分支及允许的仓库
 2. 独立工作目录、受限凭据、命令/网络/文件边界；产出可审阅PR及测试记录
 
-软件回归目标：`backend/tests/test_community_change_bundles.py`、`backend/tests/test_community_public_code.py`、`backend/tests/test_community_change_store.py`、`backend/tests/test_community_candidate_git.py`、`backend/tests/test_community_candidate_lock.py`、`backend/tests/test_community_code_check_store.py`、`backend/tests/test_community_isolated_runner_contract.py`、`backend/tests/test_community_code_check_docker.py`、`backend/tests/test_community_code_check_runtime.py`、`backend/tests/test_community_code_check_oci.py`。
+软件回归目标：`backend/tests/test_community_change_bundles.py`、`backend/tests/test_community_public_code.py`、`backend/tests/test_community_change_store.py`、`backend/tests/test_community_candidate_git.py`、`backend/tests/test_community_candidate_lock.py`、`backend/tests/test_community_code_check_store.py`、`backend/tests/test_community_isolated_runner_contract.py`、`backend/tests/test_community_code_check_docker.py`、`backend/tests/test_community_code_check_runtime.py`、`backend/tests/test_community_code_check_oci.py`、`backend/tests/test_community_publication.py`、`backend/tests/test_community_publication_admission.py`、`backend/tests/test_community_publication_transport.py`。
 
-验收限制：惰性提案/本地提交不会执行代码；维护者可另行明确启用固定Linux候选检查，不调用模型、不推送候选分支或创建PR。；检查绑定准确已准备需求、功能/评估/计划/选择及公开main/提交/树；完整基础/候选源码清单由Git对象核对，旧镜像或维护者暂存/工作树不能替代。；固定本地Docker端点/空白配置/镜像ID，无主机挂载/凭据/外网；标准库父程序与UID10001子程序分离，固定内核/资源/读写/超时能力已有10项真实Linux验收；完整自动研发不由这项单独证明。；私有所有权和具体容器身份核对后确认删除，未知结果不重放，候选输出只留哈希/长度且不能冒充可信结果。；本机维护者/守护程序/可信镜像仍受信；控制器强制结束可留下空白操作系统临时配置目录。；作者审阅；准确主分支CI1524通过/2跳过/2历史未选、前端、通用Compose40及真实Linux10/清理通过；真实需求到PR/独立审核/CI晋级/公网仍未联合验收，整项部分实现。。
+验收限制：惰性提案/本地提交不会执行代码；维护者可另行明确启用固定Linux候选检查，不调用模型；另有维护者单独配置的候选草稿PR发布服务，默认关闭。；检查绑定准确已准备需求、功能/评估/计划/选择及公开main/提交/树；完整基础/候选源码清单由Git对象核对，旧镜像或维护者暂存/工作树不能替代。；固定本地Docker端点/空白配置/镜像ID，无主机挂载/凭据/外网；标准库父程序与UID10001子程序分离，固定内核/资源/读写/超时能力已有10项真实Linux验收；完整自动研发不由这项单独证明。；私有所有权和具体容器身份核对后确认删除，未知结果不重放，候选输出只留哈希/长度且不能冒充可信结果。；本机维护者/守护程序/可信镜像仍受信；控制器强制结束可留下空白操作系统临时配置目录。；作者审阅；准确主分支CI1524通过/2跳过/2历史未选、前端、通用Compose40及真实Linux10/清理通过；真实需求到PR/独立审核/CI晋级/公网仍未联合验收，整项部分实现。；准确候选/已确认清理的原通过检查/可信镜像父程序及工作流必须匹配；新发布反复核对当前公开需求/main/登记/准备与选择，候选不能指定令牌/目的地址/权限。；固定GitHub Git对象逐SHA核对，只创建保留的新候选分支和草稿PR；独立凭据留维护者控制器，未发现个人登录或模型密钥，不执行候选输出。；独立固定策略与三表审计、每包唯一原发布、64意图/512事件/16MiB，未知接受先留意图，旧键只恢复，明确对账只读且不会重复POST或覆写分支。；同一冻结树659社区与7子进程通过/2平台跳过，真实临时Git/SQLite/并发/CLI通过，远端事实自作且作者审阅；本提交CI待验，真实GitHub App/需求到候选PR/独立审核/晋级/公网仍未联合验收，整项部分实现。。
 
 ### F-013.06 独立审查、客观测试与CI触发验证
 
@@ -651,7 +651,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 软件回归目标：`backend/tests/test_community_review_gate_decisions.py`、`backend/tests/test_community_review_gate_source.py`、`backend/tests/test_community_review_gate_store.py`、`backend/tests/test_community_review_gate_admission.py`、`backend/tests/test_community_review_gate_git.py`。
 
-验收限制：默认关闭，独立账号/开发账号分离，可信镜像/父程序/准确工作流blob需维护者明确配置；需求和候选输出不能自批或改策略。；新观察绑定原已通过且清理的检查、准确候选及当前需求/准备/计划选择/功能登记/公开main；固定公开匿名GET有界并复查变化，实际生产App联合接入未验。；准确PR头/基础/测试合并树及最新同工作流尝试必须匹配；旧批准/自批/机器人、草稿、失败/缺失/跳过/运行中阻止观察通过，混用工作流身份直接拒绝。；独立审计库固定策略/显式序号/不可变记录，最多384条/16MiB；旧请求恢复只作历史，所有合并/晋级/部署权限始终false，不能拿旧快照发布。；609锁定本机通过/2平台跳过，实际临时Git/SQLite/CLI通过，审查/CI数据自作且作者审阅；真实独立账号、候选PR发布/CI晋级和完整自动研发仍未联合验收，整项部分实现。。
+验收限制：默认关闭，独立账号/开发账号分离，可信镜像/父程序/准确工作流blob需维护者明确配置；需求和候选输出不能自批或改策略。；新观察绑定原已通过且清理的检查、准确候选及当前需求/准备/计划选择/功能登记/公开main；固定公开匿名GET有界并复查变化，实际生产App联合接入未验。；准确PR头/基础/测试合并树及最新同工作流尝试必须匹配；旧批准/自批/机器人、草稿、失败/缺失/跳过/运行中阻止观察通过，混用工作流身份直接拒绝。；独立审计库固定策略/显式序号/不可变记录，最多384条/16MiB；旧请求恢复只作历史，所有合并/晋级/部署权限始终false，不能拿旧快照发布。；609锁定本机通过/2平台跳过，实际临时Git/SQLite/CLI通过，审查/CI数据自作且作者审阅；真实独立账号、候选PR发布/CI晋级和完整自动研发仍未联合验收，整项部分实现。；随后准确6edea8b主分支CI1666通过/2跳过/2历史未选、前端、通用Compose40和真实Linux10/清理通过；不扩展为真实独立账号或产品PR联合验收。。
 
 ### F-013.07 隔离预览、策略发布、回退与反馈
 
