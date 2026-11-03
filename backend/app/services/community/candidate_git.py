@@ -53,10 +53,10 @@ class CandidateCommit:
 
 
 class CandidateGitRepository:
-    """Use only committed public objects; the caller cannot select a repository path through change JSON or CLI options."""
+    """Use only committed public objects in the installed or explicitly trusted operator-selected clone; change JSON never selects a path."""
 
     def __init__(self, *, repository=None):
-        """The default is the installed public clone; repository injection is for trusted tests/embedding, never client configuration."""
+        """The default is the installed public clone; an explicit clone is a trusted maintainer/embedding choice, never candidate or API configuration."""
         self.root = (Path(repository) if repository is not None else Path(__file__).resolve().parents[4]).absolute()
         if self.root.resolve() != self.root:
             raise CommunityStoreConflict('Candidate repository is redirected')

@@ -89,5 +89,5 @@ def test_actual_cli_default_initialization_closed_publish_and_original_history(t
     saved=asyncio.run(publish_current_candidate(prep,checks,store,body,remote_factory=factory,repository=repo))
     root=store.root; result=command('--get-publication',saved['id'])
     assert result.returncode==0 and json.loads(result.stdout)==saved
-    request.write_text(body.model_dump_json()); result=command('--publish-file',request)
+    request.write_text(body.model_dump_json()); result=command('--publish-file',request,'--repository',tmp_path/'unavailable-public-clone')
     assert result.returncode==0 and json.loads(result.stdout)==saved

@@ -18,6 +18,7 @@ def main():
     parser.add_argument('--proposal-label',default='enhancement')
     parser.add_argument('--root',type=Path)
     parser.add_argument('--changes-root',type=Path)
+    parser.add_argument('--repository',type=Path)
     actions=parser.add_mutually_exclusive_group(required=True)
     actions.add_argument('--initialize-publication',action='store_true')
     actions.add_argument('--publish-file',type=Path)
@@ -35,6 +36,7 @@ def main():
     from app.services.community.queue_store import CommunityQueueStore
     from app.services.community.queue_leases import CommunityPreparationStore
     from app.services.community.store import CommunityRequestStore,CommunityStoreConflict
+    from app.services.community.candidate_git import CandidateGitRepository
     try:
         policy=CommunityPublicationPolicy.model_validate(read_json(args.policy_file,8192)) if args.policy_file else None
         if args.initialize_publication:
@@ -58,7 +60,8 @@ def main():
                 intake=CommunityRequestStore(args.root,config,initialize=False); changes=CommunityChangeStore(args.changes_root,config)
                 preparation=CommunityPreparationStore(CommunityQueueStore(intake)); checks=CommunityCodeCheckStore(changes)
                 result=asyncio.run(publish_current_candidate(preparation,checks,publications,body,
-                    remote_factory=lambda trusted:GitHubPublicationTransport(trusted,args.credential_file)))
+                    remote_factory=lambda trusted:GitHubPublicationTransport(trusted,args.credential_file),
+                    repository=CandidateGitRepository(repository=args.repository) if args.repository else None))
         print(json.dumps(result,ensure_ascii=False,indent=2,allow_nan=False))
     except (ValueError,OSError,sqlite3.Error,RuntimeError,RecursionError):
         parser.exit(1,'Publication unavailable. Recover the original record; use read-only reconcile for unknown writes. Verify separate roots, exact checked source and explicit immutable policy. No credentials or provider response are printed.\n')

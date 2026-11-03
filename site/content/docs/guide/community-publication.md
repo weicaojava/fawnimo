@@ -42,3 +42,6 @@ python publish_community.py --publication-root /srv/fawnimo-publication-enabled 
 第二条只读 GitHub 并追加核对历史。未查到原资源仍不授权重新 POST。保留原根目录与编号供维护者处理；不要换请求键或变更包规避未知状态。后续明确转为可审查 PR 并有真实独立审查后，使用[PR 观察指南](../community-pr-gates/)核对准确版本与最新 CI。
 
 本机可使用单独私有目录进行[预览资料与离线回退准备](../local-releases/)，建立全新账号、完整备份与新路径恢复；实际运行版本和策略上线仍分别验收。
+
+
+维护者在独立公开克隆中生成候选时，可对新操作明确传入`--repository /public/fawnimo`，读取同一已提交Git对象；原记录恢复先于该路径读取。由本地模型生成的原候选还可使用[原模型草稿/审核协调入口](../community-model-code/)，从原记录推导准确关联。

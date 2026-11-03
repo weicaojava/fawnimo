@@ -168,7 +168,7 @@ def test_actual_cli_disabled_observation_and_original_recovery_need_no_source_gi
         assert result.returncode==0,result.stderr.decode()
         value=json.loads(result.stdout)
     saved=value['observation']; assert saved['decision']['blocking_reasons']==['review_gate_disabled']
-    for action in [['--get-observation',saved['id']],['--evaluate-file',str(request)]]:
+    for action in [['--get-observation',saved['id']],['--evaluate-file',str(request),'--repository',str(tmp_path/'unavailable-public-clone')]]:
         result=subprocess.run(base+action,capture_output=True,env=env,timeout=15)
         assert result.returncode==0,result.stderr.decode()
         value=json.loads(result.stdout); assert value['observation']==saved and value['historical_only'] and value['fresh_action_authorized'] is False

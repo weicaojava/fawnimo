@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--proposal-label',default='enhancement')
     parser.add_argument('--root',type=Path)
     parser.add_argument('--changes-root',type=Path)
+    parser.add_argument('--repository',type=Path)
     action=parser.add_mutually_exclusive_group(required=True)
     action.add_argument('--initialize-gates',action='store_true')
     action.add_argument('--evaluate-file',type=Path)
@@ -39,6 +40,7 @@ def main():
     from app.services.community.code_check_store import CommunityCodeCheckStore
     from app.services.community.queue_store import CommunityQueueStore
     from app.services.community.queue_leases import CommunityPreparationStore
+    from app.services.community.candidate_git import CandidateGitRepository
     try:
         policy=CommunityReviewGatePolicy.model_validate(read_json(args.policy_file,8192)) if args.policy_file else None
         if args.initialize_gates:
@@ -62,7 +64,8 @@ def main():
                     changes=CommunityChangeStore(args.changes_root,config)
                     checks=CommunityCodeCheckStore(changes)
                     preparation=CommunityPreparationStore(CommunityQueueStore(intake))
-                    result=asyncio.run(observe_current_pr_gate(preparation,checks,gates,body))
+                    result=asyncio.run(observe_current_pr_gate(preparation,checks,gates,body,
+                        repository=CandidateGitRepository(repository=args.repository) if args.repository else None))
         print(json.dumps(result,ensure_ascii=False,indent=2,allow_nan=False))
     except (ValueError,OSError,sqlite3.Error,asyncio.TimeoutError,RecursionError,RuntimeError):
         parser.exit(1,'Observation not saved: verify exact original source/check/PR, separate immutable policy root and fresh public review/CI. Existing observations remain historical and grant no action authority.\n')

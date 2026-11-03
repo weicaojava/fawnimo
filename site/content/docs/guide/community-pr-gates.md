@@ -46,3 +46,6 @@ python observe_community_pr.py --gates-root /srv/fawnimo-review-audit --history 
 `eligible_at_observation` 表示当时条件，历史恢复始终标记 `historical_only` 和 `fresh_action_authorized: false`。即使观察通过，行动权限字段仍为 false；不能拿旧快照直接发布。远程 API 限制、来源变化或分页无法完整确认时会拒绝新观察，原历史保留。完整语义见[当前架构](../../architecture/community-pr-gates/)。
 
 维护者另可明确配置[准确候选草稿发布](../community-publication/)。它保存独立意图和原PR追溯，默认关闭，不提交审查或授予合并/部署权限。
+
+
+维护者在独立公开克隆中生成候选时，可对新操作明确传入`--repository /public/fawnimo`，读取同一已提交Git对象；原记录恢复先于该路径读取。由本地模型生成的原候选还可使用[原模型草稿/审核协调入口](../community-model-code/)，从原记录推导准确关联。

@@ -55,3 +55,24 @@ python advance_community.py --root /private/community/intake --changes-root /pri
 ```
 
 恢复原检查时保留完全相同的请求、检查键和镜像ID，可省略`--root`与`--repository`；默认只返回原记录，不重新运行。未清理/不明结果按原检查流程显式对账，不能通过换键当成成功。检查通过后仍需既有草稿PR、独立审核和发布准入；此入口不写GitHub，也不授予这些权限。
+
+
+## 由原模型请求发布草稿和观察审核
+
+先按[草稿发布指南](../community-publication/)建立独立且明确启用的发布策略，按[审核指南](../community-pr-gates/)另建独立审核策略。保留同一原模型请求、检查键、准确镜像ID及受信公开克隆。该入口不初始化或启用策略，不调用模型。
+
+在`backend`目录，替换实际目录与镜像ID，明确发布同一准确检查过的草稿：
+
+```sh
+python deliver_community.py --root /private/community/intake --changes-root /private/community/changes --model-root /private/community/code-model --publication-root /private/community/publication --repository-id 1438202832 --request-file /private/community/code-request.json --check-key original-model-check-001 --image-id sha256:<准确64位镜像ID> --publication-key original-model-publication-001 --repository /public/fawnimo --credential-file /private/github-publication-token --publish-draft
+```
+
+结果不明时保留原键，用既有发布命令对原发布UUID做只读对账；不要换键重发。恢复已有原发布可省略`--root`、`--repository`和`--credential-file`，只返回历史。
+
+原草稿明确转为可审查PR并完成真实独立审核/CI后，使用另一明确观察键：
+
+```sh
+python deliver_community.py --root /private/community/intake --changes-root /private/community/changes --model-root /private/community/code-model --publication-root /private/community/publication --gates-root /private/community/review --repository-id 1438202832 --request-file /private/community/code-request.json --check-key original-model-check-001 --image-id sha256:<准确64位镜像ID> --publication-key original-model-publication-001 --observation-key original-model-review-001 --repository /public/fawnimo --observe-review
+```
+
+PR号由原发布记录推导，不手填。草稿、旧头、待完成/失败CI或不独立的批准不能通过。原观察可省略`--root`与`--repository`恢复；新观察需要当前来源、准确公开克隆和独立策略。即使时点诊断符合条件，也不会自动合并、启动预览或发布公网。

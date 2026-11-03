@@ -94,7 +94,7 @@ jobs:
           tests/test_script_candidates.py tests/test_workspace_tasks.py tests/test_script_task_workspaces.py
           tests/test_workspace_local_models.py tests/test_workspace_local_model_execution.py
           tests/test_workspace_local_native_execution.py tests/test_workspace_local_understanding_execution.py
-          tests/test_community_intake.py tests/test_community_evaluations.py tests/test_community_advice.py tests/test_community_model_code.py tests/test_community_model_flow.py tests/test_community_rowid_guards.py
+          tests/test_community_intake.py tests/test_community_evaluations.py tests/test_community_advice.py tests/test_community_model_code.py tests/test_community_model_flow.py tests/test_community_model_delivery.py tests/test_community_rowid_guards.py
           tests/test_community_queue_planning.py tests/test_community_queue_store.py
           tests/test_community_queue_leases.py tests/test_community_queue_cli.py
           tests/test_community_change_bundles.py tests/test_community_public_code.py

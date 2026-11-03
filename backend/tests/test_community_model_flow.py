@@ -21,6 +21,7 @@ from app.services.community.development_model_flow import prepare_candidate,link
 from app.services.community.development_model import generate_original
 from app.services.community.candidate_git import CandidateGitRepository
 from app.services.community.code_check_store import CommunityCodeCheckStore
+from app.core.contracts.community_review_gates import WORKFLOW_REQUIREMENTS
 from tests.fixtures.code_model_attach_v1 import legacy_attach_bundle
 from tests.test_community_model_code import configuration,generated_result,model_work,SOURCE,TEST
 from tests.test_community_change_bundles import prepared_change
@@ -85,7 +86,10 @@ async def actual_local_flow(model_work,tmp_path,monkeypatch):
     git(root,'init','--initial-branch=main')
     for path,raw in snapshots[0].files.items():
         target=root/path;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
-    git(root,'add','--',*snapshots[0].files.keys());git(root,'commit','-m','authored public model-flow base')
+    for path in WORKFLOW_REQUIREMENTS:
+        target=root/path;target.parent.mkdir(parents=True,exist_ok=True)
+        target.write_bytes((Path(__file__).resolve().parents[2]/path).read_bytes())
+    git(root,'add','--',*snapshots[0].files.keys(),*WORKFLOW_REQUIREMENTS);git(root,'commit','-m','authored public model-flow base')
     head=git(root,'rev-parse','HEAD').decode().strip();tree=git(root,'rev-parse','HEAD^{tree}').decode().strip()
     snapshots[0]=replace(snapshots[0],commit=head,tree=tree)
     working=root/SOURCE;working.write_bytes(b'# authored staged marker stays local\n');git(root,'add','--',SOURCE)

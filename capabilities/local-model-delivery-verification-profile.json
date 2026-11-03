@@ -1,0 +1,45 @@
+{
+  "profile": "local_model_delivery_flow_v1",
+  "source_tree": "287be025fde13549057a906f3ae0788bcde4652d",
+  "scope": "Explicit saved model/check to existing default-closed draft publication/read-only review; actual owned local-model HTTP, Git serialization, SQLite and CLI, authored kernel/GitHub/reviewer/CI facts only.",
+  "native_related_counts": {
+    "tests": 86,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "new_delivery_cases": 13,
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "d34a8fb4d19e27e9326dd614b0b6bc5b7823369b9ee8ff66697efeaaf4e6d17b",
+    "backend/app/services/community/development_model_delivery.py": "5de2f091966f6d801f5e3359535b58fb76e1e9175f6167278a9433482f36f134",
+    "backend/app/services/community/candidate_git.py": "3d65a7d39dd88657689d670e86186c34972258aa50983d1b8589832e619e0d12",
+    "backend/deliver_community.py": "d5f5927594bb3a27dc5b68c408f84f4d5b496717f306a6249d3a48e60ae65d84",
+    "backend/publish_community.py": "d064198a74de0e76f91011b661c9c3aaf53428bdb6c76db70e0940168b848eaf",
+    "backend/observe_community_pr.py": "2fc384ff9f65e0de80b1e5da229afb6d1aaa7e6277df956558e0cc910745cc8b",
+    "backend/tests/test_community_model_flow.py": "2b5bc50be1d42b2ce181bd9dbed0186c6c21f24d345209c5a38f620540621cfa",
+    "backend/tests/test_community_model_delivery.py": "c06222f58a912451e6123f3d8420e1d1d7f18d9b36ec4a5c74055cd6aa26432f",
+    "backend/tests/test_community_publication_admission.py": "a2702cad2b01c9ce66643ace392dece7609931473b665bf0a3ee1fa64bcc04b5",
+    "backend/tests/test_community_review_gate_admission.py": "e6ccebb2884505c3f976adae7f81f9ae465113da13ef2bacaa942a828651aeb5"
+  },
+  "junit_sha256": "87e8852468354eaaac03985305f90ea39a8f2d40949c9d520b53ed3d1a5b1327",
+  "covers": [
+    "original model/bundle/check/image/repository association before credential discovery",
+    "actual Git object projection and original dirty index/worktree preservation",
+    "explicit operator-selected public clone in publisher and observer",
+    "default-closed separate policies and draft denial",
+    "failed/unresolved selected check cannot borrow another passed check",
+    "accepted-but-lost draft retains original intent; positive read-only reconciliation before review",
+    "original observations recover after later publication uncertainty; new observations blocked",
+    "actual CLI original publication/review recovery without source/Git/credentials"
+  ],
+  "actual_ai_model_used": false,
+  "actual_github_app_used": false,
+  "actual_remote_writes_performed": false,
+  "model_quality_qualified": false,
+  "independent_review_completed": false,
+  "public_deployment_verified": false,
+  "exact_main_CI_required": true,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "overall_goal_complete": false
+}
