@@ -218,10 +218,26 @@ class LocalRuntimeManager:
                 # Neither unknown daemon acceptance nor a lost host response is
                 # a reason to create/start/copy again. All known/new resources
                 # and original newer data remain available for observation.
-                if self.store.get(identifier)['phase'] not in {'committed', 'stopped', 'recovered_previous', 'failed_closed'}:
-                    self.store.event(identifier, 'attention', {'original_outcome_reserved': True,
-                                                             'unknown_daemon_acceptance': isinstance(error, RuntimeMutationUnknown)})
-                raise RuntimeReleaseError('Local runtime operation needs read-only reconciliation; preserve its original journal and resources') from None
+                history = self.store.get(identifier)
+                mutations = [event for event in history['events'] if event['phase'] == 'mutation_requested']
+                if history['phase'] not in {'committed', 'stopped', 'recovered_previous', 'failed_closed'}:
+                    if not mutations:
+                        # Engine/image/config preflight consists only of reads.
+                        # An explicit refusal here cannot have created a daemon
+                        # resource and must not lock out a corrected policy.
+                        self.store.event(identifier, 'failed_closed', {'preflight_failed_before_daemon_mutations': True,
+                                                                      'current_generation_unchanged': True})
+                    else:
+                        self.store.event(identifier, 'attention', {'original_outcome_reserved': True,
+                                                                 'unknown_daemon_acceptance': isinstance(error, RuntimeMutationUnknown)})
+                failure = RuntimeReleaseError('Local runtime operation needs read-only reconciliation; preserve its original journal and resources')
+                # Fixed installed reasons and stage names support private/CI
+                # diagnosis; CLI history never echoes exception/input values.
+                failure.diagnostic = {'cause_type': type(error).__name__,
+                    'fixed_reason': str(error) if isinstance(error, RuntimeReleaseError) else None,
+                    'last_requested_step': mutations[-1]['details']['step'] if mutations else 'read_only_preflight',
+                    'mutations_requested': len(mutations), 'phase': self.store.get(identifier)['phase']}
+                raise failure from None
             return self.store.get(identifier)
 
     def activate(self, body):

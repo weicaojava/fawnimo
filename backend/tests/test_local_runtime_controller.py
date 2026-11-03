@@ -340,3 +340,23 @@ def test_initial_claims_export_is_private_no_overwrite_and_exact_current_generat
     with pytest.raises(ValueError): manager.export_initial_claims('stable', 0, private / 'stale.json')
     with pytest.raises(ValueError): manager.export_initial_claims('stable', 1, store.root / 'public-mixed.json')
     assert target.read_bytes() == before and not (private / 'stale.json').exists()
+
+
+@pytest.mark.parametrize('existing',[False,True],ids=['empty-slot','running-slot'])
+def test_failed_readonly_image_preflight_releases_slot_without_touching_current_generation(runtime,monkeypatch,existing):
+    """A known read-only preflight refusal cannot trap policy repair or stop/reset a current deployment; original replay remains inert."""
+    store,docker,manager,calls=runtime
+    if existing:manager.activate(intent('preflight-existing-original'))
+    previous=store.slot('stable');before=list(docker.mutations)
+    def refused(binding):
+        """Refuse the fixed image check before any daemon write, not a lost mutation acknowledgment."""
+        raise RuntimeReleaseError('Authored readonly image mismatch')
+    monkeypatch.setattr(docker,'image',refused)
+    body=intent('preflight-refused-original',generation=previous['generation'])
+    with pytest.raises(RuntimeReleaseError) as observed:manager.activate(body)
+    assert store.get(operation_id(body.request_key))['phase']=='failed_closed'
+    assert observed.value.diagnostic['last_requested_step']=='read_only_preflight'
+    assert store.slot('stable')==previous and docker.mutations==before
+    store.set_policy(LocalRuntimePolicy(),expected_revision=2,request_key='repair-preflight-policy')
+    count=len(calls)
+    assert manager.activate(body)['phase']=='failed_closed' and len(calls)==count

@@ -27,7 +27,7 @@ pytestmark = pytest.mark.skipif(not os.environ.get('FAWNIMO_RUNTIME_OCI_IMAGE'),
 @pytest.fixture(scope='module')
 def qualification():
     """Collect public-safe check names only; fixture accounts, cookies, tokens, source data and raw Docker logs are never artifacts."""
-    record = {'profile': 'local_runtime_release_oci_v1', 'checks': [], 'actual_linux_engine': True,
+    record = {'profile': 'local_runtime_release_oci_v1', 'checks': [], 'actual_linux_engine': False,
               'original_resources_used': False, 'external_model_calls': 0, 'paid_authorization': 0,
               'public_deployment_verified': False, 'independent_review_completed': False}
     yield record
@@ -100,6 +100,12 @@ def actual_runtime(tmp_path, qualification):
     clients = []
     with isolated_docker_cli() as cli:
         docker = RuntimeDocker(cli, store.marker['owner'])
+        docker.engine()
+        qualification['actual_linux_engine'] = True
+        qualification['image_bindings'] = [{'image_id': binding.image_id, 'declared_source_commit': binding.source_commit,
+                                            'deliberately_broken_negative_fixture': binding.image_id == images['FAULT_IMAGE']}
+                                           for binding in policy.operator_allowed_images]
+        qualification['bootstrap_sha256'] = policy.bootstrap_sha256
 
         @contextmanager
         def boundary(owner):
@@ -108,6 +114,23 @@ def actual_runtime(tmp_path, qualification):
             with cli.budget(600): yield docker
 
         manager = LocalRuntimeManager(store, boundary_factory=boundary)
+        original_operate = manager._operate
+        def diagnose(kind,body):
+            """Retain fixed reason/stage and classified Docker errors only; never emit private configuration, raw daemon text or credentials."""
+            try:return original_operate(kind,body)
+            except Exception as error:
+                diagnostic=dict(getattr(error,'diagnostic',{'cause_type':type(error).__name__}))
+                latest=getattr(cli,'_last_error',None)
+                if latest:
+                    text=latest['stderr'].decode('utf8',errors='replace').lower()
+                    diagnostic['latest_docker_error_historical_only']=True
+                    diagnostic['docker_operation']=latest['operation']
+                    diagnostic['docker_exit_code']=latest['exit_code']
+                    diagnostic['docker_stderr_sha256']=hashlib.sha256(latest['stderr']).hexdigest()
+                    diagnostic['docker_error_categories']=[word for word in ('invalid','conflict','permission','network','dns','volume','gateway_mode','unknown flag','not found') if word in text]
+                qualification.setdefault('normalized_diagnostics',[]).append(diagnostic)
+                raise
+        manager._operate=diagnose
         try: yield store, docker, manager, images, clients
         finally:
             for client in clients: client.close()
@@ -119,6 +142,10 @@ def actual_runtime(tmp_path, qualification):
             try:
                 with cli.budget(180):
                     for identifier in operations:
+                        history=store.get(identifier)
+                        qualification.setdefault('operation_history',[]).append({'id':identifier,'kind':history['kind'],'phase':history['phase'],
+                            'phases':[event['phase'] for event in history['events']],
+                            'steps':[event['details']['step'] for event in history['events'] if event['phase']=='mutation_requested']})
                         observed, verified = manager._observe(docker, identifier)
                         if any(item.get('identity_needs_attention') for item in observed): raise ValueError('Owned fixture identity requires attention')
                         for value in verified: known[value['name']] = value
