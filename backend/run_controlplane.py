@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--trial-days',type=int,default=7)
     parser.add_argument('--trial-project-limit',type=int,default=2)
     parser.add_argument('--capacity', type=int, default=4)
+    parser.add_argument('--reference-media-origin',help='Explicit application-owned gateway origin for scoped one-video delivery; does not enable paid generation')
     parser.add_argument('--insecure-local-cookie', action='store_true')
     parser.add_argument('--provision-account')
     parser.add_argument('--credential-file', type=Path)
@@ -28,7 +29,15 @@ def main():
         parser.error('Insecure cookies are available only on a loopback listener')
     if not 1 <= args.port <= 65535:
         parser.error('Port must be between 1 and 65535')
-    from app.controlplane.maintenance import ProcessLease
+    if args.reference_media_origin is not None:
+        if args.provision_account:parser.error('Reference media configuration is only for the running gateway')
+        from app.controlplane.reference_delivery import validate_reference_origin
+        try:validate_reference_origin(args.reference_media_origin,args.public_origin,not args.insecure_local_cookie)
+        except ValueError:parser.error('Reference media needs the exact owned public origin and matching secure/local cookie mode')
+    from app.controlplane.maintenance import ProcessLease,validate_gateway_paths
+    if not args.provision_account:
+        try:validate_gateway_paths(args.root,args.frontend)
+        except ValueError:parser.error('Private identity data and built frontend must use independent directories')
     with ProcessLease(args.root.resolve()/'.maintenance.lock'):
         run_selected(args, parser)
 
@@ -58,7 +67,8 @@ def run_selected(args, parser):
     import uvicorn
     app = create_gateway(args.root, frontend=args.frontend, probe=args.probe,
                          secure_cookies=not args.insecure_local_cookie, public_origin=args.public_origin,
-                         allow_registration=args.allow_registration, capacity=args.capacity,trial_registration_policy=trial_policy)
+                         allow_registration=args.allow_registration, capacity=args.capacity,trial_registration_policy=trial_policy,
+                         reference_media_origin=getattr(args,'reference_media_origin',None))
     uvicorn.run(app, host=args.host, port=args.port, proxy_headers=False, timeout_graceful_shutdown=10)
 
 

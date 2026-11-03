@@ -32,9 +32,13 @@ class ReferenceDeliveryIntent:
     token: str = field(repr=False)
 
 
-def prepare_reference_deliveries(prepared, job_id: str, origin: str | None, *, trusted_local_origin=None, clock=time.time):
+def prepare_reference_deliveries(prepared, job_id: str, origin: str | None, *, trusted_local_origin=None, clock=time.time,delivery_scope=None):
     """Prepare bounded wire URLs in memory before writer ownership, without publishing or granting any read capability yet."""
     checked_delivery_origin(origin, trusted_local_origin=trusted_local_origin)
+    if delivery_scope is not None:
+        from app.core.contracts.workspace_reference_delivery import WorkspaceReferencePolicy
+        if not isinstance(delivery_scope,WorkspaceReferencePolicy) or delivery_scope.origin!=origin or delivery_scope.trusted_local_origin!=trusted_local_origin:
+            raise HTTPException(503,'参考素材交付范围尚未确认')
     references, intents = [], []
     for item in prepared.references:
         if item.fields['role'] != 'reference_video':
@@ -44,7 +48,9 @@ def prepare_reference_deliveries(prepared, job_id: str, origin: str | None, *, t
             raise HTTPException(503, '参考视频需要独立配置的素材交付服务，未接受生成')
         token, identifier = secrets.token_hex(32), uuid.uuid4().hex
         intent = ReferenceDeliveryIntent(identifier, job_id, item.fields['position'], prepared.project_id, clock(), token)
-        references.append(replace(item.wire_proof, delivery_url=origin+'/api/v1/execution-reference-media/'+identifier+'?token='+token))
+        url=(delivery_scope.signed_url(identifier,token,intent.created_at) if delivery_scope is not None
+            else origin+'/api/v1/execution-reference-media/'+identifier+'?token='+token)
+        references.append(replace(item.wire_proof, delivery_url=url))
         intents.append(intent)
     return tuple(references), tuple(intents)
 

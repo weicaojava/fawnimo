@@ -3,6 +3,14 @@ import os
 from pathlib import Path
 
 
+def validate_gateway_paths(root,frontend):
+    """Keep private identity/workspace/key data disjoint from every statically served frontend directory."""
+    if frontend is None:return
+    private=Path(root).resolve();public=Path(frontend).resolve()
+    if private.is_relative_to(public) or public.is_relative_to(private):
+        raise ValueError('Identity data and built frontend require independent directories')
+
+
 class MaintenanceBusy(RuntimeError):
     """Reject maintenance while a supported service still owns the same root or workspace."""
 

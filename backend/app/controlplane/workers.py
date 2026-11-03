@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass,field
 import json
 import os
 from pathlib import Path
@@ -38,17 +38,19 @@ class Worker:
     process: asyncio.subprocess.Process
     job: WindowsProcessJob | None
     trial_policy: dict | None = None
+    reference_policy: object = field(default=None,repr=False)
 
 
 class WorkspaceWorkers:
     """Route only to server-generated roots and keep running jobs in their original space."""
 
-    def __init__(self, root: Path, *, probe: Path | None = None, capacity: int = 4,trial_policy_provider=None):
+    def __init__(self, root: Path, *, probe: Path | None = None, capacity: int = 4,trial_policy_provider=None,reference_policy_provider=None):
         """Use a fixed capacity; reaching it refuses admission instead of evicting active tasks."""
         if not 1 <= capacity <= 16:
             raise ValueError('Workspace process capacity must be between 1 and 16')
         self.root, self.probe, self.capacity = root.resolve(), probe, capacity
         self.trial_policy_provider=trial_policy_provider
+        self.reference_policy_provider=reference_policy_provider
         self.backend = Path(__file__).resolve().parents[2]
         self.workers: dict[str, Worker] = {}
         self.lock = asyncio.Lock()
@@ -71,6 +73,23 @@ class WorkspaceWorkers:
                     pass
             await worker.process.wait()
 
+    async def policies(self,workspace_id):
+        """Recheck immutable owner policies without holding unrelated workspace startup admission."""
+        policy=await asyncio.to_thread(self.trial_policy_provider,workspace_id) if self.trial_policy_provider else None
+        reference=self.reference_policy_provider(workspace_id) if self.reference_policy_provider else None
+        if reference is not None:
+            from app.core.contracts.workspace_reference_delivery import WorkspaceReferencePolicy
+            if not isinstance(reference,WorkspaceReferencePolicy) or reference.workspace_id!=workspace_id:
+                raise HTTPException(503,'参考素材交付范围尚未确认')
+        return policy,reference
+
+    def reuse(self,workspace_id,worker,policy,reference):
+        """Reuse only the same fixed identity and unchanged policy; a cached process never gains new authority silently."""
+        if worker.workspace_id!=workspace_id:raise HTTPException(503,'工作进程身份尚未确认')
+        if worker.trial_policy!=policy:raise HTTPException(503,'体验策略已变化，请联系维护者核对工作进程')
+        if worker.reference_policy!=reference:raise HTTPException(503,'参考素材交付配置已变化，请联系维护者核对工作进程')
+        return worker
+
     async def get(self, workspace_id: str) -> Worker:
         """Start at most one fixed-scope process, fenced by its private readiness token."""
         if not WORKSPACE.fullmatch(workspace_id):
@@ -78,6 +97,11 @@ class WorkspaceWorkers:
         from app.controlplane.migration import migration_pending
         if await asyncio.to_thread(migration_pending, self.root, workspace_id):
             raise HTTPException(503, '旧数据迁移尚未完成，请由维护者核对原迁移请求')
+        cached=self.workers.get(workspace_id)
+        if cached is not None and cached.process.returncode is None and not any(worker.process.returncode is not None for worker in self.workers.values()):
+            policy,reference=await self.policies(workspace_id)
+            if self.workers.get(workspace_id) is cached and cached.process.returncode is None and not any(worker.process.returncode is not None for worker in self.workers.values()):
+                return self.reuse(workspace_id,cached,policy,reference)
         async with self.lock:
             # Reap all dead entries, without interrupting any live workspace's jobs.
             for stale_id, stale in list(self.workers.items()):
@@ -85,10 +109,9 @@ class WorkspaceWorkers:
                     await self.stop_worker(stale)
                     self.workers.pop(stale_id)
             existing = self.workers.get(workspace_id)
-            policy=await asyncio.to_thread(self.trial_policy_provider,workspace_id) if self.trial_policy_provider else None
+            policy,reference=await self.policies(workspace_id)
             if existing and existing.process.returncode is None:
-                if existing.trial_policy!=policy: raise HTTPException(503,'体验策略已变化，请联系维护者核对工作进程')
-                return existing
+                return self.reuse(workspace_id,existing,policy,reference)
             if existing:
                 await self.stop_worker(existing)
                 self.workers.pop(workspace_id)
@@ -106,11 +129,12 @@ class WorkspaceWorkers:
                 process = await asyncio.create_subprocess_exec(sys.executable, str(self.backend / 'run_tenant_worker.py'),
                     cwd=self.backend, env=worker_environment(), stdin=asyncio.subprocess.PIPE,
                     stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL, **options)
-                worker = Worker(workspace_id, port, token, process, job,policy)
+                worker = Worker(workspace_id, port, token, process, job,policy,reference)
                 if job:
                     job.attach(process.pid)
                 gate = {'root': str(self.root), 'workspace_id': workspace_id, 'port': port, 'internal_token': token}
                 if policy is not None: gate['trial_policy']=policy
+                if reference is not None:gate['reference_delivery']=reference.private_message()
                 if self.probe:
                     gate['probe'] = str(self.probe.resolve(strict=True))
                 process.stdin.write(json.dumps(gate).encode())

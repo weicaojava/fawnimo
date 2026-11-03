@@ -42,7 +42,7 @@ class SeedanceReferenceTransport(Seedance25DurableTransport):
             body = build_seedance_reference_body(project_id=self._project_id, model_id=snapshot.get('model_id'),
                 prompt=snapshot.get('prompt'), duration=snapshot.get('duration'), selection=self._selection,
                 prepared=self._references, delivery_origin=self.config.input_delivery_origin,
-                trusted_local_delivery_origin=self.config.trusted_local_media_origin)
+                trusted_local_delivery_origin=self.config.trusted_local_media_origin,delivery_workspace_id=self.config.delivery_workspace_id)
         except (TypeError, ValueError):
             raise RejectedSubmission('Unsupported original-project reference request') from None
         result = await self._control(CREATE_PATH, method='POST', body=body)

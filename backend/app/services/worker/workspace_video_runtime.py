@@ -88,7 +88,7 @@ def configuration_template() -> dict:
 
 
 async def build_managed_video_runtime(factory,filename,price_registry,*,trusted_local_host=None,trusted_local_port=None,transport_factory=Seedance25DurableTransport,
-                                     trusted_local_media_origin=None,reference_delivery_available=None):
+                                     trusted_local_media_origin=None,reference_delivery_available=None,reference_delivery_scope=None):
     """Compose the application runtime from an explicit saved model and shared prices; legacy raw-key files cannot grant new execution.
 
     Disabling new submissions still permits only sealed original native jobs to
@@ -96,6 +96,11 @@ async def build_managed_video_runtime(factory,filename,price_registry,*,trusted_
     by the application's lifecycle and are never overridden here.
     """
     from app.services.worker.native_video_accounting import NativeVideoAccounting
+    if reference_delivery_scope is not None:
+        from app.core.contracts.workspace_reference_delivery import WorkspaceReferencePolicy
+        if not isinstance(reference_delivery_scope,WorkspaceReferencePolicy) or reference_delivery_available is not None and reference_delivery_available is not True:
+            raise ValueError('Explicit fixed reference delivery scope required')
+        reference_delivery_available=True
     if reference_delivery_available is None:
         from app.config import settings
         reference_delivery_available=settings.workspace_id is None and settings.api_v1_prefix=='/api/v1'
@@ -112,7 +117,7 @@ async def build_managed_video_runtime(factory,filename,price_registry,*,trusted_
         return None,setup_projection(config,issue_code='managed_model_required',message='请选择模型库中明确配置的原生视频模型；旧环境凭据与手填费用不授予新执行权限。')
     accountant=NativeVideoAccounting(factory,config,price_registry,trusted_local_host=trusted_local_host,
         trusted_local_port=trusted_local_port,transport_factory=transport_factory,
-        trusted_local_media_origin=trusted_local_media_origin,reference_delivery_available=reference_delivery_available)
+        trusted_local_media_origin=trusted_local_media_origin,reference_delivery_available=reference_delivery_available,reference_delivery_scope=reference_delivery_scope)
     policies={};ready=False;quote=None;issue='disabled';message='新生成已关闭；只允许原任务使用未变化的原账号继续查询。'
     if config.enabled:
         try:

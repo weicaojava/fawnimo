@@ -45,6 +45,7 @@ class SeedanceReferenceConfiguration(Seedance25Configuration):
     """Retain the original Ark control/download boundaries while separately binding conditions and delivery policy."""
     input_delivery_origin: str | None = None
     trusted_local_media_origin: str | None = None
+    delivery_workspace_id: str | None = None
 
     def __post_init__(self):
         """Do not borrow the control-port fixture exception as authorization for a media delivery origin."""
@@ -52,6 +53,10 @@ class SeedanceReferenceConfiguration(Seedance25Configuration):
         checked_delivery_origin(self.input_delivery_origin, trusted_local_origin=self.trusted_local_media_origin)
         if self.trusted_local_media_origin is not None and self.trusted_local_host is None:
             raise ValueError('Fixture media origin needs an independently configured fixture transport')
+        if self.delivery_workspace_id is not None:
+            from app.core.workspace_boundary import validate_workspace_id
+            validate_workspace_id(self.delivery_workspace_id)
+            if self.input_delivery_origin is None:raise ValueError('Scoped video delivery requires its owned origin')
 
     @property
     def profile_hash(self) -> str:
@@ -74,6 +79,10 @@ class SeedanceReferenceConfiguration(Seedance25Configuration):
             'output': {'reference_ratio': '9:16', 'frames_ratio': 'adaptive-with-actual-9:16-input',
                 'resolution': '480p', 'format': 'mp4', 'audio': False, 'watermark': True},
             'request_bytes': 18*1024*1024, 'automatic_format_or_input_fallback': False}
+        if self.delivery_workspace_id is not None:
+            from app.core.contracts.workspace_reference_delivery import WORKSPACE_REFERENCE_PREFIX,WORKSPACE_REFERENCE_PROTOCOL
+            value['workspace_delivery']={'schema':WORKSPACE_REFERENCE_PROTOCOL,'workspace_id':self.delivery_workspace_id,'path':WORKSPACE_REFERENCE_PREFIX}
+            value['references']['delivery_path']=WORKSPACE_REFERENCE_PREFIX+self.delivery_workspace_id+'/'
         return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
 
     @property

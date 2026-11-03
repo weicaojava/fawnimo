@@ -68,3 +68,5 @@ python manage_local_release.py --release-root /srv/fawnimo-release-private --fee
 ```
 
 反馈只保存在本机私有日志，不发送消息，不等于真实独立审核、真实用户验收或发布成功。当前能力及限制见[本机回退架构](../../architecture/local-releases/)。
+
+启用[固定身份参考视频交付](../workspace-reference-delivery/)时，私有全根备份包含 `.reference-delivery.key`，应与身份库和全部空间共同保管。恢复只到新的私有根，既有链接仍受期限、次数、原任务和输入证明约束；不能把密钥单独放进前端或公开备份。

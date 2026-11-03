@@ -11,10 +11,12 @@ import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
+from starlette.datastructures import QueryParams
 
 from app.controlplane.routes import COOKIE, check_origin, router
 from app.controlplane.store import IdentityStore
 from app.controlplane.workers import WorkspaceWorkers
+from app.core.contracts.workspace_reference_delivery import WORKSPACE_REFERENCE_PREFIX
 
 WRITE_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
 REQUEST_LIMIT = 70 * 1024 * 1024
@@ -32,14 +34,27 @@ CLOSED_AVAILABILITY_PATHS = frozenset({'/api/v1/agent-execution/availability','/
 
 def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | None = None,
                    secure_cookies: bool = True, public_origin: str | None = None,
-                   allow_registration: bool = False, capacity: int = 4, workers=None,trial_registration_policy=None) -> FastAPI:
+                   allow_registration: bool = False, capacity: int = 4, workers=None,trial_registration_policy=None,reference_media_origin=None) -> FastAPI:
     """Build an independent control plane; never import or open the legacy studio database."""
+    from app.controlplane.maintenance import validate_gateway_paths
+    validate_gateway_paths(root,frontend)
+    if reference_media_origin is not None:
+        from app.controlplane.reference_delivery import validate_reference_origin
+        validate_reference_origin(reference_media_origin,public_origin,secure_cookies)
     store = IdentityStore(root)
     pool = workers or WorkspaceWorkers(root / 'workspaces', probe=probe, capacity=capacity)
+    reference_authority=None;reference_proxy=None
+    if reference_media_origin is not None:
+        from app.controlplane.reference_delivery import GatewayReferenceAuthority
+        from app.controlplane.reference_proxy import GatewayReferenceProxy
+        reference_authority=GatewayReferenceAuthority(root,reference_media_origin,public_origin=public_origin,secure_cookies=secure_cookies)
+        reference_proxy=GatewayReferenceProxy(reference_authority,store,pool,capacity=capacity)
     from app.core.contracts.identity_trials import TrialRegistrationPolicy
     from app.controlplane.trials import IdentityBodyLimit
     registration_policy=TrialRegistrationPolicy() if trial_registration_policy is None else TrialRegistrationPolicy.model_validate(trial_registration_policy)
-    if isinstance(pool,WorkspaceWorkers): pool.trial_policy_provider=store.workspace_trial_policy
+    if isinstance(pool,WorkspaceWorkers):
+        pool.trial_policy_provider=store.workspace_trial_policy
+        pool.reference_policy_provider=reference_authority.policy_for_workspace if reference_authority is not None else None
 
     @asynccontextmanager
     async def lifespan(application):
@@ -57,6 +72,7 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
     app.state.public_origin = public_origin
     app.state.auth_slots = asyncio.Semaphore(4)
     app.state.workers = pool
+    app.state.reference_delivery_authority=reference_authority
     app.add_middleware(IdentityBodyLimit)
     app.include_router(router, prefix='/api/v1')
 
@@ -73,7 +89,12 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
     @app.middleware('http')
     async def private_cache_headers(request: Request, call_next):
         """Never cache private media/identity responses or allow active uploaded HTML to run inline."""
+        reference_path=request.scope.get('path','').startswith((WORKSPACE_REFERENCE_PREFIX,'/api/v1/execution-reference-media/'))
+        if reference_path:
+            request.state.reference_delivery_query=request.scope.get('query_string',b'')
+            request.scope['query_string']=b''
         response = await call_next(request)
+        if reference_path:response.headers['Referrer-Policy']='no-referrer'
         if request.url.path.startswith('/api/'):
             response.headers['Cache-Control'] = 'no-store'
             response.headers['Vary'] = 'Cookie, X-Workspace-Id, X-Identity-Id'
@@ -88,6 +109,13 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
         """Expose only public process health, never workspace counts, paths or identities."""
         return {'status': 'ok'}
 
+    @app.api_route(WORKSPACE_REFERENCE_PREFIX+'{workspace_id}/{delivery_id}',methods=['GET','HEAD'],include_in_schema=False)
+    async def reference_media(workspace_id:str,delivery_id:str,request:Request):
+        """Permit one signed read only; this route cannot browse projects, submit work or borrow a cookie's workspace."""
+        if reference_proxy is None or b'%' in request.scope.get('raw_path',b''):
+            raise HTTPException(404,'参考素材不可用')
+        return await reference_proxy.response(workspace_id,delivery_id,request)
+
     @app.api_route('/api/v1/{path:path}', methods=['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'])
     async def proxy(path: str, request: Request):
         """Authenticate every download/task/config request before selecting a private fixed worker."""
@@ -95,10 +123,14 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
         # could be decoded again by the proxy target and change policy routing.
         if '%' in path or '\\' in path or any(ord(value) < 32 or ord(value) == 127 for value in path) or any(segment in {'.', '..'} for segment in path.split('/')):
             raise HTTPException(400, '接口路径无效')
+        if path.startswith('workspace-reference-media'):
+            raise HTTPException(404,'参考素材不可用')
         identity = await asyncio.to_thread(store.current, request.cookies.get(COOKIE))
         workspace = identity['workspace_id']
         supplied_workspace, supplied_user = request.headers.get('x-workspace-id'), request.headers.get('x-identity-id')
-        media_workspaces, media_users = request.query_params.getlist('__studio_workspace'), request.query_params.getlist('__studio_user')
+        saved_reference_query=getattr(request.state,'reference_delivery_query',None)
+        query_params=QueryParams(saved_reference_query) if saved_reference_query is not None else request.query_params
+        media_workspaces, media_users = query_params.getlist('__studio_workspace'), query_params.getlist('__studio_user')
         if len(media_workspaces) > 1 or len(media_users) > 1:
             raise HTTPException(400, '媒体范围无效')
         if media_workspaces and media_workspaces[0] != workspace or media_users and media_users[0] != identity['user']['id']:
@@ -143,8 +175,9 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
         upstream = None
         try:
             target = f'http://127.0.0.1:{worker.port}' + route
-            if request.url.query:
-                target += '?' + request.url.query
+            query=saved_reference_query.decode('ascii') if saved_reference_query is not None else request.url.query
+            if query:
+                target += '?' + query
             upstream = await client.send(client.build_request(request.method, target, content=bytes(body), headers=headers), stream=True)
         except BaseException as error:
             if upstream:

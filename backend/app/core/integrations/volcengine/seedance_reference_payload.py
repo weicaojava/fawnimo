@@ -29,7 +29,7 @@ def _image_url(proof: PreparedReference, *, frames: bool) -> str:
     return 'data:'+proof.mime+';base64,'+base64.b64encode(proof.content).decode('ascii')
 
 
-def _video_url(proof: PreparedReference, delivery_origin: str | None, trusted_local_origin: str | None) -> str:
+def _video_url(proof: PreparedReference, delivery_origin: str | None, trusted_local_origin: str | None,workspace_id=None) -> str:
     """Accept only an application-owned scoped delivery URL, never a user URL, asset handle or inline video."""
     if (proof.mime != 'video/mp4' or proof.content is not None or not isinstance(proof.delivery_url, str)
             or type(proof.byte_size) is not int or not 0 < proof.byte_size <= MAX_VIDEO_BYTES
@@ -45,17 +45,25 @@ def _video_url(proof: PreparedReference, delivery_origin: str | None, trusted_lo
         raise ValueError('参考视频证明或独立素材交付配置缺失')
     checked_delivery_origin(delivery_origin, trusted_local_origin=trusted_local_origin)
     origin, target = urlsplit(delivery_origin), urlsplit(proof.delivery_url)
+    path_pattern=r'/api/v1/execution-reference-media/[a-f0-9]{32}'
+    query_pattern=r'token=[a-f0-9]{64}'
+    if workspace_id is not None:
+        from app.core.workspace_boundary import validate_workspace_id
+        from app.core.contracts.workspace_reference_delivery import WORKSPACE_REFERENCE_PREFIX
+        validate_workspace_id(workspace_id)
+        path_pattern=re.escape(WORKSPACE_REFERENCE_PREFIX+workspace_id+'/')+r'[a-f0-9]{32}'
+        query_pattern=r'token=[a-f0-9]{64}&expires=[1-9][0-9]{0,15}&signature=[a-f0-9]{64}'
     if (target.scheme != origin.scheme or target.netloc != origin.netloc
             or target.username or target.password or target.fragment
-            or re.fullmatch(r'/api/v1/execution-reference-media/[a-f0-9]{32}', target.path) is None
-            or re.fullmatch(r'token=[a-f0-9]{64}', target.query) is None):
+            or re.fullmatch(path_pattern, target.path) is None
+            or re.fullmatch(query_pattern, target.query) is None):
         raise ValueError('参考视频交付地址与原服务不一致')
     return proof.delivery_url
 
 
 def build_seedance_reference_body(*, project_id: str, model_id: str, prompt: str, duration: int,
                                   selection: VideoReferenceSelection, prepared: tuple[PreparedReference, ...],
-                                  delivery_origin: str | None = None, trusted_local_delivery_origin: str | None = None) -> dict:
+                                  delivery_origin: str | None = None, trusted_local_delivery_origin: str | None = None,delivery_workspace_id=None) -> dict:
     """Keep ordered explicit media in the outgoing body; validation has no database, file or network side effects."""
     if (not isinstance(project_id, str) or not project_id or model_id != MODEL_ID
             or type(duration) is not int or duration not in SUPPORTED_DURATIONS
@@ -79,7 +87,7 @@ def build_seedance_reference_body(*, project_id: str, model_id: str, prompt: str
             total_images += proof.byte_size
             content.append({'type': 'image_url', 'image_url': {'url': url}, 'role': chosen.role})
         else:
-            content.append({'type': 'video_url', 'video_url': {'url': _video_url(proof, delivery_origin, trusted_local_delivery_origin)}, 'role': chosen.role})
+            content.append({'type': 'video_url', 'video_url': {'url': _video_url(proof, delivery_origin, trusted_local_delivery_origin,delivery_workspace_id)}, 'role': chosen.role})
     if total_images > 12 * 1024 * 1024:
         raise ValueError('参考图片总大小超过本协议上限')
     body = {'model': MODEL_ID, 'content': content, 'duration': duration,

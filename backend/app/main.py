@@ -129,8 +129,12 @@ async def lifespan(app: FastAPI):
         from app.core.db import async_session_maker
         from app.services.worker.seedance25_runtime import build_preparation_runtime
         from app.services.worker.workspace_video_runtime import build_managed_video_runtime
+        reference_policy=getattr(app.state,'workspace_reference_policy',None)
+        if reference_policy is not None and reference_policy.workspace_id!=settings.workspace_id:
+            raise RuntimeError('Reference delivery does not match the fixed workspace')
         configured_runtime, setup = await build_managed_video_runtime(async_session_maker, settings.video_runtime_config,model_prices,
-            trusted_local_host=local_models.host_for('native_video'), trusted_local_port=local_models.native_video_port)
+            trusted_local_host=local_models.host_for('native_video'), trusted_local_port=local_models.native_video_port,
+            reference_delivery_scope=reference_policy)
         app.state.workspace_video_setup = setup
         app.state.native_video_history_factory=async_session_maker
         app.state.execution_runtime=configured_runtime or build_preparation_runtime(async_session_maker)

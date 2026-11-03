@@ -63,12 +63,20 @@ async def recover_request(factory,project_id,request_key,request_hash):
 class NativeVideoAccounting:
     """Use the managed model library and shared trusted quote registry; no startup credential is cached."""
     def __init__(self,factory,config,price_registry,*,trusted_local_host=None,trusted_local_port=None,transport_factory=Seedance25DurableTransport,
-                 trusted_local_media_origin=None,reference_delivery_available=False):
+                 trusted_local_media_origin=None,reference_delivery_available=False,reference_delivery_scope=None):
         """Trusted application composition supplies the only network exception and transport implementation."""
         self.factory=factory;self.config=config;self.registry=price_registry;self.transport_factory=transport_factory
         self.network={'trusted_local_host':trusted_local_host,'trusted_local_port':trusted_local_port}
         if type(reference_delivery_available) is not bool:raise ValueError('Explicit delivery availability required')
         self.reference_delivery_available=reference_delivery_available
+        if reference_delivery_scope is not None:
+            from app.core.contracts.workspace_reference_delivery import WorkspaceReferencePolicy
+            if not isinstance(reference_delivery_scope,WorkspaceReferencePolicy) or not reference_delivery_available:
+                raise ValueError('An enabled fixed reference delivery scope is required')
+            if trusted_local_media_origin is not None and trusted_local_media_origin!=reference_delivery_scope.trusted_local_origin:
+                raise ValueError('Independent reference fixture origins differ')
+            trusted_local_media_origin=reference_delivery_scope.trusted_local_origin
+        self.reference_delivery_scope=reference_delivery_scope
         self.trusted_local_media_origin=trusted_local_media_origin
         self._reference_lane=asyncio.Lock()
         from app.services.worker.reference_delivery import ReferenceMediaDelivery
@@ -83,9 +91,14 @@ class NativeVideoAccounting:
             origin=getattr(self.config,'reference_media_origin',None)
             if origin is not None and not self.reference_delivery_available:
                 raise HTTPException(503,'当前入口没有接通参考视频素材交付；请先移除该交付配置，仍可准备参考图片')
+            if origin is not None and self.reference_delivery_scope is not None and origin!=self.reference_delivery_scope.origin:
+                raise HTTPException(503,'参考视频交付地址与当前身份网关不一致，未接受生成')
             try:
+                media_fixture_origin=self.trusted_local_media_origin
+                if self.reference_delivery_scope is not None and origin is None:media_fixture_origin=None
                 return SeedanceReferenceConfiguration(api_key=secret,service_version=self.config.service_version,account_version=quote.account_version,
-                    input_delivery_origin=origin,trusted_local_media_origin=self.trusted_local_media_origin,**options)
+                    input_delivery_origin=origin,trusted_local_media_origin=media_fixture_origin,
+                    delivery_workspace_id=self.reference_delivery_scope.workspace_id if origin is not None and self.reference_delivery_scope is not None else None,**options)
             except ValueError:
                 raise HTTPException(503,'参考生成的独立素材交付配置无效，未接受调用') from None
         return Seedance25Configuration(api_key=secret,service_version=self.config.service_version,account_version=quote.account_version,**options)
@@ -248,11 +261,13 @@ class NativeVideoAccounting:
             if not isinstance(config,SeedanceReferenceConfiguration):
                 raise HTTPException(409,'原参考模型声明已变化')
             wire,intents=prepare_reference_deliveries(prepared,job.id,config.input_delivery_origin,
-                trusted_local_origin=config.trusted_local_media_origin,clock=clock)
+                trusted_local_origin=config.trusted_local_media_origin,clock=clock,
+                delivery_scope=self.reference_delivery_scope if config.delivery_workspace_id is not None else None)
             try:
                 build_seedance_reference_body(project_id=job.project_id,model_id=job.snapshot['model_id'],
                     prompt=job.snapshot['prompt'],duration=job.snapshot['duration'],selection=prepared.selection,prepared=wire,
-                    delivery_origin=config.input_delivery_origin,trusted_local_delivery_origin=config.trusted_local_media_origin)
+                    delivery_origin=config.input_delivery_origin,trusted_local_delivery_origin=config.trusted_local_media_origin,
+                    delivery_workspace_id=config.delivery_workspace_id)
             except (TypeError,ValueError):raise NativeReferenceInputError() from None
             return await self._prepare_locked(job,token,proof,clock,prepared,wire,intents)
 
