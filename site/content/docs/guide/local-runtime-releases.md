@@ -49,7 +49,7 @@ python manage_runtime_release.py --root /srv/fawnimo-runtime-private activate --
 python manage_runtime_release.py --root /srv/fawnimo-runtime-private credentials --slot stable --expected-generation 1 --output /srv/fawnimo-claims-private/stable-initial.json
 ```
 
-命令只报告是否保存成功，不输出密码。POSIX 领取目录必须是 0700；Windows 请选择只允许本账号访问的目录。该文件是首次生成的领取资料，不能重置后来修改的密码，不应提交 Git 或发到聊天。
+命令只报告是否保存成功，不输出密码。POSIX 领取目录必须是 0700；Windows 请选择只允许本账号访问的目录。该文件只反映初始账号，不承担密码重置；恢复保留当前身份库的密码状态。领取文件不应提交 Git 或发到聊天。
 
 下一次切换使用新键和准确当前代次，例如 `expected_generation: 1`；镜像仍必须已允许。期间会短暂停止稳定服务，预览继续独立运行。存在未完成任务、费用预留、未确认模型调用、未处理账单、未认领资料或不兼容数据时拒绝完成。成功结果中的 `archive_sealed` 事件给出切换前完整资料的 `snapshot_id`；原服务卷和较新的编辑始终保留。
 
@@ -97,3 +97,5 @@ python manage_runtime_release.py --root /srv/fawnimo-runtime-private quiesce --i
 状态改变或身份不符时拒绝行动。若停止本身中断，重新只读观察；旧键不重复执行，新的显式请求须绑定新观察。最多三次显式处理；未知资源或持续错误需维护者在私有环境核对，不自动清除预约。成功停下后可使用新的启动请求，旧数据/档案不删除。到达操作/代次容量后应归档核对，不能靠改日志重置额度。
 
 完整实现和限制见[本机运行架构](../../architecture/local-runtime-releases/)。原[数据准备与离线档案](../local-releases/)入口继续提供纯数据操作，独立审核、CI 和真实公网验收分别登记。
+
+新数据代次会完整检查原业务资料；同代次后续重启使用其私有准备记录并保留正常编辑。不要修改、复制或单独移走运行配置/基线/准备记录。费用规则变化会拒绝旧资料回退，已验证原版恢复后继续使用当前预算。当前准确容器证据见[功能登记](../../reference/feature-catalog/)，本机通过不授予公网、独立审核或费用权限。
