@@ -6,6 +6,7 @@ selected image's installed gateway, never host source or another slot's data.
 import asyncio
 from contextlib import asynccontextmanager
 import hmac
+import hashlib
 from http.cookiejar import CookieJar, DefaultCookiePolicy
 import ipaddress
 import json
@@ -71,7 +72,7 @@ class PrivateReady:
         self.lock = asyncio.Lock()
 
     async def prepare(self):
-        """Start each actual fixed-identity worker in the new data volume and reject migrations that change original business values or file bytes."""
+        """Verify original rows/files on first preparation of a new generation; restart the same verified generation with its legitimate later edits."""
         if self.prepared: return
         async with self.lock:
             if self.prepared: return
@@ -81,16 +82,30 @@ class PrivateReady:
             from app.controlplane.migration import table_receipts
             from app.services.community.local_release_files import read_json, file_hash, plain
             from app.core.workspace_boundary import assert_workspace_boundary
-            baseline = read_json(Path('/data/runtime-baseline.json'))
+            baseline_path=plain(Path('/data/runtime-baseline.json'))
+            baseline = read_json(baseline_path)
             if (baseline.get('profile') != 'local_runtime_baseline_v1' or len(baseline['workspaces']) > 4
                     or any(re.fullmatch(r'ws_[a-f0-9]{32}', item) is None for item in baseline['workspaces'])):
                 raise ValueError('Invalid original runtime data baseline')
+            with self.app.state.identity_store.connect() as db:
+                current_spaces=[row[0] for row in db.execute('SELECT id FROM workspaces ORDER BY id')]
+            if current_spaces!=baseline['workspaces']:raise ValueError('Current runtime workspace topology differs from its own generation')
+            expected_receipt={'profile':'local_runtime_prepared_v1','slot':self.value['slot'],
+                'baseline_sha256':file_hash(baseline_path,time.monotonic()+15)['sha256'],
+                'config_sha256':hashlib.sha256(json.dumps(self.value,sort_keys=True,separators=(',',':')).encode()).hexdigest()}
+            receipt_path=plain(Path('/data/runtime-prepared.json'),exists=False)
+            previously_prepared=receipt_path.exists()
+            if previously_prepared:
+                import stat
+                entry=receipt_path.stat()
+                if not stat.S_ISREG(entry.st_mode) or entry.st_nlink!=1 or entry.st_size>4096 or read_json(receipt_path)!=expected_receipt:
+                    raise ValueError('Original runtime preparation receipt changed')
             for workspace in baseline['workspaces']:
                 await self.app.state.workers.get(workspace)
                 database = Path('/data/studio/workspaces') / workspace / 'studio.db'
                 assert_workspace_boundary(database, workspace)
                 expected = baseline['databases'].get(workspace)
-                if expected:
+                if expected and not previously_prepared:
                     with closing(sqlite3.connect(database.as_uri() + '?mode=ro', uri=True, timeout=1.5)) as db:
                         db.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, 8388608)
                         until = time.monotonic() + 15
@@ -98,11 +113,21 @@ class PrivateReady:
                         if table_receipts(db, expected=expected) != expected:
                             raise ValueError('Selected image changed original business rows')
             deadline = time.monotonic() + 30
-            for name, expected in baseline['files'].items():
+            for name, expected in ({} if previously_prepared else baseline['files']).items():
                 relative = Path(name)
                 if relative.is_absolute() or '..' in relative.parts: raise ValueError('Invalid original private file reference')
                 if file_hash(plain(Path('/data/studio') / relative), deadline) != expected:
                     raise ValueError('Selected image changed original private file bytes')
+            if not previously_prepared:
+                # Successful first preparation is bound to this exact private
+                # config/baseline. New activation/restore targets never copy it.
+                # Later same-generation restarts retain legitimate user edits.
+                descriptor=os.open(receipt_path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+                with os.fdopen(descriptor,'wb') as stream:
+                    stream.write((json.dumps(expected_receipt,sort_keys=True,separators=(',',':'))+'\n').encode())
+                    stream.flush();os.fsync(stream.fileno())
+                from app.controlplane.migration import flush_directory
+                flush_directory(receipt_path.parent)
             self.prepared = True
 
     async def __call__(self, scope, receive, send):
