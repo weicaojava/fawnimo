@@ -80,3 +80,5 @@ docker compose -f deploy/workspace/compose.yaml --profile stable up -d stable
 当前方案只支持单节点持久卷，不支持多副本网关共享 SQLite、MySQL/PostgreSQL 迁移或 Redis/Celery 集群。旧 `deploy/compose` 和上游镜像工作流继续保留为来源历史，不能当作本方案的稳定发布配置。社区研发控制器必须另设执行环境，不挂载产品数据卷。
 
 参考：[uv 官方 Docker 集成](https://docs.astral.sh/uv/guides/integration/docker/)。
+
+另有[本机预览资料与离线回退指南](../../site/content/docs/guide/local-releases.md)。它准备独立账号及完整私有档案，恢复到新路径；实际镜像切换/公网验收仍单独进行。

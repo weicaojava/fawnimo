@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "scope": "Local independent preview-data preparation, consistent offline whole-gateway snapshot, new-path restore and local feedback software",
+  "source_tree": "8ed7331c29fef89fbe9c36b602d628c6f5e7f8e7",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "2a4e0492ee0c288f62e676032636a4bcbf4291aabfee830243e1a46f3b8fa4f8",
+    "backend/app/core/contracts/local_releases.py": "9a0a5a5648e8ffd9966f9313261ccfa8543771af465fe8a5882b345ecbcc607f",
+    "backend/app/services/community/local_release_files.py": "6b7577a9db19ffc2c8ccf3505a894baf0bd8a8b9244a9b3d028b44b3c1b09a58",
+    "backend/app/services/community/local_releases.py": "74a7acb0b53e7c931b5f3142f1784e2169b468130bc52849749f3e2db427a368",
+    "backend/manage_local_release.py": "40fef782bfeffd890a8d1ce8a439aefd352524e91c8a1ace56491becd7dd2a11",
+    "backend/tests/test_local_releases.py": "f0fba83770426608f70ecf51771a0cd2013d031555a4213ae4f49db3fcbe4cef"
+  },
+  "regression": {
+    "tests": 723,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "passed": 720,
+    "seconds": 237.673,
+    "junit_sha256": "c3f49828ad5f4ebfc3d191326b2ea0a112faee45d2e28e251f3ff15ef0dfa228",
+    "new_local_release_cases": 25,
+    "new_local_release_passed": 24,
+    "new_local_release_platform_skipped": 1
+  },
+  "schemas": {
+    "main_paths": 249,
+    "main_schemas": 589,
+    "community_paths": 2,
+    "community_schemas": 2,
+    "schemas_unchanged": true,
+    "lifespan_started": false
+  },
+  "source_review": {
+    "method": "author source review",
+    "independent": false,
+    "sha256": "6af4696d3577f0d22b0f8e32a9a33fb1e8a40c5531c1e61d6c767634decea6b0"
+  },
+  "counterexamples": [
+    {
+      "kind": "actual_authored_local_file_copy_counterexample",
+      "failed": 1,
+      "deselected": 17,
+      "test": "test_regular_file_named_like_sqlite_companion_is_backed_up",
+      "before_source_sha256": "c90b9532aee1aa3836ed44e413c78e9279f6806ef75967c35c976dc35a9bdedf",
+      "finding": "A regular non-SQLite file and its business -wal companion were incorrectly excluded by suffix alone",
+      "live_user_data_failure": false,
+      "independent_review": false
+    },
+    {
+      "kind": "actual_authored_SQLite_WAL_checkpoint_counterexample",
+      "failed": 1,
+      "deselected": 24,
+      "test": "test_sqlite_checkpoint_without_business_change_does_not_invalidate_snapshot",
+      "before_source_sha256": "10ea414417621c91099c1434f9c2cb366cdf64c27463b161a973c5446ca4759f",
+      "finding": "Committed rows/schema were unchanged but a real WAL checkpoint changed main-file page bytes and incorrectly invalidated a valid snapshot",
+      "live_user_data_failure": false,
+      "independent_review": false
+    }
+  ],
+  "metadata_review": {
+    "method": "author combined source and metadata review",
+    "independent": false,
+    "scope": "Independent local preview accounts/data, offline whole-gateway SQLite/WAL/schema/sequence/file snapshots, growth/private-mode/OS-lease bounds, fresh-path restore, crash recovery/local feedback, accurate pending deployment limits, docs/register/links/privacy"
+  },
+  "current_commit_ci": "pending_publication_and_exact_commit_CI",
+  "actual_local_gateway_scoped_workers_and_project_isolation_verified": true,
+  "actual_local_SQLite_WAL_backup_and_new_path_restore_verified": true,
+  "actual_controller_process_exit_and_original_recovery_verified": true,
+  "private_archives_or_credentials_published": false,
+  "original_user_data_used": false,
+  "original_user_data_reassigned": false,
+  "runtime_revision_verified": false,
+  "automatic_deployment_enabled": false,
+  "services_started_by_new_CLI": false,
+  "actual_historical_production_switch_verified": false,
+  "real_user_acceptance_verified": false,
+  "independent_review_completed": false,
+  "live_product_PR_release_qualified": false,
+  "automatic_development_qualified": false,
+  "deployment_authorized": false,
+  "public_deployment_verified": false,
+  "full_feature_qualified": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "overall_goal_complete": false,
+  "count_note": "Frozen720passes/3 platform skips include local24passes/1 skip and evolving suites; overlapping totals are not added. Parent exactCI1723/Linux10/generic40 are separately bounded evidence."
+}

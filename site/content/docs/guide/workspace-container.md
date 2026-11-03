@@ -28,3 +28,5 @@ python scripts/verify_workspace_container.py \
 GitHub 的 `Verify workspace container` 运行同一入口，并保存精确提交对应的 JSON 结果 14 天。确认对应提交、镜像构建步骤、验收步骤和报告全部成功后，才登记容器证据。工作流不推送镜像，不开通付费模型，不创建公网平台。
 
 日常稳定/预览部署的 origin、反向代理、版本、备份与回退步骤见仓库中的 [deploy/workspace/README.md](https://github.com/weicaojava/fawnimo/blob/main/deploy/workspace/README.md)。当前单节点文件不能用作共享 SQLite 的多副本方案，也不能替代服务器和公网实机验收。
+
+本机可使用单独私有目录进行[预览资料与离线回退准备](../local-releases/)，建立全新账号、完整备份与新路径恢复；实际运行版本和策略上线仍分别验收。
