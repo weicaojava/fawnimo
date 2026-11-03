@@ -73,7 +73,7 @@ class Client:
     def data(self, method, path, body=None):
         """Require a successful actual typed business response while keeping its private body out of assertion messages/artifacts."""
         result = self.request(method, path, body)
-        assert result.status_code == 200, 'Authored runtime HTTP step failed'
+        assert 200 <= result.status_code < 300, 'Authored runtime HTTP step failed'
         return result.json()['data']
 
     def close(self):

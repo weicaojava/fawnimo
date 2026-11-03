@@ -75,6 +75,19 @@ class AuthoredRuntime(RuntimeDocker):
         self.mutations.append(('create', value['name']))
         return result
 
+    def allocated_subnet(self,network):
+        """Supply a fixture-only engine allocation; packet-level/subnet acceptance is tested on the actual Docker engine separately."""
+        self.inspect(network)
+        return '172.23.0.0/24'
+
+    def remove_address_reservation(self,value):
+        """Remove only the newly created fixture reservation, never a final app/front network or data volume."""
+        assert value['role']=='address-reservation' and value['internal']
+        self.inspect(value)
+        del self.resources[value['name']]
+        self.mutations.append(('remove',value['name']))
+        return {'empty_address_reservation_removed':True}
+
     def create_container(self, value):
         """Persist acceptance before an optional lost response; repeated create is then an explicit fixture error."""
         self._fresh(value)
@@ -228,6 +241,7 @@ def test_accepted_create_loss_never_repeats_and_explicit_observed_quiescence_rel
     observed = manager.reconcile(identifier)
     assert observed['daemon_mutations_performed'] == 0 and docker.mutations == before
     assert any(item['kind'] == 'container' and item.get('exists') for item in observed['resources'])
+    assert all(item.get('id') for item in observed['resources'] if item.get('exists'))
     cleanup = {'request_key': 'quiesce-known-original', 'operation_id': identifier,
                'expected_observation_sha256': observed['observation_sha256'], 'acknowledge_stopped_data_retained': True,
                'reason': 'explicit authored stopped cleanup'}

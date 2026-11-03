@@ -66,7 +66,14 @@ class LocalRuntimeManager:
 
     def _network(self, docker, identifier, role, internal):
         """Create a private own network; apps only join isolated internal bridges."""
-        value = docker.spec('network', identifier, role, internal=internal)
+        details={'internal':internal}
+        if internal:
+            reservation=docker.spec('network',identifier,'address-reservation',internal=True)
+            reservation=self._step(identifier,'reserve_private_subnet',reservation,lambda:docker.create_network(reservation))
+            subnet=docker.allocated_subnet(reservation)
+            self._step(identifier,'release_empty_subnet_reservation',reservation,lambda:docker.remove_address_reservation(reservation))
+            details['subnet']=subnet
+        value = docker.spec('network', identifier, role, **details)
         return self._step(identifier, 'create_' + role, value, lambda: docker.create_network(value))
 
     def _container(self, docker, identifier, spec):
@@ -314,6 +321,11 @@ class LocalRuntimeManager:
                     record = docker.inspect(value, absent=True)
                 observed = {'name': value['name'], 'kind': value['kind'], 'exists': record is not None}
                 if record is not None:
+                    # An accepted create can lose its response before the CID
+                    # reaches the journal. Bind the independently verified
+                    # actual ID before any later explicit stop or cleanup.
+                    value={**value,'id':record['Id'] if value['kind']!='volume' else record['Name']}
+                    observed['id']=value['id']
                     observed['identity_sha256'] = digest(value)
                     verified.append(value)
                 if record is not None and value['kind'] == 'container':

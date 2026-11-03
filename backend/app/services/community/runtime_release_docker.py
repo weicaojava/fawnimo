@@ -112,6 +112,10 @@ class RuntimeDocker:
             if (record.get('Driver') != 'bridge' or record.get('Scope') != 'local' or record.get('Internal') is not value['internal']
                     or record.get('EnableIPv6') is not False or options != expected):
                 raise RuntimeReleaseError('Runtime network differs from its fixed isolated/private profile')
+            if value.get('subnet'):
+                entries=record.get('IPAM',{}).get('Config') or []
+                if len(entries)!=1 or entries[0].get('Subnet')!=value['subnet']:
+                    raise RuntimeReleaseError('Owned explicit network subnet changed')
         return record
 
     def create_network(self, value):
@@ -120,6 +124,12 @@ class RuntimeDocker:
         args = ['network', 'create', '--driver', 'bridge']
         if value['internal']:
             args += ['--internal', '--opt', 'com.docker.network.bridge.gateway_mode_ipv4=isolated']
+        if value.get('subnet'):
+            import ipaddress
+            subnet=ipaddress.ip_network(value['subnet'])
+            if not value['internal'] or subnet.version!=4 or not subnet.is_private or subnet.num_addresses<8 or str(subnet)!=value['subnet']:
+                raise RuntimeReleaseError('An exact own engine-allocated private IPv4 subnet is required')
+            args += ['--subnet',value['subnet']]
         result = self._create(value, args)
         return result
 
@@ -355,10 +365,28 @@ class RuntimeDocker:
     def fixed_app_address(self, network):
         """Reserve an address only inside this newly owned isolated bridge so previous-stack recovery keeps the proxy target stable."""
         import ipaddress
+        if not network.get('subnet'):raise RuntimeReleaseError('Static app addresses require an explicitly configured owned subnet')
+        subnet=ipaddress.ip_network(self.allocated_subnet(network))
+        return str(subnet.network_address+2)
+
+    def allocated_subnet(self,network):
+        """Use only the local engine allocator's actual new own isolated subnet, rather than selecting arbitrary host/LAN ranges."""
+        import ipaddress
         record = self.inspect(network)
         entries = record.get('IPAM', {}).get('Config') or []
         if not network['internal'] or len(entries) != 1: raise RuntimeReleaseError('Owned app bridge needs one private IPv4 subnet')
         subnet = ipaddress.ip_network(entries[0]['Subnet'])
         if subnet.version != 4 or not subnet.is_private or subnet.num_addresses < 8:
             raise RuntimeReleaseError('Owned app bridge address range is unsupported')
-        return str(subnet.network_address + 2)
+        return str(subnet)
+
+    def remove_address_reservation(self,value):
+        """Remove only this new empty isolated address-reservation bridge before explicitly configuring the final private network."""
+        if value.get('kind')!='network' or value.get('role')!='address-reservation' or value.get('internal') is not True:
+            raise RuntimeReleaseError('Only an empty original address reservation can be removed')
+        record=self.inspect(value)
+        if record.get('Containers'):raise RuntimeReleaseError('Address reservation has an active or unknown endpoint')
+        try:self.cli.command('network','rm',value['id'])
+        except DockerBoundaryError:raise RuntimeMutationUnknown('Original address reservation removal needs read-only reconciliation') from None
+        if self.inspect(value,absent=True) is not None:raise RuntimeMutationUnknown('Original address reservation remains after removal')
+        return {'empty_address_reservation_removed':True}
