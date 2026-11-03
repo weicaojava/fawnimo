@@ -41,7 +41,7 @@ class LocalSpeechEngine:
             result = json.loads(raw.decode('utf-8-sig'))
             if code or not isinstance(result, dict) or result.get('error'):
                 if isinstance(result, dict):
-                    self.last_failure = {key: result[key] for key in ('stage', 'error_type', 'returncode') if key in result}
+                    self.last_failure = {key: result[key] for key in ('stage', 'error_type', 'returncode', 'stdout_bytes', 'stderr_bytes') if key in result}
                 raise ValueError('Local voice rejected')
             return result
         except asyncio.CancelledError:

@@ -3,6 +3,8 @@ import hashlib
 import os
 from pathlib import Path
 import sys
+import subprocess
+import tempfile
 import wave
 
 import pytest
@@ -20,6 +22,26 @@ pytestmark = pytest.mark.skipif(not sys.platform.startswith('linux') or os.envir
     reason='Requires the explicit actual deployed-image Linux offline-speech profile')
 
 
+def version_failure_diagnostics():
+    """Compare only fixed version commands and numeric output sizes; never retain dialogue, raw errors or credentials."""
+    probes = {}
+    for mode in ('core0','bounded_no_as','bounded'):
+        code = "import os,resource; resource.setrlimit(resource.RLIMIT_CORE,(0,0)); "
+        if mode != 'core0':
+            code += "resource.setrlimit(resource.RLIMIT_CPU,(60,60)); resource.setrlimit(resource.RLIMIT_FSIZE,(33554432,33554432)); resource.setrlimit(resource.RLIMIT_NOFILE,(64,64)); "
+        if mode == 'bounded':
+            code += "resource.setrlimit(resource.RLIMIT_AS,(1073741824,1073741824)); "
+        code += "os.execve('/usr/bin/espeak-ng',['/usr/bin/espeak-ng','--version'],{'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8','OMP_NUM_THREADS':'1'})"
+        with tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
+            try:
+                result = subprocess.run([sys.executable,'-c',code],input=b'',stdout=output,stderr=errors,
+                    env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8'},timeout=3)
+                probes[mode] = {'returncode':result.returncode,'stdout_bytes':output.tell(),'stderr_bytes':errors.tell()}
+            except subprocess.TimeoutExpired:
+                probes[mode] = {'timeout':True,'stdout_bytes':output.tell(),'stderr_bytes':errors.tell()}
+    return probes
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize('language', ['cmn', 'en-us'])
 async def test_actual_installed_linux_voices_pcm_and_exclusive_output(tmp_path, monkeypatch, language):
@@ -28,7 +50,7 @@ async def test_actual_installed_linux_voices_pcm_and_exclusive_output(tmp_path, 
     monkeypatch.setattr(settings, 'workspace_runtime_locked', False)
     engine = LocalSpeechEngine()
     catalog = await engine.catalog()
-    assert catalog['enabled'] and catalog['profile'] == LINUX_PROFILE, engine.last_failure
+    assert catalog['enabled'] and catalog['profile'] == LINUX_PROFILE, {**engine.last_failure,'version_probes':version_failure_diagnostics()}
     assert {row['culture'] for row in catalog['voices']} == {'cmn', 'en-us'}
     voice = next(row for row in catalog['voices'] if row['culture'] == language)
     original = '这是离线配音测试。' if language == 'cmn' else 'This is an offline voice test. --help --voices.'

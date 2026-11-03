@@ -26,10 +26,11 @@ LANGUAGES = frozenset({'cmn', 'en-us'})
 
 class SpeechCommandError(RuntimeError):
     """Keep a fixed failing stage and return code, without exposing dialogue or raw subprocess errors."""
-    def __init__(self, stage, returncode):
+    def __init__(self, stage, returncode, stdout_bytes=0, stderr_bytes=0):
         """Attach only application-owned diagnostic fields for the original bounded command."""
         super().__init__('Installed Linux speech command did not complete')
         self.stage, self.returncode = stage, returncode
+        self.stdout_bytes, self.stderr_bytes = stdout_bytes, stderr_bytes
 
 
 def configuration(raw):
@@ -83,7 +84,7 @@ def limit_resources():
     """Bound this helper and its inherited child resources without changing another process or user-wide PID limits."""
     import resource
     os.umask(0o077)
-    for kind, limit in ((resource.RLIMIT_CPU, 60), (resource.RLIMIT_FSIZE, MAX_WAVE),
+    for kind, limit in ((resource.RLIMIT_CORE, 0), (resource.RLIMIT_CPU, 60), (resource.RLIMIT_FSIZE, MAX_WAVE),
                         (resource.RLIMIT_AS, 1024 * 1024 * 1024), (resource.RLIMIT_NOFILE, 64)):
         soft, hard = resource.getrlimit(kind)
         selected = limit if hard == resource.RLIM_INFINITY else min(limit, hard)
@@ -110,7 +111,7 @@ def command(binary, arguments, folder, *, content=None, descriptors=(), timeout=
         result = subprocess.run([str(binary), *arguments], input=content, stdout=output, stderr=errors,
             cwd=folder, env=environment, pass_fds=descriptors, timeout=timeout)
         if result.returncode or output.tell() > 65536 or errors.tell() > 65536:
-            raise SpeechCommandError(stage, result.returncode)
+            raise SpeechCommandError(stage, result.returncode, output.tell(), errors.tell())
         output.seek(0)
         return output.read(65537)
 
@@ -210,6 +211,8 @@ def main():
         record = {'error': 'installed_linux_speech_unavailable', 'stage': getattr(error, 'stage', stage), 'error_type': type(error).__name__}
         if isinstance(error, SpeechCommandError):
             record['returncode'] = error.returncode
+            record['stdout_bytes'] = error.stdout_bytes
+            record['stderr_bytes'] = error.stderr_bytes
         print(json.dumps(record))
         return 1
 

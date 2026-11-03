@@ -72,6 +72,22 @@ def test_installed_voice_catalog_refuses_ambiguous_basic_or_external_variants(tm
         child.catalog(tmp_path)
 
 
+def test_command_failure_exposes_counts_without_raw_stderr_or_dialogue(tmp_path, monkeypatch):
+    """Retain bounded numeric resource diagnostics without reflecting any subprocess content."""
+    from types import SimpleNamespace
+    def fail(_arguments, **options):
+        """Author a failed version command; no real system speech executable is launched."""
+        options['stdout'].write(b'version')
+        options['stderr'].write(b'private-original-dialogue-or-secret')
+        return SimpleNamespace(returncode=-25)
+    monkeypatch.setattr(child.subprocess,'run',fail)
+    with pytest.raises(child.SpeechCommandError) as failure:
+        child.command(Path('/usr/bin/espeak-ng'),['--version'],tmp_path,stage='engine_version')
+    assert failure.value.stage == 'engine_version' and failure.value.returncode == -25
+    assert (failure.value.stdout_bytes,failure.value.stderr_bytes) == (7,35)
+    assert 'private' not in str(failure.value) and 'secret' not in str(failure.value)
+
+
 @pytest.mark.asyncio
 async def test_exact_legacy_scope_upgrade_preserves_history_and_rejects_unknown_guard_atomically(tmp_path, monkeypatch):
     """Upgrade the frozen real v1 trigger while preserving Windows rows; an unknown companion guard rolls back all DDL."""
