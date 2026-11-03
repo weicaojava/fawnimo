@@ -18,9 +18,9 @@ from tests.test_workspace_local_model_execution import LocalExecutionSpaces, mod
 
 class LocalNativeSpaces(LocalExecutionSpaces):
     """Keep previous completed local runs, adding one managed native account/configuration per original worker."""
-    def __init__(self, app, client, root, origins):
+    def __init__(self, app, client, root, origins,*,accounts=None):
         """Configure only authored origins/keys and start one explicit original-project native request per account."""
-        super().__init__(app, client, root, origins)
+        super().__init__(app, client, root, origins,accounts=accounts)
         self.native_jobs, self.native_bodies = {}, {}
         for side in ('a', 'b'):
             self.ok(side, 'POST', '/llm/providers', json={'id': 'native-provider', 'name': 'volcengine',

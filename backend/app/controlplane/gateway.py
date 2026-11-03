@@ -19,6 +19,8 @@ from app.controlplane.workers import WorkspaceWorkers
 from app.core.contracts.workspace_reference_delivery import WORKSPACE_REFERENCE_PREFIX
 from app.core.contracts.workspace_image_admission import image_submission_path
 from app.controlplane.image_admission import ImageAdmissionPolicy
+from app.core.contracts.workspace_execution_admission import execution_submission_operation
+from app.controlplane.execution_admission import ExecutionAdmissionPolicy
 
 WRITE_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
 REQUEST_LIMIT = 70 * 1024 * 1024
@@ -45,6 +47,7 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
         validate_reference_origin(reference_media_origin,public_origin,secure_cookies)
     store = IdentityStore(root)
     image_admission_policy=ImageAdmissionPolicy(root)
+    execution_admission_policy=ExecutionAdmissionPolicy(root)
     pool = workers or WorkspaceWorkers(root / 'workspaces', probe=probe, capacity=capacity)
     reference_authority=None;reference_proxy=None
     if reference_media_origin is not None:
@@ -59,6 +62,7 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
         pool.trial_policy_provider=store.workspace_trial_policy
         pool.reference_policy_provider=reference_authority.policy_for_workspace if reference_authority is not None else None
         pool.image_admission_provider=image_admission_policy.startup_ticket
+        pool.execution_admission_provider=execution_admission_policy.startup_ticket
 
     @asynccontextmanager
     async def lifespan(application):
@@ -160,10 +164,12 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
             raise HTTPException(403, '只有所有者可以调整项目预算')
         if write and (route.startswith(LEGACY_PATHS) or path in {'film', 'script-processing'}):
             raise HTTPException(503, '旧共享执行入口尚未通过空间隔离验收')
-        image_ticket=None
+        image_ticket=None;execution_ticket=None;execution_operation=None
         if write and (any(re.fullmatch(pattern, policy_route) for pattern in BILLABLE) or policy_route.endswith('/callbacks')):
             image_ticket=image_admission_policy.current_ticket(workspace) if image_submission_path(request.method,policy_route) else None
-            if image_ticket is None:raise HTTPException(503, '收费模型尚未启用：项目费用与专用服务配置仍待验收，当前可编辑与本地制作')
+            execution_operation=execution_submission_operation(request.method,policy_route)
+            execution_ticket=execution_admission_policy.current_ticket(workspace,execution_operation) if execution_operation is not None else None
+            if image_ticket is None and execution_ticket is None:raise HTTPException(503, '收费模型尚未启用：项目费用与专用服务配置仍待验收，当前可编辑与本地制作')
         body = bytearray()
         async for chunk in request.stream():
             body.extend(chunk)
@@ -173,9 +179,13 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
         if image_ticket is not None:
             if (getattr(worker,'image_admission',None)!=image_ticket or image_admission_policy.current_ticket(workspace)!=image_ticket):
                 raise HTTPException(503,'图片执行授权尚未确认或已变化，请联系维护者核对；原任务和项目费用保留')
+        if execution_ticket is not None:
+            if (getattr(worker,'execution_admission',None)!=execution_ticket or execution_admission_policy.current_ticket(workspace,execution_operation)!=execution_ticket):
+                raise HTTPException(503,'执行授权尚未确认或已变化，请联系维护者核对；原任务和项目费用保留')
         receipt=None
         if write:
             if image_ticket is not None:receipt=await asyncio.to_thread(store.audit_start,identity,request.method,route,bytes(body),image_admission=image_ticket)
+            elif execution_ticket is not None:receipt=await asyncio.to_thread(store.audit_start,identity,request.method,route,bytes(body),execution_admission=execution_ticket)
             else:receipt=await asyncio.to_thread(store.audit_start,identity,request.method,route,bytes(body))
         headers = {key: value for key, value in request.headers.items() if key.lower() in {
             'content-type', 'range', 'if-range', 'accept', 'accept-language',
@@ -184,6 +194,7 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
         if receipt:
             headers['X-Submission-Receipt'] = receipt
         if image_ticket is not None:headers['X-Image-Admission-Policy']=image_ticket.grant.policy_sha256
+        if execution_ticket is not None:headers['X-Execution-Admission-Policy']=execution_ticket.grant.policy_sha256
         client = httpx.AsyncClient(trust_env=False, follow_redirects=False, timeout=httpx.Timeout(180, connect=5))
         upstream = None
         try:
@@ -210,7 +221,12 @@ def create_gateway(root: Path, *, frontend: Path | None = None, probe: Path | No
         opened_image_availability=(route.rstrip('/')=='/api/v1/asset-image-generation/availability'
             and image_admission_policy.current_ticket(workspace) is not None
             and getattr(worker,'image_admission',None)==image_admission_policy.current_ticket(workspace))
-        if request.method=='GET' and (route.rstrip('/') in CLOSED_AVAILABILITY_PATHS or re.fullmatch(r'/api/v1/script-preparation/projects/[^/]+/chapters/[^/]+/candidates/availability/?',route)) and upstream.status_code==200 and not opened_image_availability:
+        availability_operation=('agent_execution' if route.rstrip('/')=='/api/v1/agent-execution/availability' else
+            'script_preparation' if re.fullmatch(r'/api/v1/script-preparation/projects/[^/]+/chapters/[^/]+/candidates/availability/?',route) else
+            'native_video' if route.rstrip('/')=='/api/v1/execution/availability' else None)
+        current_execution=execution_admission_policy.current_ticket(workspace,availability_operation) if availability_operation is not None else None
+        opened_execution_availability=current_execution is not None and getattr(worker,'execution_admission',None)==current_execution
+        if request.method=='GET' and (route.rstrip('/') in CLOSED_AVAILABILITY_PATHS or availability_operation is not None) and upstream.status_code==200 and not opened_image_availability and not opened_execution_availability:
             # Read-only quotes never open unapproved execution paths. Only the
             # explicit current image policy can expose that worker's readiness.
             try:

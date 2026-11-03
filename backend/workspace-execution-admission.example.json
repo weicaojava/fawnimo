@@ -1,0 +1,7 @@
+{
+  "profile": "workspace_execution_admission_v1",
+  "schema_version": 1,
+  "enabled": false,
+  "workspace_ids": [],
+  "operations": []
+}

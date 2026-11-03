@@ -82,13 +82,13 @@ def model_origin(side):
 
 class LocalExecutionSpaces(ScriptSpaces):
     """Reuse only actual gateway request/process helpers, with a new positive local-execution setup."""
-    def __init__(self, app, client, root, origins):
+    def __init__(self, app, client, root, origins,*,accounts=None):
         """Provision independent workers, per-model quotes and local port policies without any host credentials."""
         self.app, self.client, self.root, self.origins = app, client, root, origins
         self.identities, self.tokens, self.quotes, self.jobs, self.intents = {}, {}, {}, {}, {}
         for side in ('a', 'b'):
             store = app.state.identity_store
-            store.provision('local-execution-' + side, 'authored-local-execution-password')
+            if accounts is None:store.provision('local-execution-' + side, 'authored-local-execution-password')
             self.tokens[side] = store.login('local-execution-' + side, 'authored-local-execution-password', 'authored-local')
             self.identities[side] = store.current(self.tokens[side]); self.jobs[side] = {}; self.intents[side] = {}
             self.ok(side, 'POST', '/studio/projects', json={'id': PROJECT, 'name': 'Authored project ' + side, 'style': '真人都市'})

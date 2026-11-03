@@ -28,7 +28,7 @@ SAFE_ENVIRONMENT_KEYS = frozenset({
 
 def configure_worker(message: dict) -> tuple[Path, str, int]:
     """Confine paths and replace inherited configuration before app settings import."""
-    if not isinstance(message, dict) or set(message) - {"root", "workspace_id", "port", "internal_token", "probe","trial_policy","reference_delivery","image_admission"}:
+    if not isinstance(message, dict) or set(message) - {"root", "workspace_id", "port", "internal_token", "probe","trial_policy","reference_delivery","image_admission","execution_admission"}:
         raise ValueError("Invalid private workspace startup fields")
     if message.get('trial_policy') is not None:
         from app.core.contracts.identity_trials import WorkspaceTrialPolicy
@@ -37,6 +37,9 @@ def configure_worker(message: dict) -> tuple[Path, str, int]:
     if message.get('image_admission') is not None:
         from app.core.contracts.workspace_image_admission import WorkspaceImageAdmissionGrant
         WorkspaceImageAdmissionGrant.from_private_message(message['image_admission'],workspace_id)
+    if message.get('execution_admission') is not None:
+        from app.core.contracts.workspace_execution_admission import WorkspaceExecutionAdmissionGrant
+        WorkspaceExecutionAdmissionGrant.from_private_message(message['execution_admission'],workspace_id)
     if message.get('reference_delivery') is not None:
         from app.core.contracts.workspace_reference_delivery import WorkspaceReferencePolicy
         WorkspaceReferencePolicy.from_private_message(message['reference_delivery'],workspace_id)
@@ -126,7 +129,7 @@ def configure_worker(message: dict) -> tuple[Path, str, int]:
     return database, workspace_id, port
 
 
-async def serve_worker(database: Path, workspace_id: str, port: int,trial_policy=None,reference_delivery=None,image_admission=None) -> None:
+async def serve_worker(database: Path, workspace_id: str, port: int,trial_policy=None,reference_delivery=None,image_admission=None,execution_admission=None) -> None:
     """Migrate only the already checked tenant database before starting its workers."""
     # Delayed imports are essential: Settings otherwise reads backend/.env.
     import app.api.v1  # noqa: F401
@@ -146,12 +149,17 @@ async def serve_worker(database: Path, workspace_id: str, port: int,trial_policy
         from app.core.contracts.workspace_image_admission import WorkspaceImageAdmissionGrant
         application.state.workspace_image_admission=(WorkspaceImageAdmissionGrant.from_private_message(image_admission,workspace_id)
             if image_admission is not None else None)
+        from app.core.contracts.workspace_execution_admission import WorkspaceExecutionAdmissionGrant
+        application.state.workspace_execution_admission=(WorkspaceExecutionAdmissionGrant.from_private_message(execution_admission,workspace_id)
+            if execution_admission is not None else None)
         await build_server(port).serve()
     finally:
         if application is not None and hasattr(application.state,'workspace_reference_policy'):
             del application.state.workspace_reference_policy
         if application is not None and hasattr(application.state,'workspace_image_admission'):
             del application.state.workspace_image_admission
+        if application is not None and hasattr(application.state,'workspace_execution_admission'):
+            del application.state.workspace_execution_admission
         await close_db()
 
 
@@ -169,13 +177,16 @@ def main() -> None:
     if message.get('image_admission') is not None:
         from app.core.contracts.workspace_image_admission import WorkspaceImageAdmissionGrant
         WorkspaceImageAdmissionGrant.from_private_message(message['image_admission'],workspace_id)
+    if message.get('execution_admission') is not None:
+        from app.core.contracts.workspace_execution_admission import WorkspaceExecutionAdmissionGrant
+        WorkspaceExecutionAdmissionGrant.from_private_message(message['execution_admission'],workspace_id)
     if message.get('reference_delivery') is not None:
         from app.core.contracts.workspace_reference_delivery import WorkspaceReferencePolicy
         WorkspaceReferencePolicy.from_private_message(message['reference_delivery'],workspace_id)
     root = Path(message['root']).resolve()
     with ProcessLease(root / '.leases' / (workspace_id+'.lock')):
         database, workspace_id, port = configure_worker(message)
-        asyncio.run(serve_worker(database, workspace_id, port,trial_policy=message.get('trial_policy'),reference_delivery=message.get('reference_delivery'),image_admission=message.get('image_admission')))
+        asyncio.run(serve_worker(database, workspace_id, port,trial_policy=message.get('trial_policy'),reference_delivery=message.get('reference_delivery'),image_admission=message.get('image_admission'),execution_admission=message.get('execution_admission')))
 
 
 if __name__ == "__main__":

@@ -19,9 +19,9 @@ from tests.test_workspace_local_model_execution import LocalExecutionSpaces, mod
 
 class LocalUnderstandingSpaces(LocalExecutionSpaces):
     """Reuse completed local text/image history, then execute one separate two-phase understanding attempt per worker."""
-    def __init__(self, app, client, root, origins, probe):
+    def __init__(self, app, client, root, origins, probe,*,accounts=None):
         """Author a video from filters, analyze its real bytes and bind explicit managed input models and quotes."""
-        super().__init__(app, client, root, origins)
+        super().__init__(app, client, root, origins,accounts=accounts)
         clip = root / 'self-authored-input.mp4'
         subprocess.run([str(probe), '-nostdin', '-v', 'error', '-f', 'lavfi', '-i', 'testsrc=size=96x64:rate=12:duration=2',
             '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=16000:duration=2', '-c:v', 'libx264', '-threads', '1',

@@ -206,7 +206,8 @@ if settings.workspace_id is not None:
         raise RuntimeError('Tenant processes require a gateway-owned internal token')
     app.add_middleware(TenantBoundaryMiddleware, workspace_id=settings.workspace_id,
                        internal_token=settings.workspace_internal_token,
-                       image_admission_provider=lambda:getattr(app.state,'workspace_image_admission',None))
+                       image_admission_provider=lambda:getattr(app.state,'workspace_image_admission',None),
+                       execution_admission_provider=lambda:getattr(app.state,'workspace_execution_admission',None))
 
 # 统一错误响应格式：{ code, message, data: null }
 app.add_exception_handler(RequestValidationError, validation_exception_handler)

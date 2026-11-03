@@ -243,7 +243,7 @@ class TenantBoundaryMiddleware:
     A workspace ID supplied by a caller never changes this worker's fixed scope.
     """
 
-    def __init__(self, app, *, workspace_id: str, internal_token: str,image_admission_provider=None) -> None:
+    def __init__(self, app, *, workspace_id: str, internal_token: str,image_admission_provider=None,execution_admission_provider=None) -> None:
         """Fail startup on missing fixed identity or insufficient internal secret."""
         self.app = app
         self.workspace_id = validate_workspace_id(workspace_id)
@@ -251,6 +251,7 @@ class TenantBoundaryMiddleware:
             raise ValueError("Invalid private workspace worker token")
         self.internal_token = internal_token.encode("ascii")
         self.image_admission_provider=image_admission_provider
+        self.execution_admission_provider=execution_admission_provider
 
     async def __call__(self, scope, receive, send) -> None:
         """Guard HTTP and WebSocket traffic while allowing ASGI lifespan startup."""
@@ -266,6 +267,11 @@ class TenantBoundaryMiddleware:
                 await self._respond(send, 403, {"code": 403, "message": "Private workspace worker", "data": None})
             return
         admission=self.image_admission_provider() if scope['type']=='http' and self.image_admission_provider else None
+        execution=self.execution_admission_provider() if scope['type']=='http' and self.execution_admission_provider else None
+        if execution is not None:
+            from app.core.contracts.workspace_execution_admission import WorkspaceExecutionAdmissionGrant
+            if not isinstance(execution,WorkspaceExecutionAdmissionGrant) or execution.workspace_id!=self.workspace_id:
+                await self._respond(send,503,{'code':503,'message':'Private execution admission unavailable','data':None});return
         if admission is not None:
             from app.core.contracts.workspace_image_admission import WorkspaceImageAdmissionGrant
             if not isinstance(admission,WorkspaceImageAdmissionGrant) or admission.workspace_id!=self.workspace_id:
@@ -276,6 +282,7 @@ class TenantBoundaryMiddleware:
             else:
                 ready={"workspace_id":self.workspace_id,"status":"ready"}
                 if admission is not None:ready['image_admission']=admission.model_dump(mode='json')
+                if execution is not None:ready['execution_admission']=execution.model_dump(mode='json')
                 await self._respond(send,200,ready)
             return
         if scope['type']=='http' and admission is not None:
@@ -284,6 +291,13 @@ class TenantBoundaryMiddleware:
                 grants=[value for name,value in scope.get('headers',[]) if name.lower()==b'x-image-admission-policy']
                 if len(grants)!=1 or not hmac.compare_digest(grants[0],admission.policy_sha256.encode('ascii')):
                     await self._respond(send,503,{'code':503,'message':'Private image admission unavailable','data':None});return
+        if scope['type']=='http' and execution is not None:
+            from app.core.contracts.workspace_execution_admission import execution_submission_operation
+            operation=execution_submission_operation(scope.get('method'),scope.get('path'))
+            if operation is not None:
+                grants=[value for name,value in scope.get('headers',[]) if name.lower()==b'x-execution-admission-policy']
+                if operation not in execution.operations or len(grants)!=1 or not hmac.compare_digest(grants[0],execution.policy_sha256.encode('ascii')):
+                    await self._respond(send,503,{'code':503,'message':'Private execution admission unavailable','data':None});return
         await self.app(scope, receive, send)
 
     @staticmethod
