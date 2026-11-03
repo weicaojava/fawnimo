@@ -75,6 +75,10 @@ async def list_candidates(db, project_id, chapter_id):
 async def validate_form(db, project_id, chapter_id, document):
     """Validate all logical identities without decoding inside a draft writer transaction."""
     data = SoundDocument.model_validate(document).model_dump()
+    # Preserve the exact old sound-v3 canonical document when no new operation
+    # is selected, including a read/save round trip that received music:null.
+    for track in data['tracks']:
+        if track.get('music') is None:track.pop('music',None)
     if len(canonical(data).encode()) > 1024 * 1024: raise HTTPException(422, '声音文档超过1MiB')
     await validate_document(db, project_id, chapter_id, data['picture'])
     track_ids = set()
@@ -83,6 +87,7 @@ async def validate_form(db, project_id, chapter_id, document):
         track_ids.add(track['id'])
         candidate = await owned_candidate(db, project_id, track['candidate_id'], chapter_id)
         if track['dialogue_id'] is not None and candidate.kind != 'voice': raise HTTPException(422, '只有明确采用的配音候选可以对应原对白')
+        if track.get('music') is not None and candidate.kind!='music':raise HTTPException(422,'循环和对白避让仅适用于音乐候选')
     return data
 
 
@@ -159,7 +164,9 @@ async def assemble(db, project_id, chapter_id, document, verified=None):
         await recheck_media(db, project_id, source)
         for key in ('id', 'sha256', 'size', 'mime', 'audio'):
             if source[key] != candidate.evidence[key]: raise HTTPException(409, '声音候选的实际素材或样本时钟已改变')
-        end = track['timeline_start_ms'] + track['source_out_ms'] - track['source_in_ms']
+        from app.core.contracts.sound_mix import music_timeline_end
+        try:end=music_timeline_end(track,candidate.kind)
+        except ValueError:raise HTTPException(422,'音乐循环、音量或对应候选无效，请重新核对') from None
         if end > composed['duration_ms']: problems.append(issue('sound_outside', '音轨超出最终输出时长，请明确裁剪，不能隐式截断'))
         peak = proof['peaks'][candidate.media_id][positions[track['id']]['selected']]
         dialogue_index = positions[track['id']]['dialogue']
@@ -196,6 +203,13 @@ async def assemble(db, project_id, chapter_id, document, verified=None):
         'mix_policy': {'audio': '48kHz stereo, explicit integer dB gain, additive mix and sample saturation; no automatic ducking, stretching or loop',
             'dialogue': 'original source coverage or one explicitly confirmed voiced candidate; signal presence never proves spoken words or speaker identity',
             'subtitles': 'original immutable text/speaker and picture-anchor output clock, separate SRT/VTT'}}
+    from app.core.contracts.sound_mix import music_mix_policy
+    music_policy=music_mix_policy(tracks,composed['duration_ms'])
+    if music_policy is not None:
+        payload['music_mix']=music_policy
+        payload['mix_policy']['audio']='48kHz stereo, explicit bounded music looping and confirmed-dialogue sample-clock attenuation; no stretching or speech inference'
+        if music_policy['ducking_requested'] and not music_policy['voice_windows_ms']:
+            problems.append(issue('music_voice_missing','音乐对白避让需要至少一条已试听确认、有效且未静音的原对白配音'))
     if len(canonical(payload).encode()) > 2 * 1024 * 1024: raise HTTPException(409, '完整声音证据超过2MiB')
     return payload, problems, proof, changes
 

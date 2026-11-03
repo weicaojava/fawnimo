@@ -368,7 +368,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 软件回归目标：`backend/tests/test_seedance_reference_payload.py`、`backend/tests/test_verified_reference_video.py`、`backend/tests/test_video_reference_inputs.py`、`backend/tests/test_video_reference_admission_contract.py`、`backend/tests/test_video_reference_schema.py`、`backend/tests/test_seedance_reference_transport.py`、`backend/tests/test_reference_media_delivery.py`、`backend/tests/test_video_reference_prices.py`、`backend/tests/test_native_video_references.py`、`backend/tests/test_video_reference_plans.py`、`backend/tests/test_workspace_reference_policy.py`、`backend/tests/test_workspace_reference_authority.py`、`backend/tests/test_workspace_reference_gateway.py`、`backend/tests/test_workspace_reference_fixed_workers.py`、`backend/tests/test_workspace_reference_startup.py`。
 
-验收限制：当前仅seedance25_reference_v1及准确Seedance2.5名称，PNG/JPEG及有界实际MP4，不接受任意参数或静默回退。；新参考单镜头准入，单独标记完整native_video报价与原job同一份预留，旧文本协议和已接受任务控制保留。；自作本地HTTP和单独操作者浏览器只验证软件；真实供应商/远程取素材/账单、人物一致性、音频及更多协议、完整收费隔离和公网仍待验，整项部分实现。；固定身份网关默认关闭的准确origin签名交付已接原worker；私有主密钥按空间派生、只经私有启动管道，签名先于查库/启进程，原任务证明/16次/一小时/字节复查仍有效。；私有根与前端互不包含，保留自作泄露反例和启动前拒绝回归；冻结655/4跳过含新增52/1，真实双worker、同ID不同原片、原请求不重发与费用留原项目通过；过期使用可信测试时钟，作者审阅，新准确CI待验。；只读交付不开放收费网关，未调用原模型或原用户素材；真实远程取素材、供应商质量/账单、多协议、完整成片/收费身份隔离和公网仍未验，整项部分实现。。
+验收限制：当前仅seedance25_reference_v1及准确Seedance2.5名称，PNG/JPEG及有界实际MP4，不接受任意参数或静默回退。；新参考单镜头准入，单独标记完整native_video报价与原job同一份预留，旧文本协议和已接受任务控制保留。；自作本地HTTP和单独操作者浏览器只验证软件；真实供应商/远程取素材/账单、人物一致性、音频及更多协议、完整收费隔离和公网仍待验，整项部分实现。；固定身份网关默认关闭的准确origin签名交付已接原worker；私有主密钥按空间派生、只经私有启动管道，签名先于查库/启进程，原任务证明/16次/一小时/字节复查仍有效。；私有根与前端互不包含，保留自作泄露反例和启动前拒绝回归；冻结655/4跳过含新增52/1，真实双worker、同ID不同原片、原请求不重发与费用留原项目通过；过期使用可信测试时钟，作者审阅；准确3aac2c2主分支CI1839/2跳过/2私有历史未选、前端、通用40与实际Linux10/清理通过。；只读交付不开放收费网关，未调用原模型或原用户素材；真实远程取素材、供应商质量/账单、多协议、完整成片/收费身份隔离和公网仍未验，整项部分实现。。
 
 ### F-007.06 真实模型与完整短视频联合验收
 
@@ -500,9 +500,9 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. 显式选择声音模型和预算，生成声音候选并确认采用
 2. 对齐对白/字幕/音效与片段裁剪，检查音量、音轨覆盖、重启恢复和完整导出
 
-软件回归目标：`backend/tests/test_local_speech.py`、`backend/tests/test_sound_timeline.py`、`backend/tests/test_transitions_v2.py`。
+软件回归目标：`backend/tests/test_local_speech.py`、`backend/tests/test_sound_timeline.py`、`backend/tests/test_transitions_v2.py`、`backend/tests/test_sound_music.py`。
 
-验收限制：独立声音v3支持明确采用的PCM16 WAV配音/音效/配乐，24/48kHz、单双声道、单项32MiB/300秒；10ms位置裁剪、整数dB与原对白人工确认。；windows_sapi_pcm_v1仅用Windows实际已安装声音生成原计划对白候选，外部费用0；Linux/容器不提供该系统引擎，仍支持WAV导入混音。；实际本机声音与短色片、两轨混音及五类下载、原提交恢复/真实重启/任务回跳仅验证软件；未声称完整短剧、音色/发声内容/语义/口型质量通过。；云端配音和生成式音效/音乐模型、更多格式/自动对齐/循环/压低背景音乐、托管A/B浏览器联合验收、独立审核及公网仍待完成，整项部分实现。。
+验收限制：独立声音v3支持明确采用的PCM16 WAV配音/音效/配乐，24/48kHz、单双声道、单项32MiB/300秒；10ms位置裁剪、整数dB与原对白人工确认。；windows_sapi_pcm_v1仅用Windows实际已安装声音生成原计划对白候选，外部费用0；Linux/容器不提供该系统引擎，仍支持WAV导入混音。；实际本机声音与短色片、两轨混音及五类下载、原提交恢复/真实重启/任务回跳仅验证软件；未声称完整短剧、音色/发声内容/语义/口型质量通过。；云端配音和生成式音效/音乐模型、更多格式/自动对齐、托管A/B浏览器联合验收、独立审核及公网仍待完成，整项部分实现。；配乐可明确循环所选真实源区间至现有画面终点内，保持原速；已确认有效原对白期间可按-30至-3整数dB避让，固定提前50ms/恢复150ms，重叠取最强一次。未提供有效配音则不能锁定，静音音乐保留参数且不要求闲置避让配音。；新music可选字段空值不进入旧v3规范文档；新规则进入独立快照，原版本/导出保留，私有滤镜脚本1MiB及原120秒/容量/子进程界限不变。冻结114含新增21、准确浏览器10及独立下载PCM、API/client/前端通过；作者审阅，新准确CI待验。；实际自作200ms音乐循环至1400ms，12dB/渐变/配音幅度/旧产物与原请求恢复通过；循环接缝仍需人工试听，未证明真实音色/内容/响度/完整成片或收费模型资格，费用授权0。。
 
 ## F-011 文件、任务与持久运行
 

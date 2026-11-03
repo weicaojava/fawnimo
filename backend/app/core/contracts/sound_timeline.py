@@ -42,6 +42,19 @@ class SoundCandidateRead(EditingDTO):
     model_quality_qualified: Literal[False] = False
 
 
+class SoundMusicOptions(EditingDTO):
+    """Explicit music-only loop target and confirmed-dialogue attenuation; no automatic extension of a picture."""
+    loop_until_ms: StrictInt | None = Field(default=None, ge=10, le=300000)
+    voice_duck_db: StrictInt | None = Field(default=None, ge=-30, le=-3)
+
+    @model_validator(mode='after')
+    def explicit_music(self):
+        """Require at least one selected operation and the same strict bounded clock as the renderer."""
+        from app.core.contracts.sound_mix import checked_music_options
+        checked_music_options(self.model_dump())
+        return self
+
+
 class SoundTrack(EditingDTO):
     """An explicit audio placement on the final output clock, never an automatic retime."""
     id: str = Field(min_length=1, max_length=64)
@@ -53,12 +66,15 @@ class SoundTrack(EditingDTO):
     muted: StrictBool = False
     dialogue_id: str | None = Field(default=None, min_length=1, max_length=64)
     content_confirmed: StrictBool = False
+    music: SoundMusicOptions | None = None
 
     @model_validator(mode='after')
     def interval(self):
         """Ten milliseconds maps exactly to samples at both admitted WAV sample rates."""
         if self.source_out_ms <= self.source_in_ms or any(value % 10 for value in (self.source_in_ms, self.source_out_ms, self.timeline_start_ms)):
             raise ValueError('音轨裁剪和位置必须是递增的10毫秒整数步')
+        if self.music is not None and self.music.loop_until_ms is not None and self.music.loop_until_ms <= self.timeline_start_ms+self.source_out_ms-self.source_in_ms:
+            raise ValueError('音乐循环终点必须晚于原裁剪区间的输出终点')
         return self
 
 

@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { SoundMusicOptions } from './SoundMusicOptions';
 /**
  * An explicit audio placement on the final output clock, never an automatic retime.
  */
@@ -15,5 +16,6 @@ export type SoundTrack = {
     muted?: boolean;
     dialogue_id?: (string | null);
     content_confirmed?: boolean;
+    music?: (SoundMusicOptions | null);
 };
 

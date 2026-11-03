@@ -8,6 +8,11 @@ import zipfile
 import media_child as media
 from sound_wave import inspect_wave
 
+# Only the installed application directory supplies the shared pure mix rules;
+# this subprocess receives no credential environment or candidate import path.
+sys.path.insert(0,str(Path(__file__).resolve().parents[3]))
+from app.core.contracts.sound_mix import music_timeline_end,music_mix_policy,music_duck_expression
+
 PROFILE = 'portrait-360p30-sound-v3'
 
 
@@ -78,6 +83,10 @@ def assemble(parameters):
     sound_labels = [audio_label]
     wave_checks = {}
     if len(payload['tracks']) > 64: raise ValueError('Too many sound tracks')
+    music_policy=music_mix_policy(payload['tracks'],expected_duration)
+    if payload.get('music_mix')!=music_policy:raise ValueError('Locked music policy changed')
+    if music_policy is not None and music_policy['ducking_requested'] and not music_policy['voice_windows_ms']:
+        raise ValueError('Music ducking needs confirmed original-dialogue audio')
     for index, track in enumerate(payload['tracks']):
         source, path = track['source'], Path(track['path']).resolve()
         if source['id'] not in wave_checks:
@@ -88,20 +97,36 @@ def assemble(parameters):
         elif wave_checks[source['id']] != str(path): raise ValueError('Ambiguous sound source identity')
         if not 0 <= track['source_in_ms'] < track['source_out_ms'] or track['source_out_ms'] * 1000 > source['audio']['duration_us']:
             raise ValueError('Sound trim exceeds actual samples')
-        if track['timeline_start_ms'] < 0 or track['timeline_end_ms'] != track['timeline_start_ms'] + track['source_out_ms'] - track['source_in_ms'] or track['timeline_end_ms'] > expected_duration:
+        end=music_timeline_end(track,track.get('candidate',{}).get('kind'),duration=expected_duration)
+        if track['timeline_start_ms'] < 0 or track['timeline_end_ms'] != end:
             raise ValueError('Sound placement exceeds output clock')
         if any(type(track[key]) is not int or track[key] % 10 for key in ('source_in_ms', 'source_out_ms', 'timeline_start_ms')) or type(track['gain_db']) is not int or not -60 <= track['gain_db'] <= 6:
             raise ValueError('Invalid sound clock or gain')
         if track['muted']: continue
         command.extend(['-protocol_whitelist', 'file,pipe', '-f', 'wav', '-i', str(path)])
         label = f'sound{index}'
-        filters.append(f'[{audio_input}:a:0]aresample=48000:async=0:first_pts=0,aformat=sample_fmts=fltp:channel_layouts=stereo,atrim=start_sample={track["source_in_ms"] * 48}:end_sample={track["source_out_ms"] * 48},asetpts=N/SR/TB,volume={track["gain_db"]}dB,adelay=delays={track["timeline_start_ms"] * 48}S:all=1,apad=whole_len={expected_duration * 48},atrim=end_sample={expected_duration * 48}[{label}]')
+        options=track.get('music') or {}
+        loop=''
+        if options.get('loop_until_ms') is not None:
+            loop=f',aloop=loop=-1:size={(track["source_out_ms"]-track["source_in_ms"])*48}:start=0,atrim=end_sample={(end-track["timeline_start_ms"])*48},asetpts=N/SR/TB'
+        duck=''
+        if options.get('voice_duck_db') is not None:
+            expression=music_duck_expression(music_policy['voice_windows_ms'],options['voice_duck_db'])
+            duck=f",aeval=exprs='val(0)*{expression}|val(1)*{expression}':channel_layout=stereo"
+        filters.append(f'[{audio_input}:a:0]aresample=48000:async=0:first_pts=0,aformat=sample_fmts=fltp:channel_layouts=stereo,atrim=start_sample={track["source_in_ms"] * 48}:end_sample={track["source_out_ms"] * 48},asetpts=N/SR/TB{loop},volume={track["gain_db"]}dB,adelay=delays={track["timeline_start_ms"] * 48}S:all=1,apad=whole_len={expected_duration * 48},atrim=end_sample={expected_duration * 48}{duck}[{label}]')
         audio_input += 1
         sound_labels.append(label)
     joined = ''.join(f'[{label}]' for label in sound_labels)
     filters.extend([f'[{video_label}]format=yuv420p[video]',
         f'{joined}amix=inputs={len(sound_labels)}:duration=longest:dropout_transition=0:normalize=0,atrim=end_sample={expected_duration * 48},asetpts=N/SR/TB,aformat=sample_fmts=s16:channel_layouts=stereo,asplit=2[audio][mixdown]'])
-    command.extend(['-filter_complex_threads', '1', '-filter_complex', ';'.join(filters), '-map', '[video]', '-map', '[audio]',
+    graph=';'.join(filters)
+    graph_arguments=['-filter_complex',graph]
+    if music_policy is not None:
+        if len(graph.encode('utf8'))>1024*1024:raise ValueError('Music filter graph exceeds bounded size')
+        script=folder/'filters-sound-music.txt'
+        with script.open('x',encoding='utf8',newline='\n') as stream:stream.write(graph)
+        graph_arguments=['-filter_complex_script',str(script)]
+    command.extend(['-filter_complex_threads', '1', *graph_arguments, '-map', '[video]', '-map', '[audio]',
         '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-threads', '1', '-r', '30', '-fps_mode', 'cfr', '-pix_fmt', 'yuv420p',
         '-c:a', 'aac', '-b:a', '128k', '-ar', '48000', '-ac', '2', '-movflags', '+faststart', '-fs', str(media.LIMIT), str(folder / 'video.mp4'), '-map', '[mixdown]', '-c:a', 'pcm_s16le', '-ar', '48000', '-ac', '2', '-f', 'wav', '-fs', str(64 * 1024 * 1024), str(folder / 'audio.wav')])
     media.run_encoder(command, folder / 'encoder-sound.log')

@@ -534,6 +534,7 @@ export type { SoundExportCatalog } from './models/SoundExportCatalog';
 export type { SoundExportFile } from './models/SoundExportFile';
 export type { SoundExportRead } from './models/SoundExportRead';
 export type { SoundFreeze } from './models/SoundFreeze';
+export type { SoundMusicOptions } from './models/SoundMusicOptions';
 export type { SoundPatch } from './models/SoundPatch';
 export type { SoundPublicationRead } from './models/SoundPublicationRead';
 export type { SoundPublicationSummary } from './models/SoundPublicationSummary';
