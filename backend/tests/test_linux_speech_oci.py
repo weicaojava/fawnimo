@@ -1,5 +1,6 @@
 """Actual installed Linux speech in the deployed image; signal/export correctness never substitutes for spoken-content or film-quality review."""
 import hashlib
+import json
 import os
 from pathlib import Path
 import sys
@@ -42,6 +43,15 @@ def version_failure_diagnostics():
     return probes
 
 
+def compact_version_failure(engine):
+    """Keep every numeric comparison in the bounded assertion message instead of pytest's elided dictionary representation."""
+    facts = engine.last_failure
+    original = [facts.get(key) for key in ('returncode','stdout_bytes','stderr_bytes')]
+    probes = {key:[value.get('returncode','timeout'),value['stdout_bytes'],value['stderr_bytes']]
+        for key,value in version_failure_diagnostics().items()}
+    return 'engine_version [exit,stdout,stderr]='+json.dumps({'original':original,**probes},separators=(',',':'))
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize('language', ['cmn', 'en-us'])
 async def test_actual_installed_linux_voices_pcm_and_exclusive_output(tmp_path, monkeypatch, language):
@@ -50,7 +60,7 @@ async def test_actual_installed_linux_voices_pcm_and_exclusive_output(tmp_path, 
     monkeypatch.setattr(settings, 'workspace_runtime_locked', False)
     engine = LocalSpeechEngine()
     catalog = await engine.catalog()
-    assert catalog['enabled'] and catalog['profile'] == LINUX_PROFILE, {**engine.last_failure,'version_probes':version_failure_diagnostics()}
+    assert catalog['enabled'] and catalog['profile'] == LINUX_PROFILE, compact_version_failure(engine)
     assert {row['culture'] for row in catalog['voices']} == {'cmn', 'en-us'}
     voice = next(row for row in catalog['voices'] if row['culture'] == language)
     original = '这是离线配音测试。' if language == 'cmn' else 'This is an offline voice test. --help --voices.'

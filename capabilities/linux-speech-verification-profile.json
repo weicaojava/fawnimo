@@ -27,7 +27,7 @@
   "host_guard_tests_passed": 15,
   "preserves_generic_check_count": 40,
   "preserves_sound_case_count": 7,
-  "source_tree": "7e8409d549f9c275bc2d3ed46edd13956b3e2dcf",
+  "source_tree": "456077b3f49db1d450392428e9004788faaf0ae1",
   "source_sha256_lf_normalized": {
     ".github/workflows/verify-fawnimo.yml": "d83e46b273d4fb26aa21c32893a1c9b4b6979fae37d880fdfcf3565931056c96",
     "deploy/workspace/Dockerfile": "5b766fc4198fdb9cd09e129fa82f1f92a6d2c364dcbf625f1e5193bb912f53f9",
@@ -38,7 +38,7 @@
     "backend/app/services/editing/local_speech_linux_child.py": "2cca9525f56014c0b0909df434cda359402c445f9721e439ef6bf25c28dcf5e4",
     "backend/app/services/editing/local_speech_schema.py": "8a66bfd71814a774df665db9577f9370241133cbfe3e4de98efe94873703b13e",
     "backend/tests/test_linux_speech.py": "56192a883075f1312e9268af4824be1cf68034ec4d6fe0899934224c35889cea",
-    "backend/tests/test_linux_speech_oci.py": "32d2ca14817300c23e120e3cf1f067ceb61bb99e85b07403378aacb38b8a2a3b",
+    "backend/tests/test_linux_speech_oci.py": "2ff08aa32f36e74a303f364c774b039f6bde8ca91f82e55bb66a1e3b73e332d6",
     "backend/tests/fixtures/local_speech_job_scope_v1.sql": "69b37807bcaa25539ec2a8af25bfc3d8c33229a8c5e184a35822d74ed2f467fe",
     "front/openapi.json": "cafd0cf1d9e8c8329188e4872a44d6da231e02580afaceb26a17e63c290218b6",
     "front/src/services/generated/models/LocalSpeechCatalog.ts": "3ec67560c33bad79ae41ad192495813d8fa5db8ab77e05aad162ffa44b8a937b",
@@ -59,16 +59,16 @@
   "public_deployment_verified": false,
   "overall_goal_complete": false,
   "previous_native_related_counts": {
-    "tests": 109,
+    "tests": 11,
     "failures": 0,
     "errors": 0,
     "skipped": 0
   },
   "retained_actual_image_failure": {
-    "commit": "8ded71db13a55000023bae2958244f3af00ae5d9",
-    "run_id": 41676579740,
-    "artifact_id": 13251001421,
-    "artifact_sha256": "1d897c33d220e3dadc310e971722d2c3eac10ccae23ba66e52cb26cc5b215e3e",
+    "commit": "20087646b566cab52f92e798a04a6bf6a15499d8",
+    "run_id": 41678125764,
+    "artifact_id": 13252670294,
+    "artifact_sha256": "2cf97c3667c6045380698a4f53872d7e5d3e9c380e9a6292220826142a4d07e4",
     "linux_speech_counts": {
       "tests": 3,
       "failures": 3,
