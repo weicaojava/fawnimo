@@ -243,13 +243,14 @@ class TenantBoundaryMiddleware:
     A workspace ID supplied by a caller never changes this worker's fixed scope.
     """
 
-    def __init__(self, app, *, workspace_id: str, internal_token: str) -> None:
+    def __init__(self, app, *, workspace_id: str, internal_token: str,image_admission_provider=None) -> None:
         """Fail startup on missing fixed identity or insufficient internal secret."""
         self.app = app
         self.workspace_id = validate_workspace_id(workspace_id)
         if not isinstance(internal_token, str) or len(internal_token) < 32 or len(internal_token) > 512 or not internal_token.isascii():
             raise ValueError("Invalid private workspace worker token")
         self.internal_token = internal_token.encode("ascii")
+        self.image_admission_provider=image_admission_provider
 
     async def __call__(self, scope, receive, send) -> None:
         """Guard HTTP and WebSocket traffic while allowing ASGI lifespan startup."""
@@ -264,12 +265,25 @@ class TenantBoundaryMiddleware:
             else:
                 await self._respond(send, 403, {"code": 403, "message": "Private workspace worker", "data": None})
             return
+        admission=self.image_admission_provider() if scope['type']=='http' and self.image_admission_provider else None
+        if admission is not None:
+            from app.core.contracts.workspace_image_admission import WorkspaceImageAdmissionGrant
+            if not isinstance(admission,WorkspaceImageAdmissionGrant) or admission.workspace_id!=self.workspace_id:
+                await self._respond(send,503,{'code':503,'message':'Private image admission unavailable','data':None});return
         if scope["type"] == "http" and scope.get("path") == READINESS_PATH:
             if scope.get("method") != "GET":
                 await self._respond(send, 405, {"code": 405, "message": "Method not allowed", "data": None})
             else:
-                await self._respond(send, 200, {"workspace_id": self.workspace_id, "status": "ready"})
+                ready={"workspace_id":self.workspace_id,"status":"ready"}
+                if admission is not None:ready['image_admission']=admission.model_dump(mode='json')
+                await self._respond(send,200,ready)
             return
+        if scope['type']=='http' and admission is not None:
+            from app.core.contracts.workspace_image_admission import image_submission_path
+            if image_submission_path(scope.get('method'),scope.get('path')):
+                grants=[value for name,value in scope.get('headers',[]) if name.lower()==b'x-image-admission-policy']
+                if len(grants)!=1 or not hmac.compare_digest(grants[0],admission.policy_sha256.encode('ascii')):
+                    await self._respond(send,503,{'code':503,'message':'Private image admission unavailable','data':None});return
         await self.app(scope, receive, send)
 
     @staticmethod

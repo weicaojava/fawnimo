@@ -76,6 +76,8 @@ class IdentityStore:
                     BEGIN SELECT RAISE(ABORT,'Immutable request audit'); END;
             """)
             initialize_trials(db)
+            from app.controlplane.image_admission import initialize_image_admission_audit
+            initialize_image_admission_audit(db)
 
     @contextmanager
     def connect(self):
@@ -209,11 +211,14 @@ class IdentityStore:
                 db.execute("UPDATE users SET " + ",".join(key + "=?" for key in updates) + " WHERE id=?", (*updates.values(), current["user"]["id"]))
         return self.current(token)
 
-    def audit_start(self, identity: dict, method: str, path: str, body: bytes) -> str:
+    def audit_start(self, identity: dict, method: str, path: str, body: bytes, *, image_admission=None) -> str:
         """Record trusted actor/scope and a request digest, never plaintext prompts or credentials."""
         identifier = secrets.token_hex(16)
         with self.connect() as db:
             db.execute("INSERT INTO request_audit(id,workspace_id,submitted_by,method,path,body_sha256,created_at) VALUES(?,?,?,?,?,?,?)", (identifier, identity["workspace_id"], identity["user"]["id"], method, path, hashlib.sha256(body).hexdigest(), int(time.time())))
+            if image_admission is not None:
+                from app.controlplane.image_admission import record_image_admission
+                record_image_admission(db,identifier,identity,image_admission)
         return identifier
 
     def audit_finish(self, identifier: str, status: int) -> None:

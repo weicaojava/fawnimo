@@ -39,18 +39,20 @@ class Worker:
     job: WindowsProcessJob | None
     trial_policy: dict | None = None
     reference_policy: object = field(default=None,repr=False)
+    image_admission: object = field(default=None,repr=False)
 
 
 class WorkspaceWorkers:
     """Route only to server-generated roots and keep running jobs in their original space."""
 
-    def __init__(self, root: Path, *, probe: Path | None = None, capacity: int = 4,trial_policy_provider=None,reference_policy_provider=None):
+    def __init__(self, root: Path, *, probe: Path | None = None, capacity: int = 4,trial_policy_provider=None,reference_policy_provider=None,image_admission_provider=None):
         """Use a fixed capacity; reaching it refuses admission instead of evicting active tasks."""
         if not 1 <= capacity <= 16:
             raise ValueError('Workspace process capacity must be between 1 and 16')
         self.root, self.probe, self.capacity = root.resolve(), probe, capacity
         self.trial_policy_provider=trial_policy_provider
         self.reference_policy_provider=reference_policy_provider
+        self.image_admission_provider=image_admission_provider
         self.backend = Path(__file__).resolve().parents[2]
         self.workers: dict[str, Worker] = {}
         self.lock = asyncio.Lock()
@@ -83,11 +85,22 @@ class WorkspaceWorkers:
                 raise HTTPException(503,'参考素材交付范围尚未确认')
         return policy,reference
 
-    def reuse(self,workspace_id,worker,policy,reference):
+    def image_policy(self,workspace_id):
+        """Bind only a trusted immutable operator ticket to this fixed worker; callers cannot select another workspace or policy."""
+        value=self.image_admission_provider(workspace_id) if self.image_admission_provider else None
+        if value is not None:
+            from app.controlplane.image_admission import ImageAdmissionTicket
+            if not isinstance(value,ImageAdmissionTicket):raise HTTPException(503,'图片执行授权尚未确认')
+            try:value.checked_payload(workspace_id)
+            except ValueError:raise HTTPException(503,'图片执行授权范围尚未确认') from None
+        return value
+
+    def reuse(self,workspace_id,worker,policy,reference,image_admission=None):
         """Reuse only the same fixed identity and unchanged policy; a cached process never gains new authority silently."""
         if worker.workspace_id!=workspace_id:raise HTTPException(503,'工作进程身份尚未确认')
         if worker.trial_policy!=policy:raise HTTPException(503,'体验策略已变化，请联系维护者核对工作进程')
         if worker.reference_policy!=reference:raise HTTPException(503,'参考素材交付配置已变化，请联系维护者核对工作进程')
+        if getattr(worker,'image_admission',None)!=image_admission:raise HTTPException(503,'图片执行授权已变化，请联系维护者核对工作进程')
         return worker
 
     async def get(self, workspace_id: str) -> Worker:
@@ -101,7 +114,7 @@ class WorkspaceWorkers:
         if cached is not None and cached.process.returncode is None and not any(worker.process.returncode is not None for worker in self.workers.values()):
             policy,reference=await self.policies(workspace_id)
             if self.workers.get(workspace_id) is cached and cached.process.returncode is None and not any(worker.process.returncode is not None for worker in self.workers.values()):
-                return self.reuse(workspace_id,cached,policy,reference)
+                return self.reuse(workspace_id,cached,policy,reference,self.image_policy(workspace_id))
         async with self.lock:
             # Reap all dead entries, without interrupting any live workspace's jobs.
             for stale_id, stale in list(self.workers.items()):
@@ -110,8 +123,9 @@ class WorkspaceWorkers:
                     self.workers.pop(stale_id)
             existing = self.workers.get(workspace_id)
             policy,reference=await self.policies(workspace_id)
+            image_admission=self.image_policy(workspace_id)
             if existing and existing.process.returncode is None:
-                return self.reuse(workspace_id,existing,policy,reference)
+                return self.reuse(workspace_id,existing,policy,reference,image_admission)
             if existing:
                 await self.stop_worker(existing)
                 self.workers.pop(workspace_id)
@@ -129,12 +143,13 @@ class WorkspaceWorkers:
                 process = await asyncio.create_subprocess_exec(sys.executable, str(self.backend / 'run_tenant_worker.py'),
                     cwd=self.backend, env=worker_environment(), stdin=asyncio.subprocess.PIPE,
                     stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL, **options)
-                worker = Worker(workspace_id, port, token, process, job,policy,reference)
+                worker = Worker(workspace_id, port, token, process, job,policy,reference,image_admission)
                 if job:
                     job.attach(process.pid)
                 gate = {'root': str(self.root), 'workspace_id': workspace_id, 'port': port, 'internal_token': token}
                 if policy is not None: gate['trial_policy']=policy
                 if reference is not None:gate['reference_delivery']=reference.private_message()
+                if image_admission is not None:gate['image_admission']=image_admission.grant.model_dump(mode='json')
                 if self.probe:
                     gate['probe'] = str(self.probe.resolve(strict=True))
                 process.stdin.write(json.dumps(gate).encode())
@@ -147,7 +162,9 @@ class WorkspaceWorkers:
                             raise RuntimeError('Workspace process failed to start')
                         try:
                             response = await client.get(f'http://127.0.0.1:{port}/__workspace/ready', headers={'X-Workspace-Token': token})
-                            if response.status_code == 200 and response.json().get('workspace_id') == workspace_id:
+                            ready=response.json() if response.status_code==200 else {}
+                            expected_image=image_admission.grant.model_dump(mode='json') if image_admission is not None else None
+                            if response.status_code == 200 and ready.get('workspace_id') == workspace_id and ready.get('image_admission')==expected_image:
                                 self.workers[workspace_id] = worker
                                 return worker
                         except (httpx.HTTPError, ValueError):

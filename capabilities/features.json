@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-11-04.10",
+  "register_version": "2026-11-04.11",
   "updated_at": "2026-11-04",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -970,6 +970,28 @@
         "F-013.06"
       ],
       "scope": "准确d8c3584主分支CI2083通过/3跳过/2私有历史未选，前端3219、实际模型HTTP→候选→Linux隔离正例及通用40/声音7/本地发声3/候选10/回退27与清理通过。13项模型草稿/审核衔接具准确Linux软件证据；远端/独立审核事实仍自作，实际App/模型质量/审核联合与公网未授予。"
+    },
+    {
+      "id": "EV-IDENTITY-IMAGE-ADMISSION-SOFTWARE",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/workspace-image-admission-verification-profile.json",
+      "features": [
+        "F-001.04",
+        "F-006.03"
+      ],
+      "scope": "默认关闭的维护者图片准入：仅固定私有文件中明确列出的身份空间可提交独立资产图片及显式重试，预算仍分别归属原项目，没有工作空间总费用上限。实际双账号/双固定进程/各自HTTP图片源验证原用户、原项目、报价与参考图归属、一次预留、原key恢复、跨身份拒绝、查看者/未列入空间/旧入口拒绝、策略变化暂停新提交且原历史/预留保留。相关359通过/1平台跳过，新增40全通过；完整编译页面双账号17项及迁入锁4项通过，真实pnpm更新637份公开契约保持。全部模型响应、图片、报价为本机自作，新增付费0；不是实际供应商/账单、全部协议收费A/B、模型质量或公网验收。"
+    },
+    {
+      "id": "EV-GPT-IMAGE-EXACT-CI",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/gpt-image-ci-a7e30a0.json",
+      "features": [
+        "F-001.04",
+        "F-006.03"
+      ],
+      "scope": "准确a7e30a0主分支CI2106通过/3平台跳过/2私有历史未选，前端3219、实际非root只读镜像GPT图片2/声音7/本地发声3/通用40/候选10/运行2及27项断言和整体清理通过。GPT单张/参考图有准确镜像软件证据；供应商及独立审核事实未授予。"
     }
   ],
   "features": [
@@ -1164,7 +1186,9 @@
           "EV-LOCAL-RUNTIME-PROXY-COOKIE",
           "EV-LOCAL-RUNTIME-PREPARED-RESTART",
           "EV-LOCAL-RUNTIME-CI",
-          "EV-GPT-IMAGE-REFERENCE-SOFTWARE"
+          "EV-GPT-IMAGE-REFERENCE-SOFTWARE",
+          "EV-IDENTITY-IMAGE-ADMISSION-SOFTWARE",
+          "EV-GPT-IMAGE-EXACT-CI"
         ]
       },
       "deployment": {
@@ -1172,7 +1196,7 @@
         "url": null
       },
       "version": {
-        "implementation": "commit-161e8133a22a",
+        "implementation": "source-tree-fea8b5c5cb95",
         "release": null
       },
       "entry": {
@@ -1211,7 +1235,11 @@
         "backend/app/main.py",
         "backend/app/services/worker/workspace_local_models.py",
         "backend/run_tenant_worker.py",
-        "backend/local_runtime_bootstrap.py"
+        "backend/local_runtime_bootstrap.py",
+        "backend/app/core/contracts/workspace_image_admission.py",
+        "backend/app/controlplane/image_admission.py",
+        "backend/app/controlplane/store.py",
+        "backend/workspace-image-admission.example.json"
       ],
       "tests": [
         "backend/tests/test_identity_controlplane.py",
@@ -1253,7 +1281,9 @@
         "backend/tests/test_workspace_local_native_execution.py",
         "backend/tests/test_workspace_local_understanding_execution.py",
         "backend/tests/test_local_runtime_proxy.py",
-        "backend/tests/test_local_runtime_readiness.py"
+        "backend/tests/test_local_runtime_readiness.py",
+        "backend/tests/test_workspace_image_admission.py",
+        "backend/tests/test_workspace_image_gateway.py"
       ],
       "acceptance": [
         "A/B验证任务列表、取消/重试、连接解析、文件回调及生成采用不能越权",
@@ -1268,7 +1298,9 @@
         "剧本候选固定worker A/B保留失败记录与跨身份读取/采用/忽略负例通过；公开收费提交仍503，完整付费执行隔离继续未验收。",
         "各自固定worker支持自作本机文本/图片/视觉/ASR/原生接收查询及独立费用记录回归；配置按owner/协议/端口封闭，公开收费仍503，完整付费执行与真实质量仍待验。",
         "自有本机运行代理按调用人隔离Cookie，实际A/B/匿名、跨环境会话、预算/回退和当前撤销状态在准确运行CI通过；真实收费A/B、其他供应商及公网仍待验。",
-        "新增明确可选GPT Image 2.5的两个2026-09-08快照JSON档案，0至3张原项目PNG/JPEG、三种标准画幅、固定medium/单张不透明PNG；不借旧文本协议发送已不支持的返回参数，不静默丢参考图。新增两张无隐藏rowid的独立封存表，旧Seedream表和旧原请求保持；原项目一次预留、重试/取消/输入或连接变化保持原审计。冻结73项72通过/1平台跳过，新增23项全通过；主机守卫16、真实编译页面9、4种DTO同步及3219模块构建通过。页面内恢复原提交、刷新读服务器历史，不重复模型调用；均为自作本地图片/HTTP/报价，实际容器两例须准确本轮CI另证。真实供应商画质/账单、完整付费A/B和公网未验，授权费用0。"
+        "新增明确可选GPT Image 2.5的两个2026-09-08快照JSON档案，0至3张原项目PNG/JPEG、三种标准画幅、固定medium/单张不透明PNG；不借旧文本协议发送已不支持的返回参数，不静默丢参考图。新增两张无隐藏rowid的独立封存表，旧Seedream表和旧原请求保持；原项目一次预留、重试/取消/输入或连接变化保持原审计。冻结73项72通过/1平台跳过，新增23项全通过；主机守卫16、真实编译页面9、4种DTO同步及3219模块构建通过。页面内恢复原提交、刷新读服务器历史，不重复模型调用；均为自作本地图片/HTTP/报价，实际容器两例须准确本轮CI另证。真实供应商画质/账单、完整付费A/B和公网未验，授权费用0。",
+        "默认关闭的维护者图片准入：仅固定私有文件中明确列出的身份空间可提交独立资产图片及显式重试，预算仍分别归属原项目，没有工作空间总费用上限。实际双账号/双固定进程/各自HTTP图片源验证原用户、原项目、报价与参考图归属、一次预留、原key恢复、跨身份拒绝、查看者/未列入空间/旧入口拒绝、策略变化暂停新提交且原历史/预留保留。相关359通过/1平台跳过，新增40全通过；完整编译页面双账号17项及迁入锁4项通过，真实pnpm更新637份公开契约保持。全部模型响应、图片、报价为本机自作，新增付费0；不是实际供应商/账单、全部协议收费A/B、模型质量或公网验收。",
+        "准确a7e30a0主分支CI2106通过/3平台跳过/2私有历史未选，前端3219、实际非root只读镜像GPT图片2/声音7/本地发声3/通用40/候选10/运行2及27项断言和整体清理通过。GPT单张/参考图有准确镜像软件证据；供应商及独立审核事实未授予。"
       ],
       "depends_on": [
         "F-001.03"
@@ -2342,7 +2374,9 @@
         "evidence": [
           "EV-REFERENCE-IMAGE-LOCAL",
           "EV-REFERENCE-IMAGE-PUBLISHED-CI",
-          "EV-GPT-IMAGE-REFERENCE-SOFTWARE"
+          "EV-GPT-IMAGE-REFERENCE-SOFTWARE",
+          "EV-IDENTITY-IMAGE-ADMISSION-SOFTWARE",
+          "EV-GPT-IMAGE-EXACT-CI"
         ]
       },
       "deployment": {
@@ -2350,7 +2384,7 @@
         "url": null
       },
       "version": {
-        "implementation": "source-tree-188e1e096215",
+        "implementation": "source-tree-fea8b5c5cb95",
         "release": null
       },
       "entry": {
@@ -2379,13 +2413,24 @@
         "front/src/pages/aiStudio/models/ModelsTab.tsx",
         "backend/app/core/integrations/gpt_asset_image.py",
         "backend/app/models/gpt_image_inputs.py",
-        "backend/app/services/gpt_image_input_schema.py"
+        "backend/app/services/gpt_image_input_schema.py",
+        "backend/app/core/contracts/workspace_image_admission.py",
+        "backend/app/controlplane/image_admission.py",
+        "backend/app/controlplane/store.py",
+        "backend/app/controlplane/workers.py",
+        "backend/app/controlplane/gateway.py",
+        "backend/app/core/workspace_boundary.py",
+        "backend/app/main.py",
+        "backend/run_tenant_worker.py",
+        "backend/workspace-image-admission.example.json"
       ],
       "tests": [
         "backend/tests/test_asset_image_references.py",
         "backend/tests/test_asset_image_generation.py",
         "backend/tests/test_image_project_accounting.py",
-        "backend/tests/test_gpt_asset_image.py"
+        "backend/tests/test_gpt_asset_image.py",
+        "backend/tests/test_workspace_image_admission.py",
+        "backend/tests/test_workspace_image_gateway.py"
       ],
       "acceptance": [
         "按已声明能力发送真实参考图片并检查hash、用途和尺寸",
@@ -2396,7 +2441,9 @@
         "base64及受限URL软件边界已实现；URL正向仅受控传输验证，实际外部CDN、真实模型质量与账单未验收。",
         "实际浏览器为单独操作者和自作本地服务；身份收费门禁保持关闭，不授予完整收费A/B或公网资格。",
         "其他参考模型/返回协议，以及视频参考的其余协议、真实模型/远程交付和人物一致性仍待验；已声明Seedance视频参考的软件范围见F-007.05。本图片参考项仍为部分实现。",
-        "新增明确可选GPT Image 2.5的两个2026-09-08快照JSON档案，0至3张原项目PNG/JPEG、三种标准画幅、固定medium/单张不透明PNG；不借旧文本协议发送已不支持的返回参数，不静默丢参考图。新增两张无隐藏rowid的独立封存表，旧Seedream表和旧原请求保持；原项目一次预留、重试/取消/输入或连接变化保持原审计。冻结73项72通过/1平台跳过，新增23项全通过；主机守卫16、真实编译页面9、4种DTO同步及3219模块构建通过。页面内恢复原提交、刷新读服务器历史，不重复模型调用；均为自作本地图片/HTTP/报价，实际容器两例须准确本轮CI另证。真实供应商画质/账单、完整付费A/B和公网未验，授权费用0。"
+        "新增明确可选GPT Image 2.5的两个2026-09-08快照JSON档案，0至3张原项目PNG/JPEG、三种标准画幅、固定medium/单张不透明PNG；不借旧文本协议发送已不支持的返回参数，不静默丢参考图。新增两张无隐藏rowid的独立封存表，旧Seedream表和旧原请求保持；原项目一次预留、重试/取消/输入或连接变化保持原审计。冻结73项72通过/1平台跳过，新增23项全通过；主机守卫16、真实编译页面9、4种DTO同步及3219模块构建通过。页面内恢复原提交、刷新读服务器历史，不重复模型调用；均为自作本地图片/HTTP/报价，实际容器两例须准确本轮CI另证。真实供应商画质/账单、完整付费A/B和公网未验，授权费用0。",
+        "默认关闭的维护者图片准入：仅固定私有文件中明确列出的身份空间可提交独立资产图片及显式重试，预算仍分别归属原项目，没有工作空间总费用上限。实际双账号/双固定进程/各自HTTP图片源验证原用户、原项目、报价与参考图归属、一次预留、原key恢复、跨身份拒绝、查看者/未列入空间/旧入口拒绝、策略变化暂停新提交且原历史/预留保留。相关359通过/1平台跳过，新增40全通过；完整编译页面双账号17项及迁入锁4项通过，真实pnpm更新637份公开契约保持。全部模型响应、图片、报价为本机自作，新增付费0；不是实际供应商/账单、全部协议收费A/B、模型质量或公网验收。",
+        "准确a7e30a0主分支CI2106通过/3平台跳过/2私有历史未选，前端3219、实际非root只读镜像GPT图片2/声音7/本地发声3/通用40/候选10/运行2及27项断言和整体清理通过。GPT单张/参考图有准确镜像软件证据；供应商及独立审核事实未授予。"
       ],
       "depends_on": [
         "F-001.04"
