@@ -19,15 +19,13 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 - [公开路线图](site/content/docs/plans/public-roadmap.md)
 - [单一功能登记源](capabilities/features.json)，检查/生成：`python scripts/features.py --check` / `python scripts/features.py`
 
-身份与个人空间、项目独立预算、可导出的原创示例、剧本与分镜候选、已声明参考图/视频，以及本机配音与声音剪辑已有软件流程。金额分别归属原项目，没有工作空间总预算。
+身份与个人空间、项目独立预算、可导出的原创示例、剧本与分镜候选、已声明参考图/视频及本机声音剪辑已有软件流程。金额归原项目，没有工作空间总预算。
 
-独立图片及文字/剧本/视频理解/原生视频准入默认关闭；维护者明确列出空间和执行类型后，仍需各空间自己的模型服务、报价和项目额度。自作双账号HTTP测试不能授权真实模型费用。操作见[图片准入](site/content/docs/guide/workspace-image-generation.md)与[其他执行类型](site/content/docs/guide/workspace-execution-admission.md)。
+图片及文字/剧本/理解/原生视频准入默认关闭。维护者明确列出空间/执行类型后，仍需各空间连接、报价和项目额度；自作服务验证不能授权真实费用。见[图片准入](site/content/docs/guide/workspace-image-generation.md)、[执行准入](site/content/docs/guide/workspace-execution-admission.md)与[取消重试恢复](site/content/docs/guide/workspace-execution-recovery.md)。
 
-社区需求的本机签名登记、评估/澄清、容量排队、模型变更包、隔离候选检查与草稿/审核衔接已有分段软件；实际App、独立审核、发布联合验收继续进行。稳定/预览运行与回退已有自有Linux容器证据，服务器尚未购置；真实模型/账单、完整成片及公网未通过，费用授权0。
+社区需求、队列、模型变更包、隔离检查和草稿/审核衔接已有分段软件。新重复建议被拒绝，旧记录与不重发规则保留；本机真实小模型历史语义预期仅1/2符合，质量未通过，须人工审阅。见[本机模型建议](site/content/docs/guide/community-model-advice.md)。
 
-原请求恢复、在途取消、明确重试、原生暂停恢复和连接变更已通过本机58项软件检查，含14项新动作。未知费用保留在原项目；操作见[取消、重试与恢复](site/content/docs/guide/workspace-execution-recovery.md)。
-
-本机模型调用的整体等待上限已修正并新增防滴流检查；真实CPU建议2例结构通过、语义预期仅1/2符合，模型质量仍未通过，人工审阅和执行边界保持。
+稳定/预览运行与回退已有自有Linux容器证据。实际GitHub App、独立审核、供应商/账单、完整成片及公网仍未通过；服务器未购置，费用授权0。
 
 本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
 
