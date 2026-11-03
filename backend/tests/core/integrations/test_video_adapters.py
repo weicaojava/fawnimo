@@ -26,6 +26,7 @@ def _patch_httpx_client(monkeypatch: pytest.MonkeyPatch, transport: httpx.MockTr
 
 @pytest.mark.asyncio
 async def test_openai_video_create_returns_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An authored compatibility-origin response preserves the retained driver, without claiming the retired official API works."""
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.method == "POST"
         assert str(request.url).rstrip("/").endswith("/videos")
@@ -37,7 +38,7 @@ async def test_openai_video_create_returns_id(monkeypatch: pytest.MonkeyPatch) -
         return httpx.Response(200, json={"id": "video-1"})
 
     _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
-    cfg = ProviderConfig(provider="openai", api_key="sk-test")
+    cfg = ProviderConfig(provider="openai", api_key="sk-test",base_url="http://127.0.0.1:18999/v1")
     inp = VideoGenerationInput.model_validate(
         {"prompt": "a cat", "ratio": "16:9", "seed": 42, "watermark": False, "seconds": 6}
     )
@@ -47,13 +48,14 @@ async def test_openai_video_create_returns_id(monkeypatch: pytest.MonkeyPatch) -
 
 @pytest.mark.asyncio
 async def test_openai_video_get_returns_meta(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Read an authored compatibility response only; stored local videos do not require the retired official endpoint."""
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.method == "GET"
         assert "/videos/v-99" in str(request.url)
         return httpx.Response(200, json={"status": "completed", "id": "v-99"})
 
     _patch_httpx_client(monkeypatch, httpx.MockTransport(handler))
-    cfg = ProviderConfig(provider="openai", api_key="sk-test")
+    cfg = ProviderConfig(provider="openai", api_key="sk-test",base_url="http://127.0.0.1:18999/v1")
     meta = await OpenAIVideoApiAdapter().get_video(cfg=cfg, video_id="v-99", timeout_s=30.0)
     assert meta["status"] == "completed"
 

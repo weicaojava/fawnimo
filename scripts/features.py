@@ -238,7 +238,7 @@ def roadmap(data: dict) -> str:
     """Publish delivery priorities without inventing dates or treating accepted ideas as shipped."""
     out = heading("公开路线图", "近期交付与长期扩展分开记录，优先级不等于已经上线。")
     out += "产品方向：创意/脚本/参考视频 → 策划与分镜 → 资产、声音与提示词 → 图像/视频候选 → 确认采用 → 剪辑、字幕与声音 → 导出。中间结果可编辑、可追溯。短剧和参考视频拆解服务于短视频主线。\n\n"
-    out += "需求合理性、优先级、实现、验证、部署分别记录。项目名称为Fawnimo 鹿帧，仓库名为fawnimo；仓库创建、代码发布与公网平台分别核验，尚无已发布的Issue/PR记录。上游链接仅用于来源说明。排期按依赖、价值、成本和容量推进，未设未经验证的日历承诺。\n\n## 近期交付\n\n| 阶段 | 目标 | 当前状态 |\n| --- | --- | --- |\n"
+    out += "需求合理性、优先级、实现、验证、部署分别记录。项目名称为Fawnimo 鹿帧，仓库名为fawnimo；仓库创建、代码发布、PR检查与公网平台分别核验，需求/PR以功能记录中的实际链接为准。上游链接仅用于来源说明。排期按依赖、价值、成本和容量推进，未设未经验证的日历承诺。\n\n## 近期交付\n\n| 阶段 | 目标 | 当前状态 |\n| --- | --- | --- |\n"
     for stage in data["milestones"]:
         out += f"| {stage['id']} | {cell(stage['title'])} | {label(stage['status'])} |\n"
     out += "\n完整门槛见[分阶段开发与验收计划](../platform-delivery/)，逐项状态见[功能总表](/docs/reference/feature-catalog/)。\n\n"

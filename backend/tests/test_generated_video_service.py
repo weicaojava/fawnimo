@@ -182,7 +182,8 @@ async def test_preview_prompt_and_images_prefers_request_images_when_provided() 
 
 
 @pytest.mark.asyncio
-async def test_build_run_args_maps_reference_images(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_legacy_build_run_args_rejects_reference_images(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The historical caller remains refused before credentials/tasks; current preparation is tested separately."""
     db, engine = await _build_session()
     async with db:
         await _seed_shot_graph(db)
@@ -200,28 +201,17 @@ async def test_build_run_args_maps_reference_images(monkeypatch: pytest.MonkeyPa
             _fake_file_id_to_data_url,
         )
 
-        run_args = await build_run_args(
-            db,
-            shot_id="s1",
-            reference_mode="first_last",
-            prompt="最终视频提示词",
-            images=["img-first", "img-last"],
-            ratio="9:16",
-        )
+        with pytest.raises(HTTPException) as exc_info:
+            await build_run_args(db, shot_id='s1', reference_mode='first_last', prompt='最终视频提示词', images=['img-first', 'img-last'], ratio='9:16')
+        assert exc_info.value.status_code==409
+        assert '旧视频提交链已停用' in exc_info.value.detail
 
-        assert run_args["provider"] == "openai"
-        assert run_args["api_key"] == "k"
-        assert run_args["input"]["model"] == "sora-mini"
-        assert run_args["input"]["first_frame_base64"] == "data:image/png;base64,img-first"
-        assert run_args["input"]["last_frame_base64"] == "data:image/png;base64,img-last"
-        assert run_args["input"]["key_frame_base64"] is None
-        assert run_args["input"]["ratio"] == "9:16"
-        assert run_args["input"]["seconds"] == 6
     await engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_build_run_args_uses_prompt_pack_when_prompt_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_legacy_build_run_args_rejects_prompt_pack(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The historical caller remains refused before credentials/tasks; current preparation is tested separately."""
     db, engine = await _build_session()
     async with db:
         await _seed_shot_graph(db)
@@ -239,24 +229,11 @@ async def test_build_run_args_uses_prompt_pack_when_prompt_missing(monkeypatch: 
             _fake_file_id_to_data_url,
         )
 
-        run_args = await build_run_args(
-            db,
-            shot_id="s1",
-            reference_mode="text_only",
-            prompt=None,
-            images=[],
-            ratio="16:9",
-        )
+        with pytest.raises(HTTPException) as exc_info:
+            await build_run_args(db, shot_id='s1', reference_mode='text_only', prompt=None, images=[], ratio='16:9')
+        assert exc_info.value.status_code==409
+        assert '旧视频提交链已停用' in exc_info.value.detail
 
-        assert "镜头标题：镜头一" in run_args["input"]["prompt"]
-        assert "动作节拍：" in run_args["input"]["prompt"]
-        assert run_args["input"]["ratio"] == "16:9"
-        assert run_args["prompt_preview"]["shot_id"] == "s1"
-        assert run_args["prompt_preview"]["pack"]["action_beats"]
-        assert "镜头零" in run_args["prompt_preview"]["pack"]["previous_shot_summary"]
-        assert "镜头二" in run_args["prompt_preview"]["pack"]["next_shot_goal"]
-        assert run_args["prompt_preview"]["pack"]["composition_anchor"]
-        assert run_args["prompt_preview"]["pack"]["screen_direction_guidance"]
     await engine.dispose()
 
 
@@ -356,7 +333,8 @@ async def test_template_render_keeps_existing_guidance_without_duplicate_suffix(
 
 
 @pytest.mark.asyncio
-async def test_build_run_args_rejects_disabled_provider() -> None:
+async def test_legacy_build_run_args_is_retired_before_provider_resolution() -> None:
+    """The historical caller remains refused before credentials/tasks; current preparation is tested separately."""
     db, engine = await _build_session()
     async with db:
         await _seed_shot_graph(db)
@@ -382,8 +360,8 @@ async def test_build_run_args_rejects_disabled_provider() -> None:
                 ratio="16:9",
             )
 
-        assert exc_info.value.status_code == 503
-        assert "Provider is disabled" in str(exc_info.value.detail)
+        assert exc_info.value.status_code==409
+        assert '旧视频提交链已停用' in exc_info.value.detail
     await engine.dispose()
 
 
@@ -433,7 +411,8 @@ async def test_shot_video_readiness_reports_missing_reference_frame() -> None:
 
 
 @pytest.mark.asyncio
-async def test_build_run_args_uses_request_ratio_as_final_value(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_legacy_build_run_args_rejects_requested_ratio(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The historical caller remains refused before credentials/tasks; current preparation is tested separately."""
     db, engine = await _build_session()
     async with db:
         await _seed_shot_graph(db)
@@ -451,21 +430,17 @@ async def test_build_run_args_uses_request_ratio_as_final_value(monkeypatch: pyt
             _fake_file_id_to_data_url,
         )
 
-        run_args = await build_run_args(
-            db,
-            shot_id="s1",
-            reference_mode="text_only",
-            prompt="最终视频提示词",
-            images=[],
-            ratio="9:16",
-        )
+        with pytest.raises(HTTPException) as exc_info:
+            await build_run_args(db, shot_id='s1', reference_mode='text_only', prompt='最终视频提示词', images=[], ratio='9:16')
+        assert exc_info.value.status_code==409
+        assert '旧视频提交链已停用' in exc_info.value.detail
 
-        assert run_args["input"]["ratio"] == "9:16"
     await engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_build_run_args_rejects_missing_ratio(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_legacy_build_run_args_is_retired_before_ratio_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The historical caller remains refused before credentials/tasks; current preparation is tested separately."""
     db, engine = await _build_session()
     async with db:
         await _seed_shot_graph(db)
@@ -493,13 +468,14 @@ async def test_build_run_args_rejects_missing_ratio(monkeypatch: pytest.MonkeyPa
                 ratio=None,
             )
 
-        assert exc_info.value.status_code == 400
-        assert exc_info.value.detail == "ratio is required"
+        assert exc_info.value.status_code==409
+        assert '旧视频提交链已停用' in exc_info.value.detail
     await engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_build_run_args_does_not_read_shot_override_ratio(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_legacy_build_run_args_rejects_shot_override_ratio(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The historical caller remains refused before credentials/tasks; current preparation is tested separately."""
     db, engine = await _build_session()
     async with db:
         await _seed_shot_graph(db)
@@ -520,21 +496,17 @@ async def test_build_run_args_does_not_read_shot_override_ratio(monkeypatch: pyt
             _fake_file_id_to_data_url,
         )
 
-        run_args = await build_run_args(
-            db,
-            shot_id="s1",
-            reference_mode="text_only",
-            prompt="最终视频提示词",
-            images=[],
-            ratio="16:9",
-        )
+        with pytest.raises(HTTPException) as exc_info:
+            await build_run_args(db, shot_id='s1', reference_mode='text_only', prompt='最终视频提示词', images=[], ratio='16:9')
+        assert exc_info.value.status_code==409
+        assert '旧视频提交链已停用' in exc_info.value.detail
 
-        assert run_args["input"]["ratio"] == "16:9"
     await engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_build_run_args_accepts_supported_ratio_without_size(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_legacy_build_run_args_rejects_supported_ratio(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The historical caller remains refused before credentials/tasks; current preparation is tested separately."""
     db, engine = await _build_session()
     async with db:
         await _seed_shot_graph(db)
@@ -552,14 +524,9 @@ async def test_build_run_args_accepts_supported_ratio_without_size(monkeypatch: 
             _fake_file_id_to_data_url,
         )
 
-        run_args = await build_run_args(
-            db,
-            shot_id="s1",
-            reference_mode="text_only",
-            prompt="最终视频提示词",
-            images=[],
-            ratio="9:16",
-        )
+        with pytest.raises(HTTPException) as exc_info:
+            await build_run_args(db, shot_id='s1', reference_mode='text_only', prompt='最终视频提示词', images=[], ratio='9:16')
+        assert exc_info.value.status_code==409
+        assert '旧视频提交链已停用' in exc_info.value.detail
 
-        assert run_args["input"]["ratio"] == "9:16"
     await engine.dispose()

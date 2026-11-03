@@ -29,6 +29,8 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 
 本机模型调用的整体等待上限已修正并新增防滴流检查；真实CPU建议2例结构通过、语义预期仅1/2符合，模型质量仍未通过，人工审阅和执行边界保持。
 
+OpenAI 官方 Videos API 已于2026-09-24停止，官方视频调用在密钥/网络前拒绝；现有资料保留，其他兼容地址不自动取得供应商资格。见[视频服务可用性](site/content/docs/guide/video-service-availability.md)。
+
 本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
 
 代码保留并基于[Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish)继续开发，遵循[现有许可证](LICENSE)，来源和发布边界见[UPSTREAM.md](UPSTREAM.md)。现有代码包含上游、既有改动和AI辅助开发成果，不能宣称全部从零AI原创。仓库里的上游Issues、Actions、Pages与镜像链接属于上游，不是已交付的自有平台。

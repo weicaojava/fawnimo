@@ -1,0 +1,41 @@
+{
+  "profile": "retired_official_openai_video_v1",
+  "source_tree": "da4f26b0c694e4fc1f2ca2575d6d99a6aa86f834",
+  "scope": "按OpenAI官方停服公告，官方Videos API与Sora系列已于2026-09-24停止。供应商解析与旧适配器创建/查询均在读取密钥、构造HTTP客户端前拒绝官方地址，返回固定不可用说明；大小写/默认地址/尾点和官方其他路径同样拒绝。显式其他兼容地址仅保留旧驱动，不授予供应商验证；文字/图片/音频解析及历史资料不改写。冻结69含新增20全部通过、保留旧版10个预检查失败；另将3项画幅能力与7项历史调用测试按当前已停用旧链的409契约整理后纳入CI，不恢复旧链。实际pnpm同步637文件无差异、0数据库连接。本轮准确CI另证；作者审阅，真实模型/账单、独立审核与公网未验，费用0。",
+  "official_source": "https://developers.openai.com/api/docs/deprecations",
+  "official_shutdown_date": "2026-09-24",
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "868b9a9eeb4615e8266d2ec08370f672e8a3aa7d7791ef57ee5a5ce4ecad5190",
+    "backend/app/core/contracts/video_service_availability.py": "091a8c8cb40b23d857a10f6c7f4f1c8c320177c4f7aa3900fbdcb1286a1effc8",
+    "backend/app/core/integrations/openai/video.py": "afe45b2a78c18534ae4a1259e5b496370e6ddeb518e414669e787e40b85d839b",
+    "backend/app/services/llm/provider_resolver.py": "4675160ad7dcdf5e00dd27875f3c48eb4ed5bfcbdd7280ac324e55975af29035",
+    "backend/tests/test_retired_openai_video.py": "c472daa44b12d5672cbf6584336411e53a1890e4df819d05f0560e6666c94506",
+    "backend/tests/core/integrations/test_video_adapters.py": "9a073fed3218f5c39703c02553fd7c97424a82ce5a0004966cdce58317b69cd0",
+    "backend/tests/core/integrations/test_video_capabilities.py": "c3d94876a81773a2beba372bc4c09a3cd5023e6efcbd7b1f74d303f92347431c",
+    "backend/tests/test_generated_video_service.py": "3c86db99f5db981c2c94baf9311764ff6f930ba9eda13f6f7db856dd18930e65"
+  },
+  "native_related_counts": {
+    "tests": 69,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "new_retired_video_cases": 20,
+  "retained_old_official_video_failures": 10,
+  "historical_callers_reconciled": 7,
+  "fixed_URL_parser_errors": true,
+  "retained_old_parser_private_text_failures": 3,
+  "old_collection_error_retained": true,
+  "reopened_legacy_submission": false,
+  "public_contract_files_unchanged": 637,
+  "database_connections_during_schema_export": 0,
+  "exact_branch_CI_required": true,
+  "expected_full_backend_cases": 2274,
+  "actual_model_called": false,
+  "independent_review_completed": false,
+  "model_quality_qualified": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "public_deployment_verified": false,
+  "overall_goal_complete": false
+}

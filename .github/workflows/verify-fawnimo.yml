@@ -100,6 +100,8 @@ jobs:
           tests/test_workspace_execution_actions.py
           tests/test_community_intake.py tests/test_community_evaluations.py tests/test_community_advice.py tests/test_community_model_code.py tests/test_community_model_flow.py tests/test_community_model_delivery.py tests/test_community_rowid_guards.py
           tests/test_community_advice_deadline.py
+          tests/test_retired_openai_video.py tests/core/integrations/test_video_adapters.py tests/core/integrations/test_video_capabilities.py
+          tests/test_generated_video_service.py
           tests/test_community_queue_planning.py tests/test_community_queue_store.py
           tests/test_community_queue_leases.py tests/test_community_queue_cli.py
           tests/test_community_change_bundles.py tests/test_community_public_code.py

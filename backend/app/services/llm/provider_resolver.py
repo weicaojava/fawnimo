@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.llm import Model, ModelCategoryKey, Provider, ProviderStatus
+from app.core.contracts.video_service_availability import require_available_openai_video_origin
 from app.services.common import entity_not_found
 from app.bootstrap import bootstrap_all_registries
 from app.services.llm.provider_registry import (
@@ -56,6 +57,7 @@ def resolve_provider_config_from_provider(
     provider: Provider,
     category: ModelCategoryKey,
 ) -> ResolvedProviderConfig:
+    """Resolve one category's configured origin, rejecting a known retired official video service before secret access."""
     bootstrap_all_registries()
     _validate_provider_status(provider)
     provider_key = resolve_provider_key_from_name(provider.name)
@@ -65,6 +67,13 @@ def resolve_provider_config_from_provider(
             detail=f"Provider {provider.name!r} does not support category={category.value}",
         )
 
+    official_video_check=provider_key=='openai' and category==ModelCategoryKey.video
+    if official_video_check:
+        base_url=resolve_effective_base_url(provider=provider,provider_key=provider_key,category=category)
+        try:
+            require_available_openai_video_origin(base_url)
+        except ValueError as error:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,detail=str(error)) from None
     spec = get_provider_spec(provider_key)
     api_key = (provider.api_key or "").strip()
     if spec.requires_api_key and not api_key:
@@ -73,11 +82,8 @@ def resolve_provider_config_from_provider(
             detail=f"Provider api_key is empty for provider_id={provider.id}",
         )
 
-    base_url = resolve_effective_base_url(
-        provider=provider,
-        provider_key=provider_key,
-        category=category,
-    )
+    if not official_video_check:
+        base_url=resolve_effective_base_url(provider=provider,provider_key=provider_key,category=category)
     return ResolvedProviderConfig(
         provider_key=provider_key,
         api_key=api_key,

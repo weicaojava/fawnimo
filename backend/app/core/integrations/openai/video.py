@@ -7,6 +7,7 @@ from typing import Any
 from app.core.integrations.openai.video_payload import build_create_video_body
 from app.core.contracts.provider import ProviderConfig
 from app.core.contracts.video_generation import VideoGenerationInput
+from app.core.contracts.video_service_availability import require_available_openai_video_origin
 
 
 class OpenAIVideoApiAdapter:
@@ -19,6 +20,8 @@ class OpenAIVideoApiAdapter:
         input_: VideoGenerationInput,
         timeout_s: float,
     ) -> str:
+        """Reject the retired official service before reading its key; retained explicit compatibility endpoints keep the existing driver."""
+        require_available_openai_video_origin(cfg.base_url)
         try:
             import httpx
         except ImportError as e:  # pragma: no cover
@@ -47,6 +50,8 @@ class OpenAIVideoApiAdapter:
         video_id: str,
         timeout_s: float,
     ) -> dict[str, Any]:
+        """Query only a separately configured compatibility origin; local saved history does not use this remote adapter."""
+        require_available_openai_video_origin(cfg.base_url)
         try:
             import httpx
         except ImportError as e:  # pragma: no cover
