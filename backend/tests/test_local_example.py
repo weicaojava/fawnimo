@@ -44,7 +44,6 @@ async def setup(tmp_path, monkeypatch):
     executable = os.environ.get('FAWNIMO_TEST_FFMPEG') or os.environ.get('TEST_MEDIA_PROBE')
     if not executable or not Path(executable).is_file():
         pytest.skip('Trusted local FFmpeg required for real export availability')
-    monkeypatch.setattr(settings,'workspace_id',WORKSPACE)
     monkeypatch.setattr(settings,'workspace_runtime_locked',False)
     monkeypatch.setattr(settings,'editing_export_enabled',True)
     monkeypatch.setattr(settings,'production_media_root',str(tmp_path/'media'))
@@ -63,6 +62,10 @@ async def setup(tmp_path, monkeypatch):
     await migrate_script_preparation(engine)
     await migrate_shot_plan(engine)
     await migrate_editing(engine)
+    # This parent process mapped standalone ORM columns before the fixture.
+    # Initialize that authored database first, then inject only the service's
+    # workspace identity. Real fixed-owner startup uses separate-process tests.
+    monkeypatch.setattr(settings,'workspace_id',WORKSPACE)
     factory = async_sessionmaker(engine,expire_on_commit=False)
     async with factory() as db:
         db.add(Project(id='user-project',name='preserved user fixture',style='test'))

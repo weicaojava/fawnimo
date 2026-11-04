@@ -108,5 +108,27 @@
   "external_model_calls": 0,
   "paid_authorization": 0,
   "public_deployment_verified": false,
-  "overall_goal_complete": false
+  "overall_goal_complete": false,
+  "additional_objective_fixture_context_check": {
+    "path": "backend/tests/test_local_example.py",
+    "before_sha256": "5b3741e74f189daf4c2c38b0d8a93a4c052a5f40175f2f04de07ee0f605dd425",
+    "after_sha256": "8c7604df0eac0ef1fb7e0c39b06e0f47aa2b8b5f5556037b0c533f703ed50d3b",
+    "only_workspace_service_injection_moved_after_all_migrations": true,
+    "original_statements_and_assertions_preserved": true,
+    "parent_fixture_schema": "standalone ORM mapped before this fixture",
+    "real_fixed_workspace_checks": "separate owned child processes",
+    "related_counts": {
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "local_example_cases": 8,
+    "fixed_workspace_migration_cases": 5,
+    "counts_overlap_prior_migration_checks": true,
+    "product_source_changed": false,
+    "production_checks_relaxed": false,
+    "external_model_calls": 0,
+    "paid_authorization": 0
+  }
 }
