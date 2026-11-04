@@ -8,6 +8,8 @@ from sqlalchemy import case, func, select
 from app.bootstrap import bootstrap_all_registries
 from app.core.contracts.seedance25 import ARK_BASE_URL, MODEL_ID
 from app.core.contracts.seedance_references import REFERENCE_PROTOCOL
+from app.core.contracts.native_video_profiles import declared_profile,NATIVE_PROTOCOLS,reference_protocol
+from app.core.contracts.wan30 import PROTOCOLS as WAN_PROTOCOLS,checked_base_url as checked_wan_base
 from app.core.contracts.video_runtime_setup import NativeVideoModelChoice
 from app.models.llm import Model, ModelCategoryKey, Provider
 from app.models.provider_connection_version import ProviderConnectionVersion
@@ -21,19 +23,24 @@ PROTOCOL = 'seedance25_text_v1'
 
 def compatible(category, params, provider_name, model_name):
     """Only the explicitly selected fixed native protocol can use this adapter; generation categories never imply it."""
-    if category!='video' or model_name!=MODEL_ID or not isinstance(params,dict) or params.get('native_video_protocol') not in {PROTOCOL,REFERENCE_PROTOCOL}:
+    if category!='video' or not isinstance(params,dict):
         return False
+    profile=declared_profile(model_name,params.get('native_video_protocol'))
+    if profile is None:return False
     try:
         bootstrap_all_registries()
-        return resolve_provider_key_from_name(provider_name)=='volcengine'
+        return resolve_provider_key_from_name(provider_name)==profile.provider_key
     except (HTTPException,ValueError):
         return False
 
 
-def checked_base(provider, *, trusted_local_host=None, trusted_local_port=None):
-    """Keep the production Ark origin fixed; any test/local exception must independently name its exact host and port."""
+def checked_base(provider, *, trusted_local_host=None, trusted_local_port=None,native_protocol=PROTOCOL):
+    """Keep each declared vendor origin fixed; local exceptions separately name the exact host, port and protocol root."""
     value=resolve_effective_base_url(provider=provider,category=ModelCategoryKey.video) or ''
     base=value.strip().rstrip('/') if isinstance(value,str) else ''
+    if native_protocol in WAN_PROTOCOLS:
+        try:return checked_wan_base(base,trusted_local_host=trusted_local_host,trusted_local_port=trusted_local_port)
+        except ValueError:raise HTTPException(503,'万相视频需要明确配置受信北京业务空间地址，未接受调用') from None
     if trusted_local_host is None:
         if trusted_local_port is None and base==ARK_BASE_URL:
             return ARK_BASE_URL
@@ -57,7 +64,7 @@ def binding(model,provider,version,**network):
         raise HTTPException(503,'所选模型没有明确配置受支持的原生视频协议，未接受调用')
     return {'model_id':model.id,'model_name':model.name,'category':'video','protocol':model.params['native_video_protocol'],
             'provider_id':provider.id,'provider_name':provider.name,'provider_connection_version':version,
-            'base_url':checked_base(provider,**network)}
+            'base_url':checked_base(provider,native_protocol=model.params['native_video_protocol'],**network)}
 
 
 async def safe_binding(db, model_id, *, trusted_local_host=None, trusted_local_port=None):
@@ -94,7 +101,7 @@ def credential(provider):
 
 async def original_material(db,original,*,trusted_local_host=None,trusted_local_port=None):
     """Removing a new-generation flag cannot reprice or disable an already sealed original-account read."""
-    if not isinstance(original,dict) or original.get('protocol') not in {PROTOCOL,REFERENCE_PROTOCOL} or original.get('category')!='video':
+    if not isinstance(original,dict) or not isinstance(original.get('protocol'),str) or original.get('protocol') not in NATIVE_PROTOCOLS or original.get('category')!='video':
         raise HTTPException(409,'原生视频原协议授权缺失，未读取账号凭据')
     model,provider,version=await model_connection_snapshot(db,original.get('model_id'))
     captured=SimpleNamespace(id=model.id,name=model.name,category=model.category,params={'native_video_protocol':original['protocol']})
@@ -117,7 +124,7 @@ async def choices(db,registry=None,*,trusted_local_host=None,trusted_local_port=
         try:
             safe=await safe_binding(db,row.id,trusted_local_host=trusted_local_host,trusted_local_port=trusted_local_port)
             configured=True
-            input_protocol=REFERENCE_PROTOCOL if row.params.get('native_video_protocol')==REFERENCE_PROTOCOL else None
+            input_protocol=reference_protocol(row.params.get('native_video_protocol'))
             candidate=registry.required('native_video',row.id,input_protocol=input_protocol) if input_protocol is not None else registry.required('native_video',row.id)
             if (candidate.model_name,candidate.provider_id,candidate.provider_connection_version)!=(safe['model_name'],safe['provider_id'],safe['provider_connection_version']):
                 raise HTTPException(503,'原生视频实际模型名称或连接版本与受信报价不一致')
@@ -127,5 +134,5 @@ async def choices(db,registry=None,*,trusted_local_host=None,trusted_local_port=
         result.append(NativeVideoModelChoice(id=row.id,name=row.name,provider_name=row.provider_name,configured=configured,
             message=message,priced=quote is not None,max_call_minor=quote.max_call_minor if quote else None,
             price_fingerprint=quote.fingerprint if quote else None,
-            reference_protocol=REFERENCE_PROTOCOL if row.params.get('native_video_protocol')==REFERENCE_PROTOCOL else None))
+            reference_protocol=reference_protocol(row.params.get('native_video_protocol'))))
     return result

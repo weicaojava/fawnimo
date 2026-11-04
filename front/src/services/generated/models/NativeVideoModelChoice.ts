@@ -14,6 +14,6 @@ export type NativeVideoModelChoice = {
     priced?: boolean;
     max_call_minor?: (number | null);
     price_fingerprint?: (string | null);
-    reference_protocol?: (string | null);
+    reference_protocol?: ('seedance25_reference_v1' | 'wan30_reference_v1' | null);
 };
 

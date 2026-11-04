@@ -14,6 +14,6 @@ export type PlanModelOption = {
     currency: string;
     iteration_limit: number;
     binding_hash: string;
-    reference_protocol?: (string | null);
+    reference_protocol?: ('seedance25_reference_v1' | 'wan30_reference_v1' | null);
 };
 

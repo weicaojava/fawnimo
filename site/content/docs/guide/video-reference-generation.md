@@ -39,3 +39,5 @@ description: "在原项目中准备明确的参考输入、锁定计划、确认
 新参考协议改变执行绑定。旧文字/空报价计划保留，须显式保存新修订并编译，不能直接获得新生成权限。关闭新生成仍可使用未变化原账号查询已封存任务。原理和边界见[参考输入架构](../../architecture/video-reference-inputs/)。
 
 该实现遵循[火山视频任务API](https://docs.volcengine.com/docs/ark/create-video-generation-task-api?lang=zh&redirect=1)的显式角色，采用更窄的本地输入范围；没有把额外供应商或任意媒体格式作为已支持能力。当前软件检查不等于真实模型质量、远程交付、供应商账单、完整收费隔离、成片或公网部署已通过。
+
+万相3.0的图片和首尾帧另走wan30_reference_v1，不接受本页Seedance参考视频；图片须无透明通道，参阅[万相图片输入](../wan-video-generation/)。两种协议各自报价，不自动沿用旧任务或切换供应商。

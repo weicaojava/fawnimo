@@ -14,6 +14,7 @@ from sqlalchemy import JSON, func, insert, literal, select
 from app.core.contracts.execution_capabilities import Capability, preflight
 from app.core.contracts.execution_binding import binding_fingerprint
 from app.core.contracts.seedance_references import REFERENCE_PROTOCOL, snapshot_reference_selection
+from app.core.contracts.native_video_profiles import reference_protocol as known_reference_protocol
 from app.core.contracts.task_safety import validate_task_payload
 from app.models.execution import ExecutionJob
 from app.models.script_preparation import ScriptDraft
@@ -40,7 +41,7 @@ def freeze_request(snapshot: dict, policy: AdmissionPolicy) -> tuple[dict, str]:
     if not isinstance(snapshot,dict): raise HTTPException(422,'任务参数必须为对象')
     validate_task_payload(snapshot)
     fields={'model_id','duration','references','prompt','prompt_revision'}
-    reference_profile=policy.capability.reference_protocol==REFERENCE_PROTOCOL
+    reference_profile=known_reference_protocol(policy.capability.reference_protocol) is not None
     if reference_profile:
         fields.add('video_reference')
         try:snapshot_reference_selection(snapshot)

@@ -20,10 +20,20 @@ from app.models.production import ProductionMedia
 from app.models.model_charge import ModelCallCharge
 from app.models.native_video_charge import NativeVideoJobCharge
 from app.models.video_reference_inputs import VideoReferenceInputSet, VideoReferenceInput as StoredVideoReferenceInput
+from app.models.wan30_reference_inputs import Wan30ReferenceInputSet,Wan30ReferenceInput
+from app.core.contracts.wan30 import REFERENCE_PROTOCOL as WAN_REFERENCE_PROTOCOL
+from app.services.worker.wan30_reference_schema import require_wan30_input_schema
 from app.services.worker.model_job_charges import binding_digest
 
 SAVED_FIELDS = ('project_id', 'media_id', 'position', 'role', 'sha256', 'byte_size', 'mime', 'relative_path',
     'width', 'height', 'duration_us', 'frames', 'fps', 'frame_clock_sha256', 'has_audio', 'audio_samples', 'audio_channels')
+
+
+def input_models(protocol):
+    """Select only the two fixed storage families; protocol selection never aliases or migrates existing Seedance rows."""
+    if protocol==REFERENCE_PROTOCOL:return VideoReferenceInputSet,StoredVideoReferenceInput
+    if protocol==WAN_REFERENCE_PROTOCOL:return Wan30ReferenceInputSet,Wan30ReferenceInput
+    raise HTTPException(409,'参考输入协议未登记，未接受生成')
 
 
 class NativeReferenceInputError(HTTPException):
@@ -187,20 +197,28 @@ async def install_video_input_set(db, job, prepared: PreparedVideoInputs) -> Non
         raise HTTPException(409, '参考输入缺少原任务费用绑定')
     batch, _calls = await verify_plan(db, link.batch_id)
     charge = await db.get(ModelCallCharge, job.id)
+    protocol=batch.context['connection'].get('protocol')
+    header_model,row_model=input_models(protocol)
     if (charge is None or job.project_id != prepared.project_id or selected != prepared.selection or job.state != 'queued'
-            or batch.context['connection'].get('protocol') != REFERENCE_PROTOCOL or charge.dispatch_state != 'planned'
-            or charge.price_snapshot.get('input_protocol') != REFERENCE_PROTOCOL):
+            or charge.dispatch_state != 'planned' or charge.price_snapshot.get('input_protocol') != protocol):
         raise HTTPException(409, '参考输入与原任务、协议或项目不符')
+    if protocol==WAN_REFERENCE_PROTOCOL:
+        try:await require_wan30_input_schema(db)
+        except RuntimeError:raise HTTPException(409,'万相参考输入封存规则未就绪，未接受生成') from None
+        other_header,other_row=VideoReferenceInputSet,StoredVideoReferenceInput
+    else:other_header,other_row=Wan30ReferenceInputSet,Wan30ReferenceInput
+    if await db.get(other_header,job.id) is not None or await db.scalar(select(other_row.job_id).where(other_row.job_id==job.id).limit(1)) is not None:
+        raise HTTPException(409,'原任务已存在其他协议的输入证明，未接受生成')
     await recheck_video_inputs(db, prepared)
     fields = [saved_fields(reference.fields) for reference in prepared.references]
-    header = VideoReferenceInputSet(job_id=job.id, project_id=job.project_id, protocol=REFERENCE_PROTOCOL,
+    header = header_model(job_id=job.id, project_id=job.project_id, protocol=protocol,
         mode=selected.mode, reference_count=len(fields), reference_hash=binding_digest(fields),
         selection_hash=binding_digest(selected.model_dump(mode='json')), request_hash=job.request_hash,
         snapshot_hash=binding_digest(job.snapshot), binding_hash=link.execution_binding_hash,
         connection_hash=charge.binding_hash, profile_hash=batch.context['profile']['profile_hash'], sealed=False)
     db.add(header)
     await db.flush()
-    db.add_all([StoredVideoReferenceInput(job_id=job.id, **item) for item in fields])
+    db.add_all([row_model(job_id=job.id, **item) for item in fields])
     await db.flush()
     header.sealed = True
     await db.flush()
@@ -213,6 +231,15 @@ async def saved_video_input_set(db, job):
     header = await db.get(VideoReferenceInputSet, job.id, populate_existing=True)
     rows = list((await db.scalars(select(StoredVideoReferenceInput)
         .where(StoredVideoReferenceInput.job_id == job.id).order_by(StoredVideoReferenceInput.position))).all())
+    wan_header=await db.get(Wan30ReferenceInputSet,job.id,populate_existing=True)
+    wan_rows=list((await db.scalars(select(Wan30ReferenceInput).where(Wan30ReferenceInput.job_id==job.id)
+        .order_by(Wan30ReferenceInput.position))).all())
+    protocol=REFERENCE_PROTOCOL
+    if wan_header is not None or wan_rows:
+        if header is not None or rows:raise invalid
+        try:await require_wan30_input_schema(db)
+        except RuntimeError:raise invalid from None
+        header,rows,protocol=wan_header,wan_rows,WAN_REFERENCE_PROTOCOL
     if 'video_reference' not in job.snapshot:
         if header is not None or rows:
             raise invalid
@@ -227,8 +254,8 @@ async def saved_video_input_set(db, job):
     batch, _calls = await verify_plan(db, link.batch_id)
     charge = await db.get(ModelCallCharge, job.id)
     fields = [saved_fields(row) for row in rows]
-    if (charge is None or batch.context['connection'].get('protocol') != REFERENCE_PROTOCOL or header.protocol != REFERENCE_PROTOCOL
-            or charge.price_snapshot.get('input_protocol') != REFERENCE_PROTOCOL
+    if (charge is None or batch.context['connection'].get('protocol') != protocol or header.protocol != protocol
+            or charge.price_snapshot.get('input_protocol') != protocol
             or header.project_id != job.project_id or header.mode != selected.mode
             or header.reference_count != len(rows) or len(rows) != len(selected.references)
             or [row.position for row in rows] != list(range(len(rows)))

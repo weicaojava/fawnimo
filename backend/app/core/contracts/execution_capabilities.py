@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from fastapi import HTTPException
 from app.core.contracts.seedance_references import REFERENCE_PROTOCOL, snapshot_reference_selection
+from app.core.contracts.wan30 import REFERENCE_PROTOCOL as WAN_REFERENCE_PROTOCOL
 
 
 @dataclass(frozen=True)
@@ -16,7 +17,7 @@ class Capability:
 
     def __post_init__(self):
         """Only a named application protocol can extend the old durable reference contract."""
-        if self.reference_protocol not in (None, REFERENCE_PROTOCOL):
+        if self.reference_protocol not in (None, REFERENCE_PROTOCOL,WAN_REFERENCE_PROTOCOL):
             raise ValueError('Unsupported reference protocol')
 
 
@@ -27,7 +28,7 @@ def preflight(request: dict, capability: Capability, *, quoted_cost: Decimal | N
     must reserve the quoted amount atomically before a worker can send a request.
     """
     fields = {'model_id','duration','references','prompt','prompt_revision'}
-    if capability.reference_protocol == REFERENCE_PROTOCOL:
+    if capability.reference_protocol in (REFERENCE_PROTOCOL,WAN_REFERENCE_PROTOCOL):
         fields.add('video_reference')
         try:
             snapshot_reference_selection(request)

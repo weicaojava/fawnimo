@@ -14,6 +14,10 @@ from app.core.integrations.volcengine.seedance25 import Seedance25DurableTranspo
 from app.core.integrations.volcengine.seedance_reference import SeedanceReferenceTransport
 from app.core.integrations.volcengine.seedance_reference_payload import build_seedance_reference_body
 from app.core.integrations.volcengine.seedance25_payload import build_seedance25_body
+from app.core.contracts.wan30 import Wan30Configuration,PROTOCOLS as WAN_PROTOCOLS,REFERENCE_PROTOCOL as WAN_REFERENCE_PROTOCOL
+from app.core.contracts.native_video_profiles import declared_profile,reference_protocol
+from app.core.integrations.wan30 import Wan30DurableTransport
+from app.core.integrations.wan30_payload import build_wan30_body
 from app.models.execution import ExecutionJob,ExecutionSlot,SubmissionAttempt
 from app.models.native_video_charge import NativeVideoChargeBatch
 from app.models.shot_plan import PlanJobLink
@@ -87,6 +91,9 @@ class NativeVideoAccounting:
         """Construct the fixed service profile from current trusted server settings and the original account quote."""
         options={**self.network,'base_url':connection['base_url']}
         if self.network['trusted_local_host'] is not None:options['download_hosts']=frozenset({self.network['trusted_local_host']})
+        if connection.get('protocol') in WAN_PROTOCOLS:
+            return Wan30Configuration(api_key=secret,service_version=self.config.service_version,account_version=quote.account_version,
+                protocol=connection['protocol'],**options)
         if connection.get('protocol')==REFERENCE_PROTOCOL:
             origin=getattr(self.config,'reference_media_origin',None)
             if origin is not None and not self.reference_delivery_available:
@@ -106,11 +113,14 @@ class NativeVideoAccounting:
     def profile_and_policy(self,connection,quote):
         """Bind the entire service, selected connection, original quote and iteration limit without a key digest."""
         profile=self.transport_config(connection,quote,'inert-profile-placeholder')
+        declared=declared_profile(connection.get('model_name'),connection.get('protocol'))
+        if declared is None:raise HTTPException(503,'原生视频模型协议未登记，未接受调用')
         binding_id='native:'+binding_digest({'connection':connection,'profile_hash':profile.profile_hash,'price':quote.fingerprint})
-        if connection.get('protocol')==REFERENCE_PROTOCOL:
-            video=profile.input_delivery_origin is not None
-            capability=Capability(MODEL_ID,SUPPORTED_DURATIONS,frozenset({'image','video'} if video else {'image'}),4 if video else 3,REFERENCE_PROTOCOL)
-        else:capability=Capability(MODEL_ID,SUPPORTED_DURATIONS,frozenset(),0)
+        input_protocol=reference_protocol(connection.get('protocol'))
+        if input_protocol is not None:
+            video=declared.supports_reference_video and getattr(profile,'input_delivery_origin',None) is not None
+            capability=Capability(declared.model_name,declared.durations,frozenset({'image','video'} if video else {'image'}),4 if video else 3,input_protocol)
+        else:capability=Capability(declared.model_name,declared.durations,frozenset(),0)
         policy=AdmissionPolicy(capability,quote.max_call_minor,'CNY',self.config.iteration_limit,binding_id)
         safe={'schema':'native-managed-v1','service_version':self.config.service_version,'account_version':quote.account_version,
             'profile_hash':profile.profile_hash,'iteration_limit':self.config.iteration_limit,'quote_fingerprint':quote.fingerprint,
@@ -120,7 +130,7 @@ class NativeVideoAccounting:
     async def current(self,db,expected=None):
         """Use one coherent key-presence projection and the explicit native protocol quote for this exact saved model."""
         connection=await safe_binding(db,self.config.model_id,**self.network)
-        input_protocol=REFERENCE_PROTOCOL if connection.get('protocol')==REFERENCE_PROTOCOL else None
+        input_protocol=reference_protocol(connection.get('protocol'))
         price_options={'input_protocol':input_protocol} if input_protocol is not None else {}
         quote=self.registry.required('native_video',self.config.model_id,**price_options) if expected is None else self.registry.confirmed('native_video',self.config.model_id,expected,**price_options)
         if (quote.model_id,quote.model_name,quote.provider_id,quote.provider_connection_version)!=(connection['model_id'],connection['model_name'],connection['provider_id'],connection['provider_connection_version']):
@@ -134,7 +144,16 @@ class NativeVideoAccounting:
         from app.models.llm import Model
         async with self.factory() as db:
             params=await db.scalar(select(Model.params).where(Model.id==self.config.model_id,Model.category=='video'))
-        return isinstance(params,dict) and params.get('native_video_protocol')==REFERENCE_PROTOCOL
+        return isinstance(params,dict) and reference_protocol(params.get('native_video_protocol')) is not None
+
+    @joined_database
+    async def declared_model_info(self):
+        """Read only the selected model's declared profile for disabled/unpriced setup views, without provider secrets or execution authority."""
+        from app.models.llm import Model
+        async with self.factory() as db:
+            row=(await db.execute(select(Model.name,Model.params).where(Model.id==self.config.model_id,Model.category=='video'))).one_or_none()
+        protocol=row.params.get('native_video_protocol') if row is not None and isinstance(row.params,dict) else None
+        return(declared_profile(row.name,protocol),protocol) if row is not None else(None,None)
 
     async def admit(self,project_id,request_key,selection,*,submitted_by,confirmed,price_fingerprint,runtime):
         """Prepare file proof outside writers; atomically create all selected actual jobs and their sole project holds."""
@@ -161,7 +180,7 @@ class NativeVideoAccounting:
             proof=None
             async with self.factory() as db:
                 connection,_quote,_profile,policy=await self.current(db,expected)
-                if connection['protocol']!=REFERENCE_PROTOCOL:
+                if reference_protocol(connection['protocol']) is None:
                     raise HTTPException(409,'参考模型声明已变化，请重新核对')
                 if selection.get('kind')=='plan':
                     ids=selection.get('shot_ids')
@@ -175,12 +194,16 @@ class NativeVideoAccounting:
                 else:raise HTTPException(422,'原生视频提交范围无效')
             try:selected=snapshot_reference_selection(snapshot)
             except (TypeError,ValueError):raise HTTPException(422,'请明确选择参考输入模式与原项目素材') from None
-            if (snapshot.get('model_id')!=MODEL_ID or type(snapshot.get('duration')) is not int
-                    or snapshot['duration'] not in SUPPORTED_DURATIONS):
+            if (snapshot.get('model_id')!=policy.capability.model_id or type(snapshot.get('duration')) is not int
+                    or snapshot['duration'] not in policy.capability.durations):
                 raise HTTPException(422,'参考输入与固定视频模型或时长不符')
             if len(selected.references)>policy.capability.max_references or any(item.kind not in policy.capability.reference_kinds for item in selected.references):
                 raise HTTPException(503,'当前执行配置不支持这些参考素材；参考视频还需要独立素材交付入口')
             prepared=await prepare_video_inputs(self.factory,project_id,selected)
+            if connection['protocol']==WAN_REFERENCE_PROTOCOL:
+                try:build_wan30_body(snapshot,protocol=WAN_REFERENCE_PROTOCOL,project_id=project_id,
+                    prepared=tuple(item.wire_proof for item in prepared.references))
+                except (TypeError,ValueError):raise HTTPException(422,'万相参考图片不符合已声明档案，未预留费用或发起调用') from None
             return await self._admit_locked(project_id,key,selection,submitted_by,confirmed,expected,request_hash,proof,runtime,
                 input_proofs={unit:prepared})
 
@@ -197,9 +220,9 @@ class NativeVideoAccounting:
                     if runtime is None or not runtime.allow_submission or not runtime.running or runtime.worker.factory is not self.factory:
                         raise HTTPException(503,'原生视频执行服务尚未启用，未创建任务')
                     connection,quote,profile,policy=await self.current(db,expected)
-                    if (connection.get('protocol')==REFERENCE_PROTOCOL)!=bool(input_proofs):
+                    if (reference_protocol(connection.get('protocol')) is not None)!=bool(input_proofs):
                         raise HTTPException(409,'视频输入协议已变化，请重新核对原提交')
-                    if runtime.policies.get(MODEL_ID)!=policy:raise HTTPException(409,'执行配置已变化，请重新核对当前计划')
+                    if runtime.policies.get(policy.capability.model_id)!=policy:raise HTTPException(409,'执行配置已变化，请重新核对当前计划')
                     entries=[];plan=None
                     if selection.get('kind')=='plan':
                         plan=await owned_plan(db,project_id,selection['plan_id'])
@@ -226,7 +249,8 @@ class NativeVideoAccounting:
                                 """Recheck only previously decoded original bytes under this actual single-hold transaction."""
                                 await recheck_video_inputs(session,prepared)
                         else:
-                            build_seedance25_body(snapshot)
+                            if connection['protocol'] in WAN_PROTOCOLS:build_wan30_body(snapshot,protocol=connection['protocol'])
+                            else:build_seedance25_body(snapshot)
                             async def references(session,project,frozen):
                                 """Recheck only proven immutable media metadata under the short writer lock."""
                                 for reference in frozen.get('references',[]):await media_evidence(session,project,reference['media_id'],(proof or {}).get(reference['media_id'],{}))
@@ -258,6 +282,12 @@ class NativeVideoAccounting:
             async with self.factory() as db:
                 connection,quote,_profile,_policy=await self.current(db)
             config=self.transport_config(connection,quote,'inert-profile-placeholder')
+            if isinstance(config,Wan30Configuration):
+                if config.protocol!=WAN_REFERENCE_PROTOCOL:raise NativeReferenceInputError()
+                wire=tuple(item.wire_proof for item in prepared.references);intents=()
+                try:build_wan30_body(job.snapshot,protocol=config.protocol,project_id=job.project_id,prepared=wire)
+                except (TypeError,ValueError):raise NativeReferenceInputError() from None
+                return await self._prepare_locked(job,token,proof,clock,prepared,wire,intents)
             if not isinstance(config,SeedanceReferenceConfiguration):
                 raise HTTPException(409,'原参考模型声明已变化')
             wire,intents=prepare_reference_deliveries(prepared,job.id,config.input_delivery_origin,
@@ -292,7 +322,7 @@ class NativeVideoAccounting:
                     raise HTTPException(409,'原生视频原连接或服务配置已变化，未向新账号发送')
                 captured,secret=await material(db,connection['model_id'],**self.network)
                 if captured!=connection:raise HTTPException(409,'原生视频连接在发送前发生变化')
-                if connection.get('protocol')==REFERENCE_PROTOCOL:
+                if reference_protocol(connection.get('protocol')) is not None:
                     if prepared is None or wire is None:raise NativeReferenceInputError()
                     try:
                         selected,fields=await saved_video_input_set(db,current)
@@ -302,7 +332,8 @@ class NativeVideoAccounting:
                     except HTTPException:raise NativeReferenceInputError() from None
                 else:
                     if prepared is not None:raise HTTPException(409,'视频输入协议已变化')
-                    build_seedance25_body(current.snapshot)
+                    if connection['protocol'] in WAN_PROTOCOLS:build_wan30_body(current.snapshot,protocol=connection['protocol'])
+                    else:build_seedance25_body(current.snapshot)
                 await prepare_call(db,project_id=job.project_id,charge_id=job.id,binding_hash=binding_digest(connection))
                 attempt_id=str(uuid.uuid4())
                 db.add(SubmissionAttempt(id=attempt_id,job_id=job.id,request_hash=job.request_hash,state='prepared'))
@@ -329,12 +360,14 @@ class NativeVideoAccounting:
         config=self.transport_config(descriptor['connection'],descriptor['quote'],descriptor['secret'])
         descriptor['secret']=''
         async def on_response(request_id):
-            """Retain only a private sanitized real POST response header, separately from the task handle."""
+            """Retain only a sanitized original POST response witness, separately from the task handle and business state."""
             if request_id is not None:await self.record_response(job_id,attempt_id,request_id)
         factory=self.transport_factory
         options={}
-        if descriptor['connection'].get('protocol')==REFERENCE_PROTOCOL:
-            if factory is Seedance25DurableTransport:factory=SeedanceReferenceTransport
+        protocol=descriptor['connection'].get('protocol')
+        if protocol in WAN_PROTOCOLS and factory is Seedance25DurableTransport:factory=Wan30DurableTransport
+        if reference_protocol(protocol) is not None:
+            if protocol==REFERENCE_PROTOCOL and factory is Seedance25DurableTransport:factory=SeedanceReferenceTransport
             options={'project_id':descriptor.get('project_id'),'selection':descriptor.get('reference_selection'),
                 'references':descriptor.get('wire_references')}
         return factory(config,on_submission_response=on_response if attempt_id else None,**options)

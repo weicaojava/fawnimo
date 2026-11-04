@@ -146,7 +146,7 @@ export default function ModelsTab() {
 
   const resolveProviderSpec = (providerName: string) =>
     supportedProviders.find(
-      (spec) => spec.display_name === providerName || (spec.aliases?.length && spec.aliases.includes(providerName)),
+      (spec) => [spec.key, spec.display_name, ...(spec.aliases ?? [])].some(alias => alias.trim().toLowerCase() === providerName.trim().toLowerCase()),
     )
 
   const filteredProviderOptions = useMemo(() => {
@@ -238,9 +238,11 @@ export default function ModelsTab() {
       if (values.category === 'audio' && values.local_audio_transcription) params.understanding_asr_protocol = 'openai_verbose_segments_v1'
       else delete params.understanding_asr_protocol
       if (values.category === 'video' && values.local_native_video) {
-        if (values.name !== 'doubao-seedance-2-5-260628') { message.error('原生视频当前支持的模型名称为 doubao-seedance-2-5-260628，请核对后保存'); return }
+        const providerKey = resolveProviderSpec(providers.find(provider => provider.id === values.provider_id)?.name ?? '')?.key
+        const wan = values.name === 'wan3.0-video'
+        if ((wan && providerKey !== 'aliyun_bailian') || (!wan && (values.name !== 'doubao-seedance-2-5-260628' || providerKey !== 'volcengine'))) { message.error('请匹配火山 Seedance 2.5 或阿里云百炼 wan3.0-video 的准确模型名称与供应商'); return }
         const protocol = values.local_native_protocol || 'seedance25_text_v1'
-        if (!['seedance25_text_v1', 'seedance25_reference_v1'].includes(protocol)) { message.error('请选择支持的视频输入类型'); return }
+        if (!(wan ? ['wan30_text_v1', 'wan30_reference_v1'] : ['seedance25_text_v1', 'seedance25_reference_v1']).includes(protocol)) { message.error('请选择支持的视频输入类型'); return }
         params.native_video_protocol = protocol
       } else delete params.native_video_protocol
       if (modelEditing) {
@@ -315,7 +317,7 @@ export default function ModelsTab() {
         image_result_hosts: Array.isArray(m.params?.asset_image_result_hosts) ? m.params?.asset_image_result_hosts.join('\n') : '',
         local_vision_understanding: m.params?.understanding_vision_protocol === 'openai_chat_image_v1',
         local_audio_transcription: m.params?.understanding_asr_protocol === 'openai_verbose_segments_v1',
-        local_native_video: ['seedance25_text_v1', 'seedance25_reference_v1'].includes(String(m.params?.native_video_protocol)),
+        local_native_video: ['seedance25_text_v1', 'seedance25_reference_v1', 'wan30_text_v1', 'wan30_reference_v1'].includes(String(m.params?.native_video_protocol)),
         local_native_protocol: m.params?.native_video_protocol || 'seedance25_text_v1',
       })
     } else {
@@ -340,7 +342,7 @@ export default function ModelsTab() {
       image_result_hosts: Array.isArray(source.params?.asset_image_result_hosts) ? source.params?.asset_image_result_hosts.join('\n') : '',
       local_vision_understanding: source.params?.understanding_vision_protocol === 'openai_chat_image_v1',
       local_audio_transcription: source.params?.understanding_asr_protocol === 'openai_verbose_segments_v1',
-      local_native_video: ['seedance25_text_v1', 'seedance25_reference_v1'].includes(String(source.params?.native_video_protocol)),
+      local_native_video: ['seedance25_text_v1', 'seedance25_reference_v1', 'wan30_text_v1', 'wan30_reference_v1'].includes(String(source.params?.native_video_protocol)),
       local_native_protocol: source.params?.native_video_protocol || 'seedance25_text_v1',
     })
     setModelModalOpen(true)
@@ -846,10 +848,12 @@ export default function ModelsTab() {
           {selectedFormCategory === 'audio' && <><Form.Item name="local_audio_transcription" label="用于原片语音转写" valuePropName="checked"><Switch aria-label="用于原片语音转写" /></Form.Item><Alert className="mb-4" type="info" showIcon message="语音转写，需要逐段时间" description="只用于返回带逐段时标的语音转写候选。保存不会调用模型；转写结果须人工核对，声音生成另行配置。" /></>}
           {selectedFormCategory === 'video' && <><Form.Item name="local_native_video" label="用于原生视频生成" valuePropName="checked"><Switch aria-label="用于原生视频生成" /></Form.Item>
             <Form.Item name="local_native_protocol" label="视频输入类型"><Select aria-label="视频输入类型" options={[
-              { value: 'seedance25_text_v1', label: '仅文字生成视频（原模式）' },
-              { value: 'seedance25_reference_v1', label: '明确选择参考素材、首帧或首尾帧' },
+              { value: 'seedance25_text_v1', label: 'Seedance 2.5 · 仅文字' },
+              { value: 'seedance25_reference_v1', label: 'Seedance 2.5 · 图片、首尾帧或参考视频' },
+              { value: 'wan30_text_v1', label: '万相 3.0 · 仅文字' },
+              { value: 'wan30_reference_v1', label: '万相 3.0 · 图片或首尾帧' },
             ]} /></Form.Item>
-            <Alert className="mb-4" type="info" showIcon message="Seedance 2.5 视频候选" description="当前支持火山 Ark 的 doubao-seedance-2-5-260628，4–30整数秒、竖屏480p、无生成音频并保留水印。参考模式须单独登记覆盖全部输入的费用上限；参考视频还需管理员接通素材交付入口。保存不会调用模型，候选仍需单独确认采用，实际质量与账单另行验收。" /></>}
+            <Alert className="mb-4" type="info" showIcon message="原生视频候选" description="支持火山 Seedance 2.5 和阿里云百炼 wan3.0-video，固定4–30整数秒、竖屏480p、无生成音频并保留水印。万相须填写北京业务空间专用地址，图片须无透明通道，不接受参考视频。参考模式须单独登记完整费用上限。保存不会调用模型；生成和采用候选分别确认，实际质量与账单另行验收。" /></>}
           <Form.Item name="params" label="参数（JSON）">
             <Input.TextArea rows={3} placeholder='{"max_tokens": 4096, "temperature": 0.7}' />
           </Form.Item>

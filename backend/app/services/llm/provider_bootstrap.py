@@ -5,6 +5,7 @@ from app.services.llm.provider_registry import ProviderSpec, register_many
 
 
 def bootstrap_builtin_providers() -> None:
+    """Register category drivers; video execution still requires an explicit native model profile, connection and project quote."""
     register_many(
         [
             ProviderSpec(
@@ -30,7 +31,7 @@ def bootstrap_builtin_providers() -> None:
                 key="aliyun_bailian",
                 display_name="阿里百炼",
                 aliases=("阿里百炼", "aliyun", "bailian", "dashscope"),
-                supported_categories=(ModelCategoryKey.text,),
+                supported_categories=(ModelCategoryKey.text,ModelCategoryKey.video),
                 default_base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
             ),
         ]

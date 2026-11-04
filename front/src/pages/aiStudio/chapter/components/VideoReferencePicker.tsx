@@ -20,8 +20,8 @@ function complete(mode: Mode, references: VideoReferenceInput[]) {
 }
 
 /** Choose only exact owned inputs; mode changes, roles and order are explicit, while uploads merely add local material. */
-export default function VideoReferencePicker({ projectId, context, value, disabled, videoAvailable, onChange, onReady }: {
-  projectId: string; context: string; value?: VideoReferenceSelection | null; disabled: boolean; videoAvailable: boolean
+export default function VideoReferencePicker({ projectId, context, value, disabled, videoAvailable, imageOnly = false, onChange, onReady }: {
+  projectId: string; context: string; value?: VideoReferenceSelection | null; disabled: boolean; videoAvailable: boolean; imageOnly?: boolean
   onChange: (value: VideoReferenceSelection | null) => void; onReady: (ready: boolean) => void
 }) {
   const inputId = useId()
@@ -111,7 +111,7 @@ export default function VideoReferencePicker({ projectId, context, value, disabl
   const locked = disabled || uploading || loading
   return <Space direction="vertical" className="w-full" data-testid="video-reference-picker">
     <label className="w-full">参考方式<Select aria-label="视频参考方式" className="w-full" disabled={disabled || uploading} value={mode} onChange={next => change(next, [])} options={[
-      { value: 'reference', label: '素材参考（最多三张图片和一个视频）' }, { value: 'first_frame', label: '只指定首帧' }, { value: 'first_last_frames', label: '指定首帧和尾帧' },
+      { value: 'reference', label: imageOnly ? '素材参考（最多三张图片）' : '素材参考（最多三张图片和一个视频）' }, { value: 'first_frame', label: '只指定首帧' }, { value: 'first_last_frames', label: '指定首帧和尾帧' },
     ]} /></label>
     <p className="library-muted">切换参考方式会清空此处选择。只发送明确选中的素材；资产版本的其他图片仅保留为来源记录。</p>
     {mode === 'reference' ? <Select mode="multiple" aria-label="视频生成参考素材" className="w-full" disabled={locked} loading={loading} value={references.map(item => item.media_id)} onChange={select} options={options(media.filter(row => row.mime !== 'video/mp4' || videoAvailable))} placeholder="按需要的顺序选择原项目素材" />
@@ -119,8 +119,8 @@ export default function VideoReferencePicker({ projectId, context, value, disabl
     {error && <Alert type="error" message={error} />}
     {missing && <Alert type="warning" message="所选素材缺失或内容已变化，请重新选择；不会自动换用新内容" />}
     {!ready && !loading && !missing && <Alert type="info" message="请补全此镜头的参考选择，再保存并锁定计划" />}
-    {!videoAvailable && <p className="library-muted">参考视频交付入口尚未就绪，目前可选择图片、首帧或首尾帧。</p>}
-    <p className="library-muted">PNG/JPEG 每张≤4 MiB，素材参考图片合计≤12 MiB。首尾帧须为9:16；视频须为2–10秒、24/25/30帧的 MP4，≤32 MiB。接受任务前会实际解码核对。参考视频原声仅作为输入，输出仍关闭生成音频。</p>
+    {!videoAvailable && <p className="library-muted">{imageOnly ? '当前万相档案仅支持图片、首帧或首尾帧，不接受参考视频。' : '参考视频交付入口尚未就绪，目前可选择图片、首帧或首尾帧。'}</p>}
+    <p className="library-muted">PNG/JPEG 每张≤4 MiB，素材参考图片合计≤12 MiB。首尾帧须为9:16。{imageOnly ? '图片须无透明通道，不会自动裁剪或改写提示词。' : '视频须为2–10秒、24/25/30帧的 MP4，≤32 MiB；原声仅作为输入，输出关闭生成音频。'}接受任务前会实际解码核对。</p>
     <Space wrap><label htmlFor={inputId}>上传到原项目素材</label><input id={inputId} aria-label="上传视频参考素材" type="file" accept={videoAvailable ? 'image/png,image/jpeg,video/mp4' : 'image/png,image/jpeg'} disabled={disabled || uploading} onChange={event => { void upload(event.target.files?.[0]); event.target.value = '' }} /><Button disabled={disabled || uploading} loading={loading} onClick={() => setRefresh(previous => previous + 1)}>刷新参考素材</Button></Space>
     {references.map((item, index) => {
       const row = media.find(candidate => candidate.id === item.media_id)

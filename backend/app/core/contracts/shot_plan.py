@@ -162,7 +162,7 @@ class PlanModelOption(StrictInput):
     currency:str
     iteration_limit:int
     binding_hash:str
-    reference_protocol:Literal['seedance25_reference_v1']|None=None
+    reference_protocol:Literal['seedance25_reference_v1','wan30_reference_v1']|None=None
 
 
 class PlanCatalog(StrictInput):

@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.core.contracts.execution_binding import binding_fingerprint
 from app.core.contracts.shot_plan import PlanDocument
 from app.core.contracts.seedance_references import REFERENCE_PROTOCOL,VideoReferenceSelection
+from app.core.contracts.native_video_profiles import reference_protocol as known_reference_protocol
 from app.models.production import ProductionAsset,AssetVersion,VersionMedia,ProductionMedia
 from app.models.script_preparation import ScriptPublication
 from app.models.studio import Shot
@@ -166,7 +167,7 @@ async def build_payload(db,project_id,chapter_id,document,runtime=None,verified=
         dialogues=[d for d in original['dialogues'] if d['id'] in source['dialogue_ids']]
         if any(d['speaker_id'] not in source['character_ids'] for d in dialogues):raise HTTPException(409,'绑定对白的原说话角色未在镜头内')
         explicit=VideoReferenceSelection.model_validate(selection['video_reference']) if selection.get('video_reference') else None
-        if binding and binding.get('reference_protocol')==REFERENCE_PROTOCOL and explicit is None:raise HTTPException(409,'参考模型要求每个镜头明确选择参考模式与素材')
+        if binding and known_reference_protocol(binding.get('reference_protocol')) is not None and explicit is None:raise HTTPException(409,'参考模型要求每个镜头明确选择参考模式与素材')
         versions=[];seen_assets=set();characters=[];scenes=[];media_ids=set(selection['reference_media_ids'])
         if explicit:media_ids.update(r.media_id for r in explicit.references)
         for version,asset in pairs:

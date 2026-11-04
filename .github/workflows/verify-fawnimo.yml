@@ -80,6 +80,8 @@ jobs:
           tests/test_trusted_http.py tests/test_llm_manage.py
           tests/test_llm_resolver.py tests/test_llm_api_responses.py
           tests/test_native_video_model_connections.py
+          tests/test_wan30_protocol.py tests/test_wan30_payload.py tests/test_wan30_transport.py
+          tests/test_wan30_http.py tests/test_wan30_native.py tests/test_wan30_plans.py tests/test_wan30_native_http.py
           tests/test_native_video_project_accounting.py tests/test_native_video_planned_accounting.py
           tests/test_native_video_http_accounting.py tests/test_native_video_cancellation.py tests/test_native_video_api.py
           tests/test_seedance_reference_payload.py tests/test_seedance_reference_transport.py

@@ -14,7 +14,7 @@ class ModelPriceEnvelope(BaseModel):
     model_config = ConfigDict(extra='forbid',str_strip_whitespace=True,frozen=True)
     model_id: str = Field(min_length=1,max_length=64)
     model_name: str | None = Field(default=None,min_length=1,max_length=255)
-    input_protocol: Literal['seedance25_reference_v1'] | None = None
+    input_protocol: Literal['seedance25_reference_v1','wan30_reference_v1'] | None = None
     provider_id: str = Field(min_length=1,max_length=64)
     provider_connection_version: StrictInt = Field(ge=0,le=9223372036854775806)
     account_version: str = Field(pattern=r'^[A-Za-z0-9_-]{1,128}$')

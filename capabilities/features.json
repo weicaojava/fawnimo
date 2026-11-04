@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-11-04.16",
+  "register_version": "2026-11-04.17",
   "updated_at": "2026-11-04",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -1087,6 +1087,18 @@
         "F-013.06"
       ],
       "scope": "真实owner开发授权创建的草稿PR2在准确head8e1bf78/合并测试c2bd319/相同源码树通过2240后端、前端及实际容器/回退/清理检查。应用公开观察器先后两次各16个无凭据固定主机只读请求确认真实来源与最新检查；审核记录0。不是GitHub App自动产品PR或独立审核结论；PR2仍待独立源码审查，本分支未包含其重复建议修正。"
+    },
+    {
+      "id": "EV-WAN30-NATIVE-SOFTWARE",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/wan30-video-verification-profile.json",
+      "features": [
+        "F-004.04",
+        "F-007.05",
+        "F-009.03"
+      ],
+      "scope": "新增默认关闭的万相3.0北京业务空间专用原生文字/图片档案，准确模型wan3.0-video，固定4–30整数秒、9:16/480p/MP4、关闭生成音频、保留水印及关闭自动改写。最多3张原项目无透明通道PNG/JPEG，支持首帧/首尾帧；不接受视频、音频、文件或网页参考，不自动切换模型。沿用原模型/连接版本/报价/项目预算和原任务恢复；另加不改写旧Seedance表的完整封存。冻结相关278项含87项新增通过，实际回环HTTP与重启接收自制MP4，编译页面12项通过；曾发现计划目录DTO遗漏并修正，加真实响应检查。实际接口同步637文件中仅4文件扩枚举、0数据库连接，前端构建通过。真实供应商、模型质量、远程CDN、账单、完整成片与公网仍未验；作者审阅，独立审查待完成，本轮费用0。"
     }
   ],
   "features": [
@@ -2084,7 +2096,8 @@
         "software": "baseline_verified",
         "model": "not_required",
         "evidence": [
-          "EV-LOCAL-20261029"
+          "EV-LOCAL-20261029",
+          "EV-WAN30-NATIVE-SOFTWARE"
         ]
       },
       "deployment": {
@@ -2112,7 +2125,8 @@
         "重复原request_key只恢复原任务；修改内容拒绝；准备计划后配置模型也不自动获得执行资格"
       ],
       "limits": [
-        "编译和GET预览不调用模型；准备清单不授予生成质量资格"
+        "编译和GET预览不调用模型；准备清单不授予生成质量资格",
+        "新增默认关闭的万相3.0北京业务空间专用原生文字/图片档案，准确模型wan3.0-video，固定4–30整数秒、9:16/480p/MP4、关闭生成音频、保留水印及关闭自动改写。最多3张原项目无透明通道PNG/JPEG，支持首帧/首尾帧；不接受视频、音频、文件或网页参考，不自动切换模型。沿用原模型/连接版本/报价/项目预算和原任务恢复；另加不改写旧Seedance表的完整封存。冻结相关278项含87项新增通过，实际回环HTTP与重启接收自制MP4，编译页面12项通过；曾发现计划目录DTO遗漏并修正，加真实响应检查。实际接口同步637文件中仅4文件扩枚举、0数据库连接，前端构建通过。真实供应商、模型质量、远程CDN、账单、完整成片与公网仍未验；作者审阅，独立审查待完成，本轮费用0。"
       ],
       "depends_on": [],
       "issues": [],
@@ -2830,7 +2844,8 @@
           "EV-VIDEO-REFERENCE-PUBLISHED-CI",
           "EV-WORKSPACE-REFERENCE-LOCAL",
           "EV-WORKSPACE-REFERENCE-CI",
-          "EV-OFFICIAL-VIDEO-RETIREMENT"
+          "EV-OFFICIAL-VIDEO-RETIREMENT",
+          "EV-WAN30-NATIVE-SOFTWARE"
         ]
       },
       "deployment": {
@@ -2838,7 +2853,7 @@
         "url": null
       },
       "version": {
-        "implementation": "source-tree-da4f26b0c694",
+        "implementation": "source-tree-5b5aa76c91a3",
         "release": null
       },
       "entry": {
@@ -2886,7 +2901,15 @@
         "backend/run_controlplane.py",
         "backend/app/core/contracts/video_service_availability.py",
         "backend/app/core/integrations/openai/video.py",
-        "backend/app/services/llm/provider_resolver.py"
+        "backend/app/services/llm/provider_resolver.py",
+        "backend/app/core/contracts/native_video_profiles.py",
+        "backend/app/core/contracts/wan30.py",
+        "backend/app/core/integrations/video_protocol_json.py",
+        "backend/app/core/integrations/wan30.py",
+        "backend/app/core/integrations/wan30_payload.py",
+        "backend/app/models/wan30_reference_inputs.py",
+        "backend/app/services/llm/provider_bootstrap.py",
+        "backend/app/services/worker/wan30_reference_schema.py"
       ],
       "tests": [
         "backend/tests/test_seedance_reference_payload.py",
@@ -2907,20 +2930,28 @@
         "backend/tests/test_retired_openai_video.py",
         "backend/tests/core/integrations/test_video_adapters.py",
         "backend/tests/core/integrations/test_video_capabilities.py",
-        "backend/tests/test_generated_video_service.py"
+        "backend/tests/test_generated_video_service.py",
+        "backend/tests/test_wan30_http.py",
+        "backend/tests/test_wan30_native.py",
+        "backend/tests/test_wan30_native_http.py",
+        "backend/tests/test_wan30_payload.py",
+        "backend/tests/test_wan30_plans.py",
+        "backend/tests/test_wan30_protocol.py",
+        "backend/tests/test_wan30_transport.py"
       ],
       "acceptance": [
         "每种协议按能力声明发送真实条件媒体；不支持的输入提交前拒绝",
         "验证不可变连接版本、返回协议、预算和实际供应商响应与账单"
       ],
       "limits": [
-        "当前仅seedance25_reference_v1及准确Seedance2.5名称，PNG/JPEG及有界实际MP4，不接受任意参数或静默回退。",
+        "当前明确声明Seedance2.5文字/参考档案与Wan3.0北京业务空间文字/图片档案；两者各自绑定准确模型、供应商及报价。Wan仅无透明通道PNG/JPEG，不接受视频/音频/文件/网页；Seedance保留有界实际MP4参考，不接受任意参数或静默回退。",
         "新参考单镜头准入，单独标记完整native_video报价与原job同一份预留，旧文本协议和已接受任务控制保留。",
         "自作本地HTTP和单独操作者浏览器只验证软件；真实供应商/远程取素材/账单、人物一致性、音频及更多协议、完整收费隔离和公网仍待验，整项部分实现。",
         "固定身份网关默认关闭的准确origin签名交付已接原worker；私有主密钥按空间派生、只经私有启动管道，签名先于查库/启进程，原任务证明/16次/一小时/字节复查仍有效。",
         "私有根与前端互不包含，保留自作泄露反例和启动前拒绝回归；冻结655/4跳过含新增52/1，真实双worker、同ID不同原片、原请求不重发与费用留原项目通过；过期使用可信测试时钟，作者审阅；准确3aac2c2主分支CI1839/2跳过/2私有历史未选、前端、通用40与实际Linux10/清理通过。",
         "只读交付不开放收费网关，未调用原模型或原用户素材；真实远程取素材、供应商质量/账单、多协议、完整成片/收费身份隔离和公网仍未验，整项部分实现。",
-        "按OpenAI官方停服公告，官方Videos API与Sora系列已于2026-09-24停止。供应商解析与旧适配器创建/查询均在读取密钥、构造HTTP客户端前拒绝官方地址，返回固定不可用说明；大小写/默认地址/尾点和官方其他路径同样拒绝。显式其他兼容地址仅保留旧驱动，不授予供应商验证；文字/图片/音频解析及历史资料不改写。冻结69含新增20全部通过、保留旧版10个预检查失败；另将3项画幅能力与7项历史调用测试按当前已停用旧链的409契约整理后纳入CI，不恢复旧链。实际pnpm同步637文件无差异、0数据库连接。本轮准确CI另证；作者审阅，真实模型/账单、独立审核与公网未验，费用0。"
+        "按OpenAI官方停服公告，官方Videos API与Sora系列已于2026-09-24停止。供应商解析与旧适配器创建/查询均在读取密钥、构造HTTP客户端前拒绝官方地址，返回固定不可用说明；大小写/默认地址/尾点和官方其他路径同样拒绝。显式其他兼容地址仅保留旧驱动，不授予供应商验证；文字/图片/音频解析及历史资料不改写。冻结69含新增20全部通过、保留旧版10个预检查失败；另将3项画幅能力与7项历史调用测试按当前已停用旧链的409契约整理后纳入CI，不恢复旧链。实际pnpm同步637文件无差异、0数据库连接。本轮准确CI另证；作者审阅，真实模型/账单、独立审核与公网未验，费用0。",
+        "新增默认关闭的万相3.0北京业务空间专用原生文字/图片档案，准确模型wan3.0-video，固定4–30整数秒、9:16/480p/MP4、关闭生成音频、保留水印及关闭自动改写。最多3张原项目无透明通道PNG/JPEG，支持首帧/首尾帧；不接受视频、音频、文件或网页参考，不自动切换模型。沿用原模型/连接版本/报价/项目预算和原任务恢复；另加不改写旧Seedance表的完整封存。冻结相关278项含87项新增通过，实际回环HTTP与重启接收自制MP4，编译页面12项通过；曾发现计划目录DTO遗漏并修正，加真实响应检查。实际接口同步637文件中仅4文件扩枚举、0数据库连接，前端构建通过。真实供应商、模型质量、远程CDN、账单、完整成片与公网仍未验；作者审阅，独立审查待完成，本轮费用0。"
       ],
       "depends_on": [
         "F-001.04",
@@ -3305,7 +3336,8 @@
           "EV-BILLING-ADJUSTMENTS-LOCAL",
           "EV-BILLING-ADJUSTMENTS-CI",
           "EV-IDENTITY-EXECUTION-ADMISSION-SOFTWARE",
-          "EV-IDENTITY-EXECUTION-EXACT-CI"
+          "EV-IDENTITY-EXECUTION-EXACT-CI",
+          "EV-WAN30-NATIVE-SOFTWARE"
         ]
       },
       "deployment": {
@@ -3406,7 +3438,8 @@
         "原账单五表和新更正/归属表补物理rowid保护，保留实际覆盖反例及修复回归；净额读快照、精确字符串和实际页面通过。冻结509/0跳过含新增22、准确浏览器8、API/client/前端通过，作者审阅；准确757c61c主分支CI1787/2跳过/2私有历史未选、前端、通用40与实际Linux10/清理通过。",
         "均为自造本地账单；未认证真实供应商、未发起退款，provider_bill_verified=false。真实账单/真实退款到账/模型费用与完整交付继续未验，本轮授权费用0。",
         "默认关闭的固定身份执行准入，明确列出空间及agent_execution/script_preparation/video_understanding/native_video类型；图片保持独立开关，回调及旧共享写入口不开放。金额仍归属原项目，原用户、连接版本、请求和额度不能由浏览器换空间。真实双固定worker/自作HTTP源覆盖文字、连接测试、两步剧本、图片、ASR/视觉及原生视频接受/查询，原标识恢复不重复模型POST；查看者/未列入账号/错误范围和私有策略头、配置变化、项目满额均拒绝。新增66通过；原冻结兼容性429通过/1平台跳过，继承图片准备顺序仅测试修订另有10项复验，组合范围明确，不重复计数；最终准确主CI另证。真实pnpm更新637份公开契约保持。所有响应、媒体和报价为本机自作，费用授权0；原生视频未声称生成成片，真实模型/账单、完整操作矩阵、独立审核/App与公网仍未验。",
-        "准确0b96ec6主分支2212通过/3平台跳过/2私有历史未选，前端3219、实际非root只读图片/声音/发声、通用40/候选10/运行2与27项断言、完整清理通过。执行准入与六类自作费用传输具准确Linux软件证据；不授予真实供应商/账单、模型质量、独立审核或公网资格。"
+        "准确0b96ec6主分支2212通过/3平台跳过/2私有历史未选，前端3219、实际非root只读图片/声音/发声、通用40/候选10/运行2与27项断言、完整清理通过。执行准入与六类自作费用传输具准确Linux软件证据；不授予真实供应商/账单、模型质量、独立审核或公网资格。",
+        "新增默认关闭的万相3.0北京业务空间专用原生文字/图片档案，准确模型wan3.0-video，固定4–30整数秒、9:16/480p/MP4、关闭生成音频、保留水印及关闭自动改写。最多3张原项目无透明通道PNG/JPEG，支持首帧/首尾帧；不接受视频、音频、文件或网页参考，不自动切换模型。沿用原模型/连接版本/报价/项目预算和原任务恢复；另加不改写旧Seedance表的完整封存。冻结相关278项含87项新增通过，实际回环HTTP与重启接收自制MP4，编译页面12项通过；曾发现计划目录DTO遗漏并修正，加真实响应检查。实际接口同步637文件中仅4文件扩枚举、0数据库连接，前端构建通过。真实供应商、模型质量、远程CDN、账单、完整成片与公网仍未验；作者审阅，独立审查待完成，本轮费用0。"
       ],
       "depends_on": [
         "F-001.04",
@@ -5147,7 +5180,7 @@
         "各真实模型与费用验证单",
         "完整成片检查表和限制"
       ],
-      "progress": "四类剧本候选、已声明Seedream/GPT图像、Seedance参考图/首尾帧/参考视频输入、本机配音/音效/配乐循环与对白避让、显式采用和真实FFmpeg导出已有分段软件证据；双身份已声明执行的准入与项目费用经本机协议验证。实际Linux图片2/声音7/发声3项及混音导出另证。供应商实际质量/账单、更多未声明协议、连续性和完整短视频联合验收未完成；付费授权0。 官方OpenAI视频已停服，本轮补即时拒绝及旧调用测试整理，未新增真实供应商资格。"
+      "progress": "四类剧本候选、已声明Seedream/GPT图像、Seedance参考图/首尾帧/参考视频输入、本机配音/音效/配乐循环与对白避让、显式采用和真实FFmpeg导出已有分段软件证据；双身份已声明执行的准入与项目费用经本机协议验证。实际Linux图片2/声音7/发声3项及混音导出另证。供应商实际质量/账单、更多未声明协议、连续性和完整短视频联合验收未完成；付费授权0。 官方OpenAI视频已停服，本轮补即时拒绝及旧调用测试整理，未新增真实供应商资格。 新增默认关闭的万相3.0北京业务空间专用原生文字/图片档案，准确模型wan3.0-video，固定4–30整数秒、9:16/480p/MP4、关闭生成音频、保留水印及关闭自动改写。最多3张原项目无透明通道PNG/JPEG，支持首帧/首尾帧；不接受视频、音频、文件或网页参考，不自动切换模型。沿用原模型/连接版本/报价/项目预算和原任务恢复；另加不改写旧Seedance表的完整封存。冻结相关278项含87项新增通过，实际回环HTTP与重启接收自制MP4，编译页面12项通过；曾发现计划目录DTO遗漏并修正，加真实响应检查。实际接口同步637文件中仅4文件扩枚举、0数据库连接，前端构建通过。真实供应商、模型质量、远程CDN、账单、完整成片与公网仍未验；作者审阅，独立审查待完成，本轮费用0。"
     },
     {
       "id": "E",
@@ -5242,8 +5275,8 @@
   "current_state": {
     "overview": "已声明执行的项目独立预算、身份/数据/连接隔离、原请求恢复、在途取消与明确重试已有分段及联合软件检查。维护者准入仍默认关闭，回调与旧共享写入口不开放。实际供应商/账单、模型质量与完整成片、真实GitHub App/独立审核及公网继续验收。",
     "acceptance_setup": "使用独立本机A/B验收数据；项目大厅分别建立文字或可导出原创示例。新建保留旧工程，原请求恢复保留后来编辑；7条剧情声明默认未确认。尚无公网领取或部署平台。",
-    "readme_status": "身份与个人空间、项目独立预算、可导出的原创示例、剧本与分镜候选、已声明参考图/视频，以及本机配音与声音剪辑已有软件流程。金额分别归属原项目，没有工作空间总预算。\n\n独立图片及文字/剧本/视频理解/原生视频准入默认关闭；维护者明确列出空间和执行类型后，仍需各空间自己的模型服务、报价和项目额度。自作双账号HTTP测试不能授权真实模型费用。操作见[图片准入](site/content/docs/guide/workspace-image-generation.md)与[其他执行类型](site/content/docs/guide/workspace-execution-admission.md)。\n\n社区需求的本机签名登记、评估/澄清、容量排队、模型变更包、隔离候选检查与草稿/审核衔接已有分段软件；实际App、独立审核、发布联合验收继续进行。稳定/预览运行与回退已有自有Linux容器证据，服务器尚未购置；真实模型/账单、完整成片及公网未通过，费用授权0。\n\n原请求恢复、在途取消、明确重试、原生暂停恢复和连接变更已通过本机58项软件检查，含14项新动作。未知费用保留在原项目；操作见[取消、重试与恢复](site/content/docs/guide/workspace-execution-recovery.md)。\n\n本机模型调用的整体等待上限已修正并新增防滴流检查；真实CPU建议2例结构通过、语义预期仅1/2符合，模型质量仍未通过，人工审阅和执行边界保持。\n\nOpenAI 官方 Videos API 已于2026-09-24停止，官方视频调用在密钥/网络前拒绝；现有资料保留，其他兼容地址不自动取得供应商资格。见[视频服务可用性](site/content/docs/guide/video-service-availability.md)。\n\n",
-    "verification_checkpoint": "父1d052bf准确2230主CI通过；独立草稿PR2实际2240及前端/容器/公开观察通过，待独立审查且未并入本分支。本轮官方视频退役冻结69含新增20通过、637公共文件同步无差异；准确本分支CI另证。付费授权0。",
+    "readme_status": "身份与个人空间、项目独立预算、可导出的原创示例、剧本与分镜候选、已声明参考图/视频，以及本机配音与声音剪辑已有软件流程。金额分别归属原项目，没有工作空间总预算。\n\n独立图片及文字/剧本/视频理解/原生视频准入默认关闭；维护者明确列出空间和执行类型后，仍需各空间自己的模型服务、报价和项目额度。自作双账号HTTP测试不能授权真实模型费用。操作见[图片准入](site/content/docs/guide/workspace-image-generation.md)与[其他执行类型](site/content/docs/guide/workspace-execution-admission.md)。\n\n社区需求的本机签名登记、评估/澄清、容量排队、模型变更包、隔离候选检查与草稿/审核衔接已有分段软件；实际App、独立审核、发布联合验收继续进行。稳定/预览运行与回退已有自有Linux容器证据，服务器尚未购置；真实模型/账单、完整成片及公网未通过，费用授权0。\n\n原请求恢复、在途取消、明确重试、原生暂停恢复和连接变更已通过本机58项软件检查，含14项新动作。未知费用保留在原项目；操作见[取消、重试与恢复](site/content/docs/guide/workspace-execution-recovery.md)。\n\n本机模型调用的整体等待上限已修正并新增防滴流检查；真实CPU建议2例结构通过、语义预期仅1/2符合，模型质量仍未通过，人工审阅和执行边界保持。\n\nOpenAI 官方 Videos API 已于2026-09-24停止，官方视频调用在密钥/网络前拒绝；现有资料保留，其他兼容地址不自动取得供应商资格。见[视频服务可用性](site/content/docs/guide/video-service-availability.md)。\n\n万相3.0已增加默认关闭的原生文字/图片档案及原项目预算/恢复软件链，使用自制素材完成本地验证；真实模型质量、账单和公网仍未验。见[万相配置指南](site/content/docs/guide/wan-video-generation.md)。\n\n",
+    "verification_checkpoint": "父草稿PR3准确2274后端及前端/容器通过，未合并主线；新增万相默认关闭档案的本地冻结与实际编译页面通过，准确本分支CI另证。独立审核、真实供应商/账单/成片与公网仍分开验收；本轮费用0。",
     "architecture_summary": "网关从可信会话与成员选择固定数据库、文件根和进程；默认关闭的私有策略按明确类型准入，策略变化暂停新提交但保留历史。后台固化原用户/连接/项目，项目预算独立，迁入执行锁继续生效。"
   },
   "brand": {

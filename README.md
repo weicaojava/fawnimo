@@ -31,6 +31,8 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 
 OpenAI 官方 Videos API 已于2026-09-24停止，官方视频调用在密钥/网络前拒绝；现有资料保留，其他兼容地址不自动取得供应商资格。见[视频服务可用性](site/content/docs/guide/video-service-availability.md)。
 
+万相3.0已增加默认关闭的原生文字/图片档案及原项目预算/恢复软件链，使用自制素材完成本地验证；真实模型质量、账单和公网仍未验。见[万相配置指南](site/content/docs/guide/wan-video-generation.md)。
+
 本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
 
 代码保留并基于[Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish)继续开发，遵循[现有许可证](LICENSE)，来源和发布边界见[UPSTREAM.md](UPSTREAM.md)。现有代码包含上游、既有改动和AI辅助开发成果，不能宣称全部从零AI原创。仓库里的上游Issues、Actions、Pages与镜像链接属于上游，不是已交付的自有平台。

@@ -24,6 +24,10 @@ from app.services.worker.project_budget import record_budget_change
 from app.services.worker.execution_runtime import ExecutionRuntime
 from app.core.integrations.volcengine.seedance25_payload import build_seedance25_body
 from app.core.contracts.seedance_references import REFERENCE_PROTOCOL,snapshot_reference_selection
+from app.core.contracts.native_video_profiles import declared_profile,reference_protocol
+from app.core.contracts.wan30 import REFERENCE_PROTOCOL as WAN_REFERENCE_PROTOCOL
+from app.core.contracts.wan30 import TEXT_PROTOCOL as WAN_TEXT_PROTOCOL
+from app.core.integrations.wan30_payload import build_wan30_body
 
 
 def setup_projection(config: VideoRuntimeConfiguration | None = None, *, issue_code='not_configured', message=None, credential_present=False) -> dict:
@@ -122,7 +126,7 @@ async def build_managed_video_runtime(factory,filename,price_registry,*,trusted_
     if config.enabled:
         try:
             async with factory() as db:_connection,quote,_profile,policy=await accountant.current(db)
-            policies={MODEL_ID:policy};ready=True;issue='configured';message='托管模型与完整项目费用已登记；只有明确确认后才接受新任务。'
+            policies={policy.capability.model_id:policy};ready=True;issue='configured';message='托管模型与完整项目费用已登记；只有明确确认后才接受新任务。'
         except HTTPException:
             issue='managed_connection_or_price_required';message='模型连接或原生视频受信价格需要核对；新生成关闭，原任务只读控制保留。'
         except (ValueError,TypeError):
@@ -132,11 +136,18 @@ async def build_managed_video_runtime(factory,filename,price_registry,*,trusted_
     view=setup_projection(config,issue_code=issue,message=message,credential_present=ready)
     view.update(managed_model_id=config.model_id,price_fingerprint=quote.fingerprint if quote else None,
         quote_minor=quote.max_call_minor if quote else None,quote_note=quote.source_note if quote else '',original_control_available=True)
-    if await accountant.reference_model_declared():
+    if ready:
+        declared,protocol=declared_profile(_connection['model_name'],_connection['protocol']),_connection['protocol']
+    else:declared,protocol=await accountant.declared_model_info()
+    if declared is not None:view.update(model_id=declared.model_name,durations=sorted(declared.durations))
+    selected_reference=reference_protocol(protocol)
+    if selected_reference is not None:
         video=bool(ready and 'video' in policy.capability.reference_kinds)
-        view.update(reference_protocol=REFERENCE_PROTOCOL,reference_kinds=['image','video'] if video else ['image'],
+        view.update(reference_protocol=selected_reference,reference_kinds=['image','video'] if video else ['image'],
             max_references=4 if video else 3,reference_video_delivery_available=video,
             output_description='明确选择参考图片、首帧或首尾帧；素材参考最多三张图片，交付入口就绪后可加一个参考视频。4–30整数秒、竖屏480p、MP4、无生成音频、保留水印。素材在接受任务前实际解码核对。')
+        if selected_reference==WAN_REFERENCE_PROTOCOL:
+            view['output_description']='万相图片参考档案：最多三张无透明通道的PNG/JPEG，首尾帧须为实际9:16；4–30整数秒、480p、MP4、无生成音频、保留水印，不自动改写提示词。此档案不接受参考视频、音频、文件或网页。'
     return runtime,view
 
 
@@ -205,7 +216,7 @@ async def preview_executable_plan(db, project_id: str, plan_id: str, runtime) ->
     model_id = plan.payload.get('document', {}).get('model_id')
     policy = runtime.policies.get(model_id) if runtime else None
     binding = plan.payload.get('binding')
-    if model_id != MODEL_ID or policy is None or binding != public_policy(policy) or policy.quote_minor is None:
+    if policy is None or model_id != policy.capability.model_id or binding != public_policy(policy) or policy.quote_minor is None:
         problems.append({'code': 'executable_binding_required', 'message': '此计划未绑定本机当前可执行配置；请保留原准备计划，保存新修订并重新编译。'})
     try:
         await validate_current(db, plan)
@@ -214,7 +225,8 @@ async def preview_executable_plan(db, project_id: str, plan_id: str, runtime) ->
     enabled = bool(runtime and runtime.allow_submission and runtime.running)
     if not enabled:
         problems.append({'code': 'runtime_off', 'message': '本机生成服务尚未启用，预览不会启动它。'})
-    reference=bool(policy and policy.capability.reference_protocol==REFERENCE_PROTOCOL)
+    selected_reference=reference_protocol(policy.capability.reference_protocol) if policy else None
+    reference=selected_reference is not None
     for entry in plan.payload.get('entries', []):
         body, summary, entry_issues = None, None, []
         if not problems:
@@ -223,11 +235,15 @@ async def preview_executable_plan(db, project_id: str, plan_id: str, runtime) ->
                     from app.services.worker.execution_admission import freeze_request
                     snapshot,_digest=freeze_request(entry['request'],policy)
                     selected=snapshot_reference_selection(snapshot)
-                    summary={'input_protocol':REFERENCE_PROTOCOL,'model':MODEL_ID,'duration':snapshot['duration'],
+                    summary={'input_protocol':selected_reference,'model':model_id,'duration':snapshot['duration'],
                         'video_reference':selected.model_dump(mode='json'),'resolution':'480p',
                         'ratio':'9:16' if selected.mode=='reference' else 'adaptive (9:16 input required)',
                         'generate_audio':False,'watermark':True,
                         'note':'仅核对计划与素材记录；接受任务前实际解码。实际发送内容含图片或一次性视频交付地址，因此不在预览中生成。'}
+                    if selected_reference==WAN_REFERENCE_PROTOCOL:
+                        summary.update(prompt_extend=False,note='仅核对万相计划与原项目图片记录；接受任务前实际解码，不在预览中生成图片数据或下载地址。')
+                elif declared_profile(model_id,WAN_TEXT_PROTOCOL) is not None:
+                    body=build_wan30_body(entry['request'],protocol=WAN_TEXT_PROTOCOL)
                 else:body = build_seedance25_body(entry['request'])
             except (KeyError, TypeError, ValueError, HTTPException):
                 entry_issues.append({'code': 'unsupported_wire_input', 'message': '此镜头不符合当前生成服务的输入规格。', 'shot_id': entry['shot_id']})

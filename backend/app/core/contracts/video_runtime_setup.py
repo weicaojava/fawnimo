@@ -16,7 +16,7 @@ class NativeVideoModelChoice(BaseModel):
     max_call_minor: int | None = None
     price_fingerprint: str | None = None
 
-    reference_protocol: Literal['seedance25_reference_v1'] | None = None
+    reference_protocol: Literal['seedance25_reference_v1','wan30_reference_v1'] | None = None
 
 
 class VideoRuntimeConfiguration(BaseModel):
@@ -53,7 +53,7 @@ class VideoRuntimeSetupRead(BaseModel):
     managed_model_id: str | None = None
     price_fingerprint: str | None = None
     original_control_available: bool = False
-    reference_protocol: Literal['seedance25_reference_v1'] | None = None
+    reference_protocol: Literal['seedance25_reference_v1','wan30_reference_v1'] | None = None
     reference_kinds: list[str] = Field(default_factory=list)
     max_references: int = 0
     reference_video_delivery_available: bool = False
