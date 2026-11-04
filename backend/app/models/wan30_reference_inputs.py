@@ -1,8 +1,9 @@
 """Additive immutable Wan image-input tables; the existing Seedance input schema and history remain untouched."""
-from sqlalchemy import Boolean,CheckConstraint,DDL,ForeignKeyConstraint,Integer,String,UniqueConstraint,event
+from sqlalchemy import Boolean,CheckConstraint,DDL,ForeignKeyConstraint,Integer,String,UniqueConstraint,event,text
 from sqlalchemy.orm import Mapped,mapped_column
 
 from app.core.db import Base
+from app.config import settings
 import app.models.execution
 import app.models.production
 
@@ -63,3 +64,20 @@ class Wan30ReferenceInput(Base):
 event.listen(Wan30ReferenceInputSet.__table__,'before_create',DDL(
     'CREATE UNIQUE INDEX IF NOT EXISTS native_execution_job_scope ON execution_jobs(id,project_id)'
 ).execute_if(dialect='sqlite'))
+
+
+def fixed_owner_for_new_table(target,connection,**_options):
+    """Install fixed-owner guards only at genuine table creation, including additive upgrades of already-bound older workspaces.
+
+    An existing table never reaches this event, so missing or altered ownership
+    guards remain a refusal rather than being silently repaired on restart.
+    """
+    if connection.dialect.name!='sqlite' or settings.workspace_id is None:return
+    from app.core.workspace_boundary import _guard_sql,validate_workspace_id
+    workspace_id=validate_workspace_id(settings.workspace_id)
+    if 'workspace_id' not in target.columns:raise RuntimeError('Fixed Wan table requires its declared owner column')
+    for statement in _guard_sql(workspace_id,target.name).values():connection.execute(text(statement))
+
+
+for _owned_table in (Wan30ReferenceInputSet.__table__,Wan30ReferenceInput.__table__):
+    event.listen(_owned_table,'after_create',fixed_owner_for_new_table)

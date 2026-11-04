@@ -2,6 +2,12 @@
 from sqlalchemy import text
 from sqlalchemy.dialects.sqlite import dialect
 from sqlalchemy.schema import CreateTable
+from sqlalchemy.schema import CreateColumn
+from sqlalchemy.exc import SQLAlchemyError
+from contextlib import closing
+from functools import lru_cache
+import sqlite3
+from app.config import settings
 from app.core.db import Base
 from app.models.wan30_reference_inputs import Wan30ReferenceInputSet,Wan30ReferenceInput
 
@@ -71,17 +77,68 @@ def normalized_sql(value):
     return ' '.join(value.strip().rstrip(';').split())
 
 
-async def require_wan30_input_schema(executor):
-    """A missing or redirected schema/trigger cannot authorize sealing or replay of a new protocol's input proof."""
+@lru_cache(maxsize=4)
+def trusted_table_shapes(model,workspace_id):
+    """Accept only the exact ORM declaration and its exact legal offline-claim form, without rebuilding any existing database.
+
+    SQLite itself renders the trusted ALTER in a disposable in-memory schema.
+    No input SQL, business rows or keys enter this cached compilation.
+    """
+    declared=str(CreateTable(model.__table__).compile(dialect=dialect()))
+    column=model.__table__.columns.get('workspace_id')
+    if workspace_id is None:
+        if column is not None:raise RuntimeError('Wan workspace declaration differs from runtime')
+        return normalized_sql(declared),None
+    from app.core.workspace_boundary import validate_workspace_id
+    validate_workspace_id(workspace_id)
+    if column is None:raise RuntimeError('Wan workspace declaration is missing')
+    column_sql=str(CreateColumn(column).compile(dialect=dialect()))
+    expected=f"workspace_id VARCHAR(35) DEFAULT '{workspace_id}' NOT NULL CHECK (workspace_id = '{workspace_id}')"
+    if normalized_sql(column_sql)!=normalized_sql(expected):raise RuntimeError('Wan workspace declaration differs from runtime')
+    needle='\t'+column_sql+', \n'
+    if declared.count(needle)!=1:raise RuntimeError('Wan workspace declaration cannot be compiled')
+    standalone=declared.replace(needle,'',1)
+    with closing(sqlite3.connect(':memory:')) as temporary:
+        temporary.execute(standalone)
+        temporary.execute(f"ALTER TABLE {model.__tablename__} ADD COLUMN workspace_id TEXT NOT NULL DEFAULT '{workspace_id}' CHECK(workspace_id='{workspace_id}')")
+        claimed=temporary.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?",(model.__tablename__,)).fetchone()[0]
+    return normalized_sql(declared),normalized_sql(claimed)
+
+
+async def require_fixed_owner(executor,workspace_id,*,allow_empty_unbound,claimed_shape):
+    """Require the exact fixed marker and owner triggers; only a fresh empty ORM schema may precede first binding during migration."""
+    from app.core.workspace_boundary import _guard_sql
+    try:
+        marker=await executor.scalar(text("SELECT 1 FROM sqlite_master WHERE type='table' AND name='workspace_identity'"))
+        if not marker:
+            if not allow_empty_unbound or claimed_shape:raise RuntimeError('Wan workspace ownership is missing')
+            for model in (Wan30ReferenceInputSet,Wan30ReferenceInput):
+                if await executor.scalar(text('SELECT count(*) FROM '+model.__tablename__)):raise RuntimeError('Unbound Wan input history is not empty')
+            return
+        rows=(await executor.execute(text('SELECT singleton,workspace_id,version FROM workspace_identity'))).all()
+        if [tuple(row) for row in rows]!=[(1,workspace_id,1)]:raise RuntimeError('Wan workspace identity differs from runtime')
+        for table in ('workspace_identity',Wan30ReferenceInputSet.__tablename__,Wan30ReferenceInput.__tablename__):
+            for name,expected in _guard_sql(workspace_id,table).items():
+                actual=await executor.scalar(text("SELECT sql FROM sqlite_master WHERE type='trigger' AND name=:name"),{'name':name})
+                if not isinstance(actual,str) or normalized_sql(actual)!=normalized_sql(expected):raise RuntimeError('Wan workspace ownership guard differs from declaration')
+    except SQLAlchemyError:raise RuntimeError('Wan workspace ownership cannot be verified') from None
+
+
+async def require_wan30_input_schema(executor,*,allow_empty_unbound=False):
+    """A missing or redirected schema/trigger cannot authorize sealing or replay; the legal offline-bound shape retains its exact fixed owner."""
+    claimed_shape=False
     for model in (Wan30ReferenceInputSet,Wan30ReferenceInput):
         previous=(await executor.execute(text("SELECT sql FROM sqlite_master WHERE type='table' AND name=:name"),{'name':model.__tablename__})).scalar()
-        expected=str(CreateTable(model.__table__).compile(dialect=dialect()))
-        if not isinstance(previous,str) or normalized_sql(previous)!=normalized_sql(expected):
+        created,claimed=trusted_table_shapes(model,settings.workspace_id)
+        if not isinstance(previous,str) or normalized_sql(previous) not in {created,claimed}:
             raise RuntimeError('Wan reference schema differs from trusted declaration')
+        claimed_shape=claimed_shape or claimed is not None and normalized_sql(previous)==claimed
     for name,body in guard_definitions().items():
         previous=(await executor.execute(text("SELECT sql FROM sqlite_master WHERE type='trigger' AND name=:name"),{'name':name})).scalar()
         if not isinstance(previous,str) or normalized_sql(previous)!=normalized_sql('CREATE TRIGGER '+name+' '+body):
             raise RuntimeError('Wan reference guard differs from trusted declaration')
+    if settings.workspace_id is not None:
+        await require_fixed_owner(executor,settings.workspace_id,allow_empty_unbound=allow_empty_unbound,claimed_shape=claimed_shape)
 
 
 async def migrate_wan30_reference_inputs(engine):
@@ -91,11 +148,11 @@ async def migrate_wan30_reference_inputs(engine):
         await connection.run_sync(lambda sync:Base.metadata.create_all(sync,tables=[Wan30ReferenceInputSet.__table__,Wan30ReferenceInput.__table__]))
         for model in (Wan30ReferenceInputSet,Wan30ReferenceInput):
             previous=(await connection.execute(text("SELECT sql FROM sqlite_master WHERE type='table' AND name=:name"),{'name':model.__tablename__})).scalar()
-            if normalized_sql(previous)!=normalized_sql(str(CreateTable(model.__table__).compile(dialect=dialect()))):
+            if not isinstance(previous,str) or normalized_sql(previous) not in set(trusted_table_shapes(model,settings.workspace_id)):
                 raise RuntimeError('Wan reference schema changed; migration refused')
         for name,body in guard_definitions().items():
             expected='CREATE TRIGGER '+name+' '+body
             previous=(await connection.execute(text("SELECT sql FROM sqlite_master WHERE type='trigger' AND name=:name"),{'name':name})).scalar()
             if previous is None:await connection.execute(text(expected))
             elif normalized_sql(previous)!=normalized_sql(expected):raise RuntimeError('Wan reference guard changed; migration refused')
-        await require_wan30_input_schema(connection)
+        await require_wan30_input_schema(connection,allow_empty_unbound=True)

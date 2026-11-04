@@ -10,7 +10,7 @@ import time
 
 from app.core.contracts.community_advice import CommunityAdviceConfiguration
 from app.core.owned_process import run_owned_process
-from app.services.community.advice_child import strict_json, validate_advice
+from app.services.community.advice_child import strict_json, validate_fresh_advice
 from app.services.community.advice_store import require_separate_roots
 from app.services.community.evaluations import source_row, validate_proof, duplicate_suggestions
 from app.services.community.public_source import verify_public_issue
@@ -51,7 +51,7 @@ def response_receipt(value, code, context, config):
     if value['state'] == 'ready':
         if code != 0 or not value['submitted'] or set(value) != {'state','submitted','advice','usage','model_digest','response_sha256'}:
             raise ValueError('Invalid completed local advice response')
-        advice = validate_advice(value['advice'],context)
+        advice = validate_fresh_advice(value['advice'],context)
         if value['model_digest'] != config.model_digest or re.fullmatch(r'[a-f0-9]{64}',value['response_sha256']) is None:
             raise ValueError('Original local model response identity changed')
         if set(value['usage']) != {'prompt_eval_count','eval_count'} or any(type(count) is not int or not 0 <= count <= 1000000 for count in value['usage'].values()):

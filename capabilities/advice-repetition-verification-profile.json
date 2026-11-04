@@ -1,0 +1,40 @@
+{
+  "profile": "fresh_advice_distinct_statements_v1",
+  "source_tree": "89b5d4e93bafa626006dc05826a06b7878abba14",
+  "scope": "新建议在原子进程和父进程均检查验收条件/澄清问题，按Unicode空白折叠和大小写比较拒绝同组重复，保留原文本，不自动去重或补写结论。已提交的重复响应记未确认、占原配额，恢复原键不重发；旧版已记录的ready建议仍按原有结构/身份校验恢复，不重新解释或改写。冻结129含新增10通过，保留旧版会接收重复问题的1个实际HTTP反例。只检查结构重复，不判断语义；原Qwen两例及其旧适配器摘要原样保留，本修订未重测真实模型，不提高质量结论。费用/外部模型调用0，作者审阅，独立审核与公网未验。",
+  "native_related_counts": {
+    "tests": 129,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "new_repetition_cases": 10,
+  "retained_old_repetition_failures": 1,
+  "source_sha256_lf_normalized": {
+    ".github/workflows/verify-fawnimo.yml": "477f658ce19777d32b4911d369769fe4a8d02fc46deb329129f0a708d1f2b5f9",
+    "backend/app/services/community/advice_child.py": "08854e93eaf02df122b057eed0df93b0cc48eab69a2c1ce53ca9b7f5254b6bf6",
+    "backend/app/services/community/advice.py": "1a9ad2e7e60c2488f2b780d15234039dc80009efd5eb324a576ac34b55350285",
+    "backend/tests/test_community_advice_repetition.py": "13392917b84a08d0b6c05ff4fe252e2a13f6f30b2405c595a5ee44976507535e"
+  },
+  "historical_ready_receipts_preserved": true,
+  "new_responses_rechecked_in_parent": true,
+  "statement_comparison": "collapse_unicode_whitespace_then_casefold_within_each_field",
+  "automatic_deduplication": false,
+  "automatic_retry": false,
+  "semantic_equivalence_checked": false,
+  "historical_real_model_observation": {
+    "location": "capabilities/real-local-qwen-advice-observation.json",
+    "sha256": "d748f5d185b7603a6491ae3233fd270a707884bbe1b8d01ddaa5e67847035c0c",
+    "adapter_sha256": "4858690b25da0ed95b02da7b348a72c13c04ee5f15e8902b27cf3c104f6e146b",
+    "retested_on_current_adapter": false
+  },
+  "exact_main_CI_required": true,
+  "actual_model_called": false,
+  "actual_paid_model_called": false,
+  "model_quality_qualified": false,
+  "independent_review_completed": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "public_deployment_verified": false,
+  "overall_goal_complete": false
+}

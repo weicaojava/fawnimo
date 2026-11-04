@@ -11,3 +11,5 @@ title: 万相原生视频与图片封存
 成功后保留任务定位符，重新读取原结果再限量下载；签名URL、响应原文和图片数据不进入操作历史，结果请求不带控制凭据。媒体通过原解码与发布栅栏进入原项目候选，不自动采用。取消仅GET观察远程CANCELED，未发送取消按共同账本释放一次。
 
 真实编译页面曾暴露PlanModelOption遗漏Wan枚举而返回500，已补齐并加入实际ASGI目录响应检查。OpenAPI只扩展3个公开DTO的参考协议枚举，实际运行接口同步，无路由漂移。软件验证使用自制HTTP/图片/视频，真实账号、供应商CDN、模型质量、账单、完整收费身份隔离、独立审核及公网不由这些结果替代。协议依据见[官方万相文档](https://help.aliyun.com/zh/model-studio/wan3-video-generation-api-reference)。
+
+固定空间支持两种准确声明：ORM直接新建形态与正式离线claim追加workspace_id的形态。后一形态仍核对准确marker和owner guards；已有固定空间新增Wan表时，仅真正CREATE触发安装其准确owner guards。已有表缺失或改写owner guard仍拒绝，不因表空而静默修复。原八个输入封存规则、原角色/SHA和项目预留保持。

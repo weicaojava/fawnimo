@@ -144,6 +144,7 @@ async def test_list_models_paginated_returns_filtered_items() -> None:
 
 @pytest.mark.asyncio
 async def test_create_model_rejects_unsupported_category_for_provider() -> None:
+    """Reject the still-unsupported image category while explicit Wan video metadata is supported."""
     db, engine = await _build_session()
     async with db:
         await create_provider(
@@ -160,19 +161,20 @@ async def test_create_model_rejects_unsupported_category_for_provider() -> None:
             await create_model(
                 db,
                 body=ModelCreate(
-                    id="m-video-invalid",
-                    name="qwen-vl-video",
-                    category=ModelCategoryKey.video,
+                    id="m-image-invalid",
+                    name="authored-unsupported-image",
+                    category=ModelCategoryKey.image,
                     provider_id="p-bailian",
                 ),
             )
         assert exc_info.value.status_code == 400
-        assert "does not support category=video" in str(exc_info.value.detail)
+        assert "does not support category=image" in str(exc_info.value.detail)
     await engine.dispose()
 
 
 @pytest.mark.asyncio
 async def test_update_model_rejects_switch_to_unsupported_provider_category_combo() -> None:
+    """Changing an image model to a text/video-only provider remains invalid and performs no generation."""
     db, engine = await _build_session()
     async with db:
         await create_provider(
@@ -196,9 +198,9 @@ async def test_update_model_rejects_switch_to_unsupported_provider_category_comb
         await create_model(
             db,
             body=ModelCreate(
-                id="m-video-ok",
-                name="sora",
-                category=ModelCategoryKey.video,
+                id="m-image-ok",
+                name="authored-image",
+                category=ModelCategoryKey.image,
                 provider_id="p-openai",
             ),
         )
@@ -206,12 +208,33 @@ async def test_update_model_rejects_switch_to_unsupported_provider_category_comb
         with pytest.raises(HTTPException) as exc_info:
             await update_model(
                 db,
-                model_id="m-video-ok",
+                model_id="m-image-ok",
                 body=ModelUpdate(provider_id="p-bailian"),
             )
         assert exc_info.value.status_code == 400
-        assert "does not support category=video" in str(exc_info.value.detail)
+        assert "does not support category=image" in str(exc_info.value.detail)
     await engine.dispose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('protocol',['wan30_text_v1','wan30_reference_v1'])
+async def test_bailian_stores_explicit_wan_video_without_model_io(protocol,monkeypatch):
+    """Supported video metadata can be saved without invoking a provider; image remains an unsupported category."""
+    import httpx
+    def forbidden_client(*_args,**_kwargs):
+        """Model setup cannot test or charge a real supplier implicitly."""
+        raise AssertionError('Saving a model must not construct an HTTP client')
+    monkeypatch.setattr(httpx,'AsyncClient',forbidden_client)
+    db,engine=await _build_session()
+    try:
+        async with db:
+            await create_provider(db,body=ProviderCreate(id='authored-wan-provider',name='阿里百炼',
+                base_url='https://authored-space.cn-beijing.maas.aliyuncs.com/api/v1',api_key='AUTHORED_SETUP_KEY'))
+            await create_model(db,body=ModelCreate(id='authored-wan-model',name='wan3.0-video',category=ModelCategoryKey.video,
+                provider_id='authored-wan-provider',params={'native_video_protocol':protocol}))
+            row=await db.get(Model,'authored-wan-model')
+            assert row.name=='wan3.0-video' and row.params['native_video_protocol']==protocol
+    finally:await engine.dispose()
 
 
 @pytest.mark.asyncio

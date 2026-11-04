@@ -81,7 +81,7 @@ jobs:
           tests/test_llm_resolver.py tests/test_llm_api_responses.py
           tests/test_native_video_model_connections.py
           tests/test_wan30_protocol.py tests/test_wan30_payload.py tests/test_wan30_transport.py
-          tests/test_wan30_http.py tests/test_wan30_native.py tests/test_wan30_plans.py tests/test_wan30_native_http.py
+          tests/test_wan30_http.py tests/test_wan30_native.py tests/test_wan30_plans.py tests/test_wan30_native_http.py tests/test_wan30_migration.py
           tests/test_native_video_project_accounting.py tests/test_native_video_planned_accounting.py
           tests/test_native_video_http_accounting.py tests/test_native_video_cancellation.py tests/test_native_video_api.py
           tests/test_seedance_reference_payload.py tests/test_seedance_reference_transport.py
@@ -101,8 +101,8 @@ jobs:
           tests/test_workspace_execution_admission.py tests/test_workspace_execution_gateway.py
           tests/test_workspace_execution_actions.py
           tests/test_community_intake.py tests/test_community_evaluations.py tests/test_community_advice.py tests/test_community_model_code.py tests/test_community_model_flow.py tests/test_community_model_delivery.py tests/test_community_rowid_guards.py
-          tests/test_community_advice_deadline.py
-          tests/test_retired_openai_video.py tests/core/integrations/test_video_adapters.py tests/core/integrations/test_video_capabilities.py
+          tests/test_community_advice_deadline.py tests/test_community_advice_repetition.py
+          tests/test_retired_openai_video.py tests/test_retired_openai_idna.py tests/core/integrations/test_video_adapters.py tests/core/integrations/test_video_capabilities.py
           tests/test_generated_video_service.py
           tests/test_community_queue_planning.py tests/test_community_queue_store.py
           tests/test_community_queue_leases.py tests/test_community_queue_cli.py
