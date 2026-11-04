@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "register_version": "2026-11-04.23",
+  "register_version": "2026-11-04.24",
   "updated_at": "2026-11-04",
   "scope": "Open-source self-hosted AI short-video studio; implementation, software/model validation and deployment are independent claims.",
   "baseline": {
@@ -1187,6 +1187,22 @@
         "F-013.06"
       ],
       "scope": "新增单独上限1的真实本机Qwen代码请求在固定30秒边界返回uncertain，1意图/1结果且无bundle/候选/代码执行。原key重开及停模型后的离线恢复相同，第二key准确配额拒绝且不新增行/调用，旧六次协议和前次独立建议调用历史/上限未重置，自有模型关闭。独立复核仅确认负面结果、恢复与配额保护，不能称真实AI代码候选或Linux/App全链通过；费用0。"
+    },
+    {
+      "id": "EV-PRODUCTION-WORKFLOW-LOCAL",
+      "kind": "software",
+      "visibility": "repository",
+      "location": "capabilities/production-workflow-verification-profile.json",
+      "features": [
+        "F-002.01",
+        "F-002.03",
+        "F-003.03",
+        "F-004.01",
+        "F-010.01",
+        "F-010.03",
+        "F-012.02"
+      ],
+      "scope": "完整分页、共享观测、信息确认/未结束任务独立计数、作用域保护及本章剪辑交接。新手工分镜与详情同事务、旧缺详情显式恢复；67项相关后端含4项新增、20项前端流程及编译3222通过。最终同版实际浏览器18项含真实A保存响应迟到后切B并再次保存的对象核对、缺摘要拒绝、错误工程章节路由、101镜头与原导出重开/四种原生下载一致；原视频840帧28秒，原建样例/声音入口另有早期有界观测，重叠不相加。原失败和独立发现保留，自己的最终独立树审查及CI另证；无付费模型、真人语义、完整AI成片、App或公网资格。"
     }
   ],
   "features": [
@@ -1655,7 +1671,8 @@
         "software": "baseline_verified",
         "model": "not_required",
         "evidence": [
-          "EV-LOCAL-20261029"
+          "EV-LOCAL-20261029",
+          "EV-PRODUCTION-WORKFLOW-LOCAL"
         ]
       },
       "deployment": {
@@ -1663,7 +1680,7 @@
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "production-workflow-local-2026-11-04",
         "release": null
       },
       "entry": {
@@ -1672,10 +1689,13 @@
       },
       "code": [
         "backend/app/api/v1/routes/studio/projects.py",
-        "front/src/pages/aiStudio/project/ProjectLobby.tsx"
+        "front/src/pages/aiStudio/project/ProjectLobby.tsx",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/productionFlow.ts",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/hooks/useProductionFlow.ts"
       ],
       "tests": [
-        "backend/tests/test_project_discovery.py"
+        "backend/tests/test_project_discovery.py",
+        "front/tests/production-flow.test.cjs"
       ],
       "acceptance": [
         "创建隔离工程并刷新，确认名称和真实创建/更新时间持久保存",
@@ -1750,7 +1770,8 @@
         "software": "baseline_verified",
         "model": "not_required",
         "evidence": [
-          "EV-LOCAL-20261029"
+          "EV-LOCAL-20261029",
+          "EV-PRODUCTION-WORKFLOW-LOCAL"
         ]
       },
       "deployment": {
@@ -1758,7 +1779,7 @@
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "production-workflow-local-2026-11-04",
         "release": null
       },
       "entry": {
@@ -1767,10 +1788,13 @@
       },
       "code": [
         "backend/app/services/studio/chapter_text_history.py",
-        "front/src/pages/aiStudio/chapter/components/ChapterRawTextEditorModal.tsx"
+        "front/src/pages/aiStudio/chapter/components/ChapterRawTextEditorModal.tsx",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/hooks/useProjectData.ts",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ChaptersTab.tsx"
       ],
       "tests": [
-        "backend/tests/test_chapter_text_history.py"
+        "backend/tests/test_chapter_text_history.py",
+        "front/tests/production-flow.test.cjs"
       ],
       "acceptance": [
         "保存原文和精简文本，刷新查看真实历史并恢复旧版为新修订",
@@ -2000,14 +2024,16 @@
       "validation": {
         "software": "not_verified",
         "model": "not_required",
-        "evidence": []
+        "evidence": [
+          "EV-PRODUCTION-WORKFLOW-LOCAL"
+        ]
       },
       "deployment": {
         "status": "local_only",
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "production-workflow-local-2026-11-04",
         "release": null
       },
       "entry": {
@@ -2016,7 +2042,8 @@
       },
       "code": [
         "backend/app/services/studio/production.py",
-        "backend/app/services/studio/production_media.py"
+        "backend/app/services/studio/production_media.py",
+        "front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProductionTab.tsx"
       ],
       "tests": [
         "backend/tests/test_durable_execution.py"
@@ -2046,7 +2073,8 @@
         "software": "baseline_verified",
         "model": "not_required",
         "evidence": [
-          "EV-LOCAL-20261029"
+          "EV-LOCAL-20261029",
+          "EV-PRODUCTION-WORKFLOW-LOCAL"
         ]
       },
       "deployment": {
@@ -2054,7 +2082,7 @@
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "production-workflow-local-2026-11-04",
         "release": null
       },
       "entry": {
@@ -2063,11 +2091,17 @@
       },
       "code": [
         "front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx",
-        "backend/app/api/v1/routes/studio/shots.py"
+        "backend/app/api/v1/routes/studio/shots.py",
+        "front/src/pages/aiStudio/shots/ShotDetailRecovery.tsx",
+        "front/src/pages/aiStudio/shots/ChapterShotsPage.tsx",
+        "backend/app/services/studio/shots.py",
+        "backend/app/schemas/studio/shots.py"
       ],
       "tests": [
         "backend/tests/test_shot_preparation_state.py",
-        "backend/tests/test_shot_status_service.py"
+        "backend/tests/test_shot_status_service.py",
+        "front/tests/production-flow.test.cjs",
+        "backend/tests/test_manual_shot_creation.py"
       ],
       "acceptance": [
         "编辑镜头基础信息并确认资产/对白，再进入工作室",
@@ -3566,7 +3600,8 @@
         "software": "baseline_verified",
         "model": "not_required",
         "evidence": [
-          "EV-LOCAL-20261029"
+          "EV-LOCAL-20261029",
+          "EV-PRODUCTION-WORKFLOW-LOCAL"
         ]
       },
       "deployment": {
@@ -3574,7 +3609,7 @@
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "production-workflow-local-2026-11-04",
         "release": null
       },
       "entry": {
@@ -3587,7 +3622,8 @@
       ],
       "tests": [
         "backend/tests/test_editing.py",
-        "backend/tests/test_editing_independent.py"
+        "backend/tests/test_editing_independent.py",
+        "front/tests/production-flow.test.cjs"
       ],
       "acceptance": [
         "明确采用候选、设置源裁剪、剧情与对白保留区间并冻结",
@@ -3663,7 +3699,8 @@
         "software": "baseline_verified",
         "model": "not_required",
         "evidence": [
-          "EV-LOCAL-20261029"
+          "EV-LOCAL-20261029",
+          "EV-PRODUCTION-WORKFLOW-LOCAL"
         ]
       },
       "deployment": {
@@ -3671,7 +3708,7 @@
         "url": null
       },
       "version": {
-        "implementation": "working-tree-2026-10-29",
+        "implementation": "production-workflow-local-2026-11-04",
         "release": null
       },
       "entry": {
@@ -4090,7 +4127,8 @@
           "EV-ORIGINAL-EXAMPLE",
           "EV-ORIGINAL-EXAMPLE-PUBLISHED-CI",
           "EV-MANAGED-AB-SOUND-BROWSER",
-          "EV-MANAGED-AB-REAL-VOICE"
+          "EV-MANAGED-AB-REAL-VOICE",
+          "EV-PRODUCTION-WORKFLOW-LOCAL"
         ]
       },
       "deployment": {
@@ -4098,7 +4136,7 @@
         "url": null
       },
       "version": {
-        "implementation": "source-tree-06c9c5fcbc16",
+        "implementation": "production-workflow-local-2026-11-04",
         "release": null
       },
       "entry": {
@@ -5319,7 +5357,7 @@
         "各真实模型与费用验证单",
         "完整成片检查表和限制"
       ],
-      "progress": "四类剧本候选、已声明Seedream/GPT图像、Seedance参考图/首尾帧/参考视频输入、本机配音/音效/配乐循环与对白避让、显式采用和真实FFmpeg导出已有分段软件证据；双身份已声明执行的准入与项目费用经本机协议验证。实际Linux图片2/声音7/发声3项及混音导出另证。供应商实际质量/账单、更多未声明协议、连续性和完整短视频联合验收未完成；付费授权0。 官方OpenAI视频已停服，本轮补即时拒绝及旧调用测试整理，未新增真实供应商资格。 新增默认关闭的万相3.0北京业务空间专用原生文字/图片档案，准确模型wan3.0-video，固定4–30整数秒、9:16/480p/MP4、关闭生成音频、保留水印及关闭自动改写。最多3张原项目无透明通道PNG/JPEG，支持首帧/首尾帧；不接受视频、音频、文件或网页参考，不自动切换模型。沿用原模型/连接版本/报价/项目预算和原任务恢复；另加不改写旧Seedance表的完整封存。冻结相关278项含87项新增通过，实际回环HTTP与重启接收自制MP4，编译页面12项通过；曾发现计划目录DTO遗漏并修正，加真实响应检查。实际接口同步637文件中仅4文件扩枚举、0数据库连接，前端构建通过。真实供应商、模型质量、远程CDN、账单、完整成片与公网仍未验；作者审阅，独立审查待完成，本轮费用0。 后续8bb汇总源码独立审查及主线2405通过；双账号原创PCM音效软件联合通过，本机对白生成/画质/完整成片资格未扩大。 后续AT免费中英文系统对白A/B联合已补证；非真人语义/音色或完整成片验收。配音姓名显示仅由原计划冻结事实投影，原身份/历史不变。"
+      "progress": "剧本候选、分镜确认、已声明参考输入/视频执行、本机配音与声音时间线、明确采用和FFmpeg导出已有软件流程及各自有界证据。本轮统一项目/章节下一步，完整分页、未知计数和旧响应保护；修复手工分镜缺详情及切镜头保存竞态。相关后端67项含4项新增、前端20项及编译3222通过；最终同版浏览器18项与四种原生下载/重开通过。操作见视频制作流程，准确独立源码与本修订CI另证。真实供应商质量/账单、连续性、真人试听和完整AI影片联合验收继续保留未通过；费用0。"
     },
     {
       "id": "E",
@@ -5343,7 +5381,7 @@
         "独立审查与CI触发证明",
         "预览及回退报告"
       ],
-      "progress": "当前汇总PR5已纳入建议去重、官方视频退役和可选万相及兼容修正。PR2准确旧树已通过2240项CI和独立源码审查；原PR3/4的问题及PR4全量6失败记录保留，当前功能修正版的292项回归和独立定向47+5项通过。最终汇总完整树审查与准确新PR检查另证，主线晋级以最终准确检查及独立源码审查收据为准。已有需求登记、评估、排队、租约、变更包、隔离检查及发布观察分段软件；实际GitHub App、真实模型编码、自动产品PR与独立审核/发布联合验收仍未完成。模型质量、真实账单、成片和公网分别验收，本轮费用0。 后续PR5已合并，准确8bb主线和独立源码审查通过；实际免费AI到journal及离线恢复已补证，模型语义质量仍不合格，真实AI代码候选链和实际App联合仍待验。 后续AS真实代码单次请求uncertain，无bundle/候选/执行，负面及原请求恢复获独立复核；真实代码/App联合仍未通过。"
+      "progress": "需求登记、评估、排队、租约、变更包、隔离检查与发布观察已有分段软件；准确历史源码/CI及负面真实免费代码请求的有界证据保留。用户现明确暂缓GitHub App，先完成制片功能流程；本轮未创建App、密钥或回调，也不以作者提交和独立Agent源码审查代替产品自动研发/审核/发布联合验收。实际AI代码候选、App和产品闭环继续未通过；费用0。"
     },
     {
       "id": "F",
@@ -5375,7 +5413,8 @@
   "external_inputs": [
     "Fawnimo 鹿帧与仓库weicaojava/fawnimo已确认并实际创建；首批代码、功能目录与CI分别验收，上游仅保留来源说明。",
     "用户确认尚未购买服务器；公网待指定本项目的资源、域名/访问方式、独立凭据及云费用上限，不能使用其他业务资源。",
-    "已找回原火山方舟模型配置；用户明确暂不授权付费，本轮上限0，未解密或使用原凭据，也不沿用旧样片额度。其他真实模型与供应商账单验收继续等待各自授权；本机免费Qwen历史观测单列且质量未通过。"
+    "已找回原火山方舟模型配置；用户明确暂不授权付费，本轮上限0，未解密或使用原凭据，也不沿用旧样片额度。其他真实模型与供应商账单验收继续等待各自授权；本机免费Qwen历史观测单列且质量未通过。",
+    "用户2026-11-04明确暂缓GitHub App接入，先完成制片功能流程；只读App原许可不代表已创建或要求本轮继续。"
   ],
   "long_term": [
     {
@@ -5412,10 +5451,10 @@
     "缺失检查、旧PR版本、独立审核失败或费用/资源超限不晋级；失败有明确结果与有限恢复。"
   ],
   "current_state": {
-    "overview": "项目独立预算、身份/数据/连接隔离及已声明执行恢复已有软件检查；维护者准入默认关闭。准确8bb源码独立审查和实际主线检查通过。双账号原创声音/导出/重启及免费真实模型journal分别补证；模型质量、真实供应商账单、产品App研发审核发布和公网仍未通过。",
-    "acceptance_setup": "使用独立本机A/B验收数据；项目大厅分别建立文字或可导出原创示例。新建保留旧工程，原请求恢复保留后来编辑；7条剧情声明默认未确认。尚无公网领取或部署平台。 后续双账号声音/导出及重启实际浏览器软件已补证，临时账号与服务已关闭；不是公网账号交付。",
-    "readme_status": "身份与个人空间、项目独立预算、可导出的原创示例、剧本与分镜候选、已声明参考图/视频，以及本机配音与声音剪辑已有软件流程。金额分别归属原项目，没有工作空间总预算。\n\n独立图片及文字/剧本/视频理解/原生视频准入默认关闭；维护者明确列出空间和执行类型后，仍需各空间自己的模型服务、报价和项目额度。自作双账号HTTP测试不能授权真实模型费用。操作见[图片准入](site/content/docs/guide/workspace-image-generation.md)与[其他执行类型](site/content/docs/guide/workspace-execution-admission.md)。\n\n社区需求的本机签名登记、评估/澄清、容量排队、模型变更包、隔离候选检查与草稿/审核衔接已有分段软件；实际App、独立审核、发布联合验收继续进行。稳定/预览运行与回退已有自有Linux容器证据，服务器尚未购置；真实模型/账单、完整成片及公网未通过，费用授权0。\n\n原请求恢复、在途取消、明确重试、原生暂停恢复和连接变更已通过本机58项软件检查，含14项新动作。未知费用保留在原项目；操作见[取消、重试与恢复](site/content/docs/guide/workspace-execution-recovery.md)。\n\n本机模型调用的整体等待上限已修正并新增防滴流检查；真实CPU建议2例结构通过、语义预期仅1/2符合，模型质量仍未通过，人工审阅和执行边界保持。\n\nOpenAI 官方 Videos API 已于2026-09-24停止，官方视频调用在密钥/网络前拒绝；现有资料保留，其他兼容地址不自动取得供应商资格。见[视频服务可用性](site/content/docs/guide/video-service-availability.md)。\n\n万相3.0已增加默认关闭的原生文字/图片档案及原项目预算/恢复软件链，使用自制素材完成本地验证；真实模型质量、账单和公网仍未验。见[万相配置指南](site/content/docs/guide/wan-video-generation.md)。\n\n建议去重、官方视频退役与万相默认关闭档案已汇总，并修正全量及独立审查发现的旧空间升级/IDNA问题；旧失败保留，主线晋级仍须准确检查及最终独立审查。见[本地汇总版本](site/content/docs/architecture/local-delivery-integration.md)。\n\n\n准确汇总源码8bb7f6d已完成独立审查、PR合并及主线2405项后端和实际容器检查。双账号原创声音/原生下载/重启和一次真实免费模型journal已独立补证，模型建议质量仍不通过。见[新增本地验收](site/content/docs/architecture/local-verification-observations.md)。\n\n双账号真实免费系统配音与原字幕/五种下载/重启已有独立联合证据；真实AI编码新单次尝试超时，没有候选。配音页面改用原计划冻结角色名称，稳定身份和历史保持。本修订准确检查以Actions为准，17项当前未完成及费用0继续保留。\n",
-    "verification_checkpoint": "准确8bb7f6d主线：2405通过/3平台跳过/2私有历史未选、前端3219、实际容器/媒体/运行回退/清理及独立源码审查通过。双账号声音初轮14/重启12有交集，独立下载与PCM/AAC复核通过；新增真实本机journal一次及原key离线恢复通过，质量仍不通过。本登记为后续元数据更新，自己的检查状态以实际Actions为准；不把8bb镜像当本登记新镜像。付费授权0。 后续AT双账号真实免费系统对白、字幕/五种下载/重启各15项重叠检查与独立产物复核通过；AS真实代码单次超时uncertain且没有bundle/候选，负面独立复核通过。当前修订仅改可读冻结角色姓名，自己的源码/CI资格另证；17项未完成不减少。",
+    "overview": "项目、章节、分镜确认→生成准备→本章素材采用→剪辑/声音入口→锁定与导出的本机功能流程已补齐主要交接。手工分镜原子创建、旧详情显式恢复及切镜头保存隔离经实际检查；真实模型/账单、完整AI成片及公网仍未通过，GitHub App按用户要求暂缓。",
+    "acceptance_setup": "独立本机A/B自作资料，实际页面建立原创7段无声28秒示例；最终同版页面检查手工创建/恢复、确认→工作室、保存迟到隔离、缺摘要与错误路由，以及原导出重开和四种下载一致。测试确认属于自动化声明，不是真人内容/音色验收；临时服务与worker已关闭，原用户资料未使用。",
+    "readme_status": "可按[视频制作流程](site/content/docs/guide/video-production-flow.md)从工程与章节、分镜信息确认，继续到生成准备、具体章节素材采用、剪辑、声音、锁定和导出。项目大厅、概览和章节列表使用实际分镜事实；超过100条仍完整读取，读取失败显示未知并可重试。手工创建同时准备镜头详情，旧缺详情分镜可明确恢复；切镜头后旧保存不会改写新镜头的草稿。\n\n本轮相关后端67项（含4项新增）、前端流程20项、类型检查和3222模块编译通过；最终同版实际浏览器18项覆盖保存隔离、创建/确认/交接及原作品重开、四种原生下载。验收范围见[流程验收档案](capabilities/production-workflow-verification-profile.json)，准确PR和主线CI以Actions为准。\n\n每个工程独立预算；图片及其他执行类型的维护者准入默认关闭，真实模型需要各自配置、报价及费用授权。本轮费用授权0，未调用付费模型。已有免费系统配音/声音编辑与原字幕导出的有界证据保留，真人语义/音色、真实供应商账单和完整AI影片质量仍待验收。\n\nGitHub App按当前安排暂缓，先推进制片流程。服务器尚未购置，暂无已验收公网平台；社区研发、模型质量、成片与公网分别验收，17项当前未完成不因本轮导航修复而减少。\n",
+    "verification_checkpoint": "本轮本机后端相关67通过（新增4）、前端流程20/类型/编译3222通过，实际接口同步仅扩展ShotCreate的可选create_detail与准确说明。最终同版浏览器18通过，原导出四种原生下载逐字节一致并重开，原视频840帧/28秒；没有重做导出或调用模型。早期分页/加载/声音入口与本轮检查范围分别记录，失败原样保留。完整树独立审查及本修订准确CI另证，不把历史a16主线2409当本修订检查。费用0，App明确暂缓，17项当前未完成保持。",
     "architecture_summary": "网关从可信会话与成员选择固定数据库、文件根和进程；默认关闭的私有策略按明确类型准入，策略变化暂停新提交但保留历史。后台固化原用户/连接/项目，项目预算独立，迁入执行锁继续生效。"
   },
   "brand": {

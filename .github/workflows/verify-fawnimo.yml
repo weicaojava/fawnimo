@@ -56,6 +56,7 @@ jobs:
           tests/test_local_example.py tests/test_workspace_exportable_demo.py
           tests/test_local_example_cancellation.py
           tests/test_editing.py tests/test_editing_independent.py tests/test_editing_speaker_labels.py
+          tests/test_manual_shot_creation.py
           tests/test_sound_timeline.py tests/test_sound_music.py tests/test_local_speech.py tests/test_linux_speech.py tests/test_transitions_v2.py
           tests/test_project_discovery.py tests/test_file_ranges.py
           tests/test_workspace_launcher.py tests/test_response_commit_order.py
@@ -139,6 +140,9 @@ jobs:
           corepack enable
           corepack prepare pnpm@9.15.9 --activate
           pnpm install --frozen-lockfile
+      - name: Verify production flow and complete pagination
+        working-directory: front
+        run: pnpm run test:flow
       - name: Check types and build the same-origin studio
         working-directory: front
         env:

@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { projects as mockProjects, chapters as mockChapters, type Project, type Chapter as MockChapter } from '../../../../../mocks/data'
-import { StudioChaptersService, StudioProjectsService } from '../../../../../services/generated'
+import { StudioProjectsService } from '../../../../../services/generated'
 import type { ChapterRead, ProjectRead } from '../../../../../services/generated'
 import { StudioEntitiesApi } from '../../../../../services/studioEntities'
+import { loadCompleteProjectChapters } from '../projectFlowStats'
 
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 
@@ -42,6 +43,8 @@ export type Chapter = MockChapter & {
   rawText?: string
 }
 
+const EMPTY_CHAPTERS: Chapter[] = []
+
 /** Adapt saved chapter content without fabricating an update time absent from its current API. */
 function toUIChapter(c: ChapterRead): Chapter {
   return {
@@ -57,79 +60,70 @@ function toUIChapter(c: ChapterRead): Chapter {
   }
 }
 
+/** Keep project metadata tied to the route whose request produced it, with explicit read failures and late-response rejection. */
 export function useProject(projectId: string | undefined) {
-  const [project, setProject] = useState<Project | null>(null)
-  const [loading, setLoading] = useState(true)
-
+  const sequence = useRef(0)
+  const mounted = useRef(true)
+  const activeProject = useRef(projectId)
+  activeProject.current = projectId
+  const [state, setState] = useState<{ projectId?: string; project: Project | null; loading: boolean; error: string }>({ project: null, loading: true, error: '' })
+  /** Read the selected project; changing routes cannot expose a previous project's late metadata. */
   const load = useCallback(async () => {
-    if (!projectId) {
-      setProject(null)
-      setLoading(false)
-      return
-    }
-    setLoading(true)
+    if (!mounted.current || activeProject.current !== projectId) return
+    const request = ++sequence.current
+    setState({ projectId, project: null, loading: !!projectId, error: '' })
+    if (!projectId) return
     try {
-      if (useMock) {
-        setProject(mockProjects.find((p) => p.id === projectId) ?? null)
-      } else {
-        const res = await StudioProjectsService.getProjectApiV1StudioProjectsProjectIdGet({ projectId })
-        const p = res.data ?? null
-        setProject(p ? toUIProject(p) : null)
-      }
+      const result = useMock ? mockProjects.find(project => project.id === projectId) ?? null
+        : (await StudioProjectsService.getProjectApiV1StudioProjectsProjectIdGet({ projectId })).data ?? null
+      const project = result ? (useMock ? result as Project : toUIProject(result as ProjectRead)) : null
+      if (request === sequence.current && activeProject.current === projectId) setState({ projectId, project, loading: false, error: '' })
     } catch {
-      setProject(useMock ? mockProjects.find((p) => p.id === projectId) ?? null : null)
-    } finally {
-      setLoading(false)
+      if (request === sequence.current && activeProject.current === projectId) setState({ projectId, project: null, loading: false, error: '项目资料读取失败，请重试。' })
     }
   }, [projectId])
-
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  return { project, loading, refresh: load }
+  useEffect(() => { mounted.current = true; void load(); return () => { mounted.current = false; sequence.current++ } }, [load])
+  const current = state.projectId === projectId ? state : { project: null, loading: true, error: '' }
+  return { ...current, refresh: load }
 }
 
+export type ProjectState = ReturnType<typeof useProject>
+
+/** Read a complete, scope-bound chapter list; a failed or late request never becomes an empty-project claim. */
 export function useChapters(projectId: string | undefined) {
-  const [chapters, setChapters] = useState<Chapter[]>([])
-  const [loading, setLoading] = useState(true)
+  const sequence = useRef(0)
+  const mounted = useRef(true)
+  const activeProject = useRef(projectId)
+  activeProject.current = projectId
+  const [state, setState] = useState<{ projectId?: string; chapters: Chapter[]; loading: boolean; error: string }>({ chapters: EMPTY_CHAPTERS, loading: true, error: '' })
 
+  /** Apply a local update only to the project whose server list is currently displayed. */
   const patchChapterLocal = useCallback((chapterId: string, patch: Partial<Chapter>) => {
-    setChapters((prev) => prev.map((c) => (c.id === chapterId ? { ...c, ...patch } : c)))
-  }, [])
+    if (!mounted.current || activeProject.current !== projectId) return
+    setState(previous => previous.projectId === projectId ? { ...previous, chapters: previous.chapters.map(chapter => chapter.id === chapterId ? { ...chapter, ...patch } : chapter) } : previous)
+  }, [projectId])
 
+  /** Replace the visible list only after all pages succeed for the current request. */
   const load = useCallback(async () => {
-    if (!projectId) {
-      setChapters([])
-      setLoading(false)
-      return
-    }
-    setLoading(true)
+    if (!mounted.current || activeProject.current !== projectId) return
+    const request = ++sequence.current
+    setState({ projectId, chapters: EMPTY_CHAPTERS, loading: !!projectId, error: '' })
+    if (!projectId) return
     try {
-      if (useMock) {
-        setChapters(mockChapters.filter((c) => c.projectId === projectId))
-      } else {
-        const res = await StudioChaptersService.listChaptersApiV1StudioChaptersGet({
-          projectId,
-          page: 1,
-          pageSize: 100,
-        })
-        const items = res.data?.items ?? []
-        setChapters(items.map(toUIChapter))
-      }
+      const chapters = useMock ? mockChapters.filter(chapter => chapter.projectId === projectId)
+        : (await loadCompleteProjectChapters(projectId, () => request === sequence.current && activeProject.current === projectId)).map(toUIChapter)
+      if (request === sequence.current && activeProject.current === projectId) setState({ projectId, chapters, loading: false, error: '' })
     } catch {
-      setChapters(useMock ? mockChapters.filter((c) => c.projectId === projectId) : [])
-    } finally {
-      setLoading(false)
+      if (request === sequence.current && activeProject.current === projectId) setState({ projectId, chapters: EMPTY_CHAPTERS, loading: false, error: '章节读取失败，请重试。尚不能确认当前项目是否为空。' })
     }
   }, [projectId])
 
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  return { chapters, loading, refresh: load, patchChapterLocal }
+  useEffect(() => { mounted.current = true; void load(); return () => { mounted.current = false; sequence.current++ } }, [load])
+  const current = state.projectId === projectId ? state : { chapters: EMPTY_CHAPTERS, loading: true, error: '' }
+  return { ...current, refresh: load, patchChapterLocal }
 }
+
+export type ChaptersState = ReturnType<typeof useChapters>
 
 export function useProjectCharacters(projectId: string | undefined) {
   const [characters, setCharacters] = useState<any[]>([])

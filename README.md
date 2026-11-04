@@ -19,26 +19,13 @@ Fawnimo 基于 [Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish) 继�
 - [公开路线图](site/content/docs/plans/public-roadmap.md)
 - [单一功能登记源](capabilities/features.json)，检查/生成：`python scripts/features.py --check` / `python scripts/features.py`
 
-身份与个人空间、项目独立预算、可导出的原创示例、剧本与分镜候选、已声明参考图/视频，以及本机配音与声音剪辑已有软件流程。金额分别归属原项目，没有工作空间总预算。
+可按[视频制作流程](site/content/docs/guide/video-production-flow.md)从工程与章节、分镜信息确认，继续到生成准备、具体章节素材采用、剪辑、声音、锁定和导出。项目大厅、概览和章节列表使用实际分镜事实；超过100条仍完整读取，读取失败显示未知并可重试。手工创建同时准备镜头详情，旧缺详情分镜可明确恢复；切镜头后旧保存不会改写新镜头的草稿。
 
-独立图片及文字/剧本/视频理解/原生视频准入默认关闭；维护者明确列出空间和执行类型后，仍需各空间自己的模型服务、报价和项目额度。自作双账号HTTP测试不能授权真实模型费用。操作见[图片准入](site/content/docs/guide/workspace-image-generation.md)与[其他执行类型](site/content/docs/guide/workspace-execution-admission.md)。
+本轮相关后端67项（含4项新增）、前端流程20项、类型检查和3222模块编译通过；最终同版实际浏览器18项覆盖保存隔离、创建/确认/交接及原作品重开、四种原生下载。验收范围见[流程验收档案](capabilities/production-workflow-verification-profile.json)，准确PR和主线CI以Actions为准。
 
-社区需求的本机签名登记、评估/澄清、容量排队、模型变更包、隔离候选检查与草稿/审核衔接已有分段软件；实际App、独立审核、发布联合验收继续进行。稳定/预览运行与回退已有自有Linux容器证据，服务器尚未购置；真实模型/账单、完整成片及公网未通过，费用授权0。
+每个工程独立预算；图片及其他执行类型的维护者准入默认关闭，真实模型需要各自配置、报价及费用授权。本轮费用授权0，未调用付费模型。已有免费系统配音/声音编辑与原字幕导出的有界证据保留，真人语义/音色、真实供应商账单和完整AI影片质量仍待验收。
 
-原请求恢复、在途取消、明确重试、原生暂停恢复和连接变更已通过本机58项软件检查，含14项新动作。未知费用保留在原项目；操作见[取消、重试与恢复](site/content/docs/guide/workspace-execution-recovery.md)。
-
-本机模型调用的整体等待上限已修正并新增防滴流检查；真实CPU建议2例结构通过、语义预期仅1/2符合，模型质量仍未通过，人工审阅和执行边界保持。
-
-OpenAI 官方 Videos API 已于2026-09-24停止，官方视频调用在密钥/网络前拒绝；现有资料保留，其他兼容地址不自动取得供应商资格。见[视频服务可用性](site/content/docs/guide/video-service-availability.md)。
-
-万相3.0已增加默认关闭的原生文字/图片档案及原项目预算/恢复软件链，使用自制素材完成本地验证；真实模型质量、账单和公网仍未验。见[万相配置指南](site/content/docs/guide/wan-video-generation.md)。
-
-建议去重、官方视频退役与万相默认关闭档案已汇总，并修正全量及独立审查发现的旧空间升级/IDNA问题；旧失败保留，主线晋级仍须准确检查及最终独立审查。见[本地汇总版本](site/content/docs/architecture/local-delivery-integration.md)。
-
-
-准确汇总源码8bb7f6d已完成独立审查、PR合并及主线2405项后端和实际容器检查。双账号原创声音/原生下载/重启和一次真实免费模型journal已独立补证，模型建议质量仍不通过。见[新增本地验收](site/content/docs/architecture/local-verification-observations.md)。
-
-双账号真实免费系统配音与原字幕/五种下载/重启已有独立联合证据；真实AI编码新单次尝试超时，没有候选。配音页面改用原计划冻结角色名称，稳定身份和历史保持。本修订准确检查以Actions为准，17项当前未完成及费用0继续保留。
+GitHub App按当前安排暂缓，先推进制片流程。服务器尚未购置，暂无已验收公网平台；社区研发、模型质量、成片与公网分别验收，17项当前未完成不因本轮导航修复而减少。
 本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
 
 代码保留并基于[Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish)继续开发，遵循[现有许可证](LICENSE)，来源和发布边界见[UPSTREAM.md](UPSTREAM.md)。现有代码包含上游、既有改动和AI辅助开发成果，不能宣称全部从零AI原创。仓库里的上游Issues、Actions、Pages与镜像链接属于上游，不是已交付的自有平台。

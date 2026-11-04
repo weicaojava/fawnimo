@@ -11,13 +11,14 @@ from app.api.utils import apply_keyword_filter, apply_order, paginate
 from app.models.studio import (
     Chapter,
     Shot,
+    ShotDetail,
     ShotCandidateStatus,
     ShotDialogueCandidateStatus,
     ShotExtractedCandidate,
     ShotExtractedDialogueCandidate,
 )
 from app.schemas.common import ApiResponse, PaginatedData, paginated_response
-from app.schemas.studio.shots import ShotCreate, ShotExtractionSummaryRead, ShotRead, ShotUpdate
+from app.schemas.studio.shots import ShotCreate, ShotDetailCreate, ShotExtractionSummaryRead, ShotRead, ShotUpdate
 from app.services.common import (
     create_and_refresh,
     delete_if_exists,
@@ -216,10 +217,15 @@ async def create(
     *,
     body: ShotCreate,
 ) -> Shot:
-    """创建镜头。"""
+    """Create a shot and, when explicitly requested, its blank preparation detail in the caller's transaction."""
     await ensure_not_exists(db, Shot, body.id, detail=entity_already_exists("Shot"))
     await require_entity(db, Chapter, body.chapter_id, detail=entity_not_found("Chapter"), status_code=400)
-    return await create_and_refresh(db, Shot(**body.model_dump()))
+    shot = await create_and_refresh(db, Shot(**body.model_dump(exclude={"create_detail"})))
+    if body.create_detail:
+        # A detail failure must roll back the original shot too; never commit an unusable manual creation.
+        detail = ShotDetailCreate(id=shot.id, camera_shot="MS", angle="EYE_LEVEL", movement="STATIC")
+        await create_and_refresh(db, ShotDetail(**detail.model_dump()))
+    return shot
 
 
 async def get(

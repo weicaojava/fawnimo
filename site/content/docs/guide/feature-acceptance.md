@@ -7,7 +7,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 
 # 功能验收指南
 
-使用独立本机A/B验收数据；项目大厅分别建立文字或可导出原创示例。新建保留旧工程，原请求恢复保留后来编辑；7条剧情声明默认未确认。尚无公网领取或部署平台。 后续双账号声音/导出及重启实际浏览器软件已补证，临时账号与服务已关闭；不是公网账号交付。不能用用户原片或既有私人项目充当公开示例。
+独立本机A/B自作资料，实际页面建立原创7段无声28秒示例；最终同版页面检查手工创建/恢复、确认→工作室、保存迟到隔离、缺摘要与错误路由，以及原导出重开和四种下载一致。测试确认属于自动化声明，不是真人内容/音色验收；临时服务与worker已关闭，原用户资料未使用。不能用用户原片或既有私人项目充当公开示例。
 
 每次验收记录代码清单hash、数据库迁移版本、功能编号、操作/断言、软件或真实模型类别、结果、限制、证据位置。旧证据冻结，新阶段新建记录。涉及真实模型或云资源时先固定已授权额度；账本预留、已花费0、HTTP200、可解码素材均不等于免费或成片合格。
 
@@ -91,7 +91,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. 创建隔离工程并刷新，确认名称和真实创建/更新时间持久保存
 2. 准备超过一页工程，验证全部分页与搜索；失败提示可重试，不静默漏项
 
-软件回归目标：`backend/tests/test_project_discovery.py`。
+软件回归目标：`backend/tests/test_project_discovery.py`、`front/tests/production-flow.test.cjs`。
 
 验收限制：原本地模式未引入身份；新18000经固定空间网关访问，完整隔离矩阵仍待验收；时间不得用浏览器当前时间替代。
 
@@ -113,7 +113,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. 保存原文和精简文本，刷新查看真实历史并恢复旧版为新修订
 2. 两窗口并发编辑，旧revision返回409且输入保留；读取历史不产生写入
 
-软件回归目标：`backend/tests/test_chapter_text_history.py`。
+软件回归目标：`backend/tests/test_chapter_text_history.py`、`front/tests/production-flow.test.cjs`。
 
 验收限制：历史时间是系统实际保存时间；旧PATCH契约未要求编辑者版本。
 
@@ -184,7 +184,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. 编辑镜头基础信息并确认资产/对白，再进入工作室
 2. 检查pending/ready只反映信息确认，运行中任务与视频准备度分别显示
 
-软件回归目标：`backend/tests/test_shot_preparation_state.py`、`backend/tests/test_shot_status_service.py`。
+软件回归目标：`backend/tests/test_shot_preparation_state.py`、`backend/tests/test_shot_status_service.py`、`front/tests/production-flow.test.cjs`、`backend/tests/test_manual_shot_creation.py`。
 
 验收限制：ready不等于video-ready或真实模型合格。
 
@@ -467,7 +467,7 @@ description: "按稳定功能编号复验；区分软件夹具、真实模型和
 1. 明确采用候选、设置源裁剪、剧情与对白保留区间并冻结
 2. 旧revision冲突、缺源、坏hash、不完整时钟和跨项目引用拒绝
 
-软件回归目标：`backend/tests/test_editing.py`、`backend/tests/test_editing_independent.py`。
+软件回归目标：`backend/tests/test_editing.py`、`backend/tests/test_editing_independent.py`、`front/tests/production-flow.test.cjs`。
 
 验收限制：固定镜头顺序v1硬切；冻结不代表导出成功或模型质量。
 

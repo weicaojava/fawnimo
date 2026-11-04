@@ -27,8 +27,8 @@ import {
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { chapters as mockChapters, projects as mockProjects, type Project } from '../../../mocks/data'
-import { ApiError, StudioChaptersService, StudioProjectsService } from '../../../services/generated'
-import type { ChapterRead, ProjectRead, ProjectStyle } from '../../../services/generated'
+import { ApiError, StudioProjectsService } from '../../../services/generated'
+import type { ProjectRead, ProjectStyle } from '../../../services/generated'
 import {
   ProjectVisualStyleAndStyleFields,
   type ProjectVisualStyleChoice,
@@ -40,8 +40,9 @@ import { useIdentity } from '../../../identity/IdentityGate'
 import './project-studio.css'
 import { getChapterPreparationState } from './ProjectWorkbench/chapterPreparation'
 import { ensureHasShotsBeforeShooting } from './ProjectWorkbench/ensureHasShotsBeforeShooting'
-import { getChapterShotsPath, getChapterStudioPath } from './ProjectWorkbench/routes'
-import { loadProjectFlowStatsForChapters, type ProjectFlowStats } from './ProjectWorkbench/projectFlowStats'
+import { getChapterShotsPath, getChapterShotEditPath } from './ProjectWorkbench/routes'
+import { loadCompleteProjectChapters, loadChapterFlowStats, type ChapterFlowStats, type ProjectFlowStats } from './ProjectWorkbench/projectFlowStats'
+import { sumChapterFlow } from './ProjectWorkbench/productionFlow'
 
 type ViewMode = 'grid' | 'compact' | 'large'
 type FilterTab = 'all' | 'editRaw' | 'extractShots' | 'prepareShots' | 'generating' | 'ready'
@@ -55,6 +56,7 @@ type ProjectStageSummary = {
   nextActionHint: string
   chapterId?: string
   storyboardCount?: number
+  firstPendingShotId?: string
 }
 type ProjectFlowStatsMap = Record<string, ProjectFlowStats>
 type ProjectView = Project & {
@@ -93,6 +95,8 @@ const ProjectLobby: React.FC = () => {
   const [editingProject, setEditingProject] = useState<ProjectView | null>(null)
   const [projectStageMap, setProjectStageMap] = useState<Record<string, ProjectStageSummary>>({})
   const [projectFlowStatsMap, setProjectFlowStatsMap] = useState<ProjectFlowStatsMap>({})
+  const [summaryErrors, setSummaryErrors] = useState<Record<string, string>>({})
+  const [summaryReload, setSummaryReload] = useState(0)
   const {
     options: projectStyleOptions,
     videoRatioOptions,
@@ -188,139 +192,56 @@ const ProjectLobby: React.FC = () => {
     return 'inProgress'
   }
 
+  // Keep each project's preparation and task counts from the same complete observation.
   useEffect(() => {
+    let cancelled = false
     const list = Array.isArray(projects) ? projects : []
-    if (!list.length) {
-      setProjectStageMap({})
-      setProjectFlowStatsMap({})
-      return
+    setProjectStageMap({}); setProjectFlowStatsMap({}); setSummaryErrors({})
+
+    /** Choose a project action from actual shot confirmation, not a chapter's saved status. */
+    const summarize = (chapters: ChapterPreparationInput[], rows: ChapterFlowStats[]): ProjectStageSummary => {
+      const ordered = [...chapters].sort((a, b) => a.index - b.index)
+      if (!ordered.length) return { key: 'create_first_chapter', stageText: '待创建章节', stageColor: 'default',
+        nextActionLabel: '创建第一章', nextActionHint: '项目还没有章节，可以创建第一章' }
+      const byChapter = Object.fromEntries(rows.map(row => [row.chapterId, row]))
+      const chapter = ['edit_raw', 'extract_shots', 'prepare_shots', 'shoot']
+        .map(key => ordered.find(item => getChapterPreparationState(item, byChapter[item.id]).key === key))
+        .find(Boolean) ?? ordered[0]
+      const step = getChapterPreparationState(chapter, byChapter[chapter.id])
+      return { key: step.key, stageText: step.text, stageColor: step.color, nextActionLabel: step.primaryAction,
+        nextActionHint: `第${chapter.index}章 · ${step.hint}`, chapterId: chapter.id,
+        storyboardCount: byChapter[chapter.id]?.totalShots, firstPendingShotId: byChapter[chapter.id]?.firstPendingShotId }
     }
 
-    const summarizeProjectChapters = (chapters: ChapterPreparationInput[]): ProjectStageSummary => {
-      const chaptersByIndex = [...chapters].sort((a, b) => a.index - b.index)
-      if (!chaptersByIndex.length) {
-        return {
-          key: 'create_first_chapter',
-          stageText: '待创建章节',
-          stageColor: 'default',
-          nextActionLabel: '创建第一章',
-          nextActionHint: '项目还没有章节，建议先创建第一章',
-        }
-      }
-      const findByState = (key: ReturnType<typeof getChapterPreparationState>['key']) =>
-        chaptersByIndex.find((chapter) => getChapterPreparationState(chapter).key === key)
-      const chapter =
-        findByState('edit_raw') ??
-        findByState('extract_shots') ??
-        findByState('prepare_shots') ??
-        findByState('shoot') ??
-        chaptersByIndex[0]
-      const state = getChapterPreparationState(chapter)
-      return {
-        key: state.key,
-        stageText: state.text,
-        stageColor: state.color,
-        nextActionLabel: state.primaryAction,
-        nextActionHint: `第${chapter.index}章 · ${state.hint}`,
-        chapterId: chapter.id,
-        storyboardCount: chapter.storyboardCount,
-      }
-    }
-
-    const loadSummaries = async () => {
+    /** Isolate read failures to one project and retain a visible retry instead of zero counts. */
+    const readProject = async (project: ProjectView) => {
       try {
-        if (useMock) {
-          const chapterGroups = Object.fromEntries(
-            list.map((project) => [
-              project.id,
-              mockChapters
-                .filter((chapter) => chapter.projectId === project.id)
-                .map((chapter) => ({
-                  id: chapter.id,
-                  projectId: chapter.projectId,
-                  index: chapter.index,
-                  title: chapter.title,
-                  summary: chapter.summary ?? '',
-                  rawText: chapter.summary ?? '',
-                  storyboardCount: chapter.storyboardCount,
-                  status: chapter.status,
-                  updatedAt: chapter.updatedAt,
-                })),
-            ]),
-          )
-          setProjectStageMap(
-            Object.fromEntries(
-              Object.entries(chapterGroups).map(([projectId, chapters]) => [
-                projectId,
-                summarizeProjectChapters(chapters),
-              ]),
-            ),
-          )
-          const flowStatsEntries = await Promise.all(
-            Object.entries(chapterGroups).map(async ([projectId, chapters]) => [
-              projectId,
-              await loadProjectFlowStatsForChapters(chapters),
-            ] as const),
-          )
-          setProjectFlowStatsMap(Object.fromEntries(flowStatsEntries))
-          return
-        }
-
-        const chapterResponses = await Promise.all(
-          list.map(async (project) => {
-            const res = await StudioChaptersService.listChaptersApiV1StudioChaptersGet({
-              projectId: project.id,
-              page: 1,
-              pageSize: 100,
-            })
-            const items: ChapterRead[] = res.data?.items ?? []
-            return [
-              project.id,
-              summarizeProjectChapters(
-                items.map((chapter) => ({
-                  id: chapter.id,
-                  projectId: chapter.project_id,
-                  index: chapter.index,
-                  title: chapter.title,
-                  summary: chapter.summary ?? '',
-                  rawText: chapter.raw_text ?? '',
-                  storyboardCount: chapter.shot_count ?? chapter.storyboard_count ?? 0,
-                  status: chapter.status ?? 'draft',
-                  updatedAt: '',
-                })),
-              ),
-              items.map((chapter) => ({
-                id: chapter.id,
-                projectId: chapter.project_id,
-                index: chapter.index,
-                title: chapter.title,
-                summary: chapter.summary ?? '',
-                rawText: chapter.raw_text ?? '',
-                storyboardCount: chapter.shot_count ?? chapter.storyboard_count ?? 0,
-                status: chapter.status ?? 'draft',
-                updatedAt: '',
-              })),
-            ] as const
-          }),
-        )
-        setProjectStageMap(
-          Object.fromEntries(chapterResponses.map(([projectId, summary]) => [projectId, summary])),
-        )
-        const flowStatsEntries = await Promise.all(
-          chapterResponses.map(async ([projectId, _summary, chapters]) => [
-            projectId,
-            await loadProjectFlowStatsForChapters(chapters),
-          ] as const),
-        )
-        setProjectFlowStatsMap(Object.fromEntries(flowStatsEntries))
+        const chapters: ChapterPreparationInput[] = useMock
+          ? mockChapters.filter(chapter => chapter.projectId === project.id).map(chapter => ({ ...chapter, rawText: chapter.summary }))
+          : (await loadCompleteProjectChapters(project.id, () => !cancelled)).map(chapter => ({ id: chapter.id, projectId: chapter.project_id,
+            index: chapter.index, title: chapter.title, summary: chapter.summary ?? '', rawText: chapter.raw_text ?? '',
+            storyboardCount: chapter.shot_count ?? chapter.storyboard_count ?? 0, status: chapter.status ?? 'draft', updatedAt: '' }))
+        const rows = await loadChapterFlowStats(chapters, () => !cancelled)
+        return { id: project.id, summary: summarize(chapters, rows), stats: sumChapterFlow(rows), error: '' }
       } catch {
-        setProjectStageMap({})
-        setProjectFlowStatsMap({})
+        return { id: project.id, summary: undefined, stats: undefined, error: '制作进度读取失败，请重试。' }
       }
     }
 
+    /** Bound simultaneous project observations, then commit only while this exact list is still mounted. */
+    const loadSummaries = async () => {
+      const results: Awaited<ReturnType<typeof readProject>>[] = []
+      for (let offset = 0; offset < list.length && !cancelled; offset += 4) {
+        results.push(...await Promise.all(list.slice(offset, offset + 4).map(readProject)))
+      }
+      if (cancelled) return
+      setProjectStageMap(Object.fromEntries(results.filter(row => row.summary).map(row => [row.id, row.summary!])))
+      setProjectFlowStatsMap(Object.fromEntries(results.filter(row => row.stats).map(row => [row.id, row.stats!])))
+      setSummaryErrors(Object.fromEntries(results.filter(row => row.error).map(row => [row.id, row.error])))
+    }
     void loadSummaries()
-  }, [projects, useMock])
+    return () => { cancelled = true }
+  }, [projects, useMock, summaryReload])
 
   const filteredSorted = useMemo(() => {
     const list = Array.isArray(projects) ? projects : []
@@ -340,8 +261,8 @@ const ProjectLobby: React.FC = () => {
       if (filterTab === 'editRaw') return stage?.key === 'edit_raw' || stage?.key === 'create_first_chapter'
       if (filterTab === 'extractShots') return stage?.key === 'extract_shots'
       if (filterTab === 'prepareShots') return stage?.key === 'prepare_shots'
-      if (filterTab === 'generating') return (flowStats?.generatingShots ?? 0) > 0
-      if (filterTab === 'ready') return (flowStats?.readyShots ?? 0) > 0
+      if (filterTab === 'generating') return !!flowStats && flowStats.generatingShots > 0
+      if (filterTab === 'ready') return !!flowStats && flowStats.readyShots > 0
       return true
     })
 
@@ -518,7 +439,7 @@ const ProjectLobby: React.FC = () => {
 
   const renderStatusTag = (p: ProjectView) => {
     const status = getProjectStatus(p)
-    if (status === 'completed') return <Tag color="green" className="mr-0 text-xs leading-4">已完成</Tag>
+    if (status === 'completed') return <Tag color="green" className="mr-0 text-xs leading-4">进度较高</Tag>
     if (status === 'draft') return <Tag color="default" className="mr-0 text-xs leading-4">草稿</Tag>
     return <Tag color="orange" className="mr-0 text-xs leading-4">进行中</Tag>
   }
@@ -541,11 +462,11 @@ const ProjectLobby: React.FC = () => {
       return
     }
     if (stageSummary.key === 'extract_shots') {
-      navigate(getChapterShotsPath(project.id, stageSummary.chapterId))
+      navigate(`/projects/${project.id}?tab=chapters&edit=${encodeURIComponent(stageSummary.chapterId)}&ai=divide`)
       return
     }
     if (stageSummary.key === 'prepare_shots') {
-      navigate(getChapterStudioPath(project.id, stageSummary.chapterId))
+      navigate(stageSummary.firstPendingShotId ? getChapterShotEditPath(project.id, stageSummary.chapterId, stageSummary.firstPendingShotId) : getChapterShotsPath(project.id, stageSummary.chapterId))
       return
     }
     void ensureHasShotsBeforeShooting({
@@ -560,13 +481,12 @@ const ProjectLobby: React.FC = () => {
 
   /** Compose each real project as a production slate while retaining every project action. */
   const renderCard = (p: ProjectView) => {
-    const status = getProjectStatus(p)
     const stageSummary = projectStageMap[p.id]
     const flowStats = projectFlowStatsMap[p.id]
     const isCompact = viewMode === 'compact'
     const isSelected = selectedProject?.id === p.id
     const isChecked = selectedIds.includes(p.id)
-    const mainActionLabel = stageSummary?.nextActionLabel ?? (status === 'completed' ? '继续剪辑' : p.progress > 0 ? '继续拍摄' : '进入项目')
+    const mainActionLabel = stageSummary?.nextActionLabel ?? '查看制作流程'
 
     return (
       <Card
@@ -621,18 +541,18 @@ const ProjectLobby: React.FC = () => {
         <ProjectStageTrack stage={stageSummary?.key} />
         <div className="project-stage-summary">
           <span>当前阶段</span>
-          <Tag color={stageSummary?.stageColor ?? 'default'}>{stageSummary?.stageText ?? '待推进'}</Tag>
+          <Tag color={stageSummary?.stageColor ?? 'default'}>{stageSummary?.stageText ?? (summaryErrors[p.id] ? '制作进度读取失败' : '制作进度待核对')}</Tag>
         </div>
         <p className="project-stage-hint">
-          {stageSummary?.nextActionHint ?? '进入项目工作台后继续推进主流程'}
+          {stageSummary?.nextActionHint ?? (summaryErrors[p.id] ? '请重试读取，或进入项目工作台核对。' : '正在核对实际章节和分镜。')}
         </p>
         {isCompact ? (
           <p className="project-stage-hint">下一步：{stageSummary?.nextActionLabel ?? '进入项目'}</p>
         ) : (
           <div className="project-shot-counts">
-            <span>待确认 <b>{flowStats?.pendingConfirmShots ?? 0}</b></span>
-            <span>已就绪 <b>{flowStats?.readyShots ?? 0}</b></span>
-            <span>生成中 <b>{flowStats?.generatingShots ?? 0}</b></span>
+            <span>待确认 <b>{flowStats?.pendingConfirmShots ?? '—'}</b></span>
+            <span>已确认 <b>{flowStats?.readyShots ?? '—'}</b></span>
+            <span>视频任务未结束 <b>{flowStats?.generatingShots ?? '—'}</b></span>
           </div>
         )}
 
@@ -707,6 +627,7 @@ const ProjectLobby: React.FC = () => {
 
       {loadError && <Alert type="error" showIcon message="项目列表加载失败" description={loadError}
         action={<Button size="small" onClick={() => void load()}>重试</Button>} />}
+      {Object.keys(summaryErrors).length > 0 && <Alert type="warning" showIcon message="部分项目制作进度读取失败" description="进度筛选仅包含已读取资料，请重试或进入具体项目核对。" action={<Button onClick={() => setSummaryReload(value => value + 1)}>重试读取制作进度</Button>} />}
 
       <div className="project-lobby-toolbar">
         <Input.Search
@@ -752,7 +673,7 @@ const ProjectLobby: React.FC = () => {
         <button type="button" className="project-filter-button" aria-pressed={filterTab === 'editRaw'} onClick={() => setFilterTab('editRaw')}>待补原文</button>
         <button type="button" className="project-filter-button" aria-pressed={filterTab === 'extractShots'} onClick={() => setFilterTab('extractShots')}>待提取分镜</button>
         <button type="button" className="project-filter-button" aria-pressed={filterTab === 'prepareShots'} onClick={() => setFilterTab('prepareShots')}>待准备镜头</button>
-        <button type="button" className="project-filter-button" aria-pressed={filterTab === 'generating'} onClick={() => setFilterTab('generating')}>生成中</button>
+        <button type="button" className="project-filter-button" aria-pressed={filterTab === 'generating'} onClick={() => setFilterTab('generating')}>视频任务未结束</button>
         <button type="button" className="project-filter-button" aria-pressed={filterTab === 'ready'} onClick={() => setFilterTab('ready')}>可继续推进</button>
       </nav>
 

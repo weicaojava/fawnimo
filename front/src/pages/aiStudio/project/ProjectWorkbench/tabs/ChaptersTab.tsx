@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Button, Tag, Space, Table, Empty, Modal, Input, Dropdown, message } from 'antd'
+import { Alert, Button, Tag, Space, Table, Empty, Modal, Input, Dropdown, message } from 'antd'
 import type { MenuProps, TableColumnsType } from 'antd'
 import {
   EditOutlined,
@@ -14,12 +14,12 @@ import {
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { StudioChaptersService } from '../../../../../services/generated'
 import { chapterStatusMap } from '../constants'
-import { getChapterShotsPath, getChapterStudioPath } from '../routes'
-import { useChapters, newId, type Chapter } from '../hooks/useProjectData'
+import { getChapterShotsPath, getChapterStudioPath, getChapterShotEditPath, getProjectEditorPath } from '../routes'
+import { newId, type Chapter, type ChaptersState } from '../hooks/useProjectData'
 import { ChapterRawTextEditorModal } from '../../../chapter/components/ChapterRawTextEditorModal'
 import { ensureHasShotsBeforeShooting } from '../ensureHasShotsBeforeShooting'
 import { getChapterPreparationState } from '../chapterPreparation'
-import { loadChapterFlowStats, type ChapterFlowStats } from '../projectFlowStats'
+import type { ProductionFlowState } from '../hooks/useProductionFlow'
 import { executeTaskCancel } from '../../../components/taskActionHelpers'
 import { TASK_COPY } from '../../../components/taskCopy'
 import { useTaskPageContext } from '../../../components/taskPageContext'
@@ -37,12 +37,12 @@ const CREATE_PARAM = 'create'
 const EDIT_PARAM = 'edit'
 
 /** Preserve chapter preparation actions and URL dialogs in an unboxed production list. */
-export function ChaptersTab() {
+export function ChaptersTab({ chaptersState, flowState }: { chaptersState: ChaptersState; flowState: ProductionFlowState }) {
   const taskCopy = TASK_COPY.chapterDivision
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { chapters, loading, refresh, patchChapterLocal } = useChapters(projectId)
+  const { chapters, loading, error: chaptersError, refresh, patchChapterLocal } = chaptersState
 
   const [editOpen, setEditOpen] = useState(false)
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null)
@@ -51,8 +51,11 @@ export function ChaptersTab() {
   const [createOpen, setCreateOpen] = useState(false)
   const [createTitle, setCreateTitle] = useState('')
   const [createContent, setCreateContent] = useState('')
-  const [chapterFlowMap, setChapterFlowMap] = useState<Record<string, ChapterFlowStats>>({})
+  const chapterFlowMap = flowState.byChapter
   const [chapterDivisionActionId, setChapterDivisionActionId] = useState<string | null>(null)
+  const mounted = useRef(true)
+  const nextStepModal = useRef<ReturnType<typeof Modal.confirm> | null>(null)
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; nextStepModal.current?.destroy() } }, [])
   const taskUiUpsert = useTaskUiStore((state) => state.upsertTask)
   const taskUiRemove = useTaskUiStore((state) => state.removeTask)
   const syncedTaskIdsRef = useRef<string[]>([])
@@ -106,32 +109,6 @@ export function ChaptersTab() {
     )
   }, [chapters, editParam, candidateParam, candidateRunParam, setSearchParams])
 
-  useEffect(() => {
-    let cancelled = false
-    if (!chapters.length) {
-      setChapterFlowMap({})
-      return () => {
-        cancelled = true
-      }
-    }
-
-    const run = async () => {
-      try {
-        const rows = await loadChapterFlowStats(chapters)
-        if (!cancelled) {
-          setChapterFlowMap(Object.fromEntries(rows.map((row) => [row.chapterId, row])))
-        }
-      } catch {
-        if (!cancelled) setChapterFlowMap({})
-      }
-    }
-
-    void run()
-    return () => {
-      cancelled = true
-    }
-  }, [chapters])
-
   const openEditModal = (chapter: Chapter, operation?: 'optimize' | 'simplify' | 'divide', candidateId?: string) => {
     setCandidateOperation(operation)
     setFocusCandidateId(candidateId)
@@ -140,8 +117,9 @@ export function ChaptersTab() {
   }
 
   const openCreateNextStep = (chapter: Chapter, hasRawText: boolean) => {
-    if (!projectId) return
-    Modal.confirm({
+    if (!projectId || !mounted.current) return
+    nextStepModal.current?.destroy()
+    nextStepModal.current = Modal.confirm({
       title: '章节创建成功',
       content: hasRawText
         ? '这一章已经有原文内容，接下来更适合直接提取分镜。'
@@ -149,6 +127,7 @@ export function ChaptersTab() {
       okText: hasRawText ? '立即提取分镜' : '继续编辑原文',
       cancelText: '稍后处理',
       onOk: () => {
+        if (!mounted.current) return
         if (hasRawText) {
           openEditModal(chapter, 'divide')
           return
@@ -192,6 +171,7 @@ export function ChaptersTab() {
           status: 'draft',
         },
       })
+      if (!mounted.current) return
       message.success('章节创建成功')
       setCreateOpen(false)
       setCreateTitle('')
@@ -199,7 +179,7 @@ export function ChaptersTab() {
       await refresh()
       openCreateNextStep(draftChapter, !!rawText.trim())
     } catch {
-      message.error('创建章节失败')
+      if (mounted.current) message.error('创建章节失败')
     }
   }
 
@@ -240,7 +220,7 @@ export function ChaptersTab() {
       navigate(getChapterShotsPath(projectId, record.id))
       return
     }
-    const state = getChapterPreparationState(record)
+    const state = getChapterPreparationState(record, chapterFlowMap[record.id])
     if (state.key === 'edit_raw') {
       openEditModal(record)
       return
@@ -250,13 +230,14 @@ export function ChaptersTab() {
       return
     }
     if (state.key === 'prepare_shots') {
-      navigate(getChapterStudioPath(projectId, record.id))
+      const shotId = chapterFlowMap[record.id]?.firstPendingShotId
+      navigate(shotId ? getChapterShotEditPath(projectId, record.id, shotId) : getChapterShotsPath(projectId, record.id))
       return
     }
     void ensureHasShotsBeforeShooting({
       projectId,
       chapterId: record.id,
-      storyboardCount: record.storyboardCount,
+      storyboardCount: chapterFlowMap[record.id]?.totalShots,
       navigate,
     })
   }
@@ -340,7 +321,7 @@ export function ChaptersTab() {
 
   const buildActionMenuItems = (record: Chapter): MenuProps['items'] => {
     if (!projectId) return []
-    const state = getChapterPreparationState(record)
+    const state = getChapterPreparationState(record, chapterFlowMap[record.id])
     const activeTask = chapterDivisionTaskMap[record.id]
     return [
       {
@@ -357,6 +338,12 @@ export function ChaptersTab() {
             onClick: () => navigate(getChapterStudioPath(projectId, record.id)),
           }
         : null,
+      {
+        key: 'editing',
+        label: '剪辑、声音与导出',
+        icon: <ScissorOutlined />,
+        onClick: () => navigate(`${getProjectEditorPath(projectId)}?chapter=${encodeURIComponent(record.id)}`),
+      },
       {
         key: 'raw',
         label: '编辑原文',
@@ -412,7 +399,7 @@ export function ChaptersTab() {
             </div>
           )
         }
-        const state = getChapterPreparationState(record)
+        const state = getChapterPreparationState(record, chapterFlowMap[record.id])
         return (
           <div className="space-y-1">
             <Tag color={state.color}>{state.text}</Tag>
@@ -430,13 +417,13 @@ export function ChaptersTab() {
         return (
           <div className="flex flex-wrap gap-1">
             <Tag bordered={false} color="gold" className="mr-0">
-              待确认 {stats?.pendingConfirmShots ?? 0}
+              待确认 {stats?.pendingConfirmShots ?? '—'}
             </Tag>
             <Tag bordered={false} color="green" className="mr-0">
-              已就绪 {stats?.readyShots ?? 0}
+              已确认 {stats?.readyShots ?? '—'}
             </Tag>
             <Tag bordered={false} color="processing" className="mr-0">
-              生成中 {stats?.generatingShots ?? 0}
+              视频任务未结束 {stats?.generatingShots ?? '—'}
             </Tag>
           </div>
         )
@@ -457,7 +444,7 @@ export function ChaptersTab() {
       key: 'action',
       width: 230,
       render: (_, record) => {
-        const state = getChapterPreparationState(record)
+        const state = getChapterPreparationState(record, chapterFlowMap[record.id])
         const activeTask = chapterDivisionTaskMap[record.id]
         const primaryIcon = activeTask
           ? activeTask.cancelRequested
@@ -505,6 +492,8 @@ export function ChaptersTab() {
       },
     },
   ]
+
+  if (chaptersError) return <Alert type="error" showIcon message={chaptersError} action={<Button onClick={() => void refresh()}>重试读取章节</Button>} />
 
   if (chapters.length === 0 && !loading) {
     return (

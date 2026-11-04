@@ -1,4 +1,6 @@
 import '../chapter/production.css'
+import { ShotDetailRecovery } from './ShotDetailRecovery'
+import { loadCompleteChapterShots } from '../project/ProjectWorkbench/projectFlowStats'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Badge, Button, Card, Divider, Empty, Layout, List, Modal, Popconfirm, Segmented, Space, Spin, Tabs, Tooltip, Typography, message } from 'antd'
 import { useGenerationAvailability } from '../../../hooks/useGenerationAvailability'
@@ -26,6 +28,7 @@ import {
 } from '../../../services/generated'
 import { executeAsyncTaskCreate, executeTaskCancel, notifyExistingTask } from '../components/taskActionHelpers'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import type { NavigateOptions } from 'react-router-dom'
 import { getChapterShotEditPath, getChapterShotsPath, getChapterStudioPath } from '../project/ProjectWorkbench/routes'
 import { DisplayImageCard } from '../assets/components/DisplayImageCard'
 import { ChapterShotAssetConfirmation } from './components/ChapterShotAssetConfirmation'
@@ -182,9 +185,20 @@ function overviewTypeToAssetKind(kind: ShotAssetOverviewItem['type']): AssetKind
   return kind === 'character' ? 'actor' : kind
 }
 
+/** Give each full route a separate editor instance so old save/confirmation results cannot alter another shot's draft. */
 export function ChapterShotEditPage() {
+  const { projectId, chapterId, shotId } = useParams()
+  return <ChapterShotEditor key={JSON.stringify([projectId, chapterId, shotId])} />
+}
+
+/** Edit only this mounted shot; requests already submitted keep their original identity after navigation. */
+function ChapterShotEditor() {
   const generation = useGenerationAvailability()
-  const navigate = useNavigate()
+  const routerNavigate = useNavigate()
+  const loadMountedRef = useRef(false)
+  const navigate = useCallback((to: string, options?: NavigateOptions) => {
+    if (loadMountedRef.current) routerNavigate(to, options)
+  }, [routerNavigate])
   const [searchParams, setSearchParams] = useSearchParams()
   const candidateRunParam = searchParams.get('candidateRun')
   const [focusedCandidate, setFocusedCandidate] = useState<{ shotId: string; runId: string }>()
@@ -205,6 +219,15 @@ export function ChapterShotEditPage() {
   const candidateDirtyRef = useRef(false)
   const [candidateActionBusy, setCandidateActionBusy] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [missingDetailKey, setMissingDetailKey] = useState('')
+  const detailRouteKey = JSON.stringify([projectId, chapterId, shotId])
+  const loadScopeRef = useRef(detailRouteKey)
+  loadScopeRef.current = detailRouteKey
+  const loadSequenceRef = useRef(0)
+  useEffect(() => {
+    loadMountedRef.current = true
+    return () => { loadMountedRef.current = false; loadSequenceRef.current++ }
+  }, [])
   const [saving, setSaving] = useState(false)
   const [semanticSaving, setSemanticSaving] = useState(false)
   const [preparationState, setPreparationState] = useState<ShotPreparationStateRead | null>(null)
@@ -348,22 +371,24 @@ export function ChapterShotEditPage() {
 
   const loadPage = useCallback(async () => {
     if (!chapterId || !shotId || !projectId) return
+    if (!loadMountedRef.current || loadScopeRef.current !== detailRouteKey) return
+    const sequence = ++loadSequenceRef.current
+    const isCurrent = () => loadMountedRef.current && loadScopeRef.current === detailRouteKey && loadSequenceRef.current === sequence
+    setMissingDetailKey('')
     setLoading(true)
     setDialogLoading(true)
     try {
       const [projectRes, chRes, listRes, preparationRes, detailRes] = await Promise.all([
         StudioProjectsService.getProjectApiV1StudioProjectsProjectIdGet({ projectId }),
         StudioChaptersService.getChapterApiV1StudioChaptersChapterIdGet({ chapterId }),
-        StudioShotsService.listShotsApiV1StudioShotsGet({
-          chapterId,
-          page: 1,
-          pageSize: 100,
-          order: 'index',
-          isDesc: false,
-        }),
+        loadCompleteChapterShots(chapterId, isCurrent),
         StudioShotsService.getShotPreparationStateApiApiV1StudioShotsShotIdPreparationStateGet({ shotId }),
         StudioShotDetailsService.getShotDetailApiV1StudioShotDetailsShotIdGet({ shotId }),
       ])
+      if (!isCurrent()) return
+      if (projectRes.data?.id !== projectId || chRes.data?.project_id !== projectId) {
+        throw new Error('章节不属于当前工程')
+      }
       const nextVisualStyle = projectRes.data?.visual_style
       const nextStyle = projectRes.data?.style
       if (nextVisualStyle === '现实' || nextVisualStyle === '动漫') {
@@ -377,7 +402,7 @@ export function ChapterShotEditPage() {
       setChapterTitle(c?.title ?? '')
       setChapterIndex(typeof c?.index === 'number' ? c.index : null)
 
-      const items = listRes.data?.items ?? []
+      const items = listRes
       const preparationState = preparationRes.data ?? null
       const detail = detailRes.data ?? null
       const s = preparationState?.shot ?? null
@@ -404,14 +429,22 @@ export function ChapterShotEditPage() {
       setExtractedDialogLines(
         (preparationState?.dialogue_candidates ?? []).filter((item) => item.candidate_status === 'pending'),
       )
-    } catch {
+    } catch (error) {
+      if (!isCurrent()) return
+      const failure = error as { status?: number; body?: { message?: string } }
+      if (failure.status === 404 && failure.body?.message === 'ShotDetail not found') {
+        setMissingDetailKey(JSON.stringify([projectId, chapterId, shotId]))
+        return
+      }
       message.error('加载失败')
       navigate(getChapterShotsPath(projectId, chapterId), { replace: true })
     } finally {
-      setDialogLoading(false)
-      setLoading(false)
+      if (isCurrent()) {
+        setDialogLoading(false)
+        setLoading(false)
+      }
     }
-  }, [chapterId, navigate, projectId, shotId])
+  }, [chapterId, detailRouteKey, navigate, projectId, shotId])
 
   const clearDialogDebounceTimers = useCallback(() => {
     for (const [, timer] of dialogDebounceTimersRef.current.entries()) {
@@ -422,6 +455,7 @@ export function ChapterShotEditPage() {
 
   const applyPreparationState = useCallback(
     (state: ShotPreparationStateRead, options?: { syncBasicInfo?: boolean }) => {
+      if (!loadMountedRef.current || state.shot.id !== shotId || state.shot.chapter_id !== chapterId) return
       setPreparationState(state)
       const nextShot = state.shot
       setShot(nextShot)
@@ -434,31 +468,31 @@ export function ChapterShotEditPage() {
         setScriptExcerpt(nextShot.script_excerpt ?? '')
       }
     },
-    [],
+    [chapterId, shotId],
   )
 
   const loadPreparationState = useCallback(
     async (options?: { syncBasicInfo?: boolean; silent?: boolean; shouldApply?: () => boolean }) => {
-      if (!shotId) return null
+      if (!shotId || !loadMountedRef.current) return null
       const reqSeq = ++preparationStateRequestSeqRef.current
       setDialogLoading(true)
       try {
         const res = await StudioShotsService.getShotPreparationStateApiApiV1StudioShotsShotIdPreparationStateGet({
           shotId,
         })
-        if (reqSeq !== preparationStateRequestSeqRef.current) return null
+        if (!loadMountedRef.current || reqSeq !== preparationStateRequestSeqRef.current) return null
         const data = res.data ?? null
         if (!data) return null
         if (options?.shouldApply && !options.shouldApply()) return null
         applyPreparationState(data, { syncBasicInfo: options?.syncBasicInfo })
         return data
       } catch {
-        if (!options?.silent) {
+        if (loadMountedRef.current && !options?.silent) {
           message.error('准备状态加载失败')
         }
         return null
       } finally {
-        if (reqSeq === preparationStateRequestSeqRef.current) {
+        if (loadMountedRef.current && reqSeq === preparationStateRequestSeqRef.current) {
           setDialogLoading(false)
         }
       }
@@ -770,6 +804,7 @@ export function ChapterShotEditPage() {
           : Promise.resolve({ data: null } as any),
       ])
 
+      if (!loadMountedRef.current) return
       const next = shotRes.data
       const nextDetail = detailRes.data ?? null
       if (nextDetail) {
@@ -1506,6 +1541,10 @@ export function ChapterShotEditPage() {
       ),
     },
   ] as const
+
+  if (missingDetailKey === detailRouteKey && projectId && chapterId && shotId) {
+    return <ShotDetailRecovery key={detailRouteKey} projectId={projectId} chapterId={chapterId} shotId={shotId} onRecovered={() => void loadPage()} />
+  }
 
   return (
     <Layout className="production-page" style={{ height: '100%', minHeight: 0 }}>

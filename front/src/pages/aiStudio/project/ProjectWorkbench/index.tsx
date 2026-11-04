@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Card, Button, Tabs, Space, Dropdown, Empty } from 'antd'
+import { Alert, Card, Button, Tabs, Space, Dropdown, Empty } from 'antd'
 import type { MenuProps } from 'antd'
 import {
   PlusOutlined,
@@ -19,10 +19,11 @@ import { CostumesTab, PropsTab } from './tabs/PropsTab'
 import { FilesTab } from './tabs/FilesTab'
 import { EditTab } from './tabs/EditTab'
 import { SettingsTab } from './tabs/SettingsTab'
-import { getChapterShotsPath, getChapterStudioPath, getProjectEditorPath } from './routes'
+import { getChapterShotsPath, getChapterShotEditPath, getProjectEditorPath } from './routes'
 import { useProject, useChapters } from './hooks/useProjectData'
 import { ensureHasShotsBeforeShooting } from './ensureHasShotsBeforeShooting'
 import { getChapterPreparationState } from './chapterPreparation'
+import { useProductionFlow } from './hooks/useProductionFlow'
 import '../project-studio.css'
 
 const TAB_PARAM = 'tab'
@@ -38,15 +39,18 @@ const ProjectWorkbench: React.FC = () => {
   const resolvedTab: TabKey =
     tabFromUrl !== null && isTabKey(tabFromUrl) ? tabFromUrl : DEFAULT_TAB
 
-  const { project, loading: projectLoading, refresh } = useProject(projectId)
-  const { chapters } = useChapters(projectId)
+  const projectState = useProject(projectId)
+  const { project, loading: projectLoading, refresh } = projectState
+  const chaptersState = useChapters(projectId)
+  const { chapters, loading: chaptersLoading, error: chaptersError } = chaptersState
+  const flowState = useProductionFlow(projectId, chapters, !chaptersLoading && !chaptersError)
   const [activeTab, setActiveTab] = useState<TabKey>(() => resolvedTab)
 
   const chaptersByIndex = [...chapters].sort((a, b) => a.index - b.index)
 
   const recommendedChapter = (() => {
     const findByState = (key: ReturnType<typeof getChapterPreparationState>['key']) =>
-      chaptersByIndex.find((chapter) => getChapterPreparationState(chapter).key === key)
+      chaptersByIndex.find((chapter) => getChapterPreparationState(chapter, flowState.byChapter[chapter.id]).key === key)
     return (
       findByState('edit_raw') ??
       findByState('extract_shots') ??
@@ -58,6 +62,8 @@ const ProjectWorkbench: React.FC = () => {
   })()
 
   const primaryCta = (() => {
+    if (chaptersError) return { label: '重试读取章节', hint: chaptersError, icon: <PlusOutlined />, onClick: () => void chaptersState.refresh() }
+
     if (!projectId) {
       return {
         label: '创建第一章',
@@ -84,7 +90,7 @@ const ProjectWorkbench: React.FC = () => {
         },
       }
     }
-    const state = getChapterPreparationState(recommendedChapter)
+    const state = getChapterPreparationState(recommendedChapter, flowState.byChapter[recommendedChapter.id])
     const chapterLabel = `第${recommendedChapter.index}章`
     if (state.key === 'edit_raw') {
       return {
@@ -110,26 +116,26 @@ const ProjectWorkbench: React.FC = () => {
         label: `提取${chapterLabel}分镜`,
         hint: `${chapterLabel}已有原文，下一步更适合先提取分镜`,
         icon: state.primaryIcon,
-        onClick: () => navigate(getChapterShotsPath(projectId, recommendedChapter.id)),
+        onClick: () => navigate(`/projects/${projectId}?tab=chapters&edit=${encodeURIComponent(recommendedChapter.id)}&ai=divide`),
       }
     }
     if (state.key === 'prepare_shots') {
       return {
-        label: `进入${chapterLabel}分镜工作室`,
-        hint: `${chapterLabel}已有分镜，建议继续补齐镜头准备`,
+        label: `确认${chapterLabel}分镜`,
+        hint: state.hint,
         icon: state.primaryIcon,
-        onClick: () => navigate(getChapterStudioPath(projectId, recommendedChapter.id)),
+        onClick: () => { const shotId = flowState.byChapter[recommendedChapter.id]?.firstPendingShotId; navigate(shotId ? getChapterShotEditPath(projectId, recommendedChapter.id, shotId) : getChapterShotsPath(projectId, recommendedChapter.id)) },
       }
     }
     return {
-      label: `进入${chapterLabel}拍摄`,
-      hint: `${chapterLabel}已具备分镜，可继续进入拍摄流程`,
+      label: `进入${chapterLabel}生成准备`,
+      hint: state.hint,
       icon: state.primaryIcon,
       onClick: () =>
         ensureHasShotsBeforeShooting({
           projectId,
           chapterId: recommendedChapter.id,
-          storyboardCount: recommendedChapter.storyboardCount,
+          storyboardCount: flowState.byChapter[recommendedChapter.id]?.totalShots,
           navigate,
         }),
     }
@@ -174,7 +180,8 @@ const ProjectWorkbench: React.FC = () => {
   if (!project && !projectLoading) {
     return (
       <Card>
-        <Empty description="项目不存在" />
+        <Empty description={projectState.error || '项目不存在'} />
+        {projectState.error && <Button onClick={() => void refresh()}>重试读取项目</Button>}
         <Link to="/projects">
           <Button type="link" icon={<ArrowLeftOutlined />}>
             返回项目列表
@@ -195,10 +202,11 @@ const ProjectWorkbench: React.FC = () => {
           <Space size="small" wrap className="project-workbench-actions">
             <Button
               type="primary"
+              disabled={chaptersLoading}
               icon={primaryCta.icon}
               onClick={primaryCta.onClick}
             >
-              {primaryCta.label}
+              {chaptersLoading ? '读取制作资料…' : primaryCta.label}
             </Button>
             <Button icon={<VideoCameraFilled />} onClick={() => projectId && navigate(getProjectEditorPath(projectId))}>
               进入后期剪辑
@@ -208,7 +216,9 @@ const ProjectWorkbench: React.FC = () => {
             </Dropdown>
           </Space>
         </div>
-        <p className="project-workbench-hint">{primaryCta.hint}</p>
+        <p className="project-workbench-hint">{chaptersLoading ? '正在读取实际章节。' : primaryCta.hint}</p>
+        {flowState.error && <Alert type="error" showIcon message={flowState.error} action={<Button onClick={() => void flowState.refresh()}>重试读取分镜进度</Button>} />}
+
         <Tabs
           activeKey={activeTab}
           onChange={(k) => setTabInUrl(k as TabKey)}
@@ -222,10 +232,10 @@ const ProjectWorkbench: React.FC = () => {
       </header>
 
       <div className="project-workbench-content" data-active-tab={activeTab}>
-        {activeTab === 'dashboard' && <DashboardTab onSelectTab={setTabInUrl} />}
-        {activeTab === 'production' && <ProductionTab />}
+        {activeTab === 'dashboard' && <DashboardTab key={projectId} onSelectTab={setTabInUrl} projectState={projectState} chaptersState={chaptersState} flowState={flowState} />}
+        {activeTab === 'production' && <ProductionTab key={projectId} />}
 
-        {activeTab === 'chapters' && <ChaptersTab />}
+        {activeTab === 'chapters' && <ChaptersTab key={projectId} chaptersState={chaptersState} flowState={flowState} />}
 
         {activeTab === 'actors' && <ActorsTab />}
         {activeTab === 'roles' && <RolesTab />}

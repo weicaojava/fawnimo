@@ -7,15 +7,15 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 # 功能总表与验证矩阵
 
-登记版本：`2026-11-04.23`，更新日期：2026-11-04。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
+登记版本：`2026-11-04.24`，更新日期：2026-11-04。稳定编号不因改名复用。新增、拆分、弃用均在此登记，再生成文档。
 
 历史基线只证明登记的有限软件协议。上轮后端166项、浏览器206项和32路由巡检通过；当前代码含未提交成果，不能把基线HEAD当作这些成果的发布版本。所有真实模型与完整成片资格仍未通过。
 
 “仅本机”只记录本地入口存在；未提供可验收的本项目公网平台。合理需求、优先级、实现、验证、部署独立记录；PR合并不能替代上线验收。
 
-项目独立预算、身份/数据/连接隔离及已声明执行恢复已有软件检查；维护者准入默认关闭。准确8bb源码独立审查和实际主线检查通过。双账号原创声音/导出/重启及免费真实模型journal分别补证；模型质量、真实供应商账单、产品App研发审核发布和公网仍未通过。
+项目、章节、分镜确认→生成准备→本章素材采用→剪辑/声音入口→锁定与导出的本机功能流程已补齐主要交接。手工分镜原子创建、旧详情显式恢复及切镜头保存隔离经实际检查；真实模型/账单、完整AI成片及公网仍未通过，GitHub App按用户要求暂缓。
 
-准确8bb7f6d主线：2405通过/3平台跳过/2私有历史未选、前端3219、实际容器/媒体/运行回退/清理及独立源码审查通过。双账号声音初轮14/重启12有交集，独立下载与PCM/AAC复核通过；新增真实本机journal一次及原key离线恢复通过，质量仍不通过。本登记为后续元数据更新，自己的检查状态以实际Actions为准；不把8bb镜像当本登记新镜像。付费授权0。 后续AT双账号真实免费系统对白、字幕/五种下载/重启各15项重叠检查与独立产物复核通过；AS真实代码单次超时uncertain且没有bundle/候选，负面独立复核通过。当前修订仅改可读冻结角色姓名，自己的源码/CI资格另证；17项未完成不减少。
+本轮本机后端相关67通过（新增4）、前端流程20/类型/编译3222通过，实际接口同步仅扩展ShotCreate的可选create_detail与准确说明。最终同版浏览器18通过，原导出四种原生下载逐字节一致并重开，原视频840帧/28秒；没有重做导出或调用模型。早期分页/加载/声音入口与本轮检查范围分别记录，失败原样保留。完整树独立审查及本修订准确CI另证，不把历史a16主线2409当本修订检查。费用0，App明确暂缓，17项当前未完成保持。
 
 ## F-001 身份与工作空间
 
@@ -130,13 +130,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-002.01 工程列表、创建、搜索与真实统计
 
-需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`production-workflow-local-2026-11-04`；发布版本：`未发布`。
 
-代码：[`backend/app/api/v1/routes/studio/projects.py`](../../../../backend/app/api/v1/routes/studio/projects.py)、[`front/src/pages/aiStudio/project/ProjectLobby.tsx`](../../../../front/src/pages/aiStudio/project/ProjectLobby.tsx)。
+代码：[`backend/app/api/v1/routes/studio/projects.py`](../../../../backend/app/api/v1/routes/studio/projects.py)、[`front/src/pages/aiStudio/project/ProjectLobby.tsx`](../../../../front/src/pages/aiStudio/project/ProjectLobby.tsx)、[`front/src/pages/aiStudio/project/ProjectWorkbench/productionFlow.ts`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/productionFlow.ts)、[`front/src/pages/aiStudio/project/ProjectWorkbench/hooks/useProductionFlow.ts`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/hooks/useProductionFlow.ts)。
 
 限制：原本地模式未引入身份；新18000经固定空间网关访问，完整隔离矩阵仍待验收；时间不得用浏览器当前时间替代。
 
-验证依据：`EV-LOCAL-20261029`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-20261029`、`EV-PRODUCTION-WORKFLOW-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -158,13 +158,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-002.03 章节创建与原文/精简文本CAS历史恢复
 
-需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`production-workflow-local-2026-11-04`；发布版本：`未发布`。
 
-代码：[`backend/app/services/studio/chapter_text_history.py`](../../../../backend/app/services/studio/chapter_text_history.py)、[`front/src/pages/aiStudio/chapter/components/ChapterRawTextEditorModal.tsx`](../../../../front/src/pages/aiStudio/chapter/components/ChapterRawTextEditorModal.tsx)。
+代码：[`backend/app/services/studio/chapter_text_history.py`](../../../../backend/app/services/studio/chapter_text_history.py)、[`front/src/pages/aiStudio/chapter/components/ChapterRawTextEditorModal.tsx`](../../../../front/src/pages/aiStudio/chapter/components/ChapterRawTextEditorModal.tsx)、[`front/src/pages/aiStudio/project/ProjectWorkbench/hooks/useProjectData.ts`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/hooks/useProjectData.ts)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ChaptersTab.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ChaptersTab.tsx)。
 
 限制：历史时间是系统实际保存时间；旧PATCH契约未要求编辑者版本。
 
-验证依据：`EV-LOCAL-20261029`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-20261029`、`EV-PRODUCTION-WORKFLOW-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -238,13 +238,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-003.03 资产版本、媒体导入与不可变来源
 
-需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`production-workflow-local-2026-11-04`；发布版本：`未发布`。
 
-代码：[`backend/app/services/studio/production.py`](../../../../backend/app/services/studio/production.py)、[`backend/app/services/studio/production_media.py`](../../../../backend/app/services/studio/production_media.py)。
+代码：[`backend/app/services/studio/production.py`](../../../../backend/app/services/studio/production.py)、[`backend/app/services/studio/production_media.py`](../../../../backend/app/services/studio/production_media.py)、[`front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProductionTab.tsx`](../../../../front/src/pages/aiStudio/project/ProjectWorkbench/tabs/ProductionTab.tsx)。
 
 限制：媒体ZIP不是完整工程备份；原音视频导入不等于AI生成。
 
-验证依据：尚无通过证据。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-PRODUCTION-WORKFLOW-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -263,13 +263,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-004.01 镜头基础信息、资产/对白确认与ready语义
 
-需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`production-workflow-local-2026-11-04`；发布版本：`未发布`。
 
-代码：[`front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx`](../../../../front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx)、[`backend/app/api/v1/routes/studio/shots.py`](../../../../backend/app/api/v1/routes/studio/shots.py)。
+代码：[`front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx`](../../../../front/src/pages/aiStudio/shots/ChapterShotEditPage.tsx)、[`backend/app/api/v1/routes/studio/shots.py`](../../../../backend/app/api/v1/routes/studio/shots.py)、[`front/src/pages/aiStudio/shots/ShotDetailRecovery.tsx`](../../../../front/src/pages/aiStudio/shots/ShotDetailRecovery.tsx)、[`front/src/pages/aiStudio/shots/ChapterShotsPage.tsx`](../../../../front/src/pages/aiStudio/shots/ChapterShotsPage.tsx)、[`backend/app/services/studio/shots.py`](../../../../backend/app/services/studio/shots.py)、[`backend/app/schemas/studio/shots.py`](../../../../backend/app/schemas/studio/shots.py)。
 
 限制：ready不等于video-ready或真实模型合格。
 
-验证依据：`EV-LOCAL-20261029`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-20261029`、`EV-PRODUCTION-WORKFLOW-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -676,13 +676,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-010.01 v1硬切编辑、采用CAS与不可变时间线
 
-需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`production-workflow-local-2026-11-04`；发布版本：`未发布`。
 
 代码：[`backend/app/services/editing`](../../../../backend/app/services/editing)、[`front/src/pages/aiStudio/editor/VideoEditor.tsx`](../../../../front/src/pages/aiStudio/editor/VideoEditor.tsx)。
 
 限制：固定镜头顺序v1硬切；冻结不代表导出成功或模型质量。
 
-验证依据：`EV-LOCAL-20261029`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-20261029`、`EV-PRODUCTION-WORKFLOW-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -704,13 +704,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-010.03 MP4、SRT/VTT及来源ZIP实际导出
 
-需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`working-tree-2026-10-29`；发布版本：`未发布`。
+需求：R-001；验收阶段：D；范围：本阶段交付；实现版本：`production-workflow-local-2026-11-04`；发布版本：`未发布`。
 
 代码：[`backend/app/services/editing`](../../../../backend/app/services/editing)、[`front/src/pages/aiStudio/editor/VideoEditor.tsx`](../../../../front/src/pages/aiStudio/editor/VideoEditor.tsx)。
 
 限制：字幕为独立文件不烧录；成品可解码不代表AI叙事/还原质量。
 
-验证依据：`EV-LOCAL-20261029`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-LOCAL-20261029`、`EV-PRODUCTION-WORKFLOW-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -823,13 +823,13 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 
 ### F-012.02 可重置、有许可的示例工程
 
-需求：R-005, R-007；验收阶段：C；范围：本阶段交付；实现版本：`source-tree-06c9c5fcbc16`；发布版本：`未发布`。
+需求：R-005, R-007；验收阶段：C；范围：本阶段交付；实现版本：`production-workflow-local-2026-11-04`；发布版本：`未发布`。
 
 代码：[`backend/app/controlplane/local_example.py`](../../../../backend/app/controlplane/local_example.py)、[`backend/app/controlplane/demo.py`](../../../../backend/app/controlplane/demo.py)、[`backend/app/controlplane/routes.py`](../../../../backend/app/controlplane/routes.py)、[`backend/app/api/local_example_rpc.py`](../../../../backend/app/api/local_example_rpc.py)、[`backend/app/core/contracts/local_example.py`](../../../../backend/app/core/contracts/local_example.py)、[`backend/app/core/owned_tasks.py`](../../../../backend/app/core/owned_tasks.py)、[`backend/app/models/local_example.py`](../../../../backend/app/models/local_example.py)、[`backend/app/services/studio/local_example.py`](../../../../backend/app/services/studio/local_example.py)、[`backend/app/services/studio/local_example_install.py`](../../../../backend/app/services/studio/local_example_install.py)、[`backend/app/services/studio/local_example_media.py`](../../../../backend/app/services/studio/local_example_media.py)、[`backend/app/services/studio/demo_media_child.py`](../../../../backend/app/services/studio/demo_media_child.py)、[`front/src/identity/DemoStarter.tsx`](../../../../front/src/identity/DemoStarter.tsx)。
 
 限制：本地原创几何：7段4秒无声视频、7张PNG、剧本/计划/明确导入采用/28秒剪辑草稿；源码Apache-2.0，不用用户原片或模型。；文字v1仍提供7个pending镜头与21提示词；两种入口共享20次新请求，原key恢复不增名额，新建保留旧工程与编辑。；新素材一次事务保存，7条剧情标记默认未确认；确认、保存、锁定后导出MP4/SRT/VTT/ZIP。无对白字幕为空，不提供配音或音乐。；完成回放保留后来编辑/采用，缺失或改变的素材409且不修复；每worker单制作槽、每请求3次尝试，未知文件保留。；需要独立登录空间及受信本地媒体工具；旧独立入口与迁移执行锁拒绝新媒体制作。软件本机通过，公网、真实模型/成片及两项私有历史升级未验收。；未改8bb源码的真实双账号/两个固定worker，经实际编译页面建立原创7段28秒示例、各自PCM音效候选及明确裁剪/位置/-12dB、保存锁定和原生下载5种产物。初轮14与重启12检查重叠不相加，包含先前已提交步骤的中断恢复。两账号重启保持原ID/一次尝试与全部下载hash，跨账号工程/导出/实际字节及声音写入拒绝；独立视频840帧与48k双声道1344000帧PCM/AAC核对、原画面草稿保留及自有进程关闭通过。独立产物复核通过；原RGB阈值拒绝保留，画质、真实模型、完整成片、公网及本机对白生成未授予资格。；准确8bb原源码双账号固定worker经实际编译页面分别以Huihui中文/Zira英文生成原自作对白，各1次，明确采用/-6dB/保存锁定、原字幕和五种原生下载、实际重启和跨账号读取/取消拒绝通过。初轮15与重启15重叠不相加，初轮含原已提交步骤恢复。20下载及两原声WAV、840帧28秒/48k双声道1344000帧PCM与AAC及只读数据库获独立复核，源脚本/计划历史保留，画面草稿未因声音编辑改变，自有进程关闭。确认输入属于自动化测试声明，不是真人试听/语义/音色或成片质量通过。原8bb的说话人UUID显示P3历史保留，本修订仅由原计划冻结姓名增加显示投影，原身份/对白及历史hash不变。。
 
-验证依据：`EV-DEMO-LOCAL`、`EV-IDENTITY-BROWSER`、`EV-ORIGINAL-EXAMPLE`、`EV-ORIGINAL-EXAMPLE-PUBLISHED-CI`、`EV-MANAGED-AB-SOUND-BROWSER`、`EV-MANAGED-AB-REAL-VOICE`。测试文件是待运行目标，文件存在不代表测试通过。
+验证依据：`EV-DEMO-LOCAL`、`EV-IDENTITY-BROWSER`、`EV-ORIGINAL-EXAMPLE`、`EV-ORIGINAL-EXAMPLE-PUBLISHED-CI`、`EV-MANAGED-AB-SOUND-BROWSER`、`EV-MANAGED-AB-REAL-VOICE`、`EV-PRODUCTION-WORKFLOW-LOCAL`。测试文件是待运行目标，文件存在不代表测试通过。
 
 需求/PR：尚未发布到用户目标仓库。
 
@@ -1173,6 +1173,7 @@ description: "稳定功能编号、代码入口、实施与验证及部署的独
 | EV-REAL-LOCAL-ADVICE-JOURNAL | software | repository · `capabilities/real-local-advice-journal-observation.json` | 当前适配器通过一次新增、单独上限1的免费Qwen真实请求接入原create_advice和不可变journal；1意图/1 ready、原key重开和关闭模型后离线恢复相同，缺配置也不调用source/runner，新key因额度耗尽拒绝。原六次实验与上限6/6全hash保持，未重置；新增总计1次chat POST且进程关闭。来源需求/观察自作，不是真实GitHub事件。独立日志与副本恢复复核通过；needs_clarification枚举命中仅为机械判断，16个目录前项无依据选择及5问中两组近义重复导致模型质量继续不通过。未生成/执行代码，不授予实际App、真实AI代码候选全链或公网资格，付费0。 |
 | EV-MANAGED-AB-REAL-VOICE | software | repository · `capabilities/managed-voice-browser-verification-profile.json` | 准确8bb原源码双账号固定worker经实际编译页面分别以Huihui中文/Zira英文生成原自作对白，各1次，明确采用/-6dB/保存锁定、原字幕和五种原生下载、实际重启和跨账号读取/取消拒绝通过。初轮15与重启15重叠不相加，初轮含原已提交步骤恢复。20下载及两原声WAV、840帧28秒/48k双声道1344000帧PCM与AAC及只读数据库获独立复核，源脚本/计划历史保留，画面草稿未因声音编辑改变，自有进程关闭。确认输入属于自动化测试声明，不是真人试听/语义/音色或成片质量通过。原8bb的说话人UUID显示P3历史保留，本修订仅由原计划冻结姓名增加显示投影，原身份/对白及历史hash不变。 |
 | EV-REAL-LOCAL-CODE-NEGATIVE | software | repository · `capabilities/real-local-code-negative-observation.json` | 新增单独上限1的真实本机Qwen代码请求在固定30秒边界返回uncertain，1意图/1结果且无bundle/候选/代码执行。原key重开及停模型后的离线恢复相同，第二key准确配额拒绝且不新增行/调用，旧六次协议和前次独立建议调用历史/上限未重置，自有模型关闭。独立复核仅确认负面结果、恢复与配额保护，不能称真实AI代码候选或Linux/App全链通过；费用0。 |
+| EV-PRODUCTION-WORKFLOW-LOCAL | software | repository · `capabilities/production-workflow-verification-profile.json` | 完整分页、共享观测、信息确认/未结束任务独立计数、作用域保护及本章剪辑交接。新手工分镜与详情同事务、旧缺详情显式恢复；67项相关后端含4项新增、20项前端流程及编译3222通过。最终同版实际浏览器18项含真实A保存响应迟到后切B并再次保存的对象核对、缺摘要拒绝、错误工程章节路由、101镜头与原导出重开/四种原生下载一致；原视频840帧28秒，原建样例/声音入口另有早期有界观测，重叠不相加。原失败和独立发现保留，自己的最终独立树审查及CI另证；无付费模型、真人语义、完整AI成片、App或公网资格。 |
 
 私有外部证据保留在既有工作记录中，仓库中没有打包原片、密钥、私人数据库或专用账号凭据。公开发布前需新增脱敏证据，不可将这些工作记录路径当作公众可访问链接。
 

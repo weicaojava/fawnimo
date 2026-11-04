@@ -3,6 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ShotStatus } from './ShotStatus';
+/**
+ * Keep legacy two-step clients while allowing the manual editor to create a usable shot atomically.
+ */
 export type ShotCreate = {
     /**
      * 镜头 ID
@@ -40,5 +43,9 @@ export type ShotCreate = {
      * 已生成视频关联的文件 ID（files.id，type=video）
      */
     generated_video_file_id?: (string | null);
+    /**
+     * 在同一事务中建立空白镜头详情；旧客户端可继续单独创建详情
+     */
+    create_detail?: boolean;
 };
 

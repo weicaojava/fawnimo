@@ -1,6 +1,7 @@
 import '../chapter/production.css'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Alert,
   Button,
   Card,
   Divider,
@@ -40,6 +41,8 @@ import { useRelationTaskNotification } from '../components/taskNotificationHelpe
 import { useTaskPageContext } from '../components/taskPageContext'
 import { createTaskSettledReloader } from '../components/taskResultHelpers'
 import { TASK_COPY } from '../components/taskCopy'
+import { loadCompleteChapterShots } from '../project/ProjectWorkbench/projectFlowStats'
+import { countShotFlow } from '../project/ProjectWorkbench/productionFlow'
 
 const { Header, Content } = Layout
 type ShotListFilter = 'all' | 'pending' | 'generating' | 'ready'
@@ -68,9 +71,9 @@ type ShotRuntimeState = {
 function getShotPreparationState(shot: ShotRead, runtime?: ShotRuntimeState): ShotPreparationState {
   if (runtime?.has_active_tasks) {
     return {
-      text: '生成中',
+      text: '任务未结束',
       color: 'processing',
-      hint: `当前镜头有 ${runtime.active_task_count} 个运行中任务`,
+      hint: `当前镜头有 ${runtime.active_task_count} 个未结束任务，可能正在等待、执行或暂停`,
     }
   }
   if (shot.status === 'ready') {
@@ -91,11 +94,20 @@ function getShotPreparationState(shot: ShotRead, runtime?: ShotRuntimeState): Sh
   }
 }
 
+/** Isolate chapter forms and outstanding mutations when the router reuses this page for another chapter. */
 export function ChapterShotsPage() {
+  const { projectId, chapterId } = useParams()
+  return <ChapterShotList key={JSON.stringify([projectId, chapterId])} />
+}
+
+/** Observe and edit only one mounted chapter, preserving the identity of any already submitted operation. */
+function ChapterShotList() {
   const taskCopy = TASK_COPY.chapterDivision
   const navigate = useNavigate()
   const { projectId, chapterId } = useParams<{ projectId: string; chapterId: string }>()
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState('')
+  const [chapterOwned, setChapterOwned] = useState(false)
   const [shots, setShots] = useState<ShotRead[]>([])
   const [shotRuntimeMap, setShotRuntimeMap] = useState<Record<string, ShotRuntimeState>>({})
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
@@ -114,24 +126,46 @@ export function ChapterShotsPage() {
   const [chapterDivisionTaskLoading, setChapterDivisionTaskLoading] = useState(false)
   const extracting = chapterDivisionTaskLoading
 
+  const routeScope = JSON.stringify([projectId, chapterId])
+  const currentScope = useRef(routeScope)
+  currentScope.current = routeScope
+  const mounted = useRef(false)
+  const sequenceRef = useRef(0)
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; sequenceRef.current++ } }, [])
+
+  /** Read the complete chapter and ignore late responses after route changes. */
   const refresh = async () => {
-    if (!chapterId) return
+    if (!chapterId || !mounted.current || currentScope.current !== routeScope) return
+    const sequence = ++sequenceRef.current
+    const isCurrent = () => mounted.current && currentScope.current === routeScope && sequenceRef.current === sequence
     setLoading(true)
+    setLoadingChapter(true)
+    setLoadError('')
+    setChapterOwned(false)
+    setShots([])
+    setShotRuntimeMap({})
+    setSelectedRowKeys([])
+    setChapterTitle('')
+    setChapterRawText('')
+    setChapterCondensedText('')
     try {
-      const [res, runtimeRes] = await Promise.all([
-        StudioShotsService.listShotsApiV1StudioShotsGet({
-          chapterId,
-          page: 1,
-          pageSize: 100,
-          order: 'index',
-          isDesc: false,
-        }),
-        StudioShotsService.listShotRuntimeSummaryApiV1StudioShotsRuntimeSummaryGet({
-          chapterId,
-        }),
+      const [res, runtimeRes, chapterRes] = await Promise.all([
+        loadCompleteChapterShots(chapterId, isCurrent),
+        StudioShotsService.listShotRuntimeSummaryApiV1StudioShotsRuntimeSummaryGet({ chapterId }),
+        StudioChaptersService.getChapterApiV1StudioChaptersChapterIdGet({ chapterId }),
       ])
-      setShots(res.data?.items ?? [])
-      const runtimeItems: ShotRuntimeSummaryRead[] = runtimeRes.data ?? []
+      if (!isCurrent()) return
+      const chapter = chapterRes.data
+      if (!chapter || chapter.project_id !== projectId) throw new Error('章节不属于当前工程')
+      if (!Array.isArray(runtimeRes.data)) throw new Error('分镜任务读取不完整')
+      const runtimeItems: ShotRuntimeSummaryRead[] = runtimeRes.data
+      countShotFlow(res, runtimeItems)
+      setChapterOwned(true)
+      setChapterTitle(chapter.title)
+      setChapterIndex(chapter.index)
+      setChapterRawText(chapter.raw_text?.trim() || '')
+      setChapterCondensedText(chapter.condensed_text?.trim() || '')
+      setShots(res)
       setShotRuntimeMap(
         Object.fromEntries(
           runtimeItems.map((item) => [
@@ -148,9 +182,9 @@ export function ChapterShotsPage() {
       )
       setSelectedRowKeys([])
     } catch {
-      message.error('加载分镜失败')
+      if (isCurrent()) { setLoadError('分镜或章节资料读取失败，请重试。'); message.error('加载分镜失败') }
     } finally {
-      setLoading(false)
+      if (isCurrent()) { setLoading(false); setLoadingChapter(false) }
     }
   }
 
@@ -174,36 +208,20 @@ export function ChapterShotsPage() {
 
   useEffect(() => {
     setSelectedRowKeys([])
+    setCreateOpen(false)
+    setCreateSubmitting(false)
+    createForm.resetFields()
     void refresh()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapterId])
-
-  useEffect(() => {
-    if (!chapterId) return
-    setLoadingChapter(true)
-    StudioChaptersService.getChapterApiV1StudioChaptersChapterIdGet({ chapterId })
-      .then((res) => {
-        const c = res.data
-        setChapterTitle(c?.title ?? '')
-        setChapterIndex(typeof c?.index === 'number' ? c.index : null)
-        setChapterRawText(c?.raw_text?.trim?.() ? c.raw_text.trim() : '')
-        setChapterCondensedText(c?.condensed_text?.trim?.() ? c.condensed_text.trim() : '')
-      })
-      .catch(() => {
-        message.error('章节加载失败')
-      })
-      .finally(() => {
-        setLoadingChapter(false)
-      })
-  }, [chapterId])
+  }, [projectId, chapterId])
 
   const filteredShots = useMemo(() => {
     const q = searchText.trim().toLowerCase()
     const byWorkflow = shots.filter((s) => {
       const runtime = shotRuntimeMap[s.id]
       if (listFilter === 'generating') return Boolean(runtime?.has_active_tasks)
-      if (listFilter === 'ready') return s.status === 'ready' && !runtime?.has_active_tasks
-      if (listFilter === 'pending') return s.status !== 'ready' && !runtime?.has_active_tasks
+      if (listFilter === 'ready') return s.status === 'ready'
+      if (listFilter === 'pending') return s.status !== 'ready'
       return true
     })
     if (!q) return byWorkflow
@@ -218,12 +236,15 @@ export function ChapterShotsPage() {
   const shotFilterCounts = useMemo(
     () => ({
       all: shots.length,
-      pending: shots.filter((s) => s.status !== 'ready' && !shotRuntimeMap[s.id]?.has_active_tasks).length,
+      pending: shots.filter((s) => s.status !== 'ready').length,
       generating: shots.filter((s) => Boolean(shotRuntimeMap[s.id]?.has_active_tasks)).length,
-      ready: shots.filter((s) => s.status === 'ready' && !shotRuntimeMap[s.id]?.has_active_tasks).length,
+      ready: shots.filter((s) => s.status === 'ready').length,
     }),
     [shotRuntimeMap, shots],
   )
+
+  /** Unknown or failed observations must not display invented zero counts. */
+  const observedCount = (value: number) => loading || loadError ? '—' : value
 
   const selectedShotIds = useMemo(() => selectedRowKeys.map((k) => String(k)), [selectedRowKeys])
 
@@ -237,10 +258,12 @@ export function ChapterShotsPage() {
     createForm.resetFields()
   }, [createForm])
 
+  /** Create the shot and blank preparation detail together so manual work can immediately continue in the editor. */
   const submitCreate = useCallback(async () => {
-    if (!chapterId) return
+    if (!chapterId || !chapterOwned || !mounted.current || currentScope.current !== routeScope) return
     try {
       const v = await createForm.validateFields()
+      if (!mounted.current || currentScope.current !== routeScope) return
       setCreateSubmitting(true)
       const nextIndex = shots.reduce((m, s) => Math.max(m, s.index), 0) + 1
       const res = await StudioShotsService.createShotApiV1StudioShotsPost({
@@ -251,21 +274,22 @@ export function ChapterShotsPage() {
           title: v.title.trim(),
           script_excerpt: v.script_excerpt?.trim() ? v.script_excerpt.trim() : '',
           status: 'pending',
+          create_detail: true,
         },
       })
       const created = res.data
-      if (created) {
+      if (created && mounted.current && currentScope.current === routeScope) {
         setShots((prev) => [...prev, created].sort((a, b) => a.index - b.index))
         message.success('已创建分镜')
         closeCreate()
       }
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'errorFields' in e) return
-      message.error('创建失败')
+      if (mounted.current && currentScope.current === routeScope) message.error('创建失败')
     } finally {
-      setCreateSubmitting(false)
+      if (mounted.current && currentScope.current === routeScope) setCreateSubmitting(false)
     }
-  }, [chapterId, closeCreate, createForm, shots])
+  }, [chapterId, chapterOwned, closeCreate, createForm, routeScope, shots])
 
   /** Open the same saved-source candidate flow as the chapter table, without a legacy model POST. */
   const handleOneClickExtract = useCallback(async () => {
@@ -555,6 +579,7 @@ export function ChapterShotsPage() {
           flexDirection: 'column',
         }}
       >
+        {loadError && <Alert type="error" showIcon message={loadError} action={<Button onClick={() => void refresh()}>重试读取</Button>} />}
         <Card
           className="production-sheet"
           title={
@@ -616,7 +641,7 @@ export function ChapterShotsPage() {
                   </Button>
                 </span>
               </Tooltip>
-              <Button icon={<PlusOutlined />} onClick={openCreate} loading={extracting} disabled={extracting}>
+              <Button icon={<PlusOutlined />} disabled={!chapterOwned || loading || extracting} onClick={openCreate} loading={extracting}>
                 创建分镜
               </Button>
               <Button
@@ -654,10 +679,10 @@ export function ChapterShotsPage() {
                 value={listFilter}
                 onChange={(value) => setListFilter(value as ShotListFilter)}
                 options={[
-                  { label: `全部 ${shotFilterCounts.all}`, value: 'all' },
-                  { label: `待确认 ${shotFilterCounts.pending}`, value: 'pending' },
-                  { label: `生成中 ${shotFilterCounts.generating}`, value: 'generating' },
-                  { label: `已就绪 ${shotFilterCounts.ready}`, value: 'ready' },
+                  { label: `全部 ${observedCount(shotFilterCounts.all)}`, value: 'all' },
+                  { label: `待确认 ${observedCount(shotFilterCounts.pending)}`, value: 'pending' },
+                  { label: `任务未结束 ${observedCount(shotFilterCounts.generating)}`, value: 'generating' },
+                  { label: `信息已确认 ${observedCount(shotFilterCounts.ready)}`, value: 'ready' },
                 ]}
               />
               {selectedRowKeys.length > 0 ? (

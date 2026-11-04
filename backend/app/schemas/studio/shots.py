@@ -54,7 +54,8 @@ class ShotExtractionSummaryRead(BaseModel):
 
 
 class ShotCreate(ShotBase):
-    pass
+    """Keep legacy two-step clients while allowing the manual editor to create a usable shot atomically."""
+    create_detail: bool = Field(False, description="在同一事务中建立空白镜头详情；旧客户端可继续单独创建详情")
 
 
 class ShotUpdate(BaseModel):

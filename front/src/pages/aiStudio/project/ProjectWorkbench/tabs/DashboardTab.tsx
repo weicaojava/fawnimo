@@ -1,94 +1,33 @@
-import { Button, Statistic, Progress, Space, Skeleton } from 'antd'
+import { Alert, Button, Statistic, Progress, Space, Skeleton } from 'antd'
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   FileSearchOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons'
-import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { TabKey } from '../constants'
-import { getChapterShotsPath, getChapterStudioPath, getProjectChaptersPath, getProjectEditorPath } from '../routes'
-import { useProject, useChapters } from '../hooks/useProjectData'
+import { getChapterShotsPath, getChapterShotEditPath, getProjectChaptersPath, getProjectEditorPath } from '../routes'
+import type { ChaptersState, ProjectState } from '../hooks/useProjectData'
+import type { ProductionFlowState } from '../hooks/useProductionFlow'
 import { ensureHasShotsBeforeShooting } from '../ensureHasShotsBeforeShooting'
 import { getChapterPreparationState } from '../chapterPreparation'
-import {
-  loadChapterFlowStats,
-  loadProjectFlowStatsForChapters,
-  type ChapterFlowStats,
-  type ProjectFlowStats,
-} from '../projectFlowStats'
 
 /** Summarize real chapter preparation and shot runtime data as a production ledger. */
-export function DashboardTab({ onSelectTab }: { onSelectTab: (tab: TabKey) => void }) {
+export function DashboardTab({ onSelectTab, projectState, chaptersState, flowState }: { onSelectTab: (tab: TabKey) => void; projectState: ProjectState; chaptersState: ChaptersState; flowState: ProductionFlowState }) {
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId: string }>()
-  const { project, loading: projectLoading } = useProject(projectId)
-  const { chapters, loading: chaptersLoading } = useChapters(projectId)
-  const [flowStats, setFlowStats] = useState<ProjectFlowStats>({
-    totalShots: 0,
-    pendingConfirmShots: 0,
-    readyShots: 0,
-    generatingShots: 0,
-  })
-  const [chapterFlowStats, setChapterFlowStats] = useState<ChapterFlowStats[]>([])
-  const [flowStatsLoading, setFlowStatsLoading] = useState(false)
-
+  const { project, loading: projectLoading } = projectState
+  const { chapters, loading: chaptersLoading, error: chaptersError, refresh: refreshChapters } = chaptersState
+  const flowStats = flowState.totals
+  const chapterFlowStats = Object.values(flowState.byChapter)
+  const flowStatsLoading = flowState.loading
   const loading = projectLoading || chaptersLoading
   const chaptersByIndex = [...chapters].sort((a, b) => a.index - b.index)
-  const incompleteChapters = chaptersByIndex.filter((c) => c.status !== 'done')
-  const recommendedChapter =
-    chaptersByIndex.find((chapter) => getChapterPreparationState(chapter).key === 'edit_raw') ??
-    chaptersByIndex.find((chapter) => getChapterPreparationState(chapter).key === 'extract_shots') ??
-    chaptersByIndex.find((chapter) => getChapterPreparationState(chapter).key === 'prepare_shots') ??
-    chaptersByIndex.find((chapter) => getChapterPreparationState(chapter).key === 'shoot') ??
-    chaptersByIndex[0] ??
-    null
-
-  useEffect(() => {
-    let cancelled = false
-    if (!projectId || !chapters.length) {
-      setFlowStats({
-        totalShots: 0,
-        pendingConfirmShots: 0,
-        readyShots: 0,
-        generatingShots: 0,
-      })
-      setChapterFlowStats([])
-      return () => {
-        cancelled = true
-      }
-    }
-
-    const run = async () => {
-      setFlowStatsLoading(true)
-      try {
-        const [stats, chapterStats] = await Promise.all([
-          loadProjectFlowStatsForChapters(chapters),
-          loadChapterFlowStats(chapters),
-        ])
-        if (!cancelled) setFlowStats(stats)
-        if (!cancelled) setChapterFlowStats(chapterStats)
-      } catch {
-        if (!cancelled) {
-          setFlowStats({
-            totalShots: 0,
-            pendingConfirmShots: 0,
-            readyShots: 0,
-            generatingShots: 0,
-          })
-          setChapterFlowStats([])
-        }
-      } finally {
-        if (!cancelled) setFlowStatsLoading(false)
-      }
-    }
-
-    void run()
-    return () => {
-      cancelled = true
-    }
-  }, [chapters, projectId])
+  const incompleteChapters = chaptersByIndex.filter(chapter => chapter.status !== 'done')
+  const recommendedChapter = ['edit_raw', 'extract_shots', 'prepare_shots', 'shoot']
+    .map(key => chaptersByIndex.find(chapter => getChapterPreparationState(chapter, flowState.byChapter[chapter.id]).key === key))
+    .find(Boolean) ?? null
 
   if (loading && !project) {
     return (
@@ -103,11 +42,11 @@ export function DashboardTab({ onSelectTab }: { onSelectTab: (tab: TabKey) => vo
   }
 
   const incompleteCount = incompleteChapters.length
-  const recommendedState = recommendedChapter ? getChapterPreparationState(recommendedChapter) : null
-  const chaptersNeedingRawText = chaptersByIndex.filter((chapter) => getChapterPreparationState(chapter).key === 'edit_raw').length
-  const chaptersNeedingShotExtract = chaptersByIndex.filter((chapter) => getChapterPreparationState(chapter).key === 'extract_shots').length
-  const chaptersNeedingShotPrep = chaptersByIndex.filter((chapter) => getChapterPreparationState(chapter).key === 'prepare_shots').length
-  const chaptersReadyForShoot = chaptersByIndex.filter((chapter) => getChapterPreparationState(chapter).key === 'shoot').length
+  const recommendedState = recommendedChapter ? getChapterPreparationState(recommendedChapter, flowState.byChapter[recommendedChapter.id]) : null
+  const chaptersNeedingRawText = chaptersByIndex.filter((chapter) => getChapterPreparationState(chapter, flowState.byChapter[chapter.id]).key === 'edit_raw').length
+  const chaptersNeedingShotExtract = chaptersByIndex.filter((chapter) => getChapterPreparationState(chapter, flowState.byChapter[chapter.id]).key === 'extract_shots').length
+  const chaptersNeedingShotPrep = chaptersByIndex.filter((chapter) => getChapterPreparationState(chapter, flowState.byChapter[chapter.id]).key === 'prepare_shots').length
+  const chaptersReadyForShoot = chaptersByIndex.filter((chapter) => getChapterPreparationState(chapter, flowState.byChapter[chapter.id]).key === 'shoot').length
   const topPendingChapter = [...chapterFlowStats].sort((a, b) => b.pendingConfirmShots - a.pendingConfirmShots)[0]
   const topGeneratingChapter = [...chapterFlowStats].sort((a, b) => b.generatingShots - a.generatingShots)[0]
   const topReadyChapter = [...chapterFlowStats].sort((a, b) => b.readyShots - a.readyShots)[0]
@@ -115,6 +54,7 @@ export function DashboardTab({ onSelectTab }: { onSelectTab: (tab: TabKey) => vo
   /** Continue the same recommended chapter through the existing preparation and studio routes. */
   const handleRecommendedAction = () => {
     if (!projectId) return
+    if (chaptersError) { void refreshChapters(); return }
     if (!recommendedChapter || !recommendedState) {
       onSelectTab('chapters')
       return
@@ -125,17 +65,18 @@ export function DashboardTab({ onSelectTab }: { onSelectTab: (tab: TabKey) => vo
       return
     }
     if (recommendedState.key === 'extract_shots') {
-      navigate(getChapterShotsPath(projectId, recommendedChapter.id))
+      navigate(`/projects/${projectId}?tab=chapters&edit=${encodeURIComponent(recommendedChapter.id)}&ai=divide`)
       return
     }
     if (recommendedState.key === 'prepare_shots') {
-      navigate(getChapterStudioPath(projectId, recommendedChapter.id))
+      const pendingId = flowState.byChapter[recommendedChapter.id]?.firstPendingShotId
+      navigate(pendingId ? getChapterShotEditPath(projectId, recommendedChapter.id, pendingId) : getChapterShotsPath(projectId, recommendedChapter.id))
       return
     }
     void ensureHasShotsBeforeShooting({
       projectId,
       chapterId: recommendedChapter.id,
-      storyboardCount: recommendedChapter.storyboardCount,
+      storyboardCount: flowState.byChapter[recommendedChapter.id]?.totalShots,
       navigate,
     })
   }
@@ -157,27 +98,29 @@ export function DashboardTab({ onSelectTab }: { onSelectTab: (tab: TabKey) => vo
     },
     {
       key: 'prepare_shots',
-      title: '待准备镜头',
+      title: '待核对与确认',
       count: chaptersNeedingShotPrep,
-      hint: '已有分镜，建议进入工作室继续处理',
+      hint: '先在分镜编辑页完成信息确认',
       icon: <ClockCircleOutlined />,
     },
     {
       key: 'shoot',
-      title: '可继续拍摄',
+      title: '可进入生成准备',
       count: chaptersReadyForShoot,
-      hint: '这部分章节已具备继续拍摄条件',
+      hint: '分镜信息已确认，生成条件到工作室核对',
       icon: <CheckCircleOutlined />,
     },
   ] as const
 
   return (
     <div className="project-dashboard">
+      {chaptersError && <Alert type="error" showIcon message={chaptersError} action={<Button onClick={() => void refreshChapters()}>重试读取章节</Button>} />}
+
       <section className="project-next-action">
         <div>
           <h2>当前推荐动作</h2>
           <p>
-            {recommendedChapter && recommendedState
+            {chaptersError ? '章节尚未读取成功，请重试后继续。' : chaptersLoading ? '正在读取实际章节。' : recommendedChapter && recommendedState
               ? `第${recommendedChapter.index}章：${recommendedState.hint}`
               : '暂无章节，可先创建第一章'}
           </p>
@@ -187,33 +130,34 @@ export function DashboardTab({ onSelectTab }: { onSelectTab: (tab: TabKey) => vo
           <Button onClick={() => projectId && navigate(getProjectEditorPath(projectId))}>进入后期剪辑</Button>
           <Button
             type="primary"
+            disabled={chaptersLoading}
             icon={recommendedState?.primaryIcon ?? <VideoCameraOutlined />}
             onClick={handleRecommendedAction}
           >
-            {recommendedChapter && recommendedState ? recommendedState.primaryAction : '创建第一章'}
+            {chaptersLoading ? '读取制作资料…' : chaptersError ? '重试读取章节' : recommendedChapter && recommendedState ? recommendedState.primaryAction : '创建第一章'}
           </Button>
         </Space>
       </section>
 
       <div className="project-dashboard-stats">
-        <div><Statistic title="未完成章节" value={incompleteCount} /></div>
+        <div><Statistic title="未标记完成章节" value={chaptersLoading || chaptersError ? '—' : incompleteCount} /></div>
         <div>
           <Statistic
             title="待确认分镜"
-            value={flowStats.pendingConfirmShots}
-            suffix={flowStats.totalShots ? `/ ${flowStats.totalShots}` : undefined}
+            value={flowStats?.pendingConfirmShots ?? '—'}
+            suffix={flowStats?.totalShots ? `/ ${flowStats.totalShots}` : undefined}
             loading={flowStatsLoading}
           />
         </div>
-        <div><Statistic title="已就绪分镜" value={flowStats.readyShots} loading={flowStatsLoading} /></div>
+        <div><Statistic title="已确认分镜" value={flowStats?.readyShots ?? '—'} loading={flowStatsLoading} /></div>
         <div>
-          <Statistic title="生成中分镜" value={flowStats.generatingShots} loading={flowStatsLoading} />
-          <Progress
-            percent={flowStats.totalShots ? Math.round((flowStats.readyShots / flowStats.totalShots) * 100) : project.progress}
+          <Statistic title="视频任务未结束" value={flowStats?.generatingShots ?? '—'} loading={flowStatsLoading} />
+          {flowStats && <Progress
+            percent={flowStats?.totalShots ? Math.round((flowStats.readyShots / flowStats.totalShots) * 100) : 0}
             showInfo={false}
             size="small"
             strokeColor="var(--color-accent)"
-          />
+          />}
         </div>
       </div>
 
@@ -222,7 +166,7 @@ export function DashboardTab({ onSelectTab }: { onSelectTab: (tab: TabKey) => vo
           <h2>当前待办</h2>
           <Button type="link" onClick={() => projectId && navigate(getProjectChaptersPath(projectId))}>查看全部</Button>
         </div>
-        {chapters.length === 0 ? (
+        {chaptersLoading ? <Skeleton title={false} paragraph={{ rows: 1 }} /> : chaptersError ? <p>章节尚未读取成功。</p> : chapters.length === 0 ? (
           <div className="project-empty-state">
             还没有任何章节，
             <Button type="link" onClick={() => onSelectTab('chapters')}>立即创建第一章</Button>
@@ -253,7 +197,7 @@ export function DashboardTab({ onSelectTab }: { onSelectTab: (tab: TabKey) => vo
               <ClockCircleOutlined />
               <div>
                 <h3>待确认压力最大</h3>
-                <p>{topPendingChapter && topPendingChapter.pendingConfirmShots > 0
+                <p>{!flowStats ? '分镜进度尚未核对。' : topPendingChapter && topPendingChapter.pendingConfirmShots > 0
                   ? `第${topPendingChapter.chapterIndex ?? '-'}章还有 ${topPendingChapter.pendingConfirmShots} 条分镜待确认，建议优先处理。`
                   : '当前没有待确认分镜积压。'}</p>
               </div>
@@ -261,18 +205,18 @@ export function DashboardTab({ onSelectTab }: { onSelectTab: (tab: TabKey) => vo
             <div className="project-activity-row">
               <VideoCameraOutlined />
               <div>
-                <h3>当前生成最活跃</h3>
-                <p>{topGeneratingChapter && topGeneratingChapter.generatingShots > 0
-                  ? `第${topGeneratingChapter.chapterIndex ?? '-'}章有 ${topGeneratingChapter.generatingShots} 条分镜正在生成，可以继续关注结果。`
-                  : '当前没有分镜处于生成中。'}</p>
+                <h3>视频任务待处理最多</h3>
+                <p>{!flowStats ? '分镜任务尚未核对。' : topGeneratingChapter && topGeneratingChapter.generatingShots > 0
+                  ? `第${topGeneratingChapter.chapterIndex ?? '-'}章有 ${topGeneratingChapter.generatingShots} 条分镜的视频任务未结束，可到工作室查看等待、运行或暂停状态。`
+                  : '当前没有未结束的视频任务。'}</p>
               </div>
             </div>
             <div className="project-activity-row">
               <CheckCircleOutlined />
               <div>
                 <h3>最适合继续推进</h3>
-                <p>{topReadyChapter && topReadyChapter.readyShots > 0
-                  ? `第${topReadyChapter.chapterIndex ?? '-'}章已有 ${topReadyChapter.readyShots} 条已就绪分镜，适合继续推进视频生成。`
+                <p>{!flowStats ? '分镜进度尚未核对。' : topReadyChapter && topReadyChapter.readyShots > 0
+                  ? `第${topReadyChapter.chapterIndex ?? '-'}章已有 ${topReadyChapter.readyShots} 条已确认分镜，可到工作室核对生成条件。`
                   : '当前还没有明显可继续推进的视频生成批次。'}</p>
               </div>
             </div>

@@ -1,13 +1,15 @@
 import { workspaceMediaUrl } from '../../../../../services/workspaceContext'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Empty, Form, Input, List, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd'
-import { Link, useParams } from 'react-router-dom'
-import { OpenAPI, ProductionService as P, StudioChaptersService, StudioShotsService } from '../../../../../services/generated'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { OpenAPI, ProductionService as P } from '../../../../../services/generated'
 import type { AssetWrite, TakeWrite, VersionWrite } from '../../../../../services/generated'
 import { ExecutionJobsPanel } from './ExecutionJobsPanel'
 import { ReverseVideoPanel } from './ReverseVideoPanel'
 import { BenchmarkPanel } from './BenchmarkPanel'
 import { ProjectSection } from '../../ProjectSection'
+import { loadCompleteProjectChapters, loadCompleteChapterShots } from '../projectFlowStats'
+import { getProjectEditorPath } from '../routes'
 
 type Version = { id: string; revision: number; payload: { description: string; media_ids: string[] }; content_hash: string }
 type Asset = { asset: { id: string; name: string; kind: string; archived: boolean; entity_id: string | null }; versions: Version[]; affected_shot_ids: string[] }
@@ -18,44 +20,62 @@ const kinds = [{ value: 'character', label: '角色' }, { value: 'appearance', l
 /** Real project library: versions and imported takes stay distinct from model generation. */
 export function ProductionTab() {
   const { projectId = '' } = useParams()
+  const navigate = useNavigate()
   const [assets, setAssets] = useState<Asset[]>([])
   const [media, setMedia] = useState<Media[]>([])
   const [takes, setTakes] = useState<Take[]>([])
   const [shots, setShots] = useState<{ value: string; label: string; chapterId: string }[]>([])
+  const [chapterOptions, setChapterOptions] = useState<{ value: string; label: string }[]>([])
+  const [editingChapter, setEditingChapter] = useState<string>()
   const [selected, setSelected] = useState<Asset | null>(null)
   const [mode, setMode] = useState<'create' | 'revise' | 'take' | null>(null)
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(false)
+  const loadSequence = useRef(0)
+  const mounted = useRef(true)
+  const mutationBusy = useRef(false)
   const [loadError, setLoadError] = useState('')
   const [form] = Form.useForm()
   const kind = Form.useWatch('kind', form)
 
   /** Refresh all visible data from generated clients; a failure remains visible. */
   const load = useCallback(async () => {
-    setLoading(true); setLoadError('')
+    if (!mounted.current) return
+    const request = ++loadSequence.current
+    setLoading(true); setLoadError(''); setAssets([]); setMedia([]); setTakes([]); setShots([]); setChapterOptions([])
     try {
       const [a, m, t, c] = await Promise.all([
         P.listAssetsApiV1StudioProductionProjectsProjectIdAssetsGet({ projectId }),
         P.listMediaApiV1StudioProductionProjectsProjectIdMediaGet({ projectId }),
         P.listTakesApiV1StudioProductionProjectsProjectIdTakesGet({ projectId }),
-        StudioChaptersService.listChaptersApiV1StudioChaptersGet({ projectId, pageSize: 100 }),
+        loadCompleteProjectChapters(projectId, () => request === loadSequence.current),
       ])
+      if (request !== loadSequence.current) return
+      setChapterOptions(c.map(chapter => ({ value: chapter.id, label: `第${chapter.index}章 · ${chapter.title}` })))
+      setEditingChapter(previous => c.some(chapter => chapter.id === previous) ? previous : c[0]?.id)
       const next = (a.data ?? []) as Asset[]
       setAssets(next); setMedia((m.data ?? []) as Media[]); setTakes((t.data ?? []) as Take[])
       setSelected(old => next.find(item => item.asset.id === old?.asset.id) ?? next[0] ?? null)
-      const lists = await Promise.all((c.data?.items ?? []).map(ch => StudioShotsService.listShotsApiV1StudioShotsGet({ chapterId: ch.id, pageSize: 100 })))
-      setShots(lists.flatMap((list, index) => (list.data?.items ?? []).map(s => ({ value: s.id, label: s.title, chapterId: c.data!.items[index].id }))))
-    } catch { setLoadError('读取工程资产失败，请重试。历史记录未被修改。') }
-    finally { setLoading(false) }
+      const lists = []
+      for (let offset = 0; offset < c.length && request === loadSequence.current; offset += 4) {
+        lists.push(...await Promise.all(c.slice(offset, offset + 4).map(chapter => loadCompleteChapterShots(chapter.id, () => request === loadSequence.current))))
+      }
+      if (request !== loadSequence.current) return
+      setShots(lists.flatMap((list, index) => list.map(shot => ({ value: shot.id, label: `第${c[index].index}章 / ${shot.index}. ${shot.title}`, chapterId: c[index].id }))))
+
+    } catch { if (request === loadSequence.current) setLoadError('读取工程资产失败，请重试。历史记录未被修改。') }
+    finally { if (request === loadSequence.current) setLoading(false) }
   }, [projectId])
-  useEffect(() => { setSelected(null); void load() }, [load])
+  useEffect(() => { mounted.current = true; setSelected(null); void load(); return () => { mounted.current = false; loadSequence.current++ } }, [load])
 
   /** Run one mutation at a time and surface server validation messages. */
   async function mutate(action: () => Promise<unknown>) {
+    if (!mounted.current || mutationBusy.current) return
+    mutationBusy.current = true
     setBusy(true)
-    try { await action(); setMode(null); form.resetFields(); await load(); message.success('已保存') }
-    catch (e) { const error = e as { body?: { message?: string } }; message.error(error.body?.message ?? '保存失败，请刷新后重试') }
-    finally { setBusy(false) }
+    try { await action(); if (!mounted.current) return; setMode(null); form.resetFields(); await load(); if (mounted.current) message.success('已保存') }
+    catch (e) { const error = e as { body?: { message?: string } }; if (mounted.current) message.error(error.body?.message ?? '保存失败，请刷新后重试') }
+    finally { mutationBusy.current = false; if (mounted.current) setBusy(false) }
   }
 
   /** Publish an append-only revision or record an explicitly imported candidate. */
@@ -76,18 +96,18 @@ export function ProductionTab() {
 
   const mediaOptions = media.map(m => ({ value: m.id, label: m.name }))
   return <div className="project-production">
-    <Alert type="info" showIcon message="工程资产与版本" description="修订会新增版本，已采用片段保留原版本。这里导入的文件属于用户素材，不计作模型生成或成片验收。" />
+    <Alert type="info" showIcon message="工程素材与版本" description="导入本工程的素材并建立资产版本。修改会新增版本，已采用片段保留原版本；导入视频后可前往对应章节的剪辑页确认采用。" />
     {loadError && <Alert type="error" message={loadError} action={<Button onClick={() => void load()}>重试</Button>} />}
-    <ProjectSection title="资产库" loading={loading} extra={<Button type="primary" onClick={() => { form.resetFields(); setMode('create') }}>新建版本资产</Button>}>
+    <ProjectSection title="资产库" loading={loading} extra={<Button type="primary" disabled={busy} onClick={() => { form.resetFields(); setMode('create') }}>新建版本资产</Button>}>
       <div className="project-version-layout">
         <List dataSource={assets} locale={{ emptyText: <Empty description="尚未创建版本资产" /> }} renderItem={item => <List.Item>
-          <Button type={selected?.asset.id === item.asset.id ? 'primary' : 'text'} onClick={() => setSelected(item)}>{item.asset.name}</Button>
+          <Button disabled={busy} type={selected?.asset.id === item.asset.id ? 'primary' : 'text'} onClick={() => setSelected(item)}>{item.asset.name}</Button>
           <Space><Tag>{kinds.find(k => k.value === item.asset.kind)?.label}</Tag><Tag>{item.asset.archived ? '已归档' : `v${item.versions[0]?.revision}`}</Tag></Space>
         </List.Item>} />
         <div>{selected ? <>
           <h3 className="text-base font-semibold mb-3">{selected.asset.name} 版本历史</h3>
           <Space wrap className="mb-3">
-            <Button disabled={selected.asset.archived} onClick={() => { form.resetFields(); form.setFieldsValue(selected.versions[0]?.payload); setMode('revise') }}>修订为新版本</Button>
+            <Button disabled={busy || selected.asset.archived} onClick={() => { form.resetFields(); form.setFieldsValue(selected.versions[0]?.payload); setMode('revise') }}>修订为新版本</Button>
             <Popconfirm title={selected.asset.archived ? '恢复此资产？' : '归档此资产？'} description={`关联 ${selected.affected_shot_ids.length} 个镜头，历史采用记录会保留。`} onConfirm={() => mutate(() => P.archiveAssetApiV1StudioProductionProjectsProjectIdAssetsAssetIdArchivePatch({ projectId, assetId: selected.asset.id, requestBody: { archived: !selected.asset.archived } }))}>
               <Button disabled={busy}>{selected.asset.archived ? '恢复资产' : '归档资产'}</Button>
             </Popconfirm>
@@ -102,8 +122,9 @@ export function ProductionTab() {
       <p className="text-gray-500 mb-3">媒体包只导入清单内的素材。文件上限 64 MB；不接受脚本、链接或未经声明的归档内容。</p>
       <List dataSource={media} locale={{ emptyText: '暂无媒体' }} renderItem={m => <List.Item><a href={workspaceMediaUrl(`${OpenAPI.BASE}/api/v1/studio/production/projects/${encodeURIComponent(projectId)}/media/${encodeURIComponent(m.id)}/content`)} target="_blank" rel="noreferrer">{m.name}</a><div className="project-inline-facts"><span>{Math.ceil(m.size / 1024)} KB</span><span>用户导入</span></div></List.Item>} />
     </ProjectSection>
-    <Alert className="mb-3" type="info" message="已登记制作剧本的工程，请在剪辑页明确采用或切回" description="下方原采用入口保留给未登记剧本的工程；已登记工程会拒绝此旧入口，请使用片段旁的剪辑页链接。历史记录与用户素材仍可查看。" />
-    <ProjectSection title="采用记录" extra={<Button disabled={!shots.length || !media.some(m => m.mime.startsWith('video/')) || !assets.length} onClick={() => { form.resetFields(); setMode('take') }}>采用导入片段</Button>}>
+    <ProjectSection title="采用记录" extra={<Space wrap><Select aria-label="素材采用章节" placeholder="选择章节" style={{ minWidth: 200 }} value={editingChapter} options={chapterOptions} disabled={busy || loading} onChange={setEditingChapter} /><Button type="primary" disabled={busy || loading || !editingChapter} onClick={() => navigate(`${getProjectEditorPath(projectId)}?chapter=${encodeURIComponent(editingChapter!)}`)}>在剪辑页采用素材</Button></Space>}>
+      <p className="mb-3">选择章节后，在剪辑页为每个分镜确认片段，建立时间线，再继续处理声音和导出。</p>
+      <details className="mb-3"><summary>历史项目的资产版本采用</summary><p>此入口仅适用于未登记制作剧本的历史工程；已登记工程请使用上方剪辑入口。</p><Button disabled={busy || loading || !shots.length || !media.some(m => m.mime.startsWith('video/')) || !assets.length} onClick={() => { form.resetFields(); setMode('take') }}>历史项目采用导入片段</Button></details>
       <List dataSource={takes} locale={{ emptyText: '暂无采用记录' }} renderItem={t => <List.Item><div>{shots.find(s => s.value === t.shot_id)?.label ?? t.shot_id}<p><a href={workspaceMediaUrl(`${OpenAPI.BASE}/api/v1/studio/production/projects/${encodeURIComponent(projectId)}/media/${encodeURIComponent(t.media_id)}/content`)} target="_blank" rel="noreferrer">{media.find(m => m.id === t.media_id)?.name ?? '媒体待核验'} · 查看片段</a></p><p>{shots.find(s => s.value === t.shot_id)?.chapterId && <Link to={`/projects/${projectId}/editor?chapter=${encodeURIComponent(shots.find(s => s.value === t.shot_id)!.chapterId)}`}>去剪辑页确认采用或切回</Link>}</p><div className="project-inline-facts"><span>{t.provenance === "execution_candidate_unqualified" ? "执行候选（未获质量资格）" : t.provenance === "user_import" ? "用户导入" : "历史素材（来源未核定）"}</span><span>{t.versions.map(v => `v${v.revision}`).join(' / ')}</span><span>历史版本已固定</span></div></div>{t.selected ? <Tag color="green">当前采用</Tag> : <Button disabled={busy} onClick={() => void mutate(() => P.postSelectionApiV1StudioProductionProjectsProjectIdTakesTakeIdSelectPost({ projectId, takeId: t.id }))}>切换采用</Button>}</List.Item>} />
     </ProjectSection>
     <div className="project-production-tools">

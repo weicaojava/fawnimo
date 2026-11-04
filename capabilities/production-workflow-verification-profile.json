@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "profile": "video_production_workflow_local_v1",
+  "source_parent": "a16d64057ae4c356d8653d4566f4e023afdc209c",
+  "scope": "Bounded local functional workflow and exact compiled UI; implementation, model/film quality, independent review and publication CI remain separate claims.",
+  "software_checks": {
+    "backend_related_passed": 67,
+    "new_manual_creation_cases": 4,
+    "frontend_unit_passed": 20,
+    "frontend_typecheck": true,
+    "frontend_modules": 3222,
+    "frontend_inputs": 791,
+    "actual_openapi_update": true,
+    "openapi_paths": 249,
+    "openapi_schemas": 592,
+    "generated_client_files": 636,
+    "changed_generated_paths": [
+      "models/ShotCreate.ts"
+    ],
+    "schema_delta": "Only optional create_detail=false and its exact ShotCreate description; old two-step clients remain compatible.",
+    "database_connections_during_schema_export": 0
+  },
+  "final_same_build_browser": {
+    "checks_passed": 18,
+    "checks": [
+      "no_plan_has_correct_chapter_and_generation_next_steps",
+      "late_real_A_save_response_does_not_replace_B_editor",
+      "second_real_save_targets_B_and_retains_A_original_excerpt",
+      "missing_runtime_is_unknown_and_cannot_enable_creation",
+      "new_manual_shot_and_detail_commit_together_and_stay_pending",
+      "new_manual_shot_opens_confirmation_directly",
+      "explicit_authored_skip_confirms_information_only",
+      "all_confirmed_chapter_enters_exact_generation_studio",
+      "101_shot_editor_reads_both_pages_before_explicit_legacy_recovery",
+      "explicit_legacy_recovery_preserves_original_shot_and_pending_content",
+      "mismatched_project_chapter_shot_route_does_not_expose_edit_form",
+      "same_export_persists_across_gateway_restart_without_rerender",
+      "restarted_native_video_is_identical",
+      "restarted_native_subtitles_srt_is_identical",
+      "restarted_native_subtitles_vtt_is_identical",
+      "restarted_native_package_is_identical",
+      "restarted_browser_decodes_same_28_second_movie",
+      "replay_creates_no_example_or_export_or_billable_model_request"
+    ],
+    "build_receipt_sha256": "bd00455ab12b883395ee3ee263127ba4a69f6e3cb5e3c846d7f9fcb69e35d50c",
+    "actual_response_delay": "Native browser paused the original successful A PATCH response after real server processing, switched to B in the same SPA, then released A and saved B; authenticated reads verified both original identities and excerpts.",
+    "actual_new_manual_creation_and_explicit_legacy_recovery": true,
+    "actual_information_confirmation_to_generation_studio": true,
+    "native_downloads": [
+      {
+        "kind": "video",
+        "bytes": 99288,
+        "sha256": "a014cff5703249818d6ae20a682f1613356ed1ef55028dcebad729fadc4c0da1"
+      },
+      {
+        "kind": "subtitles_srt",
+        "bytes": 2,
+        "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6"
+      },
+      {
+        "kind": "subtitles_vtt",
+        "bytes": 10,
+        "sha256": "6780f75f27ae7bc4ad240abd1c65cc15d28aa1c0b6e732700a9d9e8614e5b336"
+      },
+      {
+        "kind": "package",
+        "bytes": 117518,
+        "sha256": "ae650445e137c74aee47c3ba1b7da68e2301c2cbbd646879842f2c4aec82d0fc"
+      }
+    ],
+    "original_export_reused_without_rerender": true,
+    "decoded_video": {
+      "frames": 840,
+      "width": 360,
+      "height": 640,
+      "fps": 30,
+      "duration_seconds": 28
+    }
+  },
+  "earlier_observations": {
+    "initial_compiled_build": "v2",
+    "navigation_positive_checks": 18,
+    "navigation_overall_status": "failed_harness_wait",
+    "export_continuation_passed": 13,
+    "scope_note": "Initial 101-chapter/201-shot navigation, shared reads, read failures and late-create observations belong to the earlier build. The final build separately reran manual creation/recovery, save isolation, runtime failure, route ownership, 101-shot reads and original-export reopening. Counts overlap and are not summed.",
+    "earlier_recorded_failures": "Original harness selector/pagination/input-replacement waits, initial manual missing-detail defect, and exact-schema finalizer failures are retained privately. The missing-detail defect and independent P1/P2 findings were fixed; no failed receipt is rewritten as passed.",
+    "initial_example": "Actual UI created an original seven-clip silent 28-second example; seven content declarations were authored automation inputs, not human semantic acceptance.",
+    "sound_scope": "The actual sound editor entry opened in the initial bounded export continuation; no new speech was generated in this stage."
+  },
+  "data_and_cleanup": {
+    "new_authored_private_accounts": 2,
+    "original_user_data_used": false,
+    "actual_B_foreign_project_read_rejected_in_initial_continuation": true,
+    "read_only_final_databases_integrity_ok": true,
+    "billable_execution_and_charge_tables_zero": true,
+    "local_speech_jobs_zero": true,
+    "owned_gateway_lifetimes_closed": 4,
+    "owned_workers_remaining": 0,
+    "original_HEAD_index_preserved": true
+  },
+  "qualification_boundaries": {
+    "independent_final_tree_review": "Separate exact-tree receipt required before publication; local result does not grant it.",
+    "publication_CI": "See exact PR and main Actions for this revision; older passing main a16d64 is not this revision.",
+    "actual_AI_model_used": false,
+    "real_speech_generated_in_this_check": false,
+    "human_semantic_quality_qualified": false,
+    "model_quality_qualified": false,
+    "complete_film_qualified": false,
+    "public_deployment_verified": false,
+    "actual_github_app_used": false,
+    "github_app_deferred_by_user": true,
+    "paid_authorization": 0,
+    "overall_goal_complete": false
+  }
+}

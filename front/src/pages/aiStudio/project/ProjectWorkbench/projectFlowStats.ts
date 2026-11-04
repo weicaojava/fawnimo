@@ -1,91 +1,50 @@
-import { StudioShotsService } from '../../../../services/generated'
-import type { ShotRead, ShotRuntimeSummaryRead } from '../../../../services/generated'
+import { StudioChaptersService, StudioShotsService } from '../../../../services/generated'
+import { collectWorkflowPages, countShotFlow, sumChapterFlow } from './productionFlow'
+import type { FlowCounts } from './productionFlow'
 
-type ChapterLike = {
-  id: string
-  index?: number
-  title?: string
-}
-
-export type ProjectFlowStats = {
-  totalShots: number
-  pendingConfirmShots: number
-  readyShots: number
-  generatingShots: number
-}
-
-export type ChapterFlowStats = ProjectFlowStats & {
+type ChapterLike = { id: string; index?: number; title?: string }
+export type ProjectFlowStats = FlowCounts
+export type ChapterFlowStats = FlowCounts & {
   chapterId: string
   chapterIndex?: number
   chapterTitle?: string
+  firstPendingShotId?: string
 }
 
-async function loadFlowStatsForChapter(chapter: ChapterLike): Promise<ChapterFlowStats> {
-  const [shotsRes, runtimeRes] = await Promise.all([
-    StudioShotsService.listShotsApiV1StudioShotsGet({
-      chapterId: chapter.id,
-      page: 1,
-      pageSize: 100,
-      order: 'index',
-      isDesc: false,
-    }),
-    StudioShotsService.listShotRuntimeSummaryApiV1StudioShotsRuntimeSummaryGet({
-      chapterId: chapter.id,
-    }),
-  ])
-  const shots: ShotRead[] = shotsRes.data?.items ?? []
-  const runtimeRows: ShotRuntimeSummaryRead[] = runtimeRes.data ?? []
-  const runtimeMap = Object.fromEntries(runtimeRows.map((row) => [row.shot_id, row]))
+/** Load all chapters with the generated client and reject a response from a different project. */
+export async function loadCompleteProjectChapters(projectId: string, isCurrent: () => boolean = () => true) {
+  const chapters = await collectWorkflowPages((page, pageSize) => StudioChaptersService.listChaptersApiV1StudioChaptersGet({ projectId, page, pageSize, order: 'index', isDesc: false }), isCurrent)
+  if (chapters.some(chapter => chapter.project_id !== projectId)) throw new Error('章节不属于当前工程，请重新读取。')
+  return chapters
+}
 
-  const totalShots = shots.length
-  const generatingShots = shots.filter((shot) => Boolean(runtimeMap[shot.id]?.has_active_tasks)).length
-  const readyShots = shots.filter((shot) => shot.status === 'ready' && !runtimeMap[shot.id]?.has_active_tasks).length
-  const pendingConfirmShots = shots.filter((shot) => shot.status !== 'ready' && !runtimeMap[shot.id]?.has_active_tasks).length
+/** Preserve every selected chapter shot, including those after the first page. */
+export async function loadCompleteChapterShots(chapterId: string, isCurrent: () => boolean = () => true) {
+  const shots = await collectWorkflowPages((page, pageSize) => StudioShotsService.listShotsApiV1StudioShotsGet({ chapterId, page, pageSize, order: 'index', isDesc: false }), isCurrent)
+  if (shots.some(shot => shot.chapter_id !== chapterId)) throw new Error('分镜不属于当前章节，请重新读取。')
+  return shots
+}
 
-  return {
-    chapterId: chapter.id,
-    chapterIndex: chapter.index,
-    chapterTitle: chapter.title,
-    totalShots,
-    pendingConfirmShots,
-    readyShots,
-    generatingShots,
+/** Observe information confirmation and video-task facts without trusting a legacy chapter status. */
+async function loadFlowStatsForChapter(chapter: ChapterLike, isCurrent: () => boolean): Promise<ChapterFlowStats> {
+  const [shots, runtime] = await Promise.all([loadCompleteChapterShots(chapter.id, isCurrent),
+    StudioShotsService.listShotRuntimeSummaryApiV1StudioShotsRuntimeSummaryGet({ chapterId: chapter.id })])
+  if (!isCurrent()) throw new Error('本次制作资料读取已停止。')
+  if (!Array.isArray(runtime.data)) throw new Error('分镜任务读取不完整，请重试。')
+  return { chapterId: chapter.id, chapterIndex: chapter.index, chapterTitle: chapter.title, ...countShotFlow(shots, runtime.data) }
+}
+
+/** Bound concurrent reads while collecting the complete chapter list. */
+export async function loadChapterFlowStats(chapters: ChapterLike[], isCurrent: () => boolean = () => true): Promise<ChapterFlowStats[]> {
+  const results: ChapterFlowStats[] = []
+  for (let offset = 0; offset < chapters.length; offset += 4) {
+    if (!isCurrent()) throw new Error('本次制作资料读取已停止。')
+    results.push(...await Promise.all(chapters.slice(offset, offset + 4).map(chapter => loadFlowStatsForChapter(chapter, isCurrent))))
   }
+  return results
 }
 
-export async function loadChapterFlowStats(
-  chapters: ChapterLike[],
-): Promise<ChapterFlowStats[]> {
-  if (!chapters.length) return []
-  return Promise.all(chapters.map((chapter) => loadFlowStatsForChapter(chapter)))
-}
-
-export async function loadProjectFlowStatsForChapters(
-  chapters: ChapterLike[],
-): Promise<ProjectFlowStats> {
-  if (!chapters.length) {
-    return {
-      totalShots: 0,
-      pendingConfirmShots: 0,
-      readyShots: 0,
-      generatingShots: 0,
-    }
-  }
-
-  const chapterResults = await loadChapterFlowStats(chapters)
-
-  return chapterResults.reduce<ProjectFlowStats>(
-    (acc, item) => ({
-      totalShots: acc.totalShots + item.totalShots,
-      pendingConfirmShots: acc.pendingConfirmShots + item.pendingConfirmShots,
-      readyShots: acc.readyShots + item.readyShots,
-      generatingShots: acc.generatingShots + item.generatingShots,
-    }),
-    {
-      totalShots: 0,
-      pendingConfirmShots: 0,
-      readyShots: 0,
-      generatingShots: 0,
-    },
-  )
+/** Retain the aggregate helper for callers that do not also need per-chapter rows. */
+export async function loadProjectFlowStatsForChapters(chapters: ChapterLike[]): Promise<ProjectFlowStats> {
+  return sumChapterFlow(await loadChapterFlowStats(chapters))
 }
