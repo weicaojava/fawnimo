@@ -209,6 +209,7 @@ class EditItemOption(EditingDTO):
     required: bool
     text: str
     speaker_id: str | None
+    speaker_name: str | None = None
     shot_ids: list[str]
 
 

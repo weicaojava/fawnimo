@@ -37,6 +37,8 @@ OpenAI 官方 Videos API 已于2026-09-24停止，官方视频调用在密钥/�
 
 
 准确汇总源码8bb7f6d已完成独立审查、PR合并及主线2405项后端和实际容器检查。双账号原创声音/原生下载/重启和一次真实免费模型journal已独立补证，模型建议质量仍不通过。见[新增本地验收](site/content/docs/architecture/local-verification-observations.md)。
+
+双账号真实免费系统配音与原字幕/五种下载/重启已有独立联合证据；真实AI编码新单次尝试超时，没有候选。配音页面改用原计划冻结角色名称，稳定身份和历史保持。本修订准确检查以Actions为准，17项当前未完成及费用0继续保留。
 本机地址、截图或上游镜像不能作为本项目公网部署。Docker/MySQL配置不等于迁移、并发与恢复已经验收。
 
 代码保留并基于[Forget-C/Jellyfish](https://github.com/Forget-C/Jellyfish)继续开发，遵循[现有许可证](LICENSE)，来源和发布边界见[UPSTREAM.md](UPSTREAM.md)。现有代码包含上游、既有改动和AI辅助开发成果，不能宣称全部从零AI原创。仓库里的上游Issues、Actions、Pages与镜像链接属于上游，不是已交付的自有平台。

@@ -10,6 +10,14 @@ from app.services.editing.selection import write_selection,selection_history
 from app.services.editing.timeline import create_draft,patch_draft,freeze_draft,draft_view,publication_view,preflight_publication,owned_publication
 
 
+def display_items(plan, script):
+    """Enrich only catalog labels from original frozen plan facts; preserve source identities and every historical payload/hash."""
+    characters = plan.payload.get('facts', {}).get('characters', [])
+    names = {row['id']: row['name'] for row in characters
+             if isinstance(row, dict) and isinstance(row.get('name'), str) and row['name'].strip() and 'id' in row}
+    return [{**row, 'speaker_name': names.get(row['speaker_id'])} for row in original_items(plan, script)]
+
+
 async def catalog(db,project_id,chapter_id,plan_id=None):
     """List actual bounded chapter plans, sources and candidates without decoding on GET."""
     await chapter_owned(db,project_id,chapter_id)
@@ -33,4 +41,4 @@ async def catalog(db,project_id,chapter_id,plan_id=None):
                 from fastapi import HTTPException
                 raise HTTPException(409,'历史计划引用的实际镜头已不存在')
             clips.append({'shot_id':shot.id,'title':shot.title,'index':shot.index,'duration_ms':entry['duration_ms'],'takes':[await take_option(db,project_id,t,plan) for t in takes if t.shot_id==shot.id]})
-    return {'project_id':project_id,'chapter_id':chapter_id,'plans':[{'id':p.id,'content_hash':p.content_hash,'title':str(p.payload['facts'].get('chapter',{}).get('title','')) or p.id[:8]} for p in plans],'plan_id':plan.id if plan else None,'clips':clips,'items':original_items(plan,await plan_script(db,project_id,plan)) if plan else [],'selections':[await cursor_state(db,project_id,s.id) for s in shots],'media':[{'id':m.id,'name':m.name,'sha256':m.sha256,'size':m.size,'mime':m.mime} for m in media],'candidates':[{'job_id':j.id,'shot_id':l.shot_id,'plan_id':l.plan_id,'state':j.state,'media_id':j.media_id if j.state=='ready' else None} for j,l in candidates]}
+    return {'project_id':project_id,'chapter_id':chapter_id,'plans':[{'id':p.id,'content_hash':p.content_hash,'title':str(p.payload['facts'].get('chapter',{}).get('title','')) or p.id[:8]} for p in plans],'plan_id':plan.id if plan else None,'clips':clips,'items':display_items(plan,await plan_script(db,project_id,plan)) if plan else [],'selections':[await cursor_state(db,project_id,s.id) for s in shots],'media':[{'id':m.id,'name':m.name,'sha256':m.sha256,'size':m.size,'mime':m.mime} for m in media],'candidates':[{'job_id':j.id,'shot_id':l.shot_id,'plan_id':l.plan_id,'state':j.state,'media_id':j.media_id if j.state=='ready' else None} for j,l in candidates]}

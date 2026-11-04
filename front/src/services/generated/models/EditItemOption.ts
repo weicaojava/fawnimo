@@ -11,6 +11,7 @@ export type EditItemOption = {
     required: boolean;
     text: string;
     speaker_id: (string | null);
+    speaker_name?: (string | null);
     shot_ids: Array<string>;
 };
 

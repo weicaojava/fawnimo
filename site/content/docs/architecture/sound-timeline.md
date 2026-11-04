@@ -49,3 +49,5 @@ Linux声音与导出另有固定3项实际镜像档案；本机109项及自作�
 
 
 Linux WAV子程序显式加载仓库固定`local_speech_pulse.conf`，关闭PulseAudio自动启动、共享内存与memfd，不转发用户音频配置或Cookie。声音库即使读取版本也可能初始化播放上下文；固定无播放配置避免其默认共享段与32MiB文件限制冲突，输出文件、CPU/内存/时限上限保持原值。三轮失败记录与自有清理保留，实际声音资格仍需准确镜像的三个用例。参考：[PulseAudio客户端参数](https://manpages.debian.org/bookworm/pulseaudio/pulse-client.conf.5.en.html)。
+
+配音对白选择、说明和确认使用目录中的可选`speaker_name`显示原计划角色名称。该名称仅由准确计划的冻结角色事实投影，不从后来可变的角色记录覆盖历史，也不进入原始条目、已锁定版本或任务payload/hash。请求继续按原`speaker_id`及对白ID关联；旧计划缺名称时显示“原角色（未找到名称）”，未声明说话人时显示“未标明说话人”，不把内部UUID当成面向用户的姓名。

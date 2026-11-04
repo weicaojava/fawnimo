@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "source_commit": "8bb7f6db746aad88c5d11fa6e2b76a2fc9025869",
+  "source_tree": "b3527e72aa698ca5adda671fee09594469d675ef",
+  "model_quality_qualified": false,
+  "complete_film_qualified": false,
+  "public_deployment_verified": false,
+  "actual_github_app_used": false,
+  "original_user_data_used": false,
+  "external_model_calls": 0,
+  "paid_authorization": 0,
+  "overall_goal_complete": false,
+  "profile": "managed_AB_real_installed_voice_browser_v1",
+  "accounts": [
+    {
+      "side": "a",
+      "voice": "Microsoft Huihui Desktop",
+      "culture": "zh-CN",
+      "source_pcm_rate": 24000,
+      "source_pcm_frames": 55788,
+      "selected_voice_end_ms": 2320,
+      "mix_pcm_frames": 1344000,
+      "pcm_rms_error": 0.06830622408209229,
+      "pcm_max_error": 0.5007922723270894,
+      "video_frames": 840,
+      "AAC_mix_correlation": 0.9993488956674133,
+      "actual_voice_job_and_export_attempts": [
+        1,
+        1
+      ],
+      "original_script_plan_snapshots_retained": true,
+      "prepared_picture_draft_unchanged_by_sound_UI": true,
+      "paid_execution_and_charge_rows": 0
+    },
+    {
+      "side": "b",
+      "voice": "Microsoft Zira Desktop",
+      "culture": "en-US",
+      "source_pcm_rate": 24000,
+      "source_pcm_frames": 46068,
+      "selected_voice_end_ms": 1910,
+      "mix_pcm_frames": 1344000,
+      "pcm_rms_error": 0.056865945871426876,
+      "pcm_max_error": 0.5000567446168134,
+      "video_frames": 840,
+      "AAC_mix_correlation": 0.9999751898545713,
+      "actual_voice_job_and_export_attempts": [
+        1,
+        1
+      ],
+      "original_script_plan_snapshots_retained": true,
+      "prepared_picture_draft_unchanged_by_sound_UI": true,
+      "paid_execution_and_charge_rows": 0
+    }
+  ],
+  "browser_checks_by_phase": [
+    15,
+    15
+  ],
+  "overlapping_counts_not_additive": true,
+  "initial_phase_includes_recovery_of_committed_UI_steps": true,
+  "actual_fixed_workers_and_managed_browser_contexts": true,
+  "actual_Windows_SAPI_generation_verified": true,
+  "actual_AI_model_called": false,
+  "native_artifacts_per_account_per_phase": 5,
+  "video_duration_ms": 28000,
+  "video_frames": 840,
+  "mix_rate": 48000,
+  "mix_channels": 2,
+  "mix_sample_frames": 1344000,
+  "authored_dialogues": [
+    "光点照亮小岛。",
+    "The island glows."
+  ],
+  "original_subtitle_cue_ms": [
+    0,
+    1000
+  ],
+  "gain_db": -6,
+  "voice_job_attempts_per_account": 1,
+  "export_attempts_per_account": 1,
+  "restart_IDs_and_download_hashes_stable": true,
+  "foreign_voice_job_export_bytes_and_cancellation_refused": true,
+  "source_script_and_plan_snapshots_retained": true,
+  "prepared_picture_draft_unchanged_by_sound_UI": true,
+  "independent_PCM_AAC_and_readonly_database_verification": true,
+  "owned_process_trees_closed": true,
+  "human_declarations_are_automated_test_inputs": true,
+  "human_listening_qualified": false,
+  "voice_content_or_quality_qualified": false,
+  "visual_content_quality_qualified": false,
+  "independent_evidence_review_completed": true,
+  "independent_evidence_review_sha256": "42d3b6e46299b435fde986af995c37f630d75b8206f53aa3fe99d55c13a14c67",
+  "historical_source_UX_finding": "IR-VOICE-UX-001: original8bb showed speaker UUIDs; this revision adds frozen-name catalog display.",
+  "historical_review_rewritten": false
+}
